@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sheet check</title>
+  <style>
+    :root {
+      --bg: #f6f4ef; --card: #ffffff; --text: #2c2c2a; --muted: #5f5e5a;
+      --line: #d3d1c7; --accent: #534ab7; --ok: #3b6d11; --bad: #a32d2d;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1e1c; --card: #2c2c2a; --text: #f1efe8; --muted: #b4b2a9;
+        --line: #444441; --accent: #afa9ec; --ok: #97c459; --bad: #f09595;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    p.lead { color: var(--muted); margin: 0 0 20px; }
+    section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h2 { font-size: 17px; margin: 0 0 8px; }
+    label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+    input, select { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; min-height: 44px; }
+    button.primary { background: var(--accent); color: var(--card); }
+    button:disabled { opacity: .5; cursor: default; }
+    .note { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+    #status { font-weight: 600; margin: 0 0 8px; }
+    #status.ok { color: var(--ok); }
+    #status.bad { color: var(--bad); }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; background: var(--bg); border-radius: 8px; padding: 12px; max-height: 360px; overflow: auto; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Sheet check</h1>
+  <p class="lead">For grown-ups: checks this device can reach the family games Sheet.</p>
+
+  <section>
+    <h2>1. Family code</h2>
+    <label for="code">Saved on this device only</label>
+    <input id="code" type="password" autocomplete="off" placeholder="Family code">
+    <div class="row">
+      <button class="primary" id="save-code">Save code</button>
+      <button id="ping">Check connection</button>
+    </div>
+    <p class="note" id="url-note"></p>
+  </section>
+
+  <section>
+    <h2>2. Read</h2>
+    <div class="row">
+      <button id="list">List players</button>
+      <button id="outbox">Show this device's outbox</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Write a test (changes the Sheet)</h2>
+    <label for="nickname">Test player nickname</label>
+    <input id="nickname" maxlength="20" value="Test player">
+    <div class="row"><button id="add">Add test player (1 row in Profiles)</button></div>
+
+    <label for="player" style="margin-top:14px">Player for a test score</label>
+    <select id="player"><option value="">List players first</option></select>
+    <div class="row"><button id="score">Send test score (1 row in Scores)</button></div>
+    <p class="note">Test rows can be deleted from the Sheet afterwards.</p>
+  </section>
+
+  <section>
+    <p id="status">Ready.</p>
+    <pre id="out">Nothing yet.</pre>
+  </section>
+</main>
+
+<script type="module">
+  import { CONFIG } from '../shared/config.js';
+  import * as api from '../shared/api.js';
+
+  const $ = (id) => document.getElementById(id);
+  $('code').value = api.getFamilyCode();
+  $('url-note').textContent = CONFIG.appsScriptUrl.startsWith('https://')
+    ? 'Script link is set in shared/config.js.'
+    : 'Script link not set yet: shared/config.js still says TBC.';
+
+  function show(ok, label, data) {
+    $('status').textContent = label;
+    $('status').className = ok ? 'ok' : 'bad';
+    $('out').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  }
+
+  async function run(label, fn) {
+    document.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    $('status').textContent = label + '…';
+    $('status').className = '';
+    try {
+      show(true, label + ': done', await fn());
+    } catch (err) {
+      show(false, label + ': failed', String(err.message || err));
+    } finally {
+      document.querySelectorAll('button').forEach((b) => (b.disabled = false));
+    }
+  }
+
+  function fillPlayers(profiles) {
+    $('player').innerHTML = profiles.length
+      ? profiles.map((p) => `<option value="${p.profile_id}">${p.nickname.replace(/[<>&"]/g, '')}</option>`).join('')
+      : '<option value="">No players yet</option>';
+  }
+
+  $('save-code').onclick = () => {
+    const saved = api.setFamilyCode($('code').value);
+    show(saved, saved ? 'Code saved on this device' : 'Could not save (browser storage blocked)', '');
+  };
+  $('ping').onclick = () => run('Check connection', () => api.call('ping'));
+  $('list').onclick = () => run('List players', async () => {
+    const profiles = await api.fetchProfiles();
+    fillPlayers(profiles);
+    return profiles;
+  });
+  $('outbox').onclick = () => show(true, 'Outbox on this device', api.getOutbox());
+  $('add').onclick = () => run('Add test player', async () => {
+    const profile = await api.addProfile({ nickname: $('nickname').value, avatar: 'test', colour: '#7F77DD' });
+    fillPlayers(api.getCachedProfiles());
+    return profile;
+  });
+  $('score').onclick = () => run('Send test score', async () => {
+    const profile_id = $('player').value;
+    if (!profile_id) throw new Error('Pick a player first (List players)');
+    const queued = api.queueResult({ profile_id, game_id: 'sheet_check', score: 42, level: 1, stars: 3, seconds: 5 });
+    const sent = await api.flush();
+    return { queued, sent };
+  });
+</script>
+</body>
+</html>
