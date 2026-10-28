@@ -32,6 +32,7 @@ family-games/
 │  ├─ game-kit.js          What every game calls: getPlayer(), record(), finish(), homeButton()
 │  ├─ achievements.js      Badge list and the rules for earning them
 │  ├─ skins.js             Skin list (fallback star targets) and switching
+│  ├─ skin-effects.js      Skin scenery, pictures (wings, horn) and tap effects
 │  ├─ theme.css            Sticker book theme, built from tokens skins can override
 │  ├─ skins/               fairy.css, blocks.css, unicorn.css
 │  ├─ avatars.js           Original cartoon animals and colours
@@ -39,7 +40,8 @@ family-games/
 │  └─ sound.js             Little sounds made in the browser, with mute
 ├─ games/
 │  ├─ _template/           Starter game to copy for each new game
-│  └─ bubble-pop/          First working game
+│  ├─ bubble-pop/          First working game
+│  └─ kriss-kross/         The family's word-grid game, with a small hook to save stars
 ├─ apps-script/
 │  └─ Code.gs              The Sheet's backend, pasted into Apps Script
 ├─ tools/
@@ -118,8 +120,10 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | Blocks | 20 |
 | Unicorn | 30 |
 
-- **Blocks** is an original blocky pixel-world design (asked for as "Minecraft"; Minecraft's look belongs to Mojang). Name TBC.
-- Each skin is one CSS file in `shared/skins/` that swaps colours, background, fonts and frames (P22).
+- **Fairy:** an enchanted garden at dusk: moon, stars, hanging vines, toadstools and flowers, drifting fireflies. Avatars grow fluttering wings; tiles are frosted glass with flowers pinned on. Taps throw sparkles and a trail of fairy dust follows the finger or mouse.
+- **Unicorn:** rainbow cloudland: a rainbow that draws itself in, drifting clouds, rising hearts and an original unicorn peeking in from the corner. Avatars get a rainbow ring and a golden horn; tiles have shimmering rainbow edges. Taps make a rainbow ripple and a burst of hearts.
+- **Blocks:** an original pixel world at sunset: pixel sun, stars, stepped hills, floating cubes and a passing comet. Everything is a bevelled block; taps pop out pixels. Asked for as "Minecraft" and to look more like it; declined, as Minecraft's look belongs to Mojang. Name TBC.
+- Colours, fonts and frames are one CSS file per skin in `shared/skins/` (P22); scenery, pictures and tap effects are in `shared/skin-effects.js` (P31).
 - A child's chosen skin is saved in the Profiles `skin` column; if the Sheet can't save it yet, it's kept on that device (P24).
 - **Debug skin button** (bottom right) switches skins for grown-ups without unlocking or saving anything. Turn it off with `debug: false` in `shared/config.js` (P28).
 
@@ -128,13 +132,13 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | Game | Status |
 |---|---|
 | Bubble pop | Ready (P25): 20 bubbles; 3 stars for 17+, 2 for 11+, otherwise 1 |
-| Family game from Rob's wife | TBC: waiting for the file |
+| Kriss Kross (the family's word-grid game) | Ready: solving a puzzle saves stars (P30); "Show solution" saves nothing |
 | Memory match, Count it, Shape sort, Spot it | Placeholder "Soon" tiles (P26); names are placeholders |
 
 ## Open questions (TBC)
 
 - Blocks skin: final name (the 6-year-old could pick).
-- The family game: file, title, and how its stars should be worked out.
+- Kriss Kross stars rule (P30): is "no hints = 3, one or two = 2, more = 1" right?
 
 ## Proposals log
 
@@ -169,3 +173,5 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Proposed |
 | P28 | Debug skin button, switched by `debug` in `shared/config.js` | Adopted 2026-10-28 (Rob's request) |
 | P29 | `setup()` makes a backup copy before it changes an existing Sheet | Proposed |
+| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Proposed |
+| P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |

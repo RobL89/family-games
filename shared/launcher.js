@@ -10,6 +10,7 @@ import {
 } from './achievements.js';
 import { DEFAULT_SKIN, FALLBACK_SKINS, skinList, isUnlocked, applySkin } from './skins.js';
 import * as sound from './sound.js';
+import { startSkinEffects } from './skin-effects.js';
 
 const app = document.getElementById('app');
 const TILT = [-8, 5, -3, 7, -6, 4, -5, 6];
@@ -685,6 +686,7 @@ async function start() {
   injectIcons();
   injectAvatars();
   document.body.insertAdjacentHTML('afterbegin', '<div class="deco" aria-hidden="true"></div>');
+  startSkinEffects();
   addGear();
   if (CONFIG.debug) addDebug();
   state.games = await loadGames();

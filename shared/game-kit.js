@@ -104,7 +104,8 @@ export function goHome(profileId) {
 }
 
 // A round "back to games" button in the top-left corner. Returns the button.
-export function homeButton() {
+// Pass { style: {...} } to restyle it to suit the game.
+export function homeButton({ style = {} } = {}) {
   const b = document.createElement('button');
   b.type = 'button';
   b.setAttribute('aria-label', 'Back to games');
@@ -113,7 +114,7 @@ export function homeButton() {
     position: 'fixed', top: '12px', left: '12px', zIndex: '1000', width: '56px', height: '56px',
     display: 'grid', placeItems: 'center', borderRadius: '50%', border: '3px solid #2B2118',
     background: '#fff', color: '#2B2118', boxShadow: '2px 4px 0 rgba(43,33,24,.25)', cursor: 'pointer', padding: '0',
-  });
+  }, style);
   b.addEventListener('click', () => goHome());
   document.body.appendChild(b);
   return b;

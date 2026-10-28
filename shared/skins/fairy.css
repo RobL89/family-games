@@ -1,43 +1,138 @@
-/* Fairy skin: lilac, pink and mint with sparkles. Launcher and profile screens only. */
+/* Fairy skin: an enchanted garden at dusk. Launcher and home screens only.
+   Scenery (moon, vines, toadstools, fireflies) and the sparkle effects come from shared/skin-effects.js. */
 :root[data-skin="fairy"] {
-  --paper: #F4E9FF;
-  --bg-image: radial-gradient(circle, rgba(255, 255, 255, .95) 0 .09rem, transparent .13rem),
-              radial-gradient(circle, rgba(228, 111, 176, .5) 0 .07rem, transparent .11rem),
-              linear-gradient(165deg, #F3DFFF 0%, #FCE6F2 45%, #DFF5EE 100%);
-  --bg-size: 3.1rem 3.1rem, 4.7rem 4.7rem, 100% 100%;
-  --bg-pos: 0 0, 1.4rem 2.2rem, 0 0;
-  --ink: #3D2457;
-  --muted: rgba(61, 36, 87, .62);
-  --line: #B88AD9;
-  --outline: .11em;
-  --card: #FFFFFF;
-  --radius: 1.1em;
-  --shadow: 0 .22em .6em rgba(186, 104, 200, .3);
-  --panel: rgba(255, 255, 255, .6);
-  --panel-line: .1em solid rgba(184, 138, 217, .45);
-  --accent: #E46FB0;
+  --paper: #B9A6EE;
+  --bg-image: radial-gradient(120% 55% at 50% 108%, #FFEAF4 0%, rgba(255, 234, 244, 0) 62%),
+              linear-gradient(180deg, #7F6FD2 0%, #A995E8 26%, #DDB2EA 58%, #FFDCEC 100%);
+  --bg-size: 100% 100%, 100% 100%;
+  --bg-pos: 0 0;
+  --ink: #3A1F55;
+  --muted: rgba(58, 31, 85, .7);
+  --line: #D2A9F2;
+  --outline: .13em;
+  --card: rgba(255, 255, 255, .9);
+  --radius: 1.3em;
+  --shadow: 0 .3em 1em rgba(110, 50, 170, .28);
+  --panel: rgba(255, 255, 255, .5);
+  --panel-line: .15em solid rgba(255, 255, 255, .9);
+  --accent: #F2559E;
   --title-line: none;
-  --lock: rgba(61, 36, 87, .14);
+  --lock: rgba(58, 31, 85, .18);
   --font: "Fredoka", system-ui, sans-serif;
   --weight: 500;
-  --tilt: .4;
-  --olw: 3px;
-  --sw: 1.2px;
+  --tilt: .35;
+  --tape-clip: none;
+  --ol: #B07AD6;
+  --olw: 2.5px;
+  --so: #B07AD6;
+  --sw: 1px;
   --star-off: #FFFFFF;
 }
-:root[data-skin="fairy"] body { background-attachment: scroll; }
+:root[data-skin="fairy"] body { background-attachment: fixed; }
+
+/* Headings: round storybook letters with a soft glow */
+:root[data-skin="fairy"] .title,
+:root[data-skin="fairy"] .hi {
+  font-family: "Sniglet", "Fredoka", sans-serif; font-weight: 800; color: #fff;
+  text-shadow: 0 .05em 0 #8D5BC9, 0 0 .35em rgba(255, 190, 235, .95), 0 0 .9em rgba(255, 255, 255, .6);
+}
+:root[data-skin="fairy"] .home h2 { font-family: "Sniglet", "Fredoka", sans-serif; font-weight: 800; }
+:root[data-skin="fairy"] .games > h2 { color: #fff; text-shadow: 0 .05em 0 #8D5BC9, 0 0 .4em rgba(255, 190, 235, .9); }
 :root[data-skin="fairy"] .title::before,
-:root[data-skin="fairy"] .title::after { content: "\2726"; display: inline-block; margin: 0 .3em; font-size: .65em; color: var(--accent); vertical-align: .2em; }
-:root[data-skin="fairy"] .face::after {
-  content: "\2726"; position: absolute; top: -.35em; right: -.15em; font-size: 1.2em; line-height: 1; color: #F7B6DC;
-  text-shadow: 0 0 .3em #fff;
+:root[data-skin="fairy"] .title::after {
+  content: "\2726"; display: inline-block; margin: 0 .3em; font-size: .6em; vertical-align: .25em; color: #FFF3A6;
+  animation: twinkle 2.4s ease-in-out infinite;
 }
-:root[data-skin="fairy"] .deco {
-  background:
-    radial-gradient(circle at 10% 18%, rgba(255, 255, 255, .95) 0 .2rem, transparent .26rem),
-    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, .95) 0 .16rem, transparent .22rem),
-    radial-gradient(circle at 92% 62%, rgba(247, 182, 220, .9) 0 .2rem, transparent .26rem),
-    radial-gradient(circle at 6% 74%, rgba(255, 255, 255, .95) 0 .18rem, transparent .24rem),
-    radial-gradient(circle at 48% 92%, rgba(247, 182, 220, .9) 0 .16rem, transparent .22rem);
-  animation: twinkle 4s ease-in-out infinite;
+:root[data-skin="fairy"] .title::after { animation-delay: -1.2s; }
+
+/* Avatars grow wings */
+:root[data-skin="fairy"] .face {
+  border: .14em solid #fff;
+  box-shadow: 0 0 0 .22em rgba(210, 169, 242, .8), 0 0 1.1em rgba(255, 210, 245, .95);
 }
+:root[data-skin="fairy"] .face::before {
+  content: ""; position: absolute; z-index: -1; inset: -18% -62% 2%;
+  background: var(--art-fairy-wings) center / contain no-repeat;
+  filter: drop-shadow(0 0 .35rem rgba(255, 255, 255, .9));
+  transform-origin: 50% 55%; animation: flutter 2.2s ease-in-out infinite;
+}
+:root[data-skin="fairy"] .player .face::before { inset: -14% -40% 6%; }
+:root[data-skin="fairy"] .head .face::before { inset: -16% -48% 6%; }
+:root[data-skin="fairy"] .players { gap: 2.4rem 3.6rem; }
+@keyframes flutter { 50% { transform: scaleX(.86) translateY(-3%); } }
+
+/* Name labels: petal pills */
+:root[data-skin="fairy"] .pname {
+  font-family: "Sniglet", "Fredoka", sans-serif; font-weight: 800; color: #3A1F55; border-radius: 999px; padding: .1em 1em;
+  background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--c, #F07A2A) 30%, #FFE8F6));
+  box-shadow: 0 0 0 .1em #fff, 0 .2em .6em rgba(110, 50, 170, .3);
+}
+
+/* Cards: frosted glass with a flower pinned to the corner */
+:root[data-skin="fairy"] .tile {
+  border: .14em solid #fff;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .95), rgba(250, 235, 255, .85));
+  box-shadow: 0 .3em 1em rgba(110, 50, 170, .25), inset 0 0 1em rgba(232, 200, 255, .6);
+}
+:root[data-skin="fairy"] .tile::before {
+  content: ""; position: absolute; top: -.7rem; left: -.6rem; width: 1.9rem; height: 1.9rem;
+  background: var(--art-fairy-flower) center / contain no-repeat; rotate: -14deg;
+}
+:root[data-skin="fairy"] .tile:nth-child(even)::before { left: auto; right: -.6rem; rotate: 18deg; }
+:root[data-skin="fairy"] .tile.soon::before { display: none; }
+:root[data-skin="fairy"] .soon-tape {
+  border-radius: 999px; background: #F3E2FF; color: #7A3FB0; border: .1em solid #fff; font-weight: 600;
+  box-shadow: 0 .15em .4em rgba(110, 50, 170, .25);
+}
+:root[data-skin="fairy"] .side {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 240, 250, .5));
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 .4em 1.4em rgba(110, 50, 170, .2);
+}
+:root[data-skin="fairy"] .slot.got { border-color: #fff; box-shadow: 0 0 0 .14em rgba(210, 169, 242, .8), 0 0 .8em rgba(255, 210, 245, .95); }
+:root[data-skin="fairy"] .slot.lock { border-color: rgba(255, 255, 255, .95); background: rgba(255, 255, 255, .25); }
+:root[data-skin="fairy"] .total { border-color: #fff; box-shadow: 0 0 .8em rgba(255, 220, 120, .7); }
+:root[data-skin="fairy"] .back { border-color: #fff; }
+:root[data-skin="fairy"] .gear { color: #fff; opacity: .75; }
+:root[data-skin="fairy"] .sync { color: #fff; }
+:root[data-skin="fairy"] .big-btn {
+  border-color: #fff; background: linear-gradient(180deg, #FF8CC6, #E04E9A);
+  box-shadow: 0 .25em 0 #B0377A, 0 0 1em rgba(255, 150, 210, .8);
+}
+:root[data-skin="fairy"] .party-card { box-shadow: 0 0 0 .3em rgba(255, 255, 255, .7), 0 0 2em rgba(255, 190, 235, .9); }
+:root[data-skin="fairy"] .confetti i {
+  width: .9rem; height: .9rem; border-radius: 0;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+}
+:root[data-skin="fairy"] .confetti i:nth-child(3n) { border-radius: 0 100% 0 100%; clip-path: none; background: #FFB8DA !important; }
+
+/* ---------- Scenery ---------- */
+.fairy-scene .f-moon {
+  top: 3vh; left: 3vw; width: clamp(56px, 11vmin, 130px); height: clamp(56px, 11vmin, 130px);
+  filter: drop-shadow(0 0 .6rem rgba(255, 243, 199, .9)) drop-shadow(0 0 1.6rem rgba(255, 243, 199, .5));
+}
+.fairy-scene .f-star {
+  width: calc(14px * var(--s)); height: calc(14px * var(--s)); color: #FFF7C8;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, .9)); animation: twinkle var(--d) ease-in-out var(--delay) infinite;
+}
+.fairy-scene .f-vine { top: -2px; right: -2px; width: clamp(130px, 24vmin, 280px); height: auto; aspect-ratio: 11 / 10; }
+.fairy-scene .f-hills { left: 0; right: 0; bottom: 0; width: 100%; height: clamp(90px, 16vmin, 180px); }
+.fairy-scene .f-mush-l, .fairy-scene .f-mush-r { bottom: -4px; width: clamp(170px, 30vmin, 320px); }
+.fairy-scene .f-mush-l { left: -1vw; }
+.fairy-scene .f-mush-r { right: -1vw; transform: scaleX(-1); }
+.fairy-scene .f-mush { display: block; width: 100%; height: auto; }
+.fairy-scene .f-fly {
+  width: 7px; height: 7px; border-radius: 50%; background: #FFF6A8;
+  box-shadow: 0 0 6px 3px rgba(255, 246, 168, .85), 0 0 18px 6px rgba(255, 220, 120, .45);
+  animation: firefly var(--d) ease-in-out var(--delay) infinite;
+}
+@keyframes firefly {
+  0%, 100% { transform: translate(0, 0); opacity: .25; }
+  30% { opacity: 1; }
+  50% { transform: translate(var(--dx), var(--dy)); opacity: .9; }
+  75% { transform: translate(calc(var(--dx) * -.5), calc(var(--dy) * .4)); opacity: .4; }
+}
+
+/* ---------- Tap sparkles and fairy dust ---------- */
+.fx .p-spark { filter: drop-shadow(0 0 4px rgba(255, 255, 255, .95)) drop-shadow(0 0 8px rgba(255, 180, 230, .8)); }
+.fx .p-dust { border-radius: 50%; box-shadow: 0 0 6px 2px rgba(255, 240, 200, .9); }

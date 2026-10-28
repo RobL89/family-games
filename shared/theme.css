@@ -35,9 +35,9 @@
 
 /* ---------- Base ---------- */
 * { box-sizing: border-box; }
-html { font-size: clamp(15px, .9vw + .8vh + 5px, 24px); -webkit-text-size-adjust: 100%; }
+html { font-size: clamp(15px, .9vw + .8vh + 5px, 24px); -webkit-text-size-adjust: 100%; overflow-x: hidden; overflow-x: clip; }
 body {
-  margin: 0; min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+  margin: 0; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; overflow-x: clip;
   color: var(--ink); font-family: var(--font); font-weight: var(--weight); line-height: 1.2;
   background-color: var(--paper); background-image: var(--bg-image);
   background-size: var(--bg-size); background-position: var(--bg-pos);
@@ -203,21 +203,25 @@ svg { display: block; }
 
 /* Skin previews always show their own skin, whatever skin is on. */
 .swatch[data-s] .sw { position: absolute; inset: 0; }
+.swatch[data-s] .sw::after { content: ""; position: absolute; inset: 14%; background: var(--emb) center / contain no-repeat; }
 .swatch[data-s="sticker"] .sw {
+  --emb: var(--art-emblem-sticker);
   background-color: #E6CF9F; background-size: .7rem .7rem;
   background-image: linear-gradient(rgba(110, 78, 36, .22) 1px, transparent 1px), linear-gradient(90deg, rgba(110, 78, 36, .22) 1px, transparent 1px);
 }
 .swatch[data-s="fairy"] .sw {
-  background: radial-gradient(circle, #fff 0 .12rem, transparent .16rem) 0 0 / 1.1rem 1.1rem,
-              radial-gradient(circle, #E46FB0 0 .08rem, transparent .11rem) .5rem .6rem / 1.3rem 1.3rem,
-              linear-gradient(160deg, #F2DCFF, #FCE1F0 50%, #DDF5EC);
+  --emb: var(--art-emblem-fairy);
+  background: radial-gradient(circle, #fff 0 .1rem, transparent .14rem) 0 0 / 1.1rem 1.1rem,
+              linear-gradient(180deg, #8F7FD9, #C9A9F0 50%, #FFD9EC);
 }
 .swatch[data-s="blocks"] .sw {
-  background: linear-gradient(0deg, #16222F 0 3%, #FF8A1F 3% 16%, #FFD23F 16% 26%, transparent 26%),
-              conic-gradient(rgba(255, 255, 255, .28) 25%, transparent 0 50%, rgba(255, 255, 255, .28) 0 75%, transparent 0) 0 0 / .8rem .8rem,
-              #79C6F2;
+  --emb: var(--art-emblem-blocks);
+  background: linear-gradient(180deg, #1B1240 0 20%, #4A2580 20% 40%, #B23A87 40% 60%, #FF8A5C 60% 80%, #FFD97A 80%);
 }
-.swatch[data-s="unicorn"] .sw { background: linear-gradient(180deg, #FFC9E3, #FFEEB8 25%, #CDF3DD 50%, #C9E6FF 75%, #E2D0FF); }
+.swatch[data-s="unicorn"] .sw {
+  --emb: var(--art-emblem-unicorn);
+  background: linear-gradient(180deg, #FFD3EC, #F3DCFF 45%, #D9ECFF 80%, #E2FFF1);
+}
 
 /* ---------- Speech bubbles ---------- */
 .hello {
@@ -306,6 +310,20 @@ svg { display: block; }
   background: rgba(20, 24, 28, .85); border-radius: 999px;
 }
 
+/* ---------- Skin scenery and tap effects (shared/skin-effects.js) ---------- */
+.scene, .scene > * { position: absolute; }
+.scene { inset: 0; }
+.fx { position: fixed; inset: 0; z-index: 15; pointer-events: none; overflow: hidden; }
+.fx > * {
+  position: absolute; left: 0; top: 0; display: block; will-change: transform, opacity;
+  animation: fx-fly var(--t, 900ms) cubic-bezier(.2, .75, .35, 1) forwards;
+}
+@keyframes fx-fly {
+  0% { transform: translate(var(--x0), var(--y0)) scale(var(--s0, 1)) rotate(0deg); opacity: 1; }
+  45% { transform: translate(var(--xm), var(--ym)) scale(1) rotate(calc(var(--r, 0deg) * .5)); opacity: 1; }
+  100% { transform: translate(var(--x1), var(--y1)) scale(var(--s1, .3)) rotate(var(--r, 0deg)); opacity: 0; }
+}
+
 /* ---------- Motion: answers a tap, except the gentle twinkle in some skins ---------- */
 @keyframes wiggle { 20% { transform: rotate(-9deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } }
 @keyframes peel {
@@ -327,5 +345,5 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
   .hello { animation: none !important; }
-  .confetti { display: none; }
+  .confetti, .fx { display: none; }
 }

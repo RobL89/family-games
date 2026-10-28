@@ -1,36 +1,150 @@
-/* Unicorn skin: pastel rainbow, fluffy clouds, rainbow title. Launcher and profile screens only. */
+/* Unicorn skin: rainbow cloudland. Launcher and home screens only.
+   Scenery (rainbow, clouds, floating hearts, the unicorn peeking in) and the heart bursts
+   come from shared/skin-effects.js. */
 :root[data-skin="unicorn"] {
-  --paper: #FFF0F7;
-  --bg-image: radial-gradient(ellipse 4.5rem 1.9rem at 30% 40%, rgba(255, 255, 255, .85) 60%, transparent 63%),
-              radial-gradient(ellipse 3.2rem 1.5rem at 75% 75%, rgba(255, 255, 255, .7) 60%, transparent 63%),
-              linear-gradient(180deg, #FFDDEE 0%, #FFF2CC 28%, #DDF7E8 52%, #D9EEFF 76%, #ECDDFF 100%);
-  --bg-size: 22rem 15rem, 17rem 12rem, 100% 100%;
-  --bg-pos: 0 0, 4rem 3rem, 0 0;
-  --ink: #4A3A6B;
-  --muted: rgba(74, 58, 107, .62);
-  --line: #A98BE6;
-  --outline: .12em;
+  --paper: #FFE6F3;
+  --bg-image: radial-gradient(55% 35% at 82% 8%, rgba(255, 255, 255, .95), rgba(255, 255, 255, 0) 70%),
+              linear-gradient(180deg, #FFCBE7 0%, #F1D6FF 34%, #D3E8FF 68%, #DDFBEF 100%);
+  --bg-size: 100% 100%, 100% 100%;
+  --bg-pos: 0 0;
+  --ink: #5A3A8C;
+  --muted: rgba(90, 58, 140, .68);
+  --line: #D4B8FF;
+  --outline: .16em;
   --card: #FFFFFF;
-  --radius: 1.3em;
-  --shadow: 0 .28em 0 rgba(169, 139, 230, .35);
-  --panel: rgba(255, 255, 255, .55);
-  --panel-line: .12em solid rgba(169, 139, 230, .5);
-  --accent: #FF7FB6;
+  --radius: 1.5em;
+  --shadow: 0 .3em 0 rgba(201, 169, 255, .6), 0 .6em 1.2em rgba(255, 140, 200, .25);
+  --panel: rgba(255, 255, 255, .72);
+  --panel-line: .18em solid #fff;
+  --accent: #FF5FA8;
   --title-line: none;
-  --lock: rgba(74, 58, 107, .14);
+  --lock: rgba(90, 58, 140, .16);
   --font: "Fredoka", system-ui, sans-serif;
   --weight: 600;
   --tilt: .5;
-  --olw: 3px;
-  --sw: 1.2px;
+  --tape-clip: none;
+  --ol: #C9A9FF;
+  --olw: 2.5px;
+  --so: #C9A9FF;
+  --sw: 1px;
   --star-off: #FFFFFF;
+  --rainbow: linear-gradient(120deg, #FF9EC4, #FFC48A, #FFE58A, #A8E6A3, #9FD3FF, #C7A6FF, #FF9EC4);
 }
-:root[data-skin="unicorn"] .title {
-  padding: 0 .1em;
-  background: linear-gradient(90deg, #FF5FA2, #FF9F45, #F2C200, #3DBE7A, #3C9EEB, #8C6BE0);
+:root[data-skin="unicorn"] body { background-attachment: fixed; }
+
+/* Rainbow lettering */
+:root[data-skin="unicorn"] .title,
+:root[data-skin="unicorn"] .hi {
+  font-weight: 700; padding: 0 .08em;
+  background: linear-gradient(90deg, #FF4F9A, #FF9135, #F2BE00, #33B870, #3497E8, #8A62E0) 0 0 / 200% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 .05em 0 #fff) drop-shadow(0 .08em .12em rgba(160, 110, 220, .45));
+  animation: rainbow-slide 6s linear infinite;
 }
-:root[data-skin="unicorn"] .deco::before {
-  content: ""; position: absolute; top: -10rem; right: -10rem; width: 22rem; height: 22rem; border-radius: 50%; opacity: .55;
-  background: radial-gradient(circle, transparent 50%, #C7A9FF 50% 55%, #9FD0FF 55% 60%, #A6EBC5 60% 65%, #FFE48A 65% 70%, #FFC59A 70% 75%, #FFA8CF 75% 80%, transparent 80%);
+@keyframes rainbow-slide { to { background-position: 200% 0; } }
+:root[data-skin="unicorn"] .home h2 { font-weight: 700; color: #7A4FC0; }
+:root[data-skin="unicorn"] .hi { font-size: 2.05rem; }
+:root[data-skin="unicorn"] .who { gap: 3.6rem; }
+
+/* Avatars get a rainbow ring and a golden horn */
+:root[data-skin="unicorn"] .face {
+  border: .32em solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box, conic-gradient(#FF9EC4, #FFC48A, #FFE58A, #A8E6A3, #9FD3FF, #C7A6FF, #FF9EC4) border-box;
+  box-shadow: 0 .3em 0 rgba(201, 169, 255, .55), 0 0 1em rgba(255, 180, 220, .7);
+}
+:root[data-skin="unicorn"] .face::after {
+  content: ""; position: absolute; z-index: 2; left: 50%; top: -42%; width: 30%; height: 58%;
+  background: var(--art-unicorn-horn) center bottom / contain no-repeat;
+  transform: translateX(-50%) rotate(8deg); transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 .3em rgba(255, 220, 120, .9));
+}
+:root[data-skin="unicorn"] .head .face::after { top: -46%; }
+
+/* Name labels: rainbow ribbons */
+:root[data-skin="unicorn"] .pname {
+  border-radius: 999px; padding: .08em 1em; color: #5A3A8C; font-weight: 700;
+  background: linear-gradient(180deg, #FFC2DD 0 25%, #FFE6A3 25% 50%, #C3F0BE 50% 75%, #BDE0FF 75%);
+  box-shadow: 0 0 0 .14em #fff, 0 .2em 0 rgba(201, 169, 255, .6);
+}
+
+/* Cards: holographic rainbow edges with a shine that sweeps across */
+:root[data-skin="unicorn"] .tile,
+:root[data-skin="unicorn"] .side,
+:root[data-skin="unicorn"] .party-card {
+  border-color: transparent;
+  background: linear-gradient(var(--card), var(--card)) padding-box, var(--rainbow) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: holo 8s linear infinite;
+}
+:root[data-skin="unicorn"] .side { background: linear-gradient(rgba(255, 255, 255, .8), rgba(255, 255, 255, .8)) padding-box, var(--rainbow) border-box; background-size: 100% 100%, 300% 300%; }
+:root[data-skin="unicorn"] .party-card { animation: pop .45s ease, holo 8s linear infinite; }
+@keyframes holo { to { background-position: 0 0, 300% 0; } }
+:root[data-skin="unicorn"] .tile::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(105deg, transparent 44%, rgba(255, 255, 255, .85) 50%, transparent 56%) 90% 0 / 300% 100% no-repeat;
+  animation: sheen 7s ease-in-out infinite;
+}
+:root[data-skin="unicorn"] .tile:nth-child(2)::after { animation-delay: .5s; }
+:root[data-skin="unicorn"] .tile:nth-child(3)::after { animation-delay: 1s; }
+:root[data-skin="unicorn"] .tile:nth-child(4)::after { animation-delay: 1.5s; }
+:root[data-skin="unicorn"] .tile:nth-child(5)::after { animation-delay: 2s; }
+:root[data-skin="unicorn"] .tile:nth-child(6)::after { animation-delay: 2.5s; }
+@keyframes sheen { 0%, 72% { background-position: 90% 0; } 100% { background-position: 10% 0; } }
+:root[data-skin="unicorn"] .soon-tape {
+  border-radius: 999px; color: #fff; font-weight: 700; text-shadow: 0 .06em 0 rgba(120, 70, 180, .5);
+  background: linear-gradient(90deg, #FF8FC0, #FFB36B, #9FD3FF, #B58CFF);
+}
+:root[data-skin="unicorn"] .slot.got {
+  border-color: transparent;
+  background: linear-gradient(#fff, #fff) padding-box, conic-gradient(#FF9EC4, #FFE58A, #A8E6A3, #9FD3FF, #C7A6FF, #FF9EC4) border-box;
+}
+:root[data-skin="unicorn"] .total { border-color: #FFD36E; box-shadow: 0 0 .9em rgba(255, 210, 110, .8); }
+:root[data-skin="unicorn"] .big-btn {
+  border-color: #fff; color: #fff; text-shadow: 0 .06em 0 rgba(120, 70, 180, .6);
+  background: linear-gradient(90deg, #FF7FB6, #FFB36B, #F2CF3A, #5CCB8A, #5BB0FF, #A57CFF);
+  box-shadow: 0 .25em 0 #B98AE8, 0 0 1em rgba(255, 170, 220, .8);
+}
+:root[data-skin="unicorn"] .confetti i {
+  width: .95rem; height: .85rem; border-radius: 0;
+  clip-path: polygon(50% 100%, 6% 52%, 0 26%, 10% 6%, 30% 0, 50% 16%, 70% 0, 90% 6%, 100% 26%, 94% 52%);
+}
+
+/* ---------- Scenery ---------- */
+.unicorn-scene .u-cloud {
+  left: 0; width: var(--w); height: auto; aspect-ratio: 120 / 64;
+  filter: drop-shadow(0 .4rem .6rem rgba(200, 160, 230, .35));
+  animation: drift var(--d) linear var(--delay) infinite;
+}
+@keyframes drift { from { transform: translateX(-25vw); } to { transform: translateX(110vw); } }
+.unicorn-scene .u-spark {
+  width: calc(16px * var(--s)); height: calc(16px * var(--s));
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, .95)); animation: twinkle var(--d) ease-in-out var(--delay) infinite;
+}
+.unicorn-scene .u-rainbow { left: -8vw; bottom: 5vh; width: clamp(240px, 52vmin, 620px); height: auto; aspect-ratio: 400 / 214; opacity: .9; }
+.unicorn-scene .u-rainbow path { stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw 1.4s ease-out forwards; animation-delay: calc(var(--i) * .12s); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.unicorn-scene .u-heart {
+  bottom: -40px; width: calc(22px * var(--s)); height: calc(20px * var(--s)); opacity: 0;
+  animation: rise var(--d) ease-in var(--delay) infinite;
+}
+@keyframes rise {
+  0% { transform: translate(0, 0) rotate(-8deg); opacity: 0; }
+  10% { opacity: .85; }
+  50% { transform: translate(var(--sway), -55vh) rotate(8deg); }
+  90% { opacity: .6; }
+  100% { transform: translate(0, -110vh) rotate(-8deg); opacity: 0; }
+}
+.unicorn-scene .u-mascot {
+  right: 2vw; bottom: -6px; width: clamp(96px, 20vmin, 210px); height: auto; aspect-ratio: 200 / 230;
+  transform-origin: 50% 100%; animation: nod 4s ease-in-out infinite;
+  filter: drop-shadow(0 .3rem .6rem rgba(180, 130, 220, .4));
+}
+@keyframes nod { 50% { transform: rotate(-4deg) translateY(-4px); } }
+
+/* ---------- Tap hearts and rainbow ripple ---------- */
+.fx .p-heart, .fx .p-spark { filter: drop-shadow(0 0 3px #fff); }
+.fx .p-ring {
+  border-radius: 50%;
+  background: conic-gradient(#FF9EC4, #FFC48A, #FFE58A, #A8E6A3, #9FD3FF, #C7A6FF, #FF9EC4);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 61%); mask: radial-gradient(circle, transparent 58%, #000 61%);
 }

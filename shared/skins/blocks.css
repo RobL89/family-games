@@ -1,52 +1,107 @@
-/* Blocks skin: an original blocky pixel world (sky, pixel clouds, toy-block ground).
-   Launcher and profile screens only. */
+/* Blocks skin: an original pixel world at sunset (pixel sun, stepped hills, floating cubes).
+   Launcher and home screens only. Scenery and the pixel bursts come from shared/skin-effects.js. */
 :root[data-skin="blocks"] {
-  --paper: #79C6F2;
-  --bg-image: conic-gradient(rgba(255, 255, 255, .09) 25%, transparent 0 50%, rgba(255, 255, 255, .09) 0 75%, transparent 0);
-  --bg-size: 2.4rem 2.4rem;
-  --ink: #16222F;
-  --muted: rgba(22, 34, 47, .66);
-  --line: #16222F;
-  --outline: .17em;
-  --card: #F3F1EA;
+  --paper: #2A1A5E;
+  --bg-image: linear-gradient(180deg, #160E36 0 13%, #2A1A5E 13% 25%, #3E2178 25% 37%,
+              #5E2786 37% 48%, #8B2F8C 48% 57%, #B93A86 57% 65%, #E1527A 65% 72%, #FF7A5C 72% 79%,
+              #FFA25C 79% 86%, #FFC86A 86% 93%, #FFE08A 93%);
+  --bg-size: 100% 100%;
+  --bg-pos: 0 0;
+  --ink: #1A1033;
+  --muted: rgba(26, 16, 51, .72);
+  --line: #1A1033;
+  --outline: .18em;
+  --card: #EEE8FF;
   --radius: 0;
   --face-radius: 0;
-  --shadow: .24em .24em 0 rgba(22, 34, 47, .45);
-  --panel: rgba(255, 255, 255, .45);
-  --panel-line: .17em solid #16222F;
-  --accent: #FF8A1F;
+  --shadow: .3em .3em 0 rgba(10, 6, 25, .7);
+  --panel: #EEE8FF;
+  --panel-line: .18em solid #1A1033;
+  --accent: #FF4FA3;
   --title-line: none;
-  --lock: rgba(22, 34, 47, .2);
+  --lock: rgba(26, 16, 51, .22);
   --font: "Pixelify Sans", "Courier New", monospace;
-  --weight: 500;
+  --weight: 600;
   --tilt: 0;
   --tape-clip: none;
-  --olw: 4px;
+  --ol: #1A1033;
+  --olw: 3px;
+  --so: #1A1033;
   --sw: 1.6px;
-  --star-off: #F3F1EA;
+  --star-off: #EEE8FF;
+  --bevel: inset .2em .2em 0 rgba(255, 255, 255, .8), inset -.2em -.2em 0 rgba(26, 16, 51, .25);
 }
-:root[data-skin="blocks"] .title { text-shadow: .07em .07em 0 #fff; }
-:root[data-skin="blocks"] .hi { font-size: 1.9rem; }
-:root[data-skin="blocks"] .pname,
-:root[data-skin="blocks"] .soon-tape { border: .12em solid var(--line); }
-:root[data-skin="blocks"] .skin .tick { border-radius: 0; }
-:root[data-skin="blocks"] .big-btn { border-radius: 0; }
-:root[data-skin="blocks"] .screen { padding-bottom: 6rem; }
+:root[data-skin="blocks"] body { background-attachment: fixed; }
 
-/* Pixel clouds: one square repeated with box-shadows. */
-:root[data-skin="blocks"] .deco::before,
-:root[data-skin="blocks"] .deco::after {
-  content: ""; position: absolute; width: 1.1rem; height: 1.1rem; background: #fff; opacity: .9;
-  box-shadow: 1.1rem 0 #fff, 2.2rem 0 #fff, 3.3rem 0 #fff, 4.4rem 0 #fff, 5.5rem 0 #fff,
-              1.1rem -1.1rem #fff, 2.2rem -1.1rem #fff, 3.3rem -1.1rem #fff, 2.2rem -2.2rem #fff,
-              4.4rem -1.1rem #fff;
+/* Big pixel lettering with a stacked 3D shadow */
+:root[data-skin="blocks"] .title,
+:root[data-skin="blocks"] .hi,
+:root[data-skin="blocks"] .games > h2 {
+  color: #fff; font-weight: 700; letter-spacing: .02em;
+  text-shadow: .07em .07em 0 #FF4FA3, .14em .14em 0 #1A1033;
 }
-:root[data-skin="blocks"] .deco::before { top: 16vh; left: 6vw; }
-:root[data-skin="blocks"] .deco::after { top: 34vh; right: 14vw; transform: scale(.8); }
-/* Toy-block ground along the bottom. */
-:root[data-skin="blocks"] .deco {
-  background:
-    linear-gradient(#16222F, #16222F) bottom 2.6rem left 0 / 100% .2rem no-repeat,
-    repeating-linear-gradient(90deg, #FF8A1F 0 2.6rem, #FFD23F 0 5.2rem, #FF5D73 0 7.8rem, #4FB6FF 0 10.4rem, #9C6BFF 0 13rem)
-      bottom left / 100% 2.6rem no-repeat;
+:root[data-skin="blocks"] .hi { font-size: 1.75rem; }
+:root[data-skin="blocks"] .skin { font-size: .8rem; }
+:root[data-skin="blocks"] .gear, :root[data-skin="blocks"] .sync { color: #fff; opacity: .85; }
+
+/* Every box is a bevelled block */
+:root[data-skin="blocks"] .face,
+:root[data-skin="blocks"] .tile,
+:root[data-skin="blocks"] .back,
+:root[data-skin="blocks"] .total,
+:root[data-skin="blocks"] .slot.got,
+:root[data-skin="blocks"] .mini-ic,
+:root[data-skin="blocks"] .swatch,
+:root[data-skin="blocks"] .side,
+:root[data-skin="blocks"] .party-card,
+:root[data-skin="blocks"] .big-btn {
+  box-shadow: var(--bevel), var(--shadow);
 }
+:root[data-skin="blocks"] .face { background: #FFF6D8; border-width: .2em; }
+:root[data-skin="blocks"] .disc { background: color-mix(in srgb, var(--c, #7DF2E4) 22%, #FFF6D8); }
+:root[data-skin="blocks"] .total { border-radius: 0; background: #FFE36E; }
+:root[data-skin="blocks"] .pname,
+:root[data-skin="blocks"] .soon-tape { border: .14em solid #1A1033; box-shadow: .18em .18em 0 rgba(10, 6, 25, .7); }
+:root[data-skin="blocks"] .pname { background: color-mix(in srgb, var(--c, #7DF2E4) 45%, #fff); }
+:root[data-skin="blocks"] .soon-tape { background: #FFE36E; rotate: 0deg; font-size: .95rem; }
+
+/* Game tiles press down like a block when tapped */
+:root[data-skin="blocks"] .tile { transition: translate .06s steps(2), box-shadow .06s steps(2); }
+:root[data-skin="blocks"] .tile:active { scale: 1; translate: .2em .2em; box-shadow: var(--bevel), .1em .1em 0 rgba(10, 6, 25, .7); }
+:root[data-skin="blocks"] .tile-ic { background: color-mix(in srgb, var(--g) 18%, #fff); padding: .35rem; border: .14em solid #1A1033; }
+:root[data-skin="blocks"] .tile.soon .tile-ic { background: #E2DCF2; }
+:root[data-skin="blocks"] .skin .tick, :root[data-skin="blocks"] .big-btn, :root[data-skin="blocks"] .q { border-radius: 0; }
+:root[data-skin="blocks"] .big-btn { background: #FF4FA3; }
+:root[data-skin="blocks"] .hello { border-radius: 0; border-width: .14em; }
+:root[data-skin="blocks"] .confetti i { border-radius: 0; width: .7rem; height: .7rem; animation-timing-function: steps(18); }
+
+/* ---------- Scenery ---------- */
+.blocks-scene .b-star {
+  width: 4px; height: 4px; background: #FFF6C8; box-shadow: 0 0 0 1px rgba(255, 246, 200, .35);
+  animation: twinkle var(--d) steps(2) var(--delay) infinite;
+}
+.blocks-scene .b-sun {
+  right: 7vw; top: 14vh; width: clamp(120px, 30vmin, 300px); height: auto; aspect-ratio: 1;
+  image-rendering: pixelated; filter: drop-shadow(0 0 2rem rgba(255, 170, 90, .55));
+}
+.blocks-scene .b-hills { left: 0; right: 0; bottom: 0; width: 100%; height: clamp(100px, 24vmin, 240px); }
+.blocks-scene .b-cube {
+  width: var(--w); height: auto; aspect-ratio: 40 / 42;
+  animation: hover-block var(--d) steps(4) var(--delay) infinite;
+  filter: drop-shadow(.25rem .3rem 0 rgba(10, 6, 25, .45));
+}
+@keyframes hover-block { 50% { transform: translateY(-10px); } }
+.blocks-scene .b-comet {
+  top: 8vh; left: 0; width: 64px; height: 6px;
+  background: linear-gradient(90deg, transparent 0 25%, rgba(255, 255, 255, .35) 25% 50%, rgba(255, 255, 255, .7) 50% 75%, #fff 75%);
+  animation: comet 13s steps(40) 2s infinite;
+}
+@keyframes comet {
+  0% { transform: translate(-10vw, 0) rotate(14deg); opacity: 0; }
+  2% { opacity: 1; }
+  14% { transform: translate(110vw, 26vh) rotate(14deg); opacity: 1; }
+  15%, 100% { transform: translate(110vw, 26vh) rotate(14deg); opacity: 0; }
+}
+
+/* ---------- Tap: pixels pop out of the block ---------- */
+.fx .p-px { box-shadow: 0 0 0 2px #1A1033; animation-timing-function: steps(12); }
