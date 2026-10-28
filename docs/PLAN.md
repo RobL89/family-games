@@ -80,11 +80,26 @@ No other personal data. The family code (below) is kept in the script's settings
 
 Family use is far inside all of these.
 
+## Launcher and profile screens (proposed, P13–P19)
+
+Initial ideas from 2026-10-28, not yet decided.
+
+- **P13 Flow:** "Who's playing?" screen of big avatar bubbles in each child's colour (tap: wiggle and hello) → the child's home screen: avatar and greeting, star total, badge shelf, last five games, then big game tiles showing best stars per game. Coming back from a game: confetti and new badges popping onto the shelf. Every game within two taps.
+- **P14 Look and feel, pick one:**
+  - A. Sticker book: warm paper background, chunky outlines, badges peel on like stickers.
+  - B. Bright playground: bold flat colours, rounded blobby shapes, bouncy buttons; each child's colour themes their home screen. Simplest to build well.
+  - C. Adventure map: games as islands or planets, the avatar travels between them. Most immersive, most work.
+- **P15 Avatars:** a set of original cartoon animals drawn in code, plus a colour choice. "Build your own" possibly later.
+- **P16 Starter badges:** first game; three stars on any game; try every game; play three days in a row; beat your best; 10, 50 and 100 games. Locked badges shown as grey silhouettes with "?".
+- **P17 Scores:** 1–3 stars as the headline in every game, with the number smaller underneath.
+- **P18 Grown-ups' corner:** press-and-hold a small gear, then answer a quick sum. Holds: add or edit players, family code, results waiting to sync, sound on/off.
+- **P19 Small touches:** sounds with a mute button; a cloud icon showing "saved, will sync" when offline.
+
 ## Open questions (TBC)
 
 - How many children, and roughly what ages (sets reading level and difficulty).
 - Which devices (tablet models, phone, PC browser).
-- Exact name of the Apps Script "who has access" setting: confirm on screen at deploy time.
+- Look-and-feel direction (P14).
 
 ## Proposals log
 
@@ -102,3 +117,10 @@ Family use is far inside all of these.
 | P10 | Every call to the script is a POST, so the family code never sits in a link | Proposed |
 | P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Proposed |
 | P12 | A grown-ups' check page at `tools/sheet-check.html` to test the connection | Proposed |
+| P13 | Launcher flow (see above) | Proposed |
+| P14 | Look and feel: A, B or C | Proposed, Rob to pick |
+| P15 | Original cartoon-animal avatars plus colour | Proposed |
+| P16 | Starter badge set, locked ones shown as silhouettes | Proposed |
+| P17 | Stars as the headline score | Proposed |
+| P18 | Grown-ups' corner behind press-and-hold and a sum | Proposed |
+| P19 | Sounds with mute; offline "will sync" cloud icon | Proposed |
