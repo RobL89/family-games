@@ -85,21 +85,36 @@ Family use is far inside all of these.
 Initial ideas from 2026-10-28, not yet decided.
 
 - **P13 Flow:** "Who's playing?" screen of big avatar bubbles in each child's colour (tap: wiggle and hello) → the child's home screen: avatar and greeting, star total, badge shelf, last five games, then big game tiles showing best stars per game. Coming back from a game: confetti and new badges popping onto the shelf. Every game within two taps.
-- **P14 Look and feel, pick one:**
-  - A. Sticker book: warm paper background, chunky outlines, badges peel on like stickers.
-  - B. Bright playground: bold flat colours, rounded blobby shapes, bouncy buttons; each child's colour themes their home screen. Simplest to build well.
-  - C. Adventure map: games as islands or planets, the avatar travels between them. Most immersive, most work.
+- **P14 Look and feel: A, sticker book (adopted 2026-10-28).** Kraft paper background, chunky outlines, tilted stickers, badges stick on like stickers. B (bright playground) and C (adventure map) declined. Mockup of all three: `docs/mockups/look-and-feel.html`.
+- **P20 Phone layout:** on a phone held upright, games sit above the badges so they're on screen without scrolling.
 - **P15 Avatars:** a set of original cartoon animals drawn in code, plus a colour choice. "Build your own" possibly later.
 - **P16 Starter badges:** first game; three stars on any game; try every game; play three days in a row; beat your best; 10, 50 and 100 games. Locked badges shown as grey silhouettes with "?".
 - **P17 Scores:** 1–3 stars as the headline in every game, with the number smaller underneath.
 - **P18 Grown-ups' corner:** press-and-hold a small gear, then answer a quick sum. Holds: add or edit players, family code, results waiting to sync, sound on/off.
 - **P19 Small touches:** sounds with a mute button; a cloud icon showing "saved, will sync" when offline.
 
+## Bonus theme skins (P21, adopted 2026-10-28)
+
+Extra skins for the launcher, unlocked with enough points. Sticker book (A) is the default.
+
+- **Fairy**
+- **Unicorn**
+- **Blocks:** an original blocky pixel-world skin (asked for as "Minecraft"; Minecraft's look belongs to Mojang, so this is our own design). Name TBC.
+
+How they'd work (proposed, P22): each skin is one small CSS file that swaps the theme's colours, background and sticker frames, so a skin never changes how the launcher works. Unlock thresholds, and whether skins reach into the games too, are TBC.
+
+## Family (answered 2026-10-28)
+
+- Two children, aged 6 and 4. Build for the 6-year-old first; the 4-year-old plays from pictures and colours.
+- Devices: phone and PC browser. No tablet.
+- Names stay out of this public repo; they live only in the Sheet.
+
 ## Open questions (TBC)
 
-- How many children, and roughly what ages (sets reading level and difficulty).
-- Which devices (tablet models, phone, PC browser).
-- Look-and-feel direction (P14).
+- What counts as "points" for unlocking skins: the star total, or something else?
+- How many points unlock each skin.
+- Do skins change only the launcher, or the games too?
+- Profile nicknames in the Sheet: the children's first names, or something else (P9 allows first names, not full names).
 
 ## Proposals log
 
@@ -118,9 +133,12 @@ Initial ideas from 2026-10-28, not yet decided.
 | P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Proposed |
 | P12 | A grown-ups' check page at `tools/sheet-check.html` to test the connection | Proposed |
 | P13 | Launcher flow (see above) | Proposed |
-| P14 | Look and feel: A, B or C | Proposed, Rob to pick |
+| P14 | Look and feel: A sticker book (B and C declined) | Adopted 2026-10-28 |
 | P15 | Original cartoon-animal avatars plus colour | Proposed |
 | P16 | Starter badge set, locked ones shown as silhouettes | Proposed |
 | P17 | Stars as the headline score | Proposed |
 | P18 | Grown-ups' corner behind press-and-hold and a sum | Proposed |
 | P19 | Sounds with mute; offline "will sync" cloud icon | Proposed |
+| P20 | Phone layout: games above badges | Proposed |
+| P21 | Bonus theme skins unlocked with points: Fairy, Unicorn, Blocks | Adopted 2026-10-28 (Rob's idea) |
+| P22 | Each skin is one CSS file that swaps colours, background and frames | Proposed |
