@@ -3,8 +3,7 @@
 
 export const CONFIG = {
   // Web app URL from Apps Script (Deploy > Manage deployments), ending in /exec.
-  // TBC: paste it here once the script is deployed.
-  appsScriptUrl: 'TBC',
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbx7beHr1JbjAXpnrIwrJseG1qTGUkw8m370f_bi15VFa6LHkfsYRdrNj1JBIKRhtAlX-Q/exec',
 
   // How many recent scores the profile screen shows.
   recentScores: 10,
