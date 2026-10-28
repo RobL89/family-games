@@ -42,8 +42,8 @@
 
   <section>
     <h2>1. Family code</h2>
-    <label for="code">Saved on this device only</label>
-    <input id="code" type="password" autocomplete="off" placeholder="Family code">
+    <label for="code">Saved on this device only (used as typed for every check below)</label>
+    <input id="code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Family code">
     <div class="row">
       <button class="primary" id="save-code">Save code</button>
       <button id="ping">Check connection</button>
@@ -94,6 +94,8 @@
   }
 
   async function run(label, fn) {
+    // Always use what's in the box, so an old saved code can't be sent by mistake.
+    api.setFamilyCode($('code').value);
     document.querySelectorAll('button').forEach((b) => (b.disabled = true));
     $('status').textContent = label + '…';
     $('status').className = '';

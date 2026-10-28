@@ -85,9 +85,10 @@ function doPost(e) {
     return json({ ok: false, error: 'bad_json' });
   }
 
-  const expected = PropertiesService.getScriptProperties().getProperty('FAMILY_CODE');
+  // Trimmed on both sides: a stray space in the property or the box is easy to miss.
+  const expected = String(PropertiesService.getScriptProperties().getProperty('FAMILY_CODE') || '').trim();
   if (!expected) return json({ ok: false, error: 'not_set_up' });
-  if (String(body.code || '') !== expected) return json({ ok: false, error: 'wrong_code' });
+  if (String(body.code || '').trim() !== expected) return json({ ok: false, error: 'wrong_code' });
 
   try {
     switch (body.action) {
