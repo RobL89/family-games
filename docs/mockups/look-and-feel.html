@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launcher look and feel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&family=Lilita+One&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+/* ---------- Page (for grown-ups) ---------- */
+:root{--page:#E7ECF0;--text:#1D2830;--muted:#55646E;--frame:#1E252B}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--text);font:400 17px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 16px 72px}
+.page h1{font-size:2.1rem;line-height:1.15;margin:0 0 .6rem}
+.page p,.lede,.notes{max-width:66ch}
+.page p{margin:0 0 .6rem;color:var(--muted)}
+.dir{margin-top:56px;padding-top:28px;border-top:1px solid #CBD4DB}
+.dir h2{font-size:1.55rem;line-height:1.2;margin:0 0 .3rem}
+.lede{margin:0 0 22px;color:var(--muted)}
+.notes{margin:24px 0 0}
+.foot{margin-top:56px;font-size:.92rem;color:var(--muted);max-width:66ch}
+
+.trio{display:grid;gap:24px 20px;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:end}
+@media (min-width:620px){.trio{grid-template-columns:repeat(2,minmax(0,1fr))}.trio .pc{grid-column:1/-1}}
+@media (min-width:1040px){.trio{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2.7fr)}.trio .pc{grid-column:auto}}
+figure{margin:0;width:100%}
+figure.phone{max-width:270px}
+figcaption{margin-top:10px;font-size:.92rem;color:var(--muted);text-align:center}
+.device{background:var(--frame);padding:8px;border-radius:30px;box-shadow:0 14px 30px -12px rgba(20,30,40,.45)}
+.pc .device{padding:10px 10px 24px;border-radius:14px}
+.scr{position:relative;overflow:hidden;container-type:inline-size;border-radius:22px;background:#fff}
+.phone .scr{aspect-ratio:9/19.5}
+.pc .scr{aspect-ratio:16/10;border-radius:6px}
+
+/* ---------- Shared mock parts ---------- */
+.in{position:absolute;inset:0;line-height:1.2}
+.phone .in{font-size:4.2cqw}
+.pc .in{font-size:1.7cqw}
+:where(.mock) button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mock button:focus-visible{outline:.18em solid #1565D8;outline-offset:.15em}
+:where(.mock) svg{display:block}
+
+.face{display:block;flex:none;border-radius:50%;position:relative}
+.disc{display:block;width:100%;height:100%;border-radius:50%}
+.av{width:100%;height:100%}
+.st{width:1em;height:1em}
+.st.on{--sf:#F5B700}
+.st.off{--sf:rgba(30,40,50,.16)}
+.stars{display:inline-flex;gap:.08em}
+.gear{position:absolute;top:1em;right:1em;width:2.2em;height:2.2em;opacity:.55;z-index:2}
+.gear svg,.back svg{width:100%;height:100%}
+
+.who{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2em;padding:2em 1.5em;text-align:center}
+.who h3{margin:0;font-weight:400;line-height:1}
+.players{display:flex;flex-direction:column;align-items:center;gap:2.4em}
+.player{display:flex;flex-direction:column;align-items:center;gap:.8em;position:relative}
+.who .face{width:11em;height:11em}
+.pname{font-size:2em;line-height:1.1}
+
+.home{--py:1.2em;--px:1.3em;display:grid;gap:.9em;padding:var(--py) var(--px) calc(var(--py) + .1em);min-height:0}
+.pc .home{--py:1.4em;--px:1.8em}
+.phone .home{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head" "games" "side"}
+.pc .home{grid-template-columns:minmax(0,1fr) minmax(0,2fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"head head" "side games";column-gap:1.4em}
+.head{grid-area:head;display:flex;align-items:center;gap:.7em}
+.games{grid-area:games;display:flex;flex-direction:column;min-height:0}
+.side{grid-area:side;display:flex;flex-direction:column}
+.back{display:grid;place-items:center;flex:none;width:2.6em;height:2.6em;border-radius:50%;padding:.55em}
+.head .face{width:4.6em;height:4.6em}
+.hi{flex:1;min-width:0;font-size:2.8em;line-height:1}
+.total{display:flex;align-items:center;gap:.2em;font-size:1.9em;flex:none}
+.total .st{width:1.05em;height:1.05em}
+.phone .back{width:2.3em;height:2.3em;padding:.5em}
+.phone .head .face{width:3.8em;height:3.8em}
+.phone .hi{font-size:2.15em}
+.phone .total{font-size:1.5em}
+.home h4{margin:0 0 .35em;font-weight:400;font-size:1.5em;line-height:1.1}
+
+.tiles{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:.9em}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35em;padding:.6em .5em;text-align:center;min-height:0}
+.tile-ic svg{width:3.6em;height:3.6em}
+.phone .tile-ic svg{width:4.4em;height:4.4em}
+.tile-t{font-size:1.4em;line-height:1.05}
+.tile .stars{font-size:1.35em}
+
+.slots{display:grid;grid-template-columns:repeat(3,4.2em);gap:.6em .7em;margin-bottom:.8em}
+.phone .slots{grid-template-columns:repeat(6,minmax(0,1fr));gap:.45em}
+.slot{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1;border-radius:50%}
+.slot svg{width:58%;height:58%}
+.q{position:absolute;inset:0;display:grid;place-items:center;font-size:1.7em;font-weight:700;line-height:1}
+.phone .q{font-size:1.35em}
+.minis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.4em}
+.mini{display:flex;flex-direction:column;align-items:center;gap:.25em}
+.mini-ic{display:grid;place-items:center;width:100%;max-width:3em;aspect-ratio:1;border-radius:50%}
+.mini-ic svg{width:60%;height:60%}
+.mini .stars{font-size:.72em}
+
+.hello{position:absolute;left:60%;top:-.2em;z-index:6;white-space:nowrap;font-size:1.6em;line-height:1.1;padding:.2em .7em;border-radius:1em;pointer-events:none;transform-origin:0 100%;animation:hello 1.7s ease forwards;box-shadow:0 .1em 0 rgba(0,0,0,.12)}
+
+/* ---------- A: Sticker book ---------- */
+.a{--ink:#2B2118;--ol:#2B2118;--olw:4.5px;--so:#2B2118;--sw:1.7px;color:var(--ink);font-family:"Patrick Hand","Comic Sans MS",cursive;background-color:#E6CF9F;background-image:linear-gradient(rgba(110,78,36,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(110,78,36,.13) 1px,transparent 1px);background-size:2em 2em}
+.a .st.off{--sf:#FFFDF7}
+.a .face{background:#fff;border:.16em solid var(--ink);padding:.5em;box-shadow:.2em .3em 0 rgba(43,33,24,.25)}
+.a .head .face{padding:.25em;border-width:.13em;box-shadow:.12em .18em 0 rgba(43,33,24,.25)}
+.who .a-title{font-size:2.9em;rotate:-2deg;text-decoration:underline wavy #E5533D;text-decoration-thickness:.05em;text-underline-offset:.2em}
+.a .player:nth-child(1){rotate:-5deg}
+.a .player:nth-child(2){rotate:4deg}
+.a .pname{padding:.05em 1em;background:color-mix(in srgb,var(--c) 42%,#fff);clip-path:polygon(0 0,100% 0,96% 25%,100% 50%,96% 75%,100% 100%,0 100%,4% 75%,0 50%,4% 25%)}
+.a .gear{color:var(--ink)}
+.a .back{background:#fff;border:.12em solid var(--ink)}
+.a .total{background:#fff;border:.08em solid var(--ink);border-radius:999px;padding:.05em .55em .05em .3em;rotate:3deg;box-shadow:.1em .14em 0 rgba(43,33,24,.25)}
+.a .side{background:rgba(255,251,242,.6);border:.12em dashed rgba(43,33,24,.4);border-radius:.8em;padding:.8em .9em .9em}
+.a h4{font-size:1.75em}
+.a .slot.got{background:#fff;color:var(--bc);border:.12em solid var(--ink);box-shadow:.1em .16em 0 rgba(43,33,24,.25);rotate:var(--r)}
+.a .slot.lock{border:.11em dashed rgba(43,33,24,.45);color:rgba(43,33,24,.14)}
+.a .q{color:rgba(43,33,24,.55)}
+.a .tile{background:#fff;border:.13em solid var(--ink);border-radius:.5em;box-shadow:.18em .26em 0 rgba(43,33,24,.22)}
+.a .tile:nth-child(1){rotate:-2deg}
+.a .tile:nth-child(2){rotate:1.5deg}
+.a .tile:nth-child(3){rotate:1deg}
+.a .tile:nth-child(4){rotate:-1.5deg}
+.a .tile-ic{color:var(--g)}
+.a .tile-t{font-size:1.65em}
+.a .mini-ic{background:#fff;border:.1em solid var(--ink);color:var(--g)}
+.a .hello{background:#fff;border:.08em solid var(--ink);border-radius:.6em}
+
+/* ---------- B: Bright playground ---------- */
+.b{font-family:"Fredoka",system-ui,sans-serif;font-weight:600;--olw:0px;color:#1F2A33}
+.b .st.on{--sf:#FFC928}
+.b-who{background:#2BA8E0;color:#fff;overflow:hidden}
+.b-who::before{content:"";position:absolute;width:24em;height:20em;left:-10em;top:-8em;background:#58C3EE;border-radius:43% 57% 61% 39%/47% 41% 59% 53%}
+.b-who::after{content:"";position:absolute;width:20em;height:17em;right:-8em;bottom:-7em;background:#FFD23F;border-radius:58% 42% 38% 62%/52% 60% 40% 48%}
+.b-who h3,.b-who .players{position:relative;z-index:1}
+.who .b-title{font-size:2.4em;font-weight:700;text-shadow:0 .07em 0 rgba(10,70,100,.25)}
+.b .face{background:var(--c);padding:.7em;box-shadow:0 .4em 0 color-mix(in srgb,var(--c) 66%,#000)}
+.b .disc{background:var(--soft);padding:.35em}
+.b .pname{background:#fff;color:#1F2A33;padding:.12em .9em;border-radius:999px;box-shadow:0 .15em 0 rgba(0,0,0,.15)}
+.b .gear{color:#fff}
+.b-home{background:var(--soft);color:color-mix(in srgb,var(--c) 45%,#16212A)}
+.b-home .head{margin:calc(-1 * var(--py)) calc(-1 * var(--px)) 0;padding:1.1em var(--px) 1.5em;background:var(--c);color:#fff;border-radius:0 0 50% 50%/0 0 1.4em 1.4em}
+.b .back{background:rgba(255,255,255,.28);color:#fff}
+.b .head .face{padding:.3em;background:#fff;box-shadow:none}
+.b .head .disc{padding:.12em}
+.b .hi{font-weight:700}
+.b .total{background:#fff;color:#1F2A33;border-radius:999px;padding:.12em .65em .12em .35em;box-shadow:0 .14em 0 rgba(0,0,0,.15)}
+.b h4{font-size:1.4em;font-weight:600}
+.b .side{align-self:start}
+.b .slot{color:#fff}
+.b .slot.got{background:var(--bc);box-shadow:0 .22em 0 color-mix(in srgb,var(--bc) 62%,#000)}
+.b .slot.lock{background:rgba(31,42,51,.1);color:rgba(31,42,51,.12)}
+.b .q{color:rgba(31,42,51,.42)}
+.b .tile{background:var(--g);color:#fff;border-radius:1.3em 1.7em 1.2em 1.6em;box-shadow:0 .42em 0 color-mix(in srgb,var(--g) 62%,#000);transition:translate .08s,box-shadow .08s}
+.b .tile:active{translate:0 .3em;box-shadow:0 .12em 0 color-mix(in srgb,var(--g) 62%,#000)}
+.b .tile .st.on{--sf:#FFE066}
+.b .tile .st.off{--sf:rgba(255,255,255,.35)}
+.b .mini-ic{background:var(--g);color:#fff}
+.b .hello{background:#fff;color:#1F2A33}
+
+/* ---------- C: Adventure map ---------- */
+.c{font-family:"Fredoka",system-ui,sans-serif;font-weight:500;--olw:0px;color:#3B2412;background-color:#2490C7;background-image:radial-gradient(circle at 50% 0,transparent .55em,rgba(255,255,255,.2) .6em .75em,transparent .8em),radial-gradient(circle at 50% 0,transparent .55em,rgba(255,255,255,.2) .6em .75em,transparent .8em);background-size:6em 4.4em;background-position:0 0,3em 2.2em}
+.who .c-title{font-family:"Lilita One",sans-serif;font-size:2.25em;white-space:nowrap;color:#FFF3D6;background:#9A6233 repeating-linear-gradient(0deg,transparent 0 .6em,rgba(0,0,0,.14) .6em .66em);padding:.15em .7em .2em;border-radius:.22em;box-shadow:0 .1em 0 #6B4220;rotate:-1.5deg}
+.c .player{animation:bob 3.4s ease-in-out infinite}
+.c .player:nth-child(2){animation-delay:-1.7s}
+.c .face{background:repeating-conic-gradient(#E8473B 0 45deg,#fff 0 90deg);padding:1.3em;box-shadow:0 .3em 0 rgba(0,40,70,.25)}
+.c .disc{background:var(--soft);padding:.35em;box-shadow:0 0 0 .15em rgba(0,0,0,.1)}
+.c .pname{font-family:"Lilita One",sans-serif;color:#3B2412;background:#D69A5C;padding:.05em .7em .1em;border-radius:.2em;box-shadow:0 .1em 0 #8F5A2A}
+.c .gear{color:#fff}
+.c-path{position:absolute;inset:0;width:100%;height:100%}
+.c-path path{fill:none;stroke:#fff;stroke-opacity:.75;stroke-width:.7;stroke-dasharray:1.3 1.7;stroke-linecap:round}
+.isle{position:absolute;z-index:1;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-2.7em)}
+.land{position:relative;display:grid;place-items:center;width:8.5em;height:5.4em;background:#F2D184;border-radius:48% 52% 45% 55%/55% 50% 50% 45%;box-shadow:0 0 0 .35em rgba(255,255,255,.3),0 .3em 0 #C9A55A}
+.grass{position:absolute;inset:.45em 1em 1.3em;background:#6CC04A;border-radius:52% 48% 55% 45%/50% 55% 45% 50%}
+.sign{position:relative;display:grid;place-items:center;width:3.2em;height:3.2em;border-radius:50%;background:#fff;color:var(--g);box-shadow:0 .15em 0 rgba(0,0,0,.18)}
+.sign svg{width:2.1em;height:2.1em}
+.flag{margin-top:.55em;display:flex;align-items:center;gap:.35em;white-space:nowrap;background:#FFF3D6;border-radius:.3em;padding:.12em .5em;font-size:1.15em;box-shadow:0 .12em 0 rgba(0,0,0,.18)}
+.flag .stars{font-size:.85em}
+.token{position:absolute;z-index:3;width:4.4em;height:4.4em;transform:translate(-50%,calc(-100% - 1.5em));transition:left .7s ease-in-out,top .7s ease-in-out;pointer-events:none}
+.c .token .face{width:100%;height:100%;padding:.32em;background:var(--c);box-shadow:0 .25em 0 rgba(0,40,70,.3)}
+.c .token .disc{padding:.2em;box-shadow:none}
+.banner{position:absolute;z-index:4;left:1em;top:1em;display:flex;align-items:center;gap:.5em;background:#FFF3D6;border-radius:.6em;padding:.35em 1em .35em .4em;box-shadow:0 .22em 0 rgba(0,0,0,.18)}
+.c .banner .face{width:3.4em;height:3.4em;padding:.25em;background:var(--c);box-shadow:none}
+.c .banner .disc{padding:.15em;box-shadow:none}
+.c .back{width:2.3em;height:2.3em;padding:.5em;background:#E9D3A8;color:#3B2412}
+.c .hi{font-family:"Lilita One",sans-serif;font-size:2.1em;flex:none}
+.coin{position:absolute;z-index:4;right:1em;top:1em;display:flex;align-items:center;gap:.2em;font-family:"Lilita One",sans-serif;font-size:1.9em;color:#5A3B00;background:#F5B700;border-radius:999px;padding:.12em .6em .12em .3em;box-shadow:inset 0 0 0 .1em #FFD866,0 .14em 0 #B88400}
+.coin .st{--sf:#fff}
+.chest{position:absolute;z-index:5;left:1em;bottom:1em;display:flex;align-items:center;gap:.4em;font-family:"Lilita One",sans-serif;font-size:1.6em;color:#FFF3D6;background:#9A6233;border-radius:.45em;padding:.3em .8em .3em .45em;box-shadow:0 .15em 0 #6B4220}
+.chest svg{width:1.5em;height:1.5em}
+.drawer{position:absolute;z-index:5;left:1em;bottom:5em;width:19em;background:#FFF3D6;border-radius:.8em;padding:.9em 1em 1em;box-shadow:0 .3em 0 rgba(0,0,0,.2);transform-origin:0 100%;transform:translateY(.8em) scale(.7);opacity:0;visibility:hidden;transition:transform .22s ease,opacity .22s ease,visibility .22s}
+.drawer.open{transform:none;opacity:1;visibility:visible}
+.c h4{font-family:"Lilita One",sans-serif;font-weight:400;font-size:1.45em;margin:0 0 .35em}
+.c .slots{grid-template-columns:repeat(6,minmax(0,1fr));gap:.45em}
+.c .slot{color:#fff}
+.c .slot.got{background:var(--bc);box-shadow:inset 0 0 0 .2em #F5B700,0 .15em 0 rgba(0,0,0,.2)}
+.c .slot.lock{background:#93A0A8;color:#7C8A93}
+.c .q{color:#fff;font-size:1.35em}
+.c .mini-ic{background:var(--g);color:#fff}
+.c .hello{background:#FFF3D6;color:#3B2412;font-family:"Lilita One",sans-serif}
+
+/* ---------- Motion (all in answer to a tap, except the gentle bob in C) ---------- */
+@keyframes bob{50%{transform:translateY(-.35em) rotate(1.5deg)}}
+@keyframes wiggle{20%{transform:rotate(-9deg)}40%{transform:rotate(8deg)}60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}
+@keyframes squash{25%{transform:scale(1.13,.87)}50%{transform:translateY(-1em) scale(.95,1.06)}75%{transform:scale(1.05,.95)}}
+@keyframes peel{0%{transform:translate(1.2em,-1.6em) rotate(28deg) scale(1.45);box-shadow:.7em 1em .5em rgba(43,33,24,.22)}65%{transform:rotate(-5deg) scale(.95)}}
+@keyframes pop{0%{transform:scale(.3)}60%{transform:scale(1.18)}}
+@keyframes hop{40%{transform:translateY(-1.3em)}}
+@keyframes hello{0%{opacity:0;transform:translateY(.3em) scale(.5)}14%{opacity:1;transform:scale(1.06)}24%{transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-.3em)}}
+@keyframes fadein{from{opacity:.35}}
+.wiggle{animation:wiggle .6s ease}
+.squash{animation:squash .65s ease}
+.hop{animation:hop .7s ease-in-out}
+.fadein{animation:fadein .35s ease}
+.a .slot.earned{animation:peel .55s cubic-bezier(.3,1.35,.5,1)}
+.b .slot.earned,.c .slot.earned{animation:pop .45s ease}
+@media (prefers-reduced-motion:reduce){.mock,.mock *{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <!-- Avatars: original cartoon animals (P15). Outline comes from --ol / --olw so each style can add or drop it. -->
+  <symbol id="a-fox" viewBox="0 0 100 100">
+    <g style="stroke:var(--ol,none);stroke-width:var(--olw,0);stroke-linejoin:round">
+      <path d="M18 46 L24 8 L46 28 Z" fill="#F07A2A"/>
+      <path d="M82 46 L76 8 L54 28 Z" fill="#F07A2A"/>
+      <ellipse cx="50" cy="56" rx="35" ry="31" fill="#F07A2A"/>
+    </g>
+    <path d="M19 60 Q50 100 81 60 Q66 70 50 65 Q34 70 19 60 Z" fill="#FFF4E8"/>
+    <path d="M44 77 Q50 82 56 77" fill="none" stroke="#2B1E16" stroke-width="3" stroke-linecap="round"/>
+    <path d="M25 30 L27 16 L38 27 Z" fill="#FFD2AE"/>
+    <path d="M75 30 L73 16 L62 27 Z" fill="#FFD2AE"/>
+    <circle cx="37" cy="52" r="5" fill="#2B1E16"/><circle cx="63" cy="52" r="5" fill="#2B1E16"/>
+    <circle cx="38.6" cy="50.4" r="1.7" fill="#fff"/><circle cx="64.6" cy="50.4" r="1.7" fill="#fff"/>
+    <ellipse cx="50" cy="72" rx="5.5" ry="4" fill="#2B1E16"/>
+  </symbol>
+  <symbol id="a-frog" viewBox="0 0 100 100">
+    <g style="stroke:var(--ol,none);stroke-width:var(--olw,0);stroke-linejoin:round">
+      <ellipse cx="50" cy="62" rx="40" ry="29" fill="#5CC15A"/>
+      <circle cx="31" cy="33" r="15" fill="#5CC15A"/>
+      <circle cx="69" cy="33" r="15" fill="#5CC15A"/>
+    </g>
+    <circle cx="31" cy="33" r="9.5" fill="#fff"/><circle cx="69" cy="33" r="9.5" fill="#fff"/>
+    <circle cx="32.5" cy="34.5" r="5" fill="#1F2A1E"/><circle cx="70.5" cy="34.5" r="5" fill="#1F2A1E"/>
+    <path d="M30 64 Q50 82 70 64" fill="none" stroke="#1F2A1E" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="22" cy="66" r="5.5" fill="#FF9BAA" opacity=".8"/><circle cx="78" cy="66" r="5.5" fill="#FF9BAA" opacity=".8"/>
+  </symbol>
+
+  <!-- Score star -->
+  <symbol id="s-star" viewBox="0 0 24 24">
+    <path d="M12 2.5l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 16.9 6.3 20l1.2-6.4L2.8 9.2l6.4-.8z" style="fill:var(--sf,#F5B700);stroke:var(--so,none);stroke-width:var(--sw,0);stroke-linejoin:round"/>
+  </symbol>
+
+  <!-- Badges (P16) -->
+  <symbol id="b-flag" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="2.4" height="18" rx="1.2"/><path d="M7.4 4h11.2l-3.2 4.2 3.2 4.3H7.4z"/></symbol>
+  <symbol id="b-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 16.9 6.3 20l1.2-6.4L2.8 9.2l6.4-.8z"/></symbol>
+  <symbol id="b-grid" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="2"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="2"/><rect x="13" y="13" width="7.5" height="7.5" rx="2"/></symbol>
+  <symbol id="b-cal" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="2.5" width="2.2" height="5" rx="1.1"/><rect x="14.8" y="2.5" width="2.2" height="5" rx="1.1"/><path fill-rule="evenodd" d="M5 5h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 21H5a2.5 2.5 0 0 1-2.5-2.5v-11A2.5 2.5 0 0 1 5 5zM6.3 14.5a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0-3.4 0zM10.3 14.5a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0-3.4 0zM14.3 14.5a1.7 1.7 0 1 0 3.4 0a1.7 1.7 0 1 0-3.4 0z"/></symbol>
+  <symbol id="b-up" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l8.5 9H15v9H9v-9H3.5z"/></symbol>
+  <symbol id="b-ten" viewBox="0 0 24 24" fill="currentColor"><text x="12" y="17.2" text-anchor="middle" font-size="12.5" font-weight="700" font-family="Fredoka, Arial, sans-serif">10</text></symbol>
+
+  <!-- Sample game pictures -->
+  <symbol id="g-memory" viewBox="0 0 48 48" fill="currentColor"><rect x="5" y="10" width="18" height="26" rx="4" transform="rotate(-9 14 23)"/><rect x="25" y="12" width="18" height="26" rx="4" transform="rotate(9 34 25)" opacity=".55"/></symbol>
+  <symbol id="g-count" viewBox="0 0 48 48" fill="currentColor"><circle cx="13" cy="32" r="8.5"/><circle cx="35" cy="32" r="8.5"/><circle cx="24" cy="17" r="8.5" opacity=".7"/><path d="M24 8.5c1-3 4-4.5 7-4-1 3-4 4.5-7 4z"/></symbol>
+  <symbol id="g-shapes" viewBox="0 0 48 48" fill="currentColor"><path d="M24 4l11 18H13z"/><circle cx="13" cy="34" r="9" opacity=".75"/><rect x="27" y="26" width="17" height="17" rx="3" opacity=".55"/></symbol>
+  <symbol id="g-spot" viewBox="0 0 48 48"><circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="5"/><path d="M29 29l11 11" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></symbol>
+
+  <!-- Buttons -->
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12 15 19.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="10.4" y="1.5" width="3.2" height="5" rx="1"/><rect x="10.4" y="17.5" width="3.2" height="5" rx="1"/><rect x="1.5" y="10.4" width="5" height="3.2" rx="1"/><rect x="17.5" y="10.4" width="5" height="3.2" rx="1"/>
+    <g transform="rotate(45 12 12)"><rect x="10.4" y="1.5" width="3.2" height="5" rx="1"/><rect x="10.4" y="17.5" width="3.2" height="5" rx="1"/><rect x="1.5" y="10.4" width="5" height="3.2" rx="1"/><rect x="17.5" y="10.4" width="5" height="3.2" rx="1"/></g>
+    <circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="3.6"/>
+  </symbol>
+  <symbol id="i-chest" viewBox="0 0 24 24"><path d="M3 11a9 7 0 0 1 18 0z" fill="#E8B266"/><rect x="3" y="11" width="18" height="10" rx="1.5" fill="#D9984A"/><rect x="3" y="10.2" width="18" height="2" fill="#F5B700"/><rect x="10.3" y="11" width="3.4" height="4.5" rx="1" fill="#F5B700"/></symbol>
+</svg>
+
+<main class="wrap">
+  <header class="page">
+    <h1>Launcher look and feel</h1>
+    <p>Three directions for the launcher (P14 in docs/PLAN.md), each on a phone held upright and on a PC screen. The flow, avatars, badges and stars are the same in all three, so you're comparing style alone.</p>
+    <p>Everything is sample: Pip and Bo, the games, the stars and the badges are made up. Tap around: players say hello and switch the home screens, games react, and grey badges show what earning one looks like.</p>
+  </header>
+
+  <section class="dir" data-dir="a">
+    <h2>A. Sticker book</h2>
+    <p class="lede">Kraft paper, chunky outlines, tilted stickers. Badges stick onto the page like real stickers.</p>
+    <div class="trio">
+      <figure class="phone"><div class="device"><div class="scr" data-who></div></div><figcaption>Phone: who's playing?</figcaption></figure>
+      <figure class="phone"><div class="device"><div class="scr" data-home></div></div><figcaption>Phone: home screen</figcaption></figure>
+      <figure class="pc"><div class="device"><div class="scr" data-home></div></div><figcaption>PC: home screen</figcaption></figure>
+    </div>
+    <p class="notes">Feels like a scrapbook they're filling in. Middle effort: the paper, outlines and tilts are plain CSS, and sticking a badge on is one animation. The handwritten-style font is the thing to test with your 6-year-old while they're learning to read.</p>
+  </section>
+
+  <section class="dir" data-dir="b">
+    <h2>B. Bright playground</h2>
+    <p class="lede">Bold flat colours, blobby shapes, buttons that squash and bounce. Each child's colour themes their home screen: tap Bo to see it change.</p>
+    <div class="trio">
+      <figure class="phone"><div class="device"><div class="scr" data-who></div></div><figcaption>Phone: who's playing?</figcaption></figure>
+      <figure class="phone"><div class="device"><div class="scr" data-home></div></div><figcaption>Phone: home screen</figcaption></figure>
+      <figure class="pc"><div class="device"><div class="scr" data-home></div></div><figcaption>PC: home screen</figcaption></figure>
+    </div>
+    <p class="notes">Feels like a toy. The simplest of the three to build well: the same tile grid rearranges for the phone and the PC, and new games just add a tile.</p>
+  </section>
+
+  <section class="dir" data-dir="c">
+    <h2>C. Adventure map</h2>
+    <p class="lede">Games are islands and your avatar hops between them. Badges and recent games live in the treasure chest.</p>
+    <div class="trio">
+      <figure class="phone"><div class="device"><div class="scr" data-who></div></div><figcaption>Phone: who's playing?</figcaption></figure>
+      <figure class="phone"><div class="device"><div class="scr" data-home></div></div><figcaption>Phone: home screen</figcaption></figure>
+      <figure class="pc"><div class="device"><div class="scr" data-home></div></div><figcaption>PC: home screen</figcaption></figure>
+    </div>
+    <p class="notes">The most immersive and the most work: the phone and the PC each need their own map (compare the two), and every new game needs a spot on both. Badges are one tap further away, inside the chest.</p>
+  </section>
+
+  <p class="foot">Mockup only, not the launcher. Fonts from Google Fonts: Patrick Hand (A), Fredoka (B and C), Lilita One (C). Avatars are original animals drawn in code (P15); badges follow the starter set (P16); stars are the headline score (P17).</p>
+</main>
+
+<script>
+const GAMES = [
+  { id: 'memory', title: 'Memory match', c: '#E0457B' },
+  { id: 'count',  title: 'Count it',     c: '#E5533D' },
+  { id: 'shapes', title: 'Shape sort',   c: '#2E8FD0' },
+  { id: 'spot',   title: 'Spot it',      c: '#119C8F' }
+];
+const BADGES = [
+  { id: 'first',  name: 'First game',      icon: 'b-flag', c: '#E5533D' },
+  { id: 'three',  name: 'Three stars',     icon: 'b-star', c: '#F2A900' },
+  { id: 'every',  name: 'Try every game',  icon: 'b-grid', c: '#2E8FD0' },
+  { id: 'streak', name: '3 days in a row', icon: 'b-cal',  c: '#F07A2A' },
+  { id: 'best',   name: 'Beat your best',  icon: 'b-up',   c: '#2FA34A' },
+  { id: 'ten',    name: '10 games',        icon: 'b-ten',  c: '#7E4FC9' }
+];
+// Sample players: names, stars and history are made up.
+const PLAYERS = [
+  { id: 'pip', name: 'Pip', animal: 'fox',  c: '#F07A2A', soft: '#FFE4CF', stars: 23,
+    badges: ['first', 'three', 'best', 'ten'],
+    last: [['memory', 3], ['count', 2], ['memory', 2], ['shapes', 1], ['count', 2]],
+    best: { memory: 3, count: 2, shapes: 1, spot: 0 } },
+  { id: 'bo',  name: 'Bo',  animal: 'frog', c: '#2FA34A', soft: '#DAF2D6', stars: 9,
+    badges: ['first', 'three'],
+    last: [['count', 3], ['count', 1], ['memory', 1], ['count', 2], ['memory', 2]],
+    best: { memory: 2, count: 3, shapes: 0, spot: 0 } }
+];
+const G = Object.fromEntries(GAMES.map(g => [g.id, g]));
+const P = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
+
+// Island centres (% of screen) and the dotted route for direction C.
+const ISLES = {
+  phone: { memory: [30, 24], count: [70, 40], shapes: [32, 57], spot: [68, 73] },
+  pc:    { memory: [18, 52], count: [40, 74], shapes: [60, 40], spot: [82, 66] }
+};
+const ROUTE = {
+  phone: { vb: '0 0 100 216.7', d: 'M30 52C45 60 62 72 70 87S40 112 32 124S56 150 68 158' },
+  pc:    { vb: '0 0 100 62.5',  d: 'M18 32.5C26 42 32 47 40 46S54 26 60 25S76 36 82 41' }
+};
+
+const use = (id, cls = '') => `<svg class="${cls}" aria-hidden="true" focusable="false"><use href="#${id}"></use></svg>`;
+const face = p => `<span class="face"><span class="disc">${use('a-' + p.animal, 'av')}</span></span>`;
+const stars = n => `<span class="stars" role="img" aria-label="${n} of 3 stars">${[0, 1, 2].map(i => use('s-star', 'st ' + (i < n ? 'on' : 'off'))).join('')}</span>`;
+const vars = p => `--c:${p.c};--soft:${p.soft}`;
+const TILT = [-8, 5, -3, 7, -6, 4];
+const gear = `<button class="gear" aria-label="Grown-ups' corner">${use('i-gear')}</button>`;
+const back = `<button class="back" data-back aria-label="Back to who's playing">${use('i-back')}</button>`;
+const total = p => `<span class="total" role="img" aria-label="${p.stars} stars">${use('s-star', 'st on')}<span>${p.stars}</span></span>`;
+
+const slots = p => BADGES.map((b, i) => p.badges.includes(b.id)
+  ? `<span class="slot got" style="--bc:${b.c};--r:${TILT[i]}deg" title="${b.name}">${use(b.icon)}</span>`
+  : `<button class="slot lock" data-lock style="--bc:${b.c};--r:${TILT[i]}deg" aria-label="${b.name}, not earned yet. Tap to see it earned.">${use(b.icon)}<span class="q" aria-hidden="true">?</span></button>`
+).join('');
+const minis = p => p.last.map(([id, n]) => `<span class="mini" style="--g:${G[id].c}"><span class="mini-ic">${use('g-' + id)}</span>${stars(n)}</span>`).join('');
+const tiles = p => GAMES.map(g => `<button class="tile" data-g="${g.id}" style="--g:${g.c}"><span class="tile-ic">${use('g-' + g.id)}</span><span class="tile-t">${g.title}</span>${stars(p.best[g.id])}</button>`).join('');
+
+function who(d) {
+  return `<div class="in mock who ${d} ${d}-who">${gear}<h3 class="${d}-title">Who's playing?</h3>
+    <div class="players">${PLAYERS.map(p => `<button class="player" data-p="${p.id}" style="${vars(p)}">${face(p)}<span class="pname">${p.name}</span></button>`).join('')}</div></div>`;
+}
+
+function home(d, p, kind) {
+  if (d === 'c') return mapHome(p, kind);
+  return `<div class="in mock home ${d} ${d}-home" style="${vars(p)}">
+    <div class="head">${back}${face(p)}<span class="hi">Hi ${p.name}!</span>${total(p)}</div>
+    <section class="games"><h4>Games</h4><div class="tiles">${tiles(p)}</div></section>
+    <section class="side"><h4>${d === 'a' ? 'My stickers' : 'My badges'}</h4><div class="slots">${slots(p)}</div>
+      <h4>Last played</h4><div class="minis">${minis(p)}</div></section></div>`;
+}
+
+function mapHome(p, kind) {
+  const pos = ISLES[kind], route = ROUTE[kind];
+  const [tx, ty] = pos[p.last[0][0]];
+  const isles = GAMES.map(g => {
+    const [x, y] = pos[g.id];
+    return `<button class="isle" data-g="${g.id}" style="left:${x}%;top:${y}%;--g:${g.c}" aria-label="${g.title}"><span class="land"><span class="grass"></span><span class="sign">${use('g-' + g.id)}</span></span><span class="flag">${g.title}${stars(p.best[g.id])}</span></button>`;
+  }).join('');
+  return `<div class="in mock c c-home" style="${vars(p)}">
+    <svg class="c-path" viewBox="${route.vb}" preserveAspectRatio="none" aria-hidden="true"><path d="${route.d}"/></svg>
+    ${isles}
+    <div class="token" style="left:${tx}%;top:${ty}%">${face(p)}</div>
+    <div class="banner">${back}${face(p)}<span class="hi">Hi ${p.name}!</span></div>
+    <div class="coin" role="img" aria-label="${p.stars} stars">${use('s-star', 'st on')}<span>${p.stars}</span></div>
+    <div class="drawer"><h4>My badges</h4><div class="slots">${slots(p)}</div><h4>Last played</h4><div class="minis">${minis(p)}</div></div>
+    <button class="chest" data-chest aria-expanded="false">${use('i-chest')}<span>My treasure</span></button></div>`;
+}
+
+function replay(el, cls) {
+  if (!el) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+}
+function say(el, text) {
+  el.querySelectorAll(':scope > .hello').forEach(x => x.remove());
+  const s = document.createElement('span');
+  s.className = 'hello'; s.textContent = text;
+  el.appendChild(s);
+  setTimeout(() => s.remove(), 1800);
+}
+
+const MOVE = { a: 'wiggle', b: 'squash', c: 'wiggle' };
+
+document.querySelectorAll('.dir').forEach(sec => {
+  const d = sec.dataset.dir;
+  const whoScr = sec.querySelector('[data-who]');
+  const homes = [...sec.querySelectorAll('[data-home]')];
+  const kind = s => s.closest('figure').classList.contains('pc') ? 'pc' : 'phone';
+  const show = (p, animate) => homes.forEach(s => {
+    s.innerHTML = home(d, p, kind(s));
+    if (animate) replay(s.firstElementChild, 'fadein');
+  });
+
+  whoScr.innerHTML = who(d);
+  show(PLAYERS[0], false);
+
+  sec.addEventListener('click', e => {
+    const t = e.target, scr = t.closest('.scr');
+    if (!scr) return;
+
+    const pb = t.closest('[data-p]');
+    if (pb) {
+      const p = P[pb.dataset.p];
+      say(pb, `Hi ${p.name}!`);
+      replay(pb.querySelector('.face'), MOVE[d]);
+      show(p, true);
+      return;
+    }
+    const lk = t.closest('[data-lock]');
+    if (lk) {
+      const s = document.createElement('span');
+      s.className = 'slot got earned';
+      s.setAttribute('style', lk.getAttribute('style'));
+      s.innerHTML = lk.querySelector('svg').outerHTML;
+      lk.replaceWith(s);
+      return;
+    }
+    const g = t.closest('[data-g]');
+    if (g) {
+      if (d === 'c') {
+        const tok = scr.querySelector('.token');
+        tok.style.left = g.style.left; tok.style.top = g.style.top;
+        replay(tok.querySelector('.face'), 'hop');
+        setTimeout(() => say(tok, "Let's go!"), 700);
+      } else {
+        replay(g, MOVE[d]);
+      }
+      return;
+    }
+    const ch = t.closest('[data-chest]');
+    if (ch) {
+      const open = scr.querySelector('.drawer').classList.toggle('open');
+      ch.setAttribute('aria-expanded', open);
+      return;
+    }
+    if (t.closest('[data-back]')) {
+      whoScr.querySelectorAll('.face').forEach((f, i) => setTimeout(() => replay(f, MOVE[d]), i * 150));
+    }
+  });
+});
+</script>
+</body>
+</html>
