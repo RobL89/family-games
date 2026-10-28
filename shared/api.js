@@ -10,6 +10,7 @@ const KEYS = {
   code: 'fg.familyCode',
   outbox: 'fg.outbox',
   profiles: 'fg.cache.profiles',
+  skins: 'fg.cache.skins',
   profilePrefix: 'fg.cache.profile.',
 };
 
@@ -32,6 +33,9 @@ function save(key, value) {
     return false;
   }
 }
+
+// For other shared code that keeps small things on the device (sound, celebrations).
+export { load as loadLocal, save as saveLocal };
 
 // ---- Family code ---------------------------------------------------------------
 
@@ -74,9 +78,16 @@ export function getCachedProfiles() {
 }
 
 export async function fetchProfiles() {
-  const { profiles } = await call('profiles');
+  const { profiles, skins } = await call('profiles');
   save(KEYS.profiles, profiles);
+  // skins is null until the Sheet has a Skins tab (script 0.2.0 + setup).
+  if (Array.isArray(skins)) save(KEYS.skins, skins);
   return profiles;
+}
+
+// Skins and their star thresholds, as last read from the Sheet (null if never).
+export function getCachedSkins() {
+  return load(KEYS.skins, null);
 }
 
 export function getCachedProfile(profileId) {
@@ -92,6 +103,16 @@ export async function fetchProfile(profileId) {
 export async function addProfile({ nickname, avatar, colour }) {
   const { profile } = await call('addProfile', { nickname, avatar, colour });
   await fetchProfiles().catch(() => {});
+  return profile;
+}
+
+// Send only the fields to change: { nickname, avatar, colour, skin }.
+export async function updateProfile(profileId, changes) {
+  const { profile } = await call('updateProfile', { ...changes, profile_id: profileId });
+  const list = getCachedProfiles().map((p) => (p.profile_id === profileId ? { ...p, ...profile } : p));
+  save(KEYS.profiles, list);
+  const cached = getCachedProfile(profileId);
+  if (cached) save(KEYS.profilePrefix + profileId, { ...cached, profile: { ...cached.profile, ...profile } });
   return profile;
 }
 

@@ -1,0 +1,43 @@
+/* Fairy skin: lilac, pink and mint with sparkles. Launcher and profile screens only. */
+:root[data-skin="fairy"] {
+  --paper: #F4E9FF;
+  --bg-image: radial-gradient(circle, rgba(255, 255, 255, .95) 0 .09rem, transparent .13rem),
+              radial-gradient(circle, rgba(228, 111, 176, .5) 0 .07rem, transparent .11rem),
+              linear-gradient(165deg, #F3DFFF 0%, #FCE6F2 45%, #DFF5EE 100%);
+  --bg-size: 3.1rem 3.1rem, 4.7rem 4.7rem, 100% 100%;
+  --bg-pos: 0 0, 1.4rem 2.2rem, 0 0;
+  --ink: #3D2457;
+  --muted: rgba(61, 36, 87, .62);
+  --line: #B88AD9;
+  --outline: .11em;
+  --card: #FFFFFF;
+  --radius: 1.1em;
+  --shadow: 0 .22em .6em rgba(186, 104, 200, .3);
+  --panel: rgba(255, 255, 255, .6);
+  --panel-line: .1em solid rgba(184, 138, 217, .45);
+  --accent: #E46FB0;
+  --title-line: none;
+  --lock: rgba(61, 36, 87, .14);
+  --font: "Fredoka", system-ui, sans-serif;
+  --weight: 500;
+  --tilt: .4;
+  --olw: 3px;
+  --sw: 1.2px;
+  --star-off: #FFFFFF;
+}
+:root[data-skin="fairy"] body { background-attachment: scroll; }
+:root[data-skin="fairy"] .title::before,
+:root[data-skin="fairy"] .title::after { content: "\2726"; display: inline-block; margin: 0 .3em; font-size: .65em; color: var(--accent); vertical-align: .2em; }
+:root[data-skin="fairy"] .face::after {
+  content: "\2726"; position: absolute; top: -.35em; right: -.15em; font-size: 1.2em; line-height: 1; color: #F7B6DC;
+  text-shadow: 0 0 .3em #fff;
+}
+:root[data-skin="fairy"] .deco {
+  background:
+    radial-gradient(circle at 10% 18%, rgba(255, 255, 255, .95) 0 .2rem, transparent .26rem),
+    radial-gradient(circle at 86% 12%, rgba(255, 255, 255, .95) 0 .16rem, transparent .22rem),
+    radial-gradient(circle at 92% 62%, rgba(247, 182, 220, .9) 0 .2rem, transparent .26rem),
+    radial-gradient(circle at 6% 74%, rgba(255, 255, 255, .95) 0 .18rem, transparent .24rem),
+    radial-gradient(circle at 48% 92%, rgba(247, 182, 220, .9) 0 .16rem, transparent .22rem);
+  animation: twinkle 4s ease-in-out infinite;
+}

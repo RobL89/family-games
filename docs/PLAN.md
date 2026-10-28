@@ -8,68 +8,84 @@ Last updated: 2026-10-28
 
 ## What we're building
 
-- A **launcher**: pick your profile, see your profile (recent scores, achievements), pick a game.
-- A **series of games**: one folder each, playable with touch (tablet/phone) or mouse (PC).
-- **Storage** in a Google Sheet, so profiles, scores and achievements follow the kids across devices.
-- Style: fun, child friendly, cartoonish, interactive, not overly complex.
+- A **launcher**: pick who's playing, see your home screen (stars, badges, recent games, skins), pick a game.
+- A **series of games**: one folder each, playable with touch (phone) or mouse (PC).
+- **Storage** in a Google Sheet, so profiles, scores, badges and skins follow the kids across devices.
+- Style: fun, child friendly, cartoonish, interactive, not overly complex. Sticker book look (P14), with unlockable skins (P21).
+
+## Family (answered 2026-10-28)
+
+- Two children, aged 6 and 4. Build for the 6-year-old first; the 4-year-old plays from pictures and colours.
+- Devices: phone and PC browser. No tablet.
+- Their first names are used as nicknames in the Sheet (Rob, 2026-10-28). Names stay out of this public repo.
 
 ## Folder layout (P4)
 
 ```
 family-games/
-├─ index.html              Launcher: profile picker → profile screen → game grid
-├─ games.json              List of games: id, title, icon, folder
+├─ index.html              Launcher page (the code is in shared/launcher.js)
+├─ games.json              List of games: id, title, icon, colour, folder, status ("ready" or "soon")
 ├─ shared/
-│  ├─ config.js            Apps Script web app URL (TBC until deployed)
+│  ├─ config.js            Apps Script web app URL; debug switch for the skin button
 │  ├─ api.js               Talks to the Sheet; keeps an outbox on the device
-│  ├─ game-kit.js          What every game calls: getPlayer(), finish(result)
-│  ├─ achievements.js      Achievement list and the rules for earning them
-│  ├─ theme.css            Shared cartoon look, big touch targets
-│  └─ assets/              Avatars, icons, sounds
+│  ├─ launcher.js          Who's playing, home screen, celebrations, grown-ups' corner
+│  ├─ game-kit.js          What every game calls: getPlayer(), record(), finish(), homeButton()
+│  ├─ achievements.js      Badge list and the rules for earning them
+│  ├─ skins.js             Skin list (fallback star targets) and switching
+│  ├─ theme.css            Sticker book theme, built from tokens skins can override
+│  ├─ skins/               fairy.css, blocks.css, unicorn.css
+│  ├─ avatars.js           Original cartoon animals and colours
+│  ├─ icons.js             Stars, badge pictures, game pictures, buttons
+│  └─ sound.js             Little sounds made in the browser, with mute
 ├─ games/
 │  ├─ _template/           Starter game to copy for each new game
-│  └─ <game-id>/           index.html, game.js, game.css
+│  └─ bubble-pop/          First working game
 ├─ apps-script/
 │  └─ Code.gs              The Sheet's backend, pasted into Apps Script
+├─ tools/
+│  └─ sheet-check.html     Grown-ups' connection check
 └─ docs/
    ├─ PLAN.md              This file
-   └─ setup-sheet.md       Step-by-step: create the Sheet, deploy the script
+   ├─ setup-sheet.md       Step-by-step: Sheet, script, deploy, updates
+   └─ mockups/             Look-and-feel mockups (P14)
 ```
 
-## Information flow (proposed, P6)
+## Information flow (P6)
 
-1. **Launcher opens.** Shows profiles from the device's cache straight away, then refreshes them from the Sheet.
-2. **Child taps their avatar.** Profile screen loads: recent scores, badges earned and still to earn, and the game grid.
-3. **Child taps a game.** It opens at `games/<id>/?player=<profile_id>`.
-4. **Game ends.** The game calls `finish({ score, level, stars, seconds })`. The result is saved on the device first (the outbox), then sent to the Sheet in the background. If the device is offline, it is sent next time the launcher opens. Each result carries a unique ID so a retry never counts twice.
-5. **Achievements are checked** after each result, using the rules in `shared/achievements.js` and the player's stats from the Sheet. New ones are recorded in the Sheet (duplicates ignored) and celebrated on screen.
-6. **Profile screen** gets everything for one child in a single call.
+1. **Launcher opens.** Shows players from the device's cache straight away, sends anything waiting in the outbox, then refreshes from the Sheet.
+2. **Child taps their avatar.** Home screen: greeting and star total, game tiles with best stars, badges earned and still to earn, last five games, skins.
+3. **Child taps a game.** It opens at `games/<id>/index.html?player=<profile_id>`.
+4. **Round ends.** The game calls `record()` (stay, for "Play again") or `finish()` (go back). The result is saved on the device first, then sent to the Sheet by the launcher. Each result has a unique ID, so a retry never counts twice.
+5. **Badges are checked** at the end of each round with the rules in `shared/achievements.js`, and again when the home screen opens. New ones are recorded in the Sheet (duplicates ignored).
+6. **Back in the launcher:** confetti, the stars won, new badges sticking on, and any skin just unlocked.
 
-## Sheet tabs (proposed, P5)
+## Sheet tabs (P5, P23, P24)
 
 | Tab | Columns |
 |---|---|
-| Profiles | profile_id, nickname, avatar, colour, created_at, active |
-| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at |
+| Profiles | profile_id, nickname, avatar, colour, created_at, active, skin |
+| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at |
 | Achievements | profile_id, achievement_id, earned_at |
+| Skins | skin_id, name, stars_needed, active |
 
-No other personal data. The family code (below) is kept in the script's settings, not the Sheet.
+The family code is kept in the script's settings, not the Sheet. Change a skin's star target by editing `stars_needed` in the Skins tab; the launcher reads it fresh.
 
-## Calls the Apps Script answers (proposed)
+## Calls the Apps Script answers (script 0.2.0)
 
 | Call | Does |
 |---|---|
-| `profiles` | List active profiles |
-| `profile` | One profile: recent scores, per-game bests, play count, achievements |
-| `result` | Add a score (ignored if its event_id is already there) |
-| `achievement` | Record an achievement (ignored if already earned) |
-| `addProfile` | Add a child, from a grown-ups' corner in the launcher |
+| `ping` | Checks the family code; returns the script version |
+| `profiles` | Active players, plus the Skins tab |
+| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges |
+| `addProfile` | Adds a player (grown-ups' corner) |
+| `updateProfile` | Changes a player's name, animal, colour or skin; a skin only if they have the stars |
+| `sync` | Takes the device outbox: results and badges, duplicates skipped |
 
-## Safety and privacy (proposed, P7 and P9)
+## Safety and privacy (P7, P9, P10)
 
 - On a personal GitHub account, the game site is reachable by anyone with its link: private publishing needs GitHub Enterprise Cloud. On GitHub Free the repo itself must also be public.
-- So the Apps Script link will be visible in the site's code. To stop strangers writing to the Sheet, each call must carry a **family code**. A grown-up enters it once per device; it is stored in that device's browser and in the script's settings, never in the repo. It's a light lock, not a password.
-- The Sheet holds nicknames, a chosen cartoon avatar, scores and badges. No real full names, birthdays, photos or schools.
+- So the Apps Script link is visible in the site's code. To stop strangers writing to the Sheet, each call carries a **family code**, sent in the body of a POST (never in a link). A grown-up enters it once per device; it is stored in that device's browser and in the script's settings, never in the repo. It's a light lock, not a password.
+- The Sheet holds first names or nicknames, a cartoon animal, a colour, scores, badges and the chosen skin. No surnames, birthdays, photos or schools.
 - Writes are locked one at a time in the script, so two kids finishing at once don't clash.
 
 ## Limits checked 2026-10-28
@@ -80,41 +96,45 @@ No other personal data. The family code (below) is kept in the script's settings
 
 Family use is far inside all of these.
 
-## Launcher and profile screens (proposed, P13–P19)
+## Launcher and home screen (P13–P20, built 2026-10-28)
 
-Initial ideas from 2026-10-28, not yet decided.
+- **P13 Flow:** "Who's playing?" with big avatar stickers (tap: wiggle and hello) → the child's home screen → a game. Coming back from a game: confetti, stars won, new badges sticking on. Every game within two taps.
+- **P14 Look and feel: A, sticker book.** Kraft paper, chunky outlines, tilted stickers. B and C declined. Mockup of all three: `docs/mockups/look-and-feel.html`.
+- **P15 Avatars:** six original cartoon animals (fox, frog, owl, bear, bunny, penguin) plus six colours.
+- **P16 Badges:** first game; three stars on any game; try every game; 3 days in a row; beat your best; 10, 50 and 100 games. Locked ones are grey with a "?"; tapping any badge says its name.
+- **P17 Scores:** 1–3 stars is the headline in every game; stars are also the points that unlock skins.
+- **P18 Grown-ups' corner:** press and hold the gear for a second, then answer a times-table sum (P27). Holds: add or edit players, family code and connection check, results waiting to sync, sound on/off.
+- **P19 Small touches:** sounds with a mute switch; a cloud icon on the home screen while results are waiting to sync.
+- **P20 Phone layout:** on a phone held upright, games sit above the badges.
 
-- **P13 Flow:** "Who's playing?" screen of big avatar bubbles in each child's colour (tap: wiggle and hello) → the child's home screen: avatar and greeting, star total, badge shelf, last five games, then big game tiles showing best stars per game. Coming back from a game: confetti and new badges popping onto the shelf. Every game within two taps.
-- **P14 Look and feel: A, sticker book (adopted 2026-10-28).** Kraft paper background, chunky outlines, tilted stickers, badges stick on like stickers. B (bright playground) and C (adventure map) declined. Mockup of all three: `docs/mockups/look-and-feel.html`.
-- **P20 Phone layout:** on a phone held upright, games sit above the badges so they're on screen without scrolling.
-- **P15 Avatars:** a set of original cartoon animals drawn in code, plus a colour choice. "Build your own" possibly later.
-- **P16 Starter badges:** first game; three stars on any game; try every game; play three days in a row; beat your best; 10, 50 and 100 games. Locked badges shown as grey silhouettes with "?".
-- **P17 Scores:** 1–3 stars as the headline in every game, with the number smaller underneath.
-- **P18 Grown-ups' corner:** press-and-hold a small gear, then answer a quick sum. Holds: add or edit players, family code, results waiting to sync, sound on/off.
-- **P19 Small touches:** sounds with a mute button; a cloud icon showing "saved, will sync" when offline.
+## Bonus theme skins (P21–P24)
 
-## Bonus theme skins (P21, adopted 2026-10-28)
+Skins change the launcher and home screens only, never the games (Rob, 2026-10-28). Unlocked by a child's star total. Starting targets, editable in the Skins tab:
 
-Extra skins for the launcher, unlocked with enough points. Sticker book (A) is the default.
+| Skin | Stars needed |
+|---|---|
+| Sticker book | 0 (default) |
+| Fairy | 10 |
+| Blocks | 20 |
+| Unicorn | 30 |
 
-- **Fairy**
-- **Unicorn**
-- **Blocks:** an original blocky pixel-world skin (asked for as "Minecraft"; Minecraft's look belongs to Mojang, so this is our own design). Name TBC.
+- **Blocks** is an original blocky pixel-world design (asked for as "Minecraft"; Minecraft's look belongs to Mojang). Name TBC.
+- Each skin is one CSS file in `shared/skins/` that swaps colours, background, fonts and frames (P22).
+- A child's chosen skin is saved in the Profiles `skin` column; if the Sheet can't save it yet, it's kept on that device (P24).
+- **Debug skin button** (bottom right) switches skins for grown-ups without unlocking or saving anything. Turn it off with `debug: false` in `shared/config.js` (P28).
 
-How they'd work (proposed, P22): each skin is one small CSS file that swaps the theme's colours, background and sticker frames, so a skin never changes how the launcher works. Unlock thresholds, and whether skins reach into the games too, are TBC.
+## Games
 
-## Family (answered 2026-10-28)
-
-- Two children, aged 6 and 4. Build for the 6-year-old first; the 4-year-old plays from pictures and colours.
-- Devices: phone and PC browser. No tablet.
-- Names stay out of this public repo; they live only in the Sheet.
+| Game | Status |
+|---|---|
+| Bubble pop | Ready (P25): 20 bubbles; 3 stars for 17+, 2 for 11+, otherwise 1 |
+| Family game from Rob's wife | TBC: waiting for the file |
+| Memory match, Count it, Shape sort, Spot it | Placeholder "Soon" tiles (P26); names are placeholders |
 
 ## Open questions (TBC)
 
-- What counts as "points" for unlocking skins: the star total, or something else?
-- How many points unlock each skin.
-- Do skins change only the launcher, or the games too?
-- Profile nicknames in the Sheet: the children's first names, or something else (P9 allows first names, not full names).
+- Blocks skin: final name (the 6-year-old could pick).
+- The family game: file, title, and how its stars should be worked out.
 
 ## Proposals log
 
@@ -124,21 +144,28 @@ How they'd work (proposed, P22): each skin is one small CSS file that swaps the 
 | P2 | Host on GitHub Pages | Adopted 2026-10-28 |
 | P3 | Google Sheet reached through an Apps Script web app | Adopted 2026-10-28 |
 | P4 | Folder layout above | Adopted 2026-10-28 |
-| P5 | Three Sheet tabs: Profiles, Scores, Achievements | Adopted 2026-10-28 |
+| P5 | Sheet tabs: Profiles, Scores, Achievements | Adopted 2026-10-28 |
 | P6 | Save on the device first, sync in the background | Adopted 2026-10-28 |
 | P7 | Family code checked by the script | Adopted 2026-10-28 |
 | P8 | Achievement rules in one repo file; the Sheet records unlocks | Adopted 2026-10-28 |
-| P9 | Nicknames and cartoon avatars only, no real personal data | Adopted 2026-10-28 |
-| P10 | Every call to the script is a POST, so the family code never sits in a link | Proposed |
-| P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Proposed |
-| P12 | A grown-ups' check page at `tools/sheet-check.html` to test the connection | Proposed |
-| P13 | Launcher flow (see above) | Proposed |
+| P9 | First names or nicknames and cartoon avatars only; no surnames or other personal data | Adopted 2026-10-28 (first names allowed by Rob) |
+| P10 | Every call to the script is a POST, so the family code never sits in a link | Adopted 2026-10-28 |
+| P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Adopted 2026-10-28 |
+| P12 | A grown-ups' check page at `tools/sheet-check.html` | Adopted 2026-10-28 |
+| P13 | Launcher flow | Adopted 2026-10-28 |
 | P14 | Look and feel: A sticker book (B and C declined) | Adopted 2026-10-28 |
-| P15 | Original cartoon-animal avatars plus colour | Proposed |
-| P16 | Starter badge set, locked ones shown as silhouettes | Proposed |
-| P17 | Stars as the headline score | Proposed |
-| P18 | Grown-ups' corner behind press-and-hold and a sum | Proposed |
-| P19 | Sounds with mute; offline "will sync" cloud icon | Proposed |
-| P20 | Phone layout: games above badges | Proposed |
-| P21 | Bonus theme skins unlocked with points: Fairy, Unicorn, Blocks | Adopted 2026-10-28 (Rob's idea) |
-| P22 | Each skin is one CSS file that swaps colours, background and frames | Proposed |
+| P15 | Original cartoon-animal avatars plus colour | Adopted 2026-10-28 |
+| P16 | Starter badge set, locked ones shown greyed with "?" | Adopted 2026-10-28 |
+| P17 | Stars as the headline score, and as the points for skins | Adopted 2026-10-28 |
+| P18 | Grown-ups' corner behind press-and-hold and a sum | Adopted 2026-10-28 |
+| P19 | Sounds with mute; "will sync" cloud icon | Adopted 2026-10-28 |
+| P20 | Phone layout: games above badges | Adopted 2026-10-28 |
+| P21 | Bonus theme skins unlocked with stars: Fairy, Unicorn, Blocks; launcher only | Adopted 2026-10-28 (Rob's idea) |
+| P22 | Each skin is one CSS file that swaps colours, background and frames | Adopted 2026-10-28 |
+| P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request) |
+| P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Proposed |
+| P25 | Bubble pop as the first working game | Proposed |
+| P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Proposed |
+| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Proposed |
+| P28 | Debug skin button, switched by `debug` in `shared/config.js` | Adopted 2026-10-28 (Rob's request) |
+| P29 | `setup()` makes a backup copy before it changes an existing Sheet | Proposed |

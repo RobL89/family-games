@@ -1,0 +1,9 @@
+{
+  "games": [
+    { "id": "bubble-pop", "title": "Bubble pop", "icon": "g-bubbles", "colour": "#2E8FD0", "folder": "games/bubble-pop/", "status": "ready" },
+    { "id": "memory-match", "title": "Memory match", "icon": "g-memory", "colour": "#E0457B", "status": "soon" },
+    { "id": "count-it", "title": "Count it", "icon": "g-count", "colour": "#E5533D", "status": "soon" },
+    { "id": "shape-sort", "title": "Shape sort", "icon": "g-shapes", "colour": "#7E4FC9", "status": "soon" },
+    { "id": "spot-it", "title": "Spot it", "icon": "g-spot", "colour": "#119C8F", "status": "soon" }
+  ]
+}

@@ -7,4 +7,8 @@ export const CONFIG = {
 
   // How many recent scores the profile screen shows.
   recentScores: 10,
+
+  // Shows the grown-ups' "Debug skin" button on the launcher, which switches
+  // skins without unlocking or saving them. Set to false when you're done testing.
+  debug: true,
 };

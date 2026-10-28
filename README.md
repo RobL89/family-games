@@ -1,6 +1,6 @@
 # Family games
 
-Simple, child-friendly browser games for the family, played on a tablet, phone or computer. Each child has a profile with recent scores and achievements, stored in a Google Sheet.
+Simple, child-friendly browser games for the family, played on a phone or computer. Each child has a profile with stars, badges, recent games and unlockable skins, stored in a Google Sheet.
 
 - **Plan and decisions:** [docs/PLAN.md](docs/PLAN.md)
 - **Setting up the Sheet:** [docs/setup-sheet.md](docs/setup-sheet.md)
@@ -8,9 +8,10 @@ Simple, child-friendly browser games for the family, played on a tablet, phone o
 
 ## How it fits together
 
-- `index.html`: the launcher (pick a player, see their profile, pick a game); a placeholder for now
-- `games/<id>/`: one folder per game; `games/_template/` will be the starting point (not built yet)
-- `shared/`: code every page uses (`config.js`, `api.js` for the Sheet; the shared theme comes with the launcher)
+- `index.html` + `shared/launcher.js`: the launcher (who's playing, home screen, grown-ups' corner)
+- `games.json`: the list of games and "coming soon" tiles
+- `games/<id>/`: one folder per game; copy `games/_template/` to start a new one; `games/bubble-pop/` is the first
+- `shared/`: code every page uses: `api.js` for the Sheet, `game-kit.js` for games, `theme.css` and `skins/` for the look
 - `apps-script/Code.gs`: the Sheet's backend, pasted into Apps Script by hand
 
 No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.

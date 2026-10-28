@@ -1,0 +1,52 @@
+/* Blocks skin: an original blocky pixel world (sky, pixel clouds, toy-block ground).
+   Launcher and profile screens only. */
+:root[data-skin="blocks"] {
+  --paper: #79C6F2;
+  --bg-image: conic-gradient(rgba(255, 255, 255, .09) 25%, transparent 0 50%, rgba(255, 255, 255, .09) 0 75%, transparent 0);
+  --bg-size: 2.4rem 2.4rem;
+  --ink: #16222F;
+  --muted: rgba(22, 34, 47, .66);
+  --line: #16222F;
+  --outline: .17em;
+  --card: #F3F1EA;
+  --radius: 0;
+  --face-radius: 0;
+  --shadow: .24em .24em 0 rgba(22, 34, 47, .45);
+  --panel: rgba(255, 255, 255, .45);
+  --panel-line: .17em solid #16222F;
+  --accent: #FF8A1F;
+  --title-line: none;
+  --lock: rgba(22, 34, 47, .2);
+  --font: "Pixelify Sans", "Courier New", monospace;
+  --weight: 500;
+  --tilt: 0;
+  --tape-clip: none;
+  --olw: 4px;
+  --sw: 1.6px;
+  --star-off: #F3F1EA;
+}
+:root[data-skin="blocks"] .title { text-shadow: .07em .07em 0 #fff; }
+:root[data-skin="blocks"] .hi { font-size: 1.9rem; }
+:root[data-skin="blocks"] .pname,
+:root[data-skin="blocks"] .soon-tape { border: .12em solid var(--line); }
+:root[data-skin="blocks"] .skin .tick { border-radius: 0; }
+:root[data-skin="blocks"] .big-btn { border-radius: 0; }
+:root[data-skin="blocks"] .screen { padding-bottom: 6rem; }
+
+/* Pixel clouds: one square repeated with box-shadows. */
+:root[data-skin="blocks"] .deco::before,
+:root[data-skin="blocks"] .deco::after {
+  content: ""; position: absolute; width: 1.1rem; height: 1.1rem; background: #fff; opacity: .9;
+  box-shadow: 1.1rem 0 #fff, 2.2rem 0 #fff, 3.3rem 0 #fff, 4.4rem 0 #fff, 5.5rem 0 #fff,
+              1.1rem -1.1rem #fff, 2.2rem -1.1rem #fff, 3.3rem -1.1rem #fff, 2.2rem -2.2rem #fff,
+              4.4rem -1.1rem #fff;
+}
+:root[data-skin="blocks"] .deco::before { top: 16vh; left: 6vw; }
+:root[data-skin="blocks"] .deco::after { top: 34vh; right: 14vw; transform: scale(.8); }
+/* Toy-block ground along the bottom. */
+:root[data-skin="blocks"] .deco {
+  background:
+    linear-gradient(#16222F, #16222F) bottom 2.6rem left 0 / 100% .2rem no-repeat,
+    repeating-linear-gradient(90deg, #FF8A1F 0 2.6rem, #FFD23F 0 5.2rem, #FF5D73 0 7.8rem, #4FB6FF 0 10.4rem, #9C6BFF 0 13rem)
+      bottom left / 100% 2.6rem no-repeat;
+}
