@@ -104,3 +104,59 @@ In short: the reward system is front-loaded and has a fixed end. Anything added 
 | Q6 | Who decides difficulty? | A grown-up sets a starting level per child per game; it moves up by itself after good rounds, and can be pulled back. |
 | Q7 | Where should progress be shown? | Both: simple for the child, detail in the grown-ups' corner. |
 | Q8 | Home-screen tidy-ups (hide Soon tiles, hide grown-up profiles, Bubble pop live)? | None of these. Keep the screens as they are. |
+
+---
+
+## Stage 3: Recommendations (2026-10-29)
+
+Every item is **Proposed** until Rob adopts or declines it. Adopted ones get the next P-number in `docs/decisions.md` (or PLAN's log if R16 is declined).
+
+Sizes: **small** = part of one chat; **medium** = about one chat; **large** = several chats.
+
+### Suggested order (highest value first)
+
+1. R1 One handoff, in the repo · 2. R2 Work branch · 3. R9 Levels per game · 4. R5 Tests that pass or fail · 5. R12 Progress page in the corner · 6. R6 Wrapper for your wife's games · 7. R13 Endless sticker album · 8. R16 Slim PLAN.md · then the rest.
+
+### 1. Workflow (including your wife's games)
+
+- **R1. One handoff, in the repo** (small) · Proposed. Replace the project's `handoff.md` with one line pointing to `docs/handoff.md`. Change "Start of every chat" to: add the repo, clone it, read `docs/handoff.md`. Change "wrap up" to: commit `docs/handoff.md` and push it to the work branch (R2); no pasting into the project. *Why:* ends the drift that made every chat start with a correction. Draft text is under R18.
+- **R2. Push to a `work` branch after each stage** (small) · Proposed (Rob chose this in Q4). The live site keeps building from `main`; "publish" means Claude merges `work` into `main` when Rob says so. *Why:* nothing is lost if a session ends, and the site still only changes on your say. Note: the repo is public, so the branch is visible too; the "no children's names" rule applies to it.
+- **R5. Tests that pass or fail, without your answer** (medium) · Proposed. One shared stand-in Sheet (matching script 0.3.0) instead of three copies; the tests swap in a test-only question hash, so `GROWNUP_ANSWER` is no longer needed; every check passes or fails, ending with one line such as "PASS 24 of 24"; one command runs them all; screenshots only when asked. *Why:* no manual step, and a chat can confirm nothing broke by reading one line instead of screenshots and printouts, which also saves usage.
+- **R6. Wrapper for your wife's games, her file untouched** (medium, once; small per game after) · Proposed (follows Q3). Each of her games gets a folder with her artifact saved **exactly as shared** (`original.html`), a small page that shows it full-screen, and one `adapter.js` that watches her game for "round finished" and saves stars. Integration becomes: paste her artifact link (with edit access Claude can fetch the full page) → saved unchanged → adapter written or checked → tests. An update is "replace `original.html`, run the tests". *Why:* her updates drop straight in, and all launcher code lives in one file of ours. *Trade-off:* the adapter has to read what her page shows (for Kriss Kross: when it's solved and how many hints were used), so a big redesign on her side means updating the adapter, though never her file. Whether Kriss Kross can be moved to this without any edits is TBC until tried.
+- **R7. Repo tidy** (small) · Proposed. Add a `.gitignore` for Python's `__pycache__` and remove the two committed `.pyc` files; retire `tools/sheet-check.html` (the corner's Check connection does the same job, and its test buttons write to the real Sheet); delete `docs/mockups/` (the decision is made and git keeps the history).
+
+### 2. Front-end and back-end features
+
+- **R8. Small fixes** (small) · Proposed. One name per thing: "Skin preview" everywhere (not "Debug skin"); "badges" for the eight awards and "stickers" for the album (R13), or the other way round, but the same in every skin; move the preview pill so it doesn't cover stickers on phones; fix the "sum" wording in the setup guide and a code comment.
+- **R10. A per-child, per-game settings store** (medium; part of R9) · Proposed. Script 0.4.0 with one new tab (for example `Levels`: profile_id, game_id, start_level, updated_at), and `getLevel()` in `game-kit.js` so any game can read it. Word lists stay as they are. *Why:* the general "how hard is this game for this child" setting the aims call for; one control in Game setup works for every game. Follows the Sheet rule: backup, say what changes, compare before and after.
+- **R11. Hide or retire a player from the corner** (small) · Proposed, low priority. Sets `active` to FALSE instead of editing the Sheet by hand. Fine to skip while you're keeping all four profiles.
+
+### 3. Project context and instructions
+
+- **R16. Slim `PLAN.md`** (small) · Proposed. Split it: `docs/PLAN.md` keeps only how it works (data flow, Sheet tabs, script calls, how a game plugs in), aiming for under 90 lines; the proposals log moves to `docs/decisions.md`, read only when a decision is in question; skin descriptions move into comments in the skin CSS files; the limits section goes (the rule already says check limits when they're used); the folder layout stays in the README only. *Why:* PLAN is the biggest file every chat loads, and most of it isn't needed for most chats.
+- **R17. Tidy the other docs** (small) · Proposed. Close P33 and P37 to P39, which are built but still "Proposed"; update the handoff to match the Sheet (script 0.3.0 live, two backups); turn the per-version sections of `setup-sheet.md` into one "update the script" recipe plus a one-line version history; keep `docs/handoff.md` to state, waiting-on, next step and opening line, with decisions linked rather than repeated.
+- **R18. Project instruction changes** (small) · Proposed. Draft:
+  - *Start of every chat:* 1. Add `RobL89/family-games` to the chat and clone it. 2. Read `docs/handoff.md`; it says which other files to read.
+  - *Rules (add):* Push to the `work` branch after each stage; merge to `main` only when I say publish. Keep the children's names out of the repo. My wife's game files are never edited; they plug in through an adapter.
+  - *Wrap up:* 1. Commit anything uncommitted. 2. Rewrite `docs/handoff.md` for a stranger (same headings as now), commit and push to `work`.
+
+### 4. Making games easier to build and integrate
+
+- **R14. A fuller template and one "adding a game" page** (small) · Proposed. The template shows a real round loop: read the level, play, `record()` with stars and level, "Play again", sound, back home, and the comment style you both use. Add `games/_template/README.md` (one page) with the two paths: our own game, and your wife's game via R6. *Why:* each new game starts from a working pattern instead of the bare 1/2/3-star buttons.
+- **R15. One source for shared rules** (small) · Proposed. Word rules in one file used by Game setup and the Kriss Kross adapter (and the same limits in the script); skins listed once for the app. *Why:* avoids the 15 vs 20 letter mismatch happening again.
+- Room for older children: covered by R9 and R10 (a game can have more levels, and each child starts where they belong). Showing different games to different children can wait until there's a harder game to hide.
+
+### 5. Recording and reporting progress (Q5 to Q7: all four ideas, both views)
+
+Kept simple by building on what's already saved: the only new data is each child's starting level (R10). Current levels, the album and skins are all worked out from the Scores tab, so the outbox and sync don't change.
+
+- **R9. Levels in each game** (medium to large; with R10) · Proposed. A game declares how many levels it has in `games.json`. A grown-up sets each child's starting level in Game setup; after three 3-star rounds in a row at a level, the child moves up, with a "Level up!" celebration; a grown-up can set it back at any time. The tile shows the level. *Why:* this is both the difficulty scaling the aims ask for and a goal that keeps going. For Kriss Kross, its word lists could act as its levels (TBC with you).
+- **R12. Progress page in the grown-ups' corner** (medium) · Proposed. Per child: star total, days played this week, and per game: plays, best stars, current level, last played, plus the last ten rounds. No script change: the `profile` call already returns all of this except levels.
+- **R13. Endless sticker album** (medium, mostly drawing) · Proposed. A new sticker every 10 stars, from a set of original drawings in pages of 12; when the set runs out it starts again with gold edges, so it never ends. Earned stickers come from the star total, so nothing new is stored. The home screen shows "3 more stars for your next sticker!" next to the skins line.
+- **R3. Fix two of the eight badges** (small) · Proposed. "Try every game" only counts once at least three games are live (right now only the grown-up profiles have it, so no child loses anything); "Beat your best" compares stars or level instead of raw score, which in Kriss Kross is just the number of words.
+- **R19. More skins at higher targets** (medium per skin) · Proposed. Each new skin is a design job (one CSS file plus scenery and effects), so add them one at a time after R9 and R13, at targets such as 60 and 100 stars, set in the Skins tab. Naming Blocks is still open.
+- **R20. Grown-up goals** (medium) · Proposed, last. A small weekly goal per child (for example "5 rounds") set in the corner, earning a special sticker. Needs a little storage and a weekly reset, so it's worth doing only if levels and the album aren't enough.
+
+---
+
+**Status:** all three stages done (2026-10-29). Next: Rob adopts or declines R1 to R20; nothing in the app has changed.
