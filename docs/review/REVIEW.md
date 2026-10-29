@@ -160,3 +160,26 @@ Kept simple by building on what's already saved: the only new data is each child
 ---
 
 **Status:** all three stages done (2026-10-29). Next: Rob adopts or declines R1 to R20; nothing in the app has changed.
+
+---
+
+## Addendum: UI comments (2026-10-29, asked for after Stage 3)
+
+Based on the code and two screenshots (phone home, PC grown-ups' corner). Who's playing, Game setup, the celebration and the skins weren't viewed as screenshots this time. All **Proposed**. Kept within Q8: the Soon tiles and the grown-up profiles stay as they are.
+
+### Child screens
+
+- **R21. Read things aloud** (small) · Proposed. Speech bubbles ("Not yet: 3 days in a row", "Needs 10 stars", "Coming soon!") are text only, so the 4-year-old can't read them. The browser's built-in speech could say them aloud, behind the existing sound switch. Which voices the family's phone and PC offer is TBC.
+- **R22. Put the next goal at the top** (small) · Proposed. "7 more stars for Fairy!" sits at the very bottom of the phone screen, below the stickers and last played. A small progress bar beside the star total would show the goal without scrolling.
+- **R23. Empty stars on unplayed games** (small) · Proposed. A game not yet played shows three empty stars, which reads like "scored nothing". Show no stars until the first round.
+- **R24. Simplify "Last played"** (small) · Proposed. It shows game icons with stars, which repeats the tiles for a child. Either drop it from the child's screen (the corner progress page, R12, covers history), or keep it and swap it for the album progress (R13).
+- **R25. Locked badges** (small) · Proposed. The eight grey dashed circles with "?" look alike. A faint outline of each picture is already there; making it a little stronger, plus R21, would let a child see what they're aiming for.
+
+### Grown-ups' corner
+
+- **R26. Reorder the corner by how often it's used** (small) · Proposed. Today it's one long list: players, family code, sync, sound, testing, more. Suggested order: players (Edit, Game setup) and progress (R12) first; sound next; then a folded "This device" section with family code, check connection and send now; then Testing. The family code is set once per device, so it doesn't need to be the second thing on the page.
+- **R27. Remove the empty gap under the heading** (small) · Proposed. The status line is always there, even when empty, which leaves a blank band under "Grown-ups' corner". Show it only when there's a message.
+- **R28. Copy word lists to another child** (small) · Proposed. Siblings will often share spelling lists. A "Copy to…" button on a list saves typing it twice.
+- **R29. Shorter list rows in Game setup** (small) · Proposed. Each list shows every word plus five buttons (Edit, Up, Down, Make default, Delete). Show the first few words with "+12 more", and fold Up, Down and Make default into a single "Move" button. This matters most on a phone, where the buttons wrap.
+
+Suggested order within this addendum: R22, R21, R26, R28, then the rest.
