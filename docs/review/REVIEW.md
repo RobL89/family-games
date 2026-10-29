@@ -400,3 +400,276 @@ Written down rather than asked, because Rob was asleep. Stage 3 assumes each rec
 | Q17 | Should Kriss Kross word lists act as its levels? | **a. No: lists stay lists set by a grown-up (school spellings change weekly, not by difficulty); levels are for games with built-in difficulty (recommended)** · b. Yes: three 3-star rounds on a list makes the next list the default |
 | Q18 | Offer your wife a one-page, optional "making games launcher-friendly" tips sheet? | **a. Yes, purely optional; her files are still never edited (recommended)** · b. No |
 | Q19 | Confirm the project-template answers I pre-filled: code yes, repo yes, live data yes (the Sheet), documents no, issued files no, sources yes (platform limits), agents no, siblings no, board no, stages no, others' sign-off no. | **a. All correct, and save the set-up record to the project (recommended)** · b. Correct, but don't save a record · c. Some are wrong (please say which) |
+
+---
+
+## Pass 2 · Stage 3: Recommendations
+
+Every item is **Proposed** until Rob adopts or declines it. Where an item depends on a Stage 2 answer, it says so; it's written for the recommended answer.
+
+Sizes: **small** = part of one chat · **medium** = about one chat · **large** = several chats.
+
+Groups: **W** workflow and handover · **G** game framework · **D** data and back end · **P** progress and reporting · **U** screens · **C** context and instructions · **T** tests and tidy.
+
+### The plan, in order of value
+
+| Phase | What it gets you | Items | Size |
+|---|---|---|---|
+| A. Housekeeping | One handoff, sharper instructions, nothing lost between chats, a lean start | C1, C4, W1, T1, C2, C3 | One chat |
+| B. Test bed | Every later change, especially to the script, tested before you paste it | T2, T4 | One chat |
+| C. Game contract and shell | The "drop a folder in" target; tried on your phones before anything is built on it | G2 trial, then G1, G2, G4, G5, G6, G7, T3 | Two or three chats |
+| D. Kriss Kross the new way | Proof of the wife-game path: her latest file untouched, with an adapter | G3, G8, W2 | One chat |
+| E. Data 0.4.0, then start clean | The last planned change to the data's shape, made before the children's history exists | D1, D2, then D3 | One chat, plus your paste and redeploy |
+| F. Progress | Difficulty and long-term goals in one: levels, the progress page, the sticker book | P1, P2, U1, U7, P4, P3 | Two or three chats |
+| G. As wanted | The remaining screen items, more skins, goals, extras | U items, G9, P5, P6, P7 | Per item |
+
+Why this order: tests before touching the script; the shell before moving Kriss Kross onto it; the data change before the children's history starts; progress after levels exist. If the children are keen to start sooner, phase E can move ahead of C and D: nothing in it depends on the shell.
+
+### Blueprint: the game contract (for G1 to G4)
+
+**A manifest in each game's folder** (`games/<id>/game.json`; the folder name is the id). Example for Kriss Kross:
+
+```json
+{
+  "title": "Kriss Kross",
+  "colour": "#1AA3C2",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js",
+  "levels": 0,
+  "settings": ["word-lists"],
+  "stars": "3 with no hints, 2 with one or two, 1 with more",
+  "score": { "counts": "words", "better": "higher" },
+  "subject": "words",
+  "source": { "link": "TBC", "copied": "2026-10-29" }
+}
+```
+
+`games.json` then keeps only order and status (`ready`, `testing` or `soon`); "Soon" placeholders keep their title, icon and colour there, as they have no folder.
+
+**The game shell** (`play.html?game=<id>&player=<id>`) holds the game in a frame under a slim sticker-book bar: home, the child's face, their level, stars this visit.
+
+| The shell gives the game | The game tells the shell |
+|---|---|
+| The child (name, animal), their level, their settings (such as word lists), whether sound is on | "Round over": stars, plus, if it has them, score, seconds, what was played (`detail`) and help used (`help`) |
+| The home button, saving, level-ups, the end-of-round panel, celebrations | Optionally: "ready", and "there's a next one" (for Next) |
+
+- **Our own games** send and receive two small messages (a short `bridge.js` in the template). A game still runs on its own, as an artifact or a plain page: with no shell around it, it uses defaults and saves nothing.
+- **Your wife's games** are joined by an `adapter.js` that runs in the shell and watches her page, sending the same messages. Her file is never edited. For Kriss Kross: type the child's list into her word box and press Build; count Hint presses until solved; notice Show solution; see the solved grid; optionally hide two grown-up buttons with a style rule added at run time (Q11).
+- **Stars 0** means "finished with the answer shown": saved for the grown-ups, earning nothing.
+- **The end-of-round panel** slides up over the lower part of the screen, so the finished puzzle stays visible: big stars, any new sticker, and picture buttons **▶ Next** (when there is one), **↻ Again**, **⌂ Home**. With read-aloud on (U2), it says "Three stars!".
+- **Risk to try first:** a framed game on the children's actual phones (touch, scrolling, sound, full height), and how much height the bar costs on a phone held upright. Hence "G2 trial" in phase C.
+
+**Folder sketch** (changes only):
+
+```
+play.html                  the game shell
+games.json                 order and status only
+games/<id>/game.json       the manifest
+games/<id>/icon.svg        the tile picture
+games/<id>/game.html       our games; or original.html + adapter.js for your wife's
+games/_template/           a working mini-game, its manifest and a one-page README
+shared/launcher/           who.js, home.js, party.js, corner.js, setup.js, progress.js (launcher.js split)
+shared/shell.js, bridge.js the shell, and what our games include
+shared/corner.css          the corner's plain style, out of theme.css
+tools/tests/               unit/, fake-sheet.js (runs the real Code.gs), browser smoke tests
+docs/                      PLAN.md (how it works), decisions.md, setup-sheet.md
+```
+
+### Blueprint: data 0.4.0 (for D1)
+
+| Change | Detail | Why |
+|---|---|---|
+| New tab **Settings** | profile_id, game_id, key, value, updated_at. First keys: `start_level`, `auto_level` (and later `hidden`, to show a game to one child only) | Every future per-child setting without another tab or redeploy |
+| Scores: two columns added at the end | `detail` (what was played, such as a list's title) and `help` (hints or help used) | Learning reports; survives reordering lists |
+| Rounds with 0 stars | Saved when the answer was shown; never count towards stars or stickers | Grown-ups can see "showed the answer 4 times on Week 3" |
+| `profile` returns, per game | The current level (worked out from Scores and the start level) and the settings | One place decides a level |
+| New call `saveSetting` | One key at a time | Game setup's level control |
+| Unchanged | Profiles, Achievements, Skins, GameLists | Nothing to move |
+
+How it goes live: tested against the real script first (T2); backup; previewed on a copy of the Sheet (a copy should carry its script with it; TBC on first use), per your template's TP-009; then you paste, run `setup` and redeploy; then a before-and-after comparison.
+
+### Blueprint: levels, the progress page and the sticker book (for P1 to P3)
+
+**Levels (P1).** A game says how many levels it has. A grown-up sets each child's starting level in Game setup. After three 3-star rounds in a row at a level, the child moves up, with a "Level up!" celebration. A grown-up can set it back or turn moving up off at any time. Nothing ever moves a child **down** by itself (my judgement: being "sent back" feels like a punishment at 4); instead, the progress page suggests it after repeated 1-star rounds.
+
+**Progress page (P2),** in the corner, per child:
+- **This week:** days played, rounds, minutes (from the existing `seconds`).
+- **Each game:** level, rounds, average stars, last played.
+- **Last ten rounds,** in plain words: "Week 3 spellings · ★★★ · no hints · 2 min".
+- **A gentle flag** when the last three rounds at a level were 1 star.
+
+**Sticker book (P3)**, one book with three kinds of page:
+- **Special:** today's eight awards, with two fixed (P4).
+- **Star stickers:** one for every 10 stars, from a set of original drawings in the house style. When the set runs out, it starts again with gold edges, so it never ends.
+- **One page per game,** made from its manifest: first round, first 3 stars, each level reached, 10, 25 and 50 rounds. A new game brings its own page.
+
+Nothing new is stored: it's all worked out from Scores and Achievements, as skins are today. On the home screen, the panel shows the three newest stickers and a "My sticker book" button; "Last played" goes, because the progress page does that job better.
+
+### W · Workflow and handover
+
+- **W1. Push to a `work` branch after every stage; "publish" = merge into `main`** (small) · Proposed (you chose this, Q4). The live site only changes when you say so, and nothing is lost if a chat ends. The branch is public too, so the no-names rule applies to it.
+- **W2. Write down the wife-game pipeline** (small, once G2 and G3 exist) · Proposed.
+  1. Paste her artifact link.
+  2. Claude reads the whole page and saves it as `original.html`, unchanged, recording the link and date. (With edit access the Artifact tool should return the full file; TBC on first use.)
+  3. A game check runs: it loads in the shell without errors; it lists any claude.ai-only features, storage keys (flagging any clear-all) and outside files; it fits a phone.
+  4. The adapter is written or checked, and its test plays a scripted round.
+  5. The game goes live as `testing`; you play it on your phone.
+  6. You say ready, and it's published.
+
+  Updates repeat steps 2 to 5, with a short note of what changed in her version, so you know what to try. *Why:* her new versions drop in, and anything that would break the launcher is caught before the children see it.
+- **W3. App version and a publish checklist** (small) · Proposed. Show a version (the publish date) in the corner. Checklist: tests pass → version bumped → handoff updated → merge → check the version on a phone. *Why:* answers "is this phone on the new code?".
+- **W4. Build only adopted proposals** (small, a habit) · Proposed. If something has to be built to decide, log it as "built, awaiting decision". *Why:* keeps the log true (P33, P37 to P39 drifted).
+- **W5. An optional tips sheet for your wife** (small) · Proposed, depends on Q18. One page: keep button IDs stable between versions; show "solved" on the page; don't clear the browser's storage; keep claude.ai-only features to extras. Nothing she must do; it just makes her games easier to plug in.
+
+### G · Game framework: building and integrating
+
+- **G2. The game shell** (medium to large, trial first) · Proposed, depends on Q10. As in the blueprint. *Why:* one way in for every game, her files untouched, one consistent end-of-round moment, and no per-game home-button hacks.
+- **G1. A manifest per game** (small) · Proposed. As in the blueprint. *Why:* everything about a game lives in its folder; `score.better` keeps "Beat your best" right for timed games; `subject` leaves room to group many games later.
+- **G4. One end-of-round panel in the shell** (medium) · Proposed. Big stars, any new sticker, picture buttons ▶ ↻ ⌂. Kriss Kross's Next list button moves here. *Why:* the child sees the reward at the moment they earn it, in every game, without reading.
+- **G3. Kriss Kross through an adapter, her latest file untouched** (medium) · Proposed, depends on G2. Fetch her current version from her artifact and drop the three edits and the 85-line block. *Why:* proves the wife-game path on the game that needs it most. Feasibility is TBC until built (Stage 1, area 2).
+- **G5. A `testing` status** (small) · Proposed. The tile shows only when the corner's Testing switch is on (on that device), marked "Testing". *Why:* you can try a new game on the live site, on the real phones, before the children see it.
+- **G6. A game brings its own tile picture** (small) · Proposed. `icon.svg` in the game's folder; `shared/icons.js` keeps only the launcher's own pictures and the placeholders. *Why:* adding a game never edits shared code.
+- **G7. A template that's a working mini-game** (small) · Proposed. A standalone `game.html` with a manifest that reads its level, plays a round, reports stars and `detail`, and shows the comment style you both use; plus a one-page README covering both paths (ours, and your wife's via the adapter). *Why:* each new game starts from a working pattern.
+- **G8. Kid mode for Kriss Kross** (small) · Proposed, depends on Q11. The adapter hides Print sheet and Edit words when a child plays from the launcher. Her file stays unchanged, and the buttons are all still there when she or you open the game directly.
+- **G9. A skin as a folder** (medium) · Proposed, before any new skin. Put `skins/<id>/` with its CSS, scene, tap burst, emblem and font together, and list skins once. *Why:* a new skin then touches one folder and the Skins tab, not eight places.
+
+### D · Data and back end
+
+- **D1. Script 0.4.0** (medium) · Proposed, depends on Q12. As in the blueprint. *Why:* the last planned change to the data's shape, covering levels, per-child settings, per-child game visibility later, and learning reports, before the children's history exists.
+- **D2. The launcher checks the script version** (small) · Proposed. One "needs script 0.4.0" setting; the version that already comes back with the player list is compared on every refresh, and the corner says plainly when the script is behind. *Why:* a missed redeploy becomes a clear message instead of a mystery failure.
+- **D3. Start clean** (small) · Proposed, depends on Q13. After D1 and before the children start: back up; clear the grown-up test rows from Scores and Achievements, and the test list from GameLists; remove the empty `Sheet1`; compare before and after. Also say how to tidy old backups in Drive. *Why:* the children's history starts from nothing, and the reports show only real play.
+- **D4. Write down how to fix a round saved under the wrong child** (small) · Proposed. Two lines in `setup-sheet.md`: delete the row in Scores, and the badge row too if one was earned. *Why:* it will happen; no feature needed.
+
+### P · Progress and reporting (your choices from Q5 to Q7)
+
+- **P1. Levels** (medium, with D1) · Proposed, depends on Q17 for Kriss Kross. As in the blueprint; tiles show the level. *Why:* this is both the difficulty scaling in your aims and a goal that keeps going.
+- **P2. The grown-ups' progress page** (medium) · Proposed. As in the blueprint. *Why:* you see learning, not just activity, without opening the Sheet.
+- **P3. The sticker book** (medium to large, mostly drawing) · Proposed, depends on Q16. As in the blueprint. *Why:* endless by design, on-theme, and every new game adds a page automatically.
+- **P4. Fix two awards** (small) · Proposed. "Try every game" waits until at least three games are live; "Beat your best" uses the manifest's direction, or stars and level. Only grown-up profiles hold "Try every game" today, so no child loses anything.
+- **P5. More skins, one at a time, after G9** (medium each) · Proposed. Add them at higher star targets set in the Skins tab. Naming Blocks is still open.
+- **P6. Grown-up goals** (medium) · Proposed, last. A weekly goal per child earns a special sticker. Only if levels and the sticker book aren't enough.
+- **P7. Later ideas, only if wanted** · Proposed, not planned:
+  - **Avatar dress-up:** hats and glasses as star-sticker prizes. Wings and a horn already show the idea works.
+  - **A weekly progress email** from the Sheet to you. Apps Script can send mail; permissions and limits to be checked when used.
+  - **A gentle "time for a break"** after a set number of minutes a day, worked out from `seconds`.
+
+### U · Screens
+
+- **U1. A next-goal bar beside the star total** (small) · Proposed. It shows how many stars to the next sticker or skin. *Why:* the goal is where the child looks, not at the bottom of the page.
+- **U2. Read things aloud** (small) · Proposed, depends on Q15 and Q14. The browser's built-in speech, behind the sound switch: names on tap, "needs 10 stars", celebrations, end of round. *Why:* the 4-year-old can't read the speech bubbles.
+- **U3. Games on the left on a PC** (small) · Proposed. *Why:* matches phones (games first, P20).
+- **U4. Rearrange the corner by use** (small) · Proposed. In order: players (Edit, Game setup, **Progress**); sound; a folded "This device" section (family code, check connection, send now, app version); Testing. Drop the empty status gap and the "More" link to the old checker.
+- **U5. Copy a word list to the other child** (small) · Proposed. *Why:* siblings will often share lists.
+- **U6. Shorter list rows in Game setup** (small) · Proposed. Show the first few words with "+12 more", and fold Up, Down and Make default into one "Move".
+- **U7. Tiles: no stars before the first round; show the level** (small, with P1) · Proposed.
+- **U8. "Add to Home Screen" support** (small) · Proposed, depends on Q14. A web app manifest and icon, so the site opens full-screen like an app. Check on your phones.
+- **U9. Load only the active skin's font** (small) · Proposed. *Why:* a quicker start on phones.
+- **U10. The skin preview pill stops covering things** (small) · Proposed. Rename it "Skin preview" and move it to a corner that has no content.
+- **U11. Hide a player from the corner** (small) · Proposed, low. Sets `active` to FALSE; fine to skip while you keep all four profiles.
+- **U12. "Go home?" with ✓ and ✗ pictures, when a round is in progress** (small) · Proposed, low. *Why:* a stray tap on Home shouldn't lose a half-done puzzle.
+
+### C · Context and instructions
+
+- **C1. One handoff, as a project doc that Claude writes** (small) · Proposed, depends on Q9. Wrap-up rewrites it with the Projects tool, so there's no pasting. Delete `docs/handoff.md` from the repo, and move family details (ages, who makes which games) out of public docs into the project doc. *Why:* one source, private, readable before cloning, and as your template has it.
+- **C4. Instructions update** (small) · Proposed. The draft is below: it adopts the fuller template lines (TP-003, TP-009, TP-012), push to `work`, her files untouched, names out of the repo, tests before commits, and the wrap-up via the Projects tool.
+- **C2. Slim PLAN.md** (small) · Proposed. `docs/PLAN.md` becomes "how it works": data flow, Sheet tabs, script calls and the game contract, in under 100 lines. The proposals log moves to `docs/decisions.md`, read only when a decision is in question. Skin descriptions move into comments in the skin files, and the dated limits go (they're checked when used). *Why:* PLAN is 70% of every chat's start reading.
+- **C3. Tidy the rest** (small) · Proposed.
+  - Close P33 and P37 to P39.
+  - Make `setup-sheet.md` one "update the script" recipe with a one-line version history, and fix "answer the sum".
+  - Put the test command in the README.
+  - Keep P-numbers stable: never reuse or renumber.
+- **C5. Retire this review once decided** (small) · Proposed. Move the outcomes into `docs/decisions.md`, then delete `docs/review/` (git keeps it). *Why:* it shouldn't become reading for future chats.
+- **C6. A note for your template project (P-004)** (small) · Proposed. TP-004's repo line could say "commit and push", because an unpushed commit still lives only in the chat's workspace.
+
+### T · Tests and tidy
+
+- **T2. A real test bed** (medium) · Proposed.
+  - The real `Code.gs` runs in Node against an in-memory Sheet (one shared stand-in instead of three Python copies).
+  - Quick unit checks cover the reward and level rules.
+  - Browser smoke tests: one per screen, plus one per game through the shell.
+  - A test-only question hash, so your answer is never needed.
+  - Pass or fail at the end, such as "PASS 31 of 31"; screenshots only when asked.
+
+  *Why:* script mistakes are caught before you paste, and a chat checks its work by reading one line.
+- **T1. Repo tidy** (small) · Proposed. A `.gitignore` for `__pycache__`, and remove the two `.pyc` files; retire `tools/sheet-check.html` (the corner covers it, and it writes test rows); delete `docs/mockups/`.
+- **T3. Split `launcher.js` by screen, and the corner's CSS into its own file** (medium) · Proposed, before the progress page and sticker book. *Why:* smaller files mean less reading per task, and new screens have an obvious home.
+- **T4. One source for shared rules** (small) · Proposed. Word rules, the skins list and the small helpers written once. *Why:* the 15 vs 20-letter mismatch can't recur.
+- **T5. One name per thing** (small) · Proposed, with Q16. "Skin preview", not "debug", and "sticker" everywhere (or the Q16 choice).
+
+### Deliberately not recommended
+
+Keeping the app simple, as your first priority asks:
+- **No build tools or frameworks.** Plain files stay.
+- **No offline page caching (service worker).** Results are already offline-safe; cached pages risk stale code on phones.
+- **No accounts or extra security.** The family code and the question are enough for a family app.
+- **No sibling leaderboards or comparisons, streaks that punish missed days, or losing stars.**
+- **No game version or device ID on every round.** The manifest's "copied" date is enough.
+
+### Draft project instructions (for C4; paste only once adopted)
+
+```
+## Kids' Games
+
+Simple, educational browser games for my two children, played on a phone or a computer. Code: the public GitHub repo RobL89/family-games. Data: the family-games Google Sheet.
+
+### Rules
+
+- I decide. Label your suggestions as proposed until I agree, and close every proposal as adopted or declined.
+- Never invent facts, figures or sources. Source each fact, compute each number in code, or label it as your judgement; write TBC for anything unknown and log a question in the handoff.
+- Check anything about now (GitHub Pages or Google limits, settings, prices) when it's used, never from memory, and keep its source and the date checked.
+- Before any change to the Google Sheet's data or structure: back it up, preview the change on a copy, re-read the live Sheet first, and compare before and after.
+- Nothing lives only in the chat: commit code and files to the repo and push them to the work branch. Merge into main (the live site) only when I say publish.
+- The repo is public: keep the children's names and other family details out of it.
+- My wife's game files are never edited; they join the launcher through an adapter.
+- Run the tests before committing code changes.
+- If usage is about to run out mid-task, stop at a safe point: save and push what's done, note in the handoff where you stopped, stop any background work, and give me the phrase to resume with.
+
+### Start of every chat
+
+1. Read handoff.md before answering: it says where things stand, what's next and which files to read.
+2. Before working on the repo, add it to the chat, then clone it.
+
+### When I say "wrap up"
+
+1. List any file made in this chat that isn't committed and pushed yet, then commit it and push it to the work branch.
+2. Rewrite handoff.md for a stranger and save it to the project with the Projects tool: goal, where things stand, decisions in force, what's waiting on me, the exact next step, files to read, dead ends, and the next chat's opening line in a code block.
+```
+
+### Pass 1 items, mapped
+
+Pass 1's R-items are replaced by these; decide on the pass 2 items.
+
+| Pass 1 | Pass 2 | Change |
+|---|---|---|
+| R1 One handoff in the repo | C1 | Now a project doc (Q9), for privacy and your template |
+| R2 Work branch | W1 | Same |
+| R3 Fix two badges | P4 | Same, using the manifest |
+| R5 Tests | T2 | Now runs the real script |
+| R6 Wrapper for her games | G2, G3, G8 | Now a shell for every game |
+| R7 Repo tidy | T1 | Same |
+| R8 Small fixes | T5, U10, C3 | Split up |
+| R9 Levels | P1 | Detailed |
+| R10 Settings store | D1 | Now general, with learning columns |
+| R11 Retire a player | U11 | Same |
+| R12 Progress page | P2 | Detailed |
+| R13 Sticker album | P3 | Now the whole sticker book, with pages per game |
+| R14 Template | G7 | Now a working mini-game |
+| R15 One source for rules | T4 | Same |
+| R16 Slim PLAN | C2 | Same |
+| R17 Tidy docs | C3 | Same |
+| R18 Instructions | C4 | New draft |
+| R19 More skins | P5, G9 | Skin folders first |
+| R20 Grown-up goals | P6 | Same |
+| R21 Read aloud | U2 | Same |
+| R22 Goal at the top | U1 | Same |
+| R23 Empty stars | U7 | With levels |
+| R24 Last played | P3 | Replaced by newest stickers |
+| R25 Locked badges | P3 | Part of the sticker book |
+| R26, R27 Corner order and gap | U4 | Same |
+| R28 Copy lists | U5 | Same |
+| R29 Shorter list rows | U6 | Same |
+
+---
+
+**Status:** pass 2 complete (2026-10-29, late). Waiting on Rob: Q9 to Q19, then adopt or decline items by code, for example "adopt phase A and B". Nothing in the app has changed, and nothing has been pushed.
