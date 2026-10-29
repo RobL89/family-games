@@ -162,7 +162,10 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | Game | Status |
 |---|---|
 | Bubble pop | Ready (P25): 20 bubbles; 3 stars for 17+, 2 for 11+, otherwise 1 |
-| Kriss Kross (the family's word-grid game) | Ready: solving a puzzle saves stars (P30); "Show solution" saves nothing |
+| Kriss Kross (the family's word-grid game) | Ready: solving a puzzle saves stars (P30); "Show solution" saves nothing. Opens with the child's word list (P38) |
+| Word Worm | Ready (P32): eat letters in order to spell; letters and counting modes; hats unlock at 10, 25, 50, 100 words. Stars: 0–1 mistakes 3, 2–4 2, else 1 (P40) |
+| Monster Café | Ready (P32): serve sums (add, take, bonds, double, half, times, share) by tapping food or a number pad; coins buy 9 café decorations. Stars: right first time 85%+ 3, 60%+ 2, else 1 (P41) |
+| Rocket Lander | Ready (P32): land on the target on a number line (whole numbers, fractions, decimals, negatives); six planets, moon rocks. Stars: right 85%+ 3, 60%+ 2, else 1 (P42) |
 | Memory match, Count it, Shape sort, Spot it | Placeholder "Soon" tiles (P26); names are placeholders |
 
 ## Open questions (TBC)
@@ -204,3 +207,19 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P29 | `setup()` makes a backup copy before it changes an existing Sheet | Adopted 2026-10-29 |
 | P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29 |
 | P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
+| P32 | Build Word Worm, Monster Café and Rocket Lander: colourful, animated, with sounds | Adopted 2026-10-29 (Rob's request) |
+| P33 | Settings tab: a row per setting, an `everyone` column and a column per child; the most specific value wins | Proposed |
+| P34 | Lists tab for named word lists; a `word_list` cell can hold a list name or the words themselves | Proposed |
+| P35 | Progress tab: one JSON row per child per game, saved on the device first; the newest copy wins | Proposed |
+| P36 | Adding a player adds their Settings column; renaming a player renames it | Proposed |
+| P37 | Each game describes its settings in `settings.js`; `tools/settings-seed.mjs` copies them into Code.gs; `setup` only adds missing rows, after a backup | Proposed |
+| P38 | Kriss Kross opens with the child's word list from the Sheet | Adopted 2026-10-29 (Rob's request); details in P33–P34 |
+| P39 | Starter word list: cat, hat, ship, fish, frog, dog, sun, duck, bed, pig, hen, bus (chosen because Kriss Kross can always cross them) | Proposed |
+| P40 | Word Worm stars: 0–1 mistakes 3, 2–4 2, 5+ 1 | Proposed |
+| P41 | Monster Café stars: right first time 85%+ 3, 60%+ 2, else 1; coins 3 first time, 1 after a retry | Proposed |
+| P42 | Rocket Lander stars: right 85%+ 3, 60%+ 2, else 1; a round with 2+ stars unlocks the next planet | Proposed |
+| P43 | Spoken prompts with the device's voice, on by default (`speak`); sound off also stops speech | Proposed |
+| P44 | Rewards kept in Progress: Word Worm hats, Monster Café decorations, Rocket Lander planets and moon rocks | Proposed |
+| P45 | Word Worm: an unsteered worm swerves round wrong letters; a short pause after a hiccup so one bump counts once | Proposed |
+| P46 | Monster Café: times tables that don't fit under `max_number` are skipped (with the defaults the 10 times table never comes up); `bond_to` is capped at `max_number`; answers are never 0 | Proposed |
+| P47 | Remove the four "Soon" placeholder tiles now there are five real games | Proposed |
