@@ -183,3 +183,200 @@ Based on the code and two screenshots (phone home, PC grown-ups' corner). Who's 
 - **R29. Shorter list rows in Game setup** (small) · Proposed. Each list shows every word plus five buttons (Edit, Up, Down, Make default, Delete). Show the first few words with "+12 more", and fold Up, Down and Make default into a single "Move" button. This matters most on a phone, where the buttons wrap.
 
 Suggested order within this addendum: R22, R21, R26, R28, then the rest.
+
+---
+---
+
+# Pass 2: a deeper review (2026-10-29, late evening)
+
+Rob asked for more detail, more ideas he hadn't thought of, and a fresh look at arrangement, wrappers and structure. The focus is the **framework for adding games later** (no new games now) and a **clean foundation at the start**, within the aims and priorities at the top of this chat. Pass 2 stands on its own; where it differs from pass 1, pass 2 wins. Pass 1's R-numbers are mapped to pass 2 at the end of Stage 3.
+
+What I looked at beyond pass 1: the rest of `shared/` (theme, three skins, skin effects, icons, avatars, sound); all three tests in full; the Sheet check page; how Bubble pop wires in; the parts of Kriss Kross an outside wrapper would need (element IDs, its own storage, claude.ai-only features), without reviewing it as a game; 17 more screens from the test runs (phone and PC, all four skins, the celebration, the corner and Game setup on a phone, Kriss Kross with a list); and the project set-up against Rob's **project-template 0.1.0**. That check is provisional: its kick-off answers are pre-filled and need Rob's confirmation (Q19), so no set-up record was saved.
+
+Rob went to bed during this pass, so Stage 2's questions are written down for the morning and Stage 3 assumes the recommended answers, saying where an answer would change it.
+
+## Pass 2 · Stage 1: Review
+
+### The verdict in five lines
+
+1. The foundations under the launcher are good and worth keeping: offline-first outbox, retry-safe sync, one locked endpoint, skins built on design tokens, no build step, readable comments with decision numbers.
+2. The weak seam is **between the launcher and the games**. Nothing defines what a game must do to join; each one is wired in by hand; Kriss Kross needed edits inside your wife's file; a game's settings need a new editor, a new Sheet tab and a script redeploy.
+3. Progress is counted from **how much** a child plays, not **how they're growing**, so it runs out quickly (area 8) and can't show a grown-up what a child is learning (area 1).
+4. The project's start reading is within your own template's budget today (about 21 kB of 30 kB) but set to grow, and it's split across two handoffs.
+5. **Now is the cheapest moment to fix the seam.** The Sheet holds only grown-up test rows, one game is live and one kind of setting exists. Every change to the shape of the data gets dearer once the children's history is in it.
+
+### What adding a game costs today
+
+| Step | Where | Comment |
+|---|---|---|
+| The game's files | `games/<id>/` | Expected |
+| List it | `games.json` | Expected |
+| Its tile picture | `shared/icons.js` | Shared code edited for every new game |
+| Wire it in | inside the game: import `../../shared/game-kit.js`, call `record()` or `finish()`, add `homeButton()` | Ties the game to this folder layout, so it no longer runs on its own (for example as an artifact) |
+| Make room for the home button | per game | Kriss Kross needed padding added to its own toolbars |
+| An end-of-round screen | each game builds its own | Bubble pop has its own stars and buttons; Kriss Kross shows one small green line |
+| Grown-up settings | a new editor in `game-setup.js`, and maybe a new Sheet tab, script version and manual redeploy | Word lists needed all four |
+| Tests | another copy of the stand-in Sheet | The three copies already disagree |
+| Docs | PLAN's games table, handoff, proposals log | |
+| **Your wife's game, in addition** | edits inside her file (three here, plus an 85-line block) | Redone by hand at each new version |
+
+The target to aim for: **drop a folder in, add one line to `games.json`, run the tests.** No shared code edited, no Sheet change, no script redeploy.
+
+Adding a skin is similar: its CSS file, `skin-effects.js` (scene, tap burst, emblem), `skins.js`, a swatch rule in `theme.css`, the font link in `index.html` if it has a new font, `Code.gs` (for new Sheets), the live Skins tab (by hand) and the tests: up to eight places.
+
+### 1. Aims, and whether the build serves them
+
+- **Progress saved:** yes, robustly, including offline.
+- **Difficulty that scales within a game:** nothing general yet. The Scores `level` column is filled differently by each game (Kriss Kross: the list's position; Bubble pop: always 1), so it can't drive anything.
+- **Educational evidence (new):** the data can't answer the question a parent asks most: "is she getting better at this?"
+  - Kriss Kross folds hints into stars, so the hint count is lost.
+  - The list played is saved only as its position, which changes meaning as soon as lists are reordered.
+  - Rounds where the solution was shown leave no trace at all: the kit can't save a round with 0 stars.
+- **Older children later:** nothing blocks it, but nothing prepares it: no level range per game, no way to show a game to one child but not the other. Ages rightly stay out of the data (P9).
+- **Balance:** the launcher side is about 2,800 lines of JavaScript and CSS plus a 524-line script, against one live game. That's not waste (it's the frame every game will use), but it confirms that the framework, not more launcher features, is the next best investment.
+
+### 2. Workflow
+
+**Building and testing**
+- The three tests re-create the Apps Script in Python, three times, and the copies disagree: two answer as script 0.2.0 and one as 0.3.0; one ignores duplicate rounds; one lets any skin be chosen. So they can pass while the real script would fail.
+- They print values and save screenshots rather than pass or fail, and two need your grown-ups' answer typed in each run.
+- **The costliest mistakes here are back-end ones,** because the script is pasted and redeployed by hand. Node 22 was available in this workspace, so the real `Code.gs` could run against a small in-memory stand-in for Google's Sheet services, and the browser tests could talk to that. Every script change would then be tested before you paste it.
+- The pure rules (badges, day streaks, skin unlocks, merging the outbox into stats) have no quick checks of their own. They're the easiest code to test and where edge cases hide (around midnight, a duplicate round, a skin target edited in the Sheet).
+
+**Your wife's games**
+- Her file in the repo is now a fork: hers plus our edits. Her next version means redoing them.
+- **Checked for a wrapper:** her page has stable element IDs for everything the hook does today (`grid` gets the class `solved`; `hintBtn`, `solBtn`, `resetBtn`, `newBtn`, `buildBtn`, `play`, `setup`, `notice`, `wordInput`, `puzzleTitle`). A wrapper page holding her game in a frame on the same site could count hints from the Hint button, notice "Show solution", see the solved grid and load a word list, all from outside. So the three edits in her file shouldn't be needed. TBC until built and tried on the children's phones.
+- Things the integration doesn't check today, found in her file:
+  - It uses a **claude.ai-only feature** (`window.claude.use('downloads')`). It's guarded, so on the family site the Download button just never appears and printing falls back to the browser. Other games may lean on such features more.
+  - It keeps its own data in the browser (`kk.words`, `kk.title`, `kk.start`) beside the launcher's `fg.*` keys on the same site. No clash now, but **a game that clears the browser's storage would also wipe unsynced stars and the family code** on that device.
+  - The hook types the child's list into her word box, so her game then remembers it as its own last words. Harmless, but it shows how far the hook reaches in.
+  - Her toolbar keeps grown-up tools within a child's reach: Print sheet, Edit words, New layout and Show solution.
+- The file starts with claude.ai's published-page wrapper, so it was copied from the published artifact. Fine; worth recording the artifact link and date with the game, so "which version is this?" has an answer.
+
+**Chats and handover**
+- Two handoffs (the project's is stale), and the wrap-up asks you to paste a new one, although this kind of chat can write project docs itself with the Projects tool.
+- Your template's TP-001 keeps the handoff as a **project doc**. Moving it into the public repo also put family details in public: the children's ages, who makes which games, the grown-ups' question. No names, but more than needs to be public.
+- P33 and P37 to P39 were built while still "Proposed", so the log lags the code.
+
+**Publishing**
+- The site shows no version, so after a publish you can't tell whether a phone is running the new code or a cached copy.
+
+### 3. The screens (20 seen this pass)
+
+**Who's playing?**
+- Works for non-readers: big animal faces (about 38% of a phone's width), names on tape, a wiggle, a hello and a sound on tap.
+- The gear sits at half strength in the top corner of every screen. Children will find it; the hold and the question stop them. Fine.
+
+**Home, phone**
+- Order: header, games, then one panel with stickers, last played and skins (P20). About one and a half phone screens tall.
+- The star pill is a number with no goal. The next goal ("10 more stars for Fairy!") is at the very bottom.
+- Tiles are big and clear. A game never played shows three empty stars, which reads as "scored nothing". Tiles have nowhere to show a level.
+- "Last played" (five small icons) repeats what the tiles already say.
+- With the skin preview switched on, its pill covers the bottom-right sticker or skin (seen in three phone screens).
+
+**Home, PC (new)**
+- Two columns: stickers, last played and skins on the **left**, games on the **right**. Reading left to right, a child meets the rewards before the games; on phones you chose games first (P20). Games on the left would match.
+
+**Skins**
+- Polished and clearly different from each other: wings and a horn on the avatars, scenery, tap effects. Every animation stops when a device asks for reduced motion (a rule in `theme.css` covers them all, more than pass 1 said).
+- All four skins' fonts load on every visit, although only one shows at a time.
+
+**Celebration**
+- Strong: big stars, stickers peeling on, an unlocked skin to "tap to try on", one big "Yay!" button. The sentences need reading; nothing reads them out.
+
+**In a game (new)**
+- The stars a child earns in Kriss Kross appear as one small green line under the grid ("★ saved for …"). The big celebration only comes after going home. Every game has to invent its own end-of-round moment.
+- The jump from sticker book to her neon "lab" style is fine (games keep their own look, by decision), and the home button was restyled to suit her game: a nice touch.
+
+**Grown-ups' corner**
+- Plain, readable, 44-pixel buttons.
+- Arranged in setup order (players, family code, sync, sound, testing, more), not in order of use. Nothing about progress.
+- The empty status line leaves a gap under the heading. "More" links to a second connection checker that duplicates this one.
+
+**Game setup (phone)**
+- Checks words as you type: very good.
+- Each list shows all its words and five buttons, which wrap to two rows. No way to copy a list to the other child.
+
+### 4. Features, front end and back end
+
+- **What a game can ask the launcher for** (`game-kit.js`): who's playing, its own id, save a round, go home, a home button. Missing for a framework: the child's level and settings, a shared end-of-round panel, a way to say what was played and how much help was used, and a practice mode that saves nothing.
+- **Untouched games can't follow the corner's sound switch.** Games that import `sound.js` can; your wife's can't. A wrapper can't mute them either; worth knowing, not fixing.
+- **The script's version** comes back with every player list, but the launcher ignores it. It's only checked on "Check connection", and only against 0.2.0, so a script that's behind shows up as a failure rather than a clear message.
+- **Rewards** are coded: eight badges, three skins. "Try every game" is spent on the first round (pass 1). "Beat your best" assumes a higher score is better, which a future timed game would get backwards.
+- **Phones:** there's no web app manifest, so "Add to Home Screen" makes a plain bookmark that opens with the browser's address bar. With one, the site opens full-screen with its own icon, leaving fewer ways for a child to wander into the browser. Details differ between iPhone and Android (TBC on your phones).
+- **Not missing (deliberately):** offline caching of the pages themselves. Results already survive being offline; caching whole pages adds a real risk of phones running stale code.
+
+### 5. Data
+
+- **Scores can't describe learning** (area 1): there's no column for what was played (a list title) or help used, and `score` means something different in each game, with nothing saying what it counts or whether higher is better.
+- **Settings are stored per feature.** GameLists is one row per list, readable in the Sheet. The next kind of setting (a level) would need another tab, another script version and another redeploy, unless one general settings tab takes all future settings.
+- **Reads:** every `profile` call reads the whole Scores, Achievements and GameLists tabs. Fine for years at family scale: my estimate is a few thousand rows a year.
+- **Kriss Kross fetches the profile again on opening** and waits up to 3 seconds, although the launcher had just refreshed it. A wrapper could hand the game what it needs straight away.
+- **Device storage is shared across the whole site address.** Everything on `robl89.github.io`, including any other GitHub Pages project of yours, can read and clear the same browser storage, family code included. Low risk; worth knowing before hosting anyone else's code there.
+- **Test rows:** all current Scores and Achievements rows come from the two grown-up profiles, and the one saved list sits under a grown-up profile. The children's history hasn't started (TBC: a device could still hold unsynced rounds).
+- **Mistakes:** if the 4-year-old plays as her brother, today's fix is deleting the rows in the Sheet by hand (badges earned stay unless deleted too). That's fine for a family app; it's just not written down anywhere.
+- **Tidy-ups:** an empty `Sheet1` tab; each `setup` run adds a whole backup copy to Drive with no plan for clearing old ones.
+
+### 6. Project context
+
+**Start size**, measured: the project instructions (1.3 kB), the repo handoff (5.1 kB) and PLAN.md (14.6 kB) come to about **21 kB, or roughly 5,000 tokens**, plus the stale project handoff. That's inside the 30 kB start budget in your project-template 0.1.0. So it isn't bloated yet; the risk is growth. PLAN.md is 70% of it, gains a log row with every decision, and the handoff repeats its decisions.
+
+**Against project-template 0.1.0** (provisional; answers pre-filled, see Q19):
+
+| Item | State here | Comment |
+|---|---|---|
+| TP-001 Handoff read first | In place, but points at a stale copy | The template keeps it as a project doc; this project moved it into the repo |
+| TP-002 Rob decides | In place | Open proposals P33, P37 to P39 to close |
+| TP-003 Sources or TBC | To adopt the fuller line | Adds: source or compute each number in code, label judgement, log a question |
+| TP-004 Nothing lives only in the chat | In place | But see the note below |
+| TP-008 Repo added before cloning | In place | |
+| TP-009 Back up and preview before live writes | To adopt the fuller line | Adds: preview the change on a copy, re-read the live Sheet first |
+| TP-012 Facts about now checked and dated | To adopt the fuller line | Adds: keep the source and date checked (PLAN already does this) |
+| TP-007 Pause protocol | Already in the instructions | The template has it off until a chat hits a limit; keeping it costs one line |
+
+A note for your template project (P-004), not this one: TP-004's repo line says "commit". In a cloud chat, a commit that isn't pushed still lives only in that chat's workspace, which is the very loss its "Why" describes (L42). The repo line could say "commit and push".
+
+**The docs themselves**
+- PLAN.md mixes four jobs: how the system works, design notes (skins in prose), reference facts (dated limits) and a 39-row log, much of it superseded.
+- `setup-sheet.md` grows a section per script version, and still says "answer the sum".
+- README calls Bubble pop "the first" game.
+- Comments in the code cite P-numbers. That's good for tracing decisions, as long as P-numbers are never reused or renumbered when the log is trimmed.
+- This REVIEW.md will itself be bloat once decided. Its outcomes belong in the decisions log, and the file can then go (git keeps it).
+
+### 7. Repo and code
+
+- **Size by area:** launcher JavaScript 2,019 lines; launcher CSS 765; script 524; tests 412; docs 360; Kriss Kross 1,194; Bubble pop 178.
+- **`launcher.js` does eight jobs in 742 lines:** screens, celebration, routing, sync refresh, the question gate, the corner, the player form and the skin preview. The next features (progress page, levels, sticker book) would take it past 1,000. Split by screen, a chat fixing Game setup reads 250 lines, not 1,000, which matters for usage as much as tidiness.
+- **CSS:** `theme.css` holds the children's theme and the corner's plain style together, and the corner part shows patches over time (`.corner .plist li` defined twice; a separate `.corner { overflow-y }` rule).
+- **Hidden coupling:** game icons in `shared/icons.js`; skin previews in `theme.css`; all skin fonts in `index.html`.
+- **Copies of the same rules:** word rules in three places (already 15 vs 20 letters); skins in `skins.js`, `Code.gs` and the tests; small helpers in two files; the stand-in Sheet three times.
+- **The Kriss Kross hook** checks every tenth of a second, for up to four seconds, whether her grid was built, and makes its own network call with a 3-second timeout. Both work; both go away with a wrapper that knows the moment a puzzle is built.
+- **Still good:** escaping, formula-safe text, a lock on writes, retry-safe sync, storage errors caught.
+
+### 8. Long-term progress (your worry, in more depth)
+
+**When it runs out** (my estimate, assuming 2.5 to 3 stars a round and 3 to 5 rounds a day):
+- All three bonus skins need 30 stars: 10 to 12 good rounds, so in the first few days.
+- "50 games" comes in 10 to 17 days, and "100 games" in 20 to 34 days.
+- The sum: within about a month, everything is earned, and the star total becomes a number that no longer means anything.
+
+**Why it runs out**
+- Every reward counts **volume** (rounds, stars, days), none counts **growth** (harder levels, fewer hints, a new list mastered).
+- All rewards are **global**. Nothing belongs to a particular game, so a new game adds nothing new to collect, and "Try every game" is spent before the second game exists.
+- The only thing to "spend" stars on is skins, and there are three.
+- The tile stars top out at 3 after one good round.
+
+**What tends to keep 4 to 6-year-olds coming back** (my judgement, not research): collecting and completing (a sticker book, literally this app's look), seeing a bar fill towards the next thing, a little surprise, dressing up their own character, and being able to say "I'm on level 3 now". What tends to backfire: comparisons with a sibling (the younger one always loses), streaks that punish a missed day, and anything that takes stars away.
+
+**The opportunity:** the app already looks like a sticker book, but only eight stickers exist. Making the whole progress system one sticker book, with a page for each game, filled by levels and milestones, is endless by design: each new game brings its own page.
+
+### What I'd do differently, with fresh eyes
+
+1. **One way in for every game.** A single game-shell page holds any game in a frame, provides the home button, the child, their level and settings, saves rounds and shows one end-of-round panel. Our games send two simple messages; your wife's games are connected by a small adapter, with her files left exactly as she made them.
+2. **A manifest per game** (title, icon, levels, settings, how stars are earned, what the score means, and where it came from), so the game's folder carries everything about it.
+3. **A script built so new games never need a redeploy:** one general settings tab, plus columns for what was played and help used. Then 0.4.0 is the last planned change to the shape of the data.
+4. **Tests that run the real script,** quick unit checks for the reward rules, and pass or fail at the end.
+5. **Progress as one sticker book,** with pages per game, linked to levels.
+6. **One handoff, as a project doc,** with the repo's docs only about how the code works.
+7. **Smaller files,** so each chat reads only what its task needs.
+8. **Start clean:** finish the foundation, then clear the test rows, then let the children start.
