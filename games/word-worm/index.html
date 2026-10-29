@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7CC852">
+  <title>Word Worm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <canvas id="garden" class="layer garden" aria-label="The garden: steer the worm to the letters"></canvas>
+
+  <div id="hud" class="hud" hidden>
+    <div id="bar" class="bar">
+      <span id="bar-pre" class="bar-pre" hidden></span>
+      <span id="look" class="look" hidden>Look!</span>
+      <div id="slots" class="slots" aria-live="polite"></div>
+    </div>
+    <div id="dots" class="dots" aria-hidden="true"></div>
+  </div>
+
+  <div id="tools" class="tools" hidden>
+    <button id="eye" class="tool" type="button" aria-label="Show the word again" hidden>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 24c5-9 12-14 20-14s15 5 20 14c-5 9-12 14-20 14S9 33 4 24z" fill="#fff" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><circle cx="24" cy="24" r="8" fill="#4F78E6" stroke="currentColor" stroke-width="3.5"/><circle cx="24" cy="24" r="3.4" fill="currentColor"/><circle cx="21" cy="21" r="2" fill="#fff"/></svg>
+    </button>
+    <button id="say" class="tool" type="button" aria-label="Say it again" hidden>
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 18h7l10-8v28l-10-8H8z" fill="#FFC933" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M31 17c3 4 3 10 0 14M36 12c6 7 6 17 0 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <canvas id="fx" class="layer fx" aria-hidden="true"></canvas>
+
+  <section id="start" class="card start" aria-labelledby="title">
+    <div class="start-art">
+      <h1 id="title" class="title" aria-label="Word Worm"><span class="t1">W</span><span class="t2">o</span><span class="t3">r</span><span class="t4">d</span> <span class="t5">W</span><span class="t6">o</span><span class="t1">r</span><span class="t2">m</span></h1>
+      <canvas id="hero" class="hero" aria-hidden="true"></canvas>
+    </div>
+    <div class="start-side">
+      <div id="wardrobe" class="wardrobe" role="group" aria-label="Pick a hat"></div>
+      <button id="play" class="big go" type="button">Play</button>
+    </div>
+  </section>
+
+  <section id="end" class="card end" hidden aria-labelledby="end-h">
+    <div class="end-main">
+      <div id="end-stars" class="stars"></div>
+      <h2 id="end-h">Hooray!</h2>
+      <canvas id="end-worm" class="end-worm" aria-hidden="true"></canvas>
+      <p class="grew">Your worm grew to <b id="grew-n">0</b>!</p>
+      <p id="longest" class="longest"></p>
+    </div>
+    <div class="end-side">
+      <div id="unlock" class="unlock" hidden>
+        <span class="rays" aria-hidden="true"></span>
+        <canvas id="unlock-hat" aria-hidden="true"></canvas>
+        <p id="unlock-p">New hat!</p>
+      </div>
+      <ul id="chips" class="chips" aria-label="What you practised"></ul>
+      <div class="row">
+        <button id="again" class="big go" type="button">Play again</button>
+        <button id="done" class="big alt" type="button">Done</button>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
