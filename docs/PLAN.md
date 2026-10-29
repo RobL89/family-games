@@ -138,7 +138,6 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 ## Open questions (TBC)
 
 - Blocks skin: final name (the 6-year-old could pick).
-- Kriss Kross stars rule (P30): is "no hints = 3, one or two = 2, more = 1" right?
 
 ## Proposals log
 
@@ -167,11 +166,11 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P21 | Bonus theme skins unlocked with stars: Fairy, Unicorn, Blocks; launcher only | Adopted 2026-10-28 (Rob's idea) |
 | P22 | Each skin is one CSS file that swaps colours, background and frames | Adopted 2026-10-28 |
 | P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request) |
-| P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Proposed |
-| P25 | Bubble pop as the first working game | Proposed |
-| P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Proposed |
-| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Proposed |
+| P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Adopted 2026-10-29 |
+| P25 | Bubble pop as the first working game | Adopted 2026-10-29 |
+| P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Adopted 2026-10-29 |
+| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Adopted 2026-10-29 |
 | P28 | Debug skin button, switched by `debug` in `shared/config.js` | Adopted 2026-10-28 (Rob's request) |
-| P29 | `setup()` makes a backup copy before it changes an existing Sheet | Proposed |
-| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Proposed |
+| P29 | `setup()` makes a backup copy before it changes an existing Sheet | Adopted 2026-10-29 |
+| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29 |
 | P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
