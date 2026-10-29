@@ -409,7 +409,7 @@ Every item is **Proposed** until Rob adopts or declines it. Where an item depend
 
 Sizes: **small** = part of one chat · **medium** = about one chat · **large** = several chats.
 
-Groups: **W** workflow and handover · **G** game framework · **D** data and back end · **P** progress and reporting · **U** screens · **C** context and instructions · **T** tests and tidy.
+Groups: **W** workflow and handover · **G** game framework · **D** data and back end · **S** stars, stickers and reports (progress) · **U** screens · **C** context and instructions · **T** tests and tidy. (No P or R codes, so these never get mixed up with decisions P1 to P39 or pass 1's R-items.)
 
 ### The plan, in order of value
 
@@ -420,8 +420,8 @@ Groups: **W** workflow and handover · **G** game framework · **D** data and ba
 | C. Game contract and shell | The "drop a folder in" target; tried on your phones before anything is built on it | G2 trial, then G1, G2, G4, G5, G6, G7, T3 | Two or three chats |
 | D. Kriss Kross the new way | Proof of the wife-game path: her latest file untouched, with an adapter | G3, G8, W2 | One chat |
 | E. Data 0.4.0, then start clean | The last planned change to the data's shape, made before the children's history exists | D1, D2, then D3 | One chat, plus your paste and redeploy |
-| F. Progress | Difficulty and long-term goals in one: levels, the progress page, the sticker book | P1, P2, U1, U7, P4, P3 | Two or three chats |
-| G. As wanted | The remaining screen items, more skins, goals, extras | U items, G9, P5, P6, P7 | Per item |
+| F. Progress | Difficulty and long-term goals in one: levels, the progress page, the sticker book | S1, S2, U1, U7, S4, S3 | Two or three chats |
+| G. As wanted | The remaining screen items, more skins, goals, extras | U items, G9, S5, S6, S7 | Per item |
 
 Why this order: tests before touching the script; the shell before moving Kriss Kross onto it; the data change before the children's history starts; progress after levels exist. If the children are keen to start sooner, phase E can move ahead of C and D: nothing in it depends on the shell.
 
@@ -489,18 +489,18 @@ docs/                      PLAN.md (how it works), decisions.md, setup-sheet.md
 
 How it goes live: tested against the real script first (T2); backup; previewed on a copy of the Sheet (a copy should carry its script with it; TBC on first use), per your template's TP-009; then you paste, run `setup` and redeploy; then a before-and-after comparison.
 
-### Blueprint: levels, the progress page and the sticker book (for P1 to P3)
+### Blueprint: levels, the progress page and the sticker book (for S1 to S3)
 
-**Levels (P1).** A game says how many levels it has. A grown-up sets each child's starting level in Game setup. After three 3-star rounds in a row at a level, the child moves up, with a "Level up!" celebration. A grown-up can set it back or turn moving up off at any time. Nothing ever moves a child **down** by itself (my judgement: being "sent back" feels like a punishment at 4); instead, the progress page suggests it after repeated 1-star rounds.
+**Levels (S1).** A game says how many levels it has. A grown-up sets each child's starting level in Game setup. After three 3-star rounds in a row at a level, the child moves up, with a "Level up!" celebration. A grown-up can set it back or turn moving up off at any time. Nothing ever moves a child **down** by itself (my judgement: being "sent back" feels like a punishment at 4); instead, the progress page suggests it after repeated 1-star rounds.
 
-**Progress page (P2),** in the corner, per child:
+**Progress page (S2),** in the corner, per child:
 - **This week:** days played, rounds, minutes (from the existing `seconds`).
 - **Each game:** level, rounds, average stars, last played.
 - **Last ten rounds,** in plain words: "Week 3 spellings · ★★★ · no hints · 2 min".
 - **A gentle flag** when the last three rounds at a level were 1 star.
 
-**Sticker book (P3)**, one book with three kinds of page:
-- **Special:** today's eight awards, with two fixed (P4).
+**Sticker book (S3)**, one book with three kinds of page:
+- **Special:** today's eight awards, with two fixed (S4).
 - **Star stickers:** one for every 10 stars, from a set of original drawings in the house style. When the set runs out, it starts again with gold edges, so it never ends.
 - **One page per game,** made from its manifest: first round, first 3 stars, each level reached, 10, 25 and 50 rounds. A new game brings its own page.
 
@@ -541,15 +541,15 @@ Nothing new is stored: it's all worked out from Scores and Achievements, as skin
 - **D3. Start clean** (small) · Proposed, depends on Q13. After D1 and before the children start: back up; clear the grown-up test rows from Scores and Achievements, and the test list from GameLists; remove the empty `Sheet1`; compare before and after. Also say how to tidy old backups in Drive. *Why:* the children's history starts from nothing, and the reports show only real play.
 - **D4. Write down how to fix a round saved under the wrong child** (small) · Proposed. Two lines in `setup-sheet.md`: delete the row in Scores, and the badge row too if one was earned. *Why:* it will happen; no feature needed.
 
-### P · Progress and reporting (your choices from Q5 to Q7)
+### S · Stars, stickers and reports (your choices from Q5 to Q7)
 
-- **P1. Levels** (medium, with D1) · Proposed, depends on Q17 for Kriss Kross. As in the blueprint; tiles show the level. *Why:* this is both the difficulty scaling in your aims and a goal that keeps going.
-- **P2. The grown-ups' progress page** (medium) · Proposed. As in the blueprint. *Why:* you see learning, not just activity, without opening the Sheet.
-- **P3. The sticker book** (medium to large, mostly drawing) · Proposed, depends on Q16. As in the blueprint. *Why:* endless by design, on-theme, and every new game adds a page automatically.
-- **P4. Fix two awards** (small) · Proposed. "Try every game" waits until at least three games are live; "Beat your best" uses the manifest's direction, or stars and level. Only grown-up profiles hold "Try every game" today, so no child loses anything.
-- **P5. More skins, one at a time, after G9** (medium each) · Proposed. Add them at higher star targets set in the Skins tab. Naming Blocks is still open.
-- **P6. Grown-up goals** (medium) · Proposed, last. A weekly goal per child earns a special sticker. Only if levels and the sticker book aren't enough.
-- **P7. Later ideas, only if wanted** · Proposed, not planned:
+- **S1. Levels** (medium, with D1) · Proposed, depends on Q17 for Kriss Kross. As in the blueprint; tiles show the level. *Why:* this is both the difficulty scaling in your aims and a goal that keeps going.
+- **S2. The grown-ups' progress page** (medium) · Proposed. As in the blueprint. *Why:* you see learning, not just activity, without opening the Sheet.
+- **S3. The sticker book** (medium to large, mostly drawing) · Proposed, depends on Q16. As in the blueprint. *Why:* endless by design, on-theme, and every new game adds a page automatically.
+- **S4. Fix two awards** (small) · Proposed. "Try every game" waits until at least three games are live; "Beat your best" uses the manifest's direction, or stars and level. Only grown-up profiles hold "Try every game" today, so no child loses anything.
+- **S5. More skins, one at a time, after G9** (medium each) · Proposed. Add them at higher star targets set in the Skins tab. Naming Blocks is still open.
+- **S6. Grown-up goals** (medium) · Proposed, last. A weekly goal per child earns a special sticker. Only if levels and the sticker book aren't enough.
+- **S7. Later ideas, only if wanted** · Proposed, not planned:
   - **Avatar dress-up:** hats and glasses as star-sticker prizes. Wings and a horn already show the idea works.
   - **A weekly progress email** from the Sheet to you. Apps Script can send mail; permissions and limits to be checked when used.
   - **A gentle "time for a break"** after a set number of minutes a day, worked out from `seconds`.
@@ -562,7 +562,7 @@ Nothing new is stored: it's all worked out from Scores and Achievements, as skin
 - **U4. Rearrange the corner by use** (small) · Proposed. In order: players (Edit, Game setup, **Progress**); sound; a folded "This device" section (family code, check connection, send now, app version); Testing. Drop the empty status gap and the "More" link to the old checker.
 - **U5. Copy a word list to the other child** (small) · Proposed. *Why:* siblings will often share lists.
 - **U6. Shorter list rows in Game setup** (small) · Proposed. Show the first few words with "+12 more", and fold Up, Down and Make default into one "Move".
-- **U7. Tiles: no stars before the first round; show the level** (small, with P1) · Proposed.
+- **U7. Tiles: no stars before the first round; show the level** (small, with S1) · Proposed.
 - **U8. "Add to Home Screen" support** (small) · Proposed, depends on Q14. A web app manifest and icon, so the site opens full-screen like an app. Check on your phones.
 - **U9. Load only the active skin's font** (small) · Proposed. *Why:* a quicker start on phones.
 - **U10. The skin preview pill stops covering things** (small) · Proposed. Rename it "Skin preview" and move it to a corner that has no content.
@@ -644,28 +644,28 @@ Pass 1's R-items are replaced by these; decide on the pass 2 items.
 |---|---|---|
 | R1 One handoff in the repo | C1 | Now a project doc (Q9), for privacy and your template |
 | R2 Work branch | W1 | Same |
-| R3 Fix two badges | P4 | Same, using the manifest |
+| R3 Fix two badges | S4 | Same, using the manifest |
 | R5 Tests | T2 | Now runs the real script |
 | R6 Wrapper for her games | G2, G3, G8 | Now a shell for every game |
 | R7 Repo tidy | T1 | Same |
 | R8 Small fixes | T5, U10, C3 | Split up |
-| R9 Levels | P1 | Detailed |
+| R9 Levels | S1 | Detailed |
 | R10 Settings store | D1 | Now general, with learning columns |
 | R11 Retire a player | U11 | Same |
-| R12 Progress page | P2 | Detailed |
-| R13 Sticker album | P3 | Now the whole sticker book, with pages per game |
+| R12 Progress page | S2 | Detailed |
+| R13 Sticker album | S3 | Now the whole sticker book, with pages per game |
 | R14 Template | G7 | Now a working mini-game |
 | R15 One source for rules | T4 | Same |
 | R16 Slim PLAN | C2 | Same |
 | R17 Tidy docs | C3 | Same |
 | R18 Instructions | C4 | New draft |
-| R19 More skins | P5, G9 | Skin folders first |
-| R20 Grown-up goals | P6 | Same |
+| R19 More skins | S5, G9 | Skin folders first |
+| R20 Grown-up goals | S6 | Same |
 | R21 Read aloud | U2 | Same |
 | R22 Goal at the top | U1 | Same |
 | R23 Empty stars | U7 | With levels |
-| R24 Last played | P3 | Replaced by newest stickers |
-| R25 Locked badges | P3 | Part of the sticker book |
+| R24 Last played | S3 | Replaced by newest stickers |
+| R25 Locked badges | S3 | Part of the sticker book |
 | R26, R27 Corner order and gap | U4 | Same |
 | R28 Copy lists | U5 | Same |
 | R29 Shorter list rows | U6 | Same |
