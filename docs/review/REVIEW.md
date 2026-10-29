@@ -89,3 +89,18 @@ Your worry is justified. What the Sheet already shows: each grown-up earned **3 
 - **The profile has no sense of "getting better".** Levels exist as a column in Scores (Kriss Kross stores the list number there) but nothing shows or rewards them.
 
 In short: the reward system is front-loaded and has a fixed end. Anything added should keep going (milestones that repeat or scale) and should be tied to the games getting harder, not just to playing more.
+
+---
+
+## Stage 2: Questions and answers (2026-10-29)
+
+| # | Question | Rob's answer |
+|---|---|---|
+| Q1 | Is Apps Script 0.3.0 live? | Yes, it's live. (The handoff is behind on this.) |
+| Q2 | How do your wife's games reach a chat? | As an artifact link, shared editable. |
+| Q3 | How should her games plug in? | Keep her files untouched (not the recommended snippet). |
+| Q4 | How should chat work be saved to GitHub? | Push to a work branch after each stage; publish to the live site only on Rob's say. |
+| Q5 | What should keep the kids working towards something? | All four: levels in each game, an endless sticker album, more skins at higher targets, grown-up goals. |
+| Q6 | Who decides difficulty? | A grown-up sets a starting level per child per game; it moves up by itself after good rounds, and can be pulled back. |
+| Q7 | Where should progress be shown? | Both: simple for the child, detail in the grown-ups' corner. |
+| Q8 | Home-screen tidy-ups (hide Soon tiles, hide grown-up profiles, Bubble pop live)? | None of these. Keep the screens as they are. |
