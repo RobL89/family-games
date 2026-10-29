@@ -380,3 +380,23 @@ A note for your template project (P-004), not this one: TP-004's repo line says 
 6. **One handoff, as a project doc,** with the repo's docs only about how the code works.
 7. **Smaller files,** so each chat reads only what its task needs.
 8. **Start clean:** finish the foundation, then clear the test rows, then let the children start.
+
+---
+
+## Pass 2 · Stage 2: Questions for the morning
+
+Written down rather than asked, because Rob was asleep. Stage 3 assumes each recommended answer and says where another answer would change it. Answer with the letters, for example "Q9 a, Q10 a, Q11 c…". **Q9, Q10, Q12, Q13 and Q14 matter most.**
+
+| # | Question | Options (recommended first) |
+|---|---|---|
+| Q9 | Where should the one handoff live? | **a. A project doc that Claude rewrites at wrap-up with the Projects tool, so no pasting (recommended: matches your template's TP-001, stays private, readable before cloning)** · b. `docs/handoff.md` in the repo · c. Both, with the project one only pointing to the repo |
+| Q10 | Should games run inside one shared wrapper page (the "game shell")? | **a. Yes, every game (recommended: one way in, her files untouched, one end-of-round panel)** · b. Only your wife's games; ours keep importing the kit · c. No; keep direct game pages and hand-made hooks |
+| Q11 | When a child plays Kriss Kross from the launcher, hide her grown-up buttons from the wrapper (her file unchanged)? | **a. Hide Print sheet and Edit words (recommended)** · b. Also hide Show solution · c. Leave everything as she made it |
+| Q12 | How should new per-child settings (like a starting level) be stored? | **a. One new general Settings tab for everything new; word lists stay in GameLists (recommended: readable lists, nothing to move)** · b. Move word lists into the new tab too · c. A new tab per feature, as now |
+| Q13 | Clear the grown-up test rows before the children start? | **a. Yes, once the data change (D1) is done, after a backup (recommended)** · b. Keep them · c. Clear them now |
+| Q14 | Which devices do the children use? (Needed to try the wrapper, "Add to Home Screen" and read-aloud voices.) | a. iPhone or iPad (Safari) · b. Android phone (Chrome) · c. Both, or something else (please say) · and which PC browser? |
+| Q15 | Read things aloud for the 4-year-old (sticker names, "needs 10 stars", celebrations)? | **a. Yes, behind the existing sound switch (recommended)** · b. No |
+| Q16 | One word for the rewards? | **a. Everything is a sticker, in one sticker book (recommended: matches the look, one word for children)** · b. "Badges" for the eight awards, "stickers" for the rest |
+| Q17 | Should Kriss Kross word lists act as its levels? | **a. No: lists stay lists set by a grown-up (school spellings change weekly, not by difficulty); levels are for games with built-in difficulty (recommended)** · b. Yes: three 3-star rounds on a list makes the next list the default |
+| Q18 | Offer your wife a one-page, optional "making games launcher-friendly" tips sheet? | **a. Yes, purely optional; her files are still never edited (recommended)** · b. No |
+| Q19 | Confirm the project-template answers I pre-filled: code yes, repo yes, live data yes (the Sheet), documents no, issued files no, sources yes (platform limits), agents no, siblings no, board no, stages no, others' sign-off no. | **a. All correct, and save the set-up record to the project (recommended)** · b. Correct, but don't save a record · c. Some are wrong (please say which) |
