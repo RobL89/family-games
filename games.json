@@ -1,7 +1,10 @@
 {
   "games": [
     { "id": "bubble-pop", "title": "Bubble pop", "icon": "g-bubbles", "colour": "#2E8FD0", "folder": "games/bubble-pop/", "status": "ready" },
-    { "id": "kriss-kross", "title": "Kriss Kross", "icon": "g-cross", "colour": "#1AA3C2", "folder": "games/kriss-kross/", "status": "ready" },
+    { "id": "kriss-kross", "title": "Kriss Kross", "icon": "g-cross", "colour": "#1AA3C2", "folder": "games/kriss-kross/", "status": "ready", "settings": true },
+    { "id": "word-worm", "title": "Word Worm", "icon": "g-worm", "colour": "#3FA34D", "folder": "games/word-worm/", "status": "ready", "settings": true },
+    { "id": "monster-cafe", "title": "Monster Café", "icon": "g-cafe", "colour": "#E8833A", "folder": "games/monster-cafe/", "status": "ready", "settings": true },
+    { "id": "rocket-lander", "title": "Rocket Lander", "icon": "g-rocket", "colour": "#5B4FCF", "folder": "games/rocket-lander/", "status": "ready", "settings": true },
     { "id": "memory-match", "title": "Memory match", "icon": "g-memory", "colour": "#E0457B", "status": "soon" },
     { "id": "count-it", "title": "Count it", "icon": "g-count", "colour": "#E5533D", "status": "soon" },
     { "id": "shape-sort", "title": "Shape sort", "icon": "g-shapes", "colour": "#7E4FC9", "status": "soon" },

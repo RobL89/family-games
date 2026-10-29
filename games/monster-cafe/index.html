@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#CFEFE1">
+  <title>Monster Café</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <main id="stage" class="stage">
+    <div class="wall" aria-hidden="true"></div>
+    <div id="back" aria-hidden="true"></div>
+    <div id="monster" class="monster" hidden></div>
+    <div id="counter" class="counter" aria-hidden="true"><div class="counter-top"></div><div class="counter-front"></div></div>
+    <div id="front"></div>
+    <div id="desk"></div>
+    <div id="bunting" class="bunting" aria-hidden="true"></div>
+    <div id="bubble-box" class="bubble-box" hidden><div id="bubble" class="bubble" aria-live="polite"></div></div>
+
+    <div class="hud">
+      <div id="progress" class="progress" hidden aria-hidden="true"></div>
+      <div id="coinjar" class="coinjar" aria-label="Coins"><svg class="coin" viewBox="0 0 40 40" aria-hidden="true"><use href="#coin"/></svg><span id="coins">0</span></div>
+    </div>
+
+    <div id="fx" class="fx" aria-hidden="true"></div>
+
+    <section id="start" class="start" aria-labelledby="title">
+      <div id="signboard" class="signboard">
+        <span class="cord l"></span><span class="cord r"></span>
+        <div class="sign-face">
+          <div id="sign" class="awning"></div>
+          <h1 id="title">Monster <span>Café</span></h1>
+        </div>
+      </div>
+      <div id="start-desk" class="start-desk">
+        <div class="bank" aria-label="Coins in your jar"><svg class="coin" viewBox="0 0 40 40" aria-hidden="true"><use href="#coin"/></svg><span id="bank">0</span></div>
+        <button id="play" class="big play-btn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="#fff" stroke="#3D2340" stroke-width="2.2" stroke-linejoin="round"/></svg>Play</button>
+        <button id="shop-open" class="big sun shop-btn" type="button"><span id="brush1" class="ico"></span>Café makeover</button>
+      </div>
+    </section>
+
+    <div id="dim" class="dim" hidden></div>
+
+    <section id="end" class="card end" hidden aria-labelledby="end-h">
+      <h2 id="end-h">Hooray!</h2>
+      <div id="end-stars" class="stars" role="img"></div>
+      <p id="end-p"></p>
+      <div class="earned"><svg class="coin" viewBox="0 0 40 40" aria-hidden="true"><use href="#coin"/></svg><span id="end-coins">+0</span></div>
+      <div class="row">
+        <button id="again" class="big" type="button">Play again</button>
+        <button id="shop-open2" class="big sun shop-btn" type="button"><span id="brush2" class="ico"></span>Makeover</button>
+        <button id="done" class="big alt" type="button">Done</button>
+      </div>
+    </section>
+
+    <section id="shop" class="shop" hidden aria-labelledby="shop-h">
+      <div class="shop-head">
+        <h2 id="shop-h">Café makeover</h2>
+        <div class="bank"><svg class="coin" viewBox="0 0 40 40" aria-hidden="true"><use href="#coin"/></svg><span id="shop-coins">0</span></div>
+        <button id="shop-close" class="shop-close" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="#3D2340" stroke-width="4" stroke-linecap="round"/></svg></button>
+      </div>
+      <div id="shop-list" class="shop-list"></div>
+    </section>
+  </main>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
