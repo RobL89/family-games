@@ -60,7 +60,13 @@
   </section>
 
   <section>
-    <h2>3. Write a test (changes the Sheet)</h2>
+    <h2>3. Game settings and word lists</h2>
+    <p class="note" style="margin-top:0">Shows what each game will use for each child, where each value comes from, and anything in the Settings or Lists tabs that doesn't make sense.</p>
+    <div class="row"><button id="settings">Check game settings</button></div>
+  </section>
+
+  <section>
+    <h2>4. Write a test (changes the Sheet)</h2>
     <label for="nickname">Test player nickname</label>
     <input id="nickname" maxlength="20" value="Test player">
     <div class="row"><button id="add">Add test player (1 row in Profiles)</button></div>
@@ -80,6 +86,7 @@
 <script type="module">
   import { CONFIG } from '../shared/config.js';
   import * as api from '../shared/api.js';
+  import { resolveSettings } from '../shared/settings.js';
 
   const $ = (id) => document.getElementById(id);
   $('code').value = api.getFamilyCode();
@@ -125,6 +132,33 @@
     return profiles;
   });
   $('outbox').onclick = () => show(true, 'Outbox on this device', api.getOutbox());
+
+  const shown = (v) => (v && typeof v === 'object' && Array.isArray(v.items)
+    ? `${v.title || (v.id ? v.id : 'typed in')}: ${v.items.slice(0, 8).join(', ')}${v.items.length > 8 ? ` … (${v.items.length} words)` : ''}`
+    : Array.isArray(v) ? v.join(', ') : String(v));
+
+  $('settings').onclick = () => run('Check game settings', async () => {
+    const config = await api.fetchSettings();
+    const profiles = await api.fetchProfiles();
+    const games = (await (await fetch('../games.json', { cache: 'no-cache' })).json()).games.filter((g) => g.status === 'ready' && g.settings);
+    const lines = [];
+    lines.push(config.warnings.length ? 'From the Sheet:' : 'From the Sheet: no problems.');
+    config.warnings.forEach((w) => lines.push('  ! ' + w));
+    const problems = new Set();
+    for (const g of games) {
+      let schema;
+      try { schema = (await import(`../games/${g.id}/settings.js`)).SETTINGS; } catch { lines.push('', `${g.title}: its settings.js didn't load`); continue; }
+      for (const p of [{ profile_id: null, nickname: 'Everyone' }, ...profiles]) {
+        const r = resolveSettings(schema, config, g.id, p.profile_id);
+        lines.push('', `${g.title}: ${p.nickname}`);
+        Object.keys(schema).forEach((k) => lines.push(`  ${k}: ${shown(r.values[k])}   [${r.sources[k]}]`));
+        // A problem in an "everyone" value is the same for every child, so it's listed once.
+        r.problems.forEach((x) => problems.add(/this child\)/.test(x) ? `${g.title}, ${p.nickname}: ${x}` : `${g.title}: ${x}`));
+      }
+    }
+    lines.splice(1 + config.warnings.length, 0, ...(problems.size ? ['', 'Values that were changed or skipped:', ...[...problems].map((x) => '  ! ' + x)] : []));
+    return lines.join('\n');
+  });
   $('add').onclick = () => run('Add test player', async () => {
     const profile = await api.addProfile({ nickname: $('nickname').value, avatar: 'test', colour: '#7F77DD' });
     fillPlayers(api.getCachedProfiles());

@@ -4,13 +4,14 @@ Status: the proposals log at the bottom records what Rob has adopted or declined
 
 Repo: `RobL89/family-games` (public).
 
-Last updated: 2026-10-28
+Last updated: 2026-10-29
 
 ## What we're building
 
 - A **launcher**: pick who's playing, see your home screen (stars, badges, recent games, skins), pick a game.
 - A **series of games**: one folder each, playable with touch (phone) or mouse (PC).
-- **Storage** in a Google Sheet, so profiles, scores, badges and skins follow the kids across devices.
+- **Storage** in a Google Sheet, so profiles, scores, badges, skins and game progress follow the kids across devices.
+- **Settings in the Sheet**: each game's difficulty and word lists, set for everyone or per child (P33–P37).
 - Style: fun, child friendly, cartoonish, interactive, not overly complex. Sticker book look (P14), with unlockable skins (P21).
 
 ## Family (answered 2026-10-28)
@@ -24,12 +25,14 @@ Last updated: 2026-10-28
 ```
 family-games/
 ├─ index.html              Launcher page (the code is in shared/launcher.js)
-├─ games.json              List of games: id, title, icon, colour, folder, status ("ready" or "soon")
+├─ games.json              List of games: id, title, icon, colour, folder, status ("ready" or "soon"), settings
 ├─ shared/
 │  ├─ config.js            Apps Script web app URL; debug switch for the skin button
 │  ├─ api.js               Talks to the Sheet; keeps an outbox on the device
 │  ├─ launcher.js          Who's playing, home screen, celebrations, grown-ups' corner
-│  ├─ game-kit.js          What every game calls: getPlayer(), record(), finish(), homeButton()
+│  ├─ game-kit.js          What every game calls: getPlayer(), record(), finish(), homeButton(),
+│  │                       loadSettings(), loadProgress(), saveProgress()
+│  ├─ settings.js          How game settings are described and worked out per child (P33, P37)
 │  ├─ achievements.js      Badge list and the rules for earning them
 │  ├─ skins.js             Skin list (fallback star targets) and switching
 │  ├─ skin-effects.js      Skin scenery, pictures (wings, horn) and tap effects
@@ -37,15 +40,21 @@ family-games/
 │  ├─ skins/               fairy.css, blocks.css, unicorn.css
 │  ├─ avatars.js           Original cartoon animals and colours
 │  ├─ icons.js             Stars, badge pictures, game pictures, buttons
-│  └─ sound.js             Little sounds made in the browser, with mute
+│  └─ sound.js             Little sounds made in the browser and spoken words, with mute
 ├─ games/
-│  ├─ _template/           Starter game to copy for each new game
+│  ├─ _template/           Starter game to copy for each new game (shows settings and progress)
 │  ├─ bubble-pop/          First working game
-│  └─ kriss-kross/         The family's word-grid game, with a small hook to save stars
+│  ├─ kriss-kross/         The family's word-grid game, with small hooks for stars and word lists
+│  ├─ word-worm/           Spelling and counting worm (P32)
+│  ├─ monster-cafe/        Serving sums to monsters (P32)
+│  └─ rocket-lander/       Landing on a number line (P32)
+│     (each game with settings has a settings.js describing them)
 ├─ apps-script/
 │  └─ Code.gs              The Sheet's backend, pasted into Apps Script
 ├─ tools/
-│  └─ sheet-check.html     Grown-ups' connection check
+│  ├─ sheet-check.html     Grown-ups' connection and settings check
+│  ├─ settings-seed.mjs    Copies every game's settings into Code.gs as the Settings tab's starting rows
+│  └─ tests/               Browser tests against a stand-in Sheet, and a run of Code.gs on imitation Sheets
 └─ docs/
    ├─ PLAN.md              This file
    ├─ setup-sheet.md       Step-by-step: Sheet, script, deploy, updates
@@ -61,7 +70,7 @@ family-games/
 5. **Badges are checked** at the end of each round with the rules in `shared/achievements.js`, and again when the home screen opens. New ones are recorded in the Sheet (duplicates ignored).
 6. **Back in the launcher:** confetti, the stars won, new badges sticking on, and any skin just unlocked.
 
-## Sheet tabs (P5, P23, P24)
+## Sheet tabs (P5, P23, P24, P33–P35)
 
 | Tab | Columns |
 |---|---|
@@ -69,19 +78,35 @@ family-games/
 | Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at |
 | Achievements | profile_id, achievement_id, earned_at |
 | Skins | skin_id, name, stars_needed, active |
+| Settings | game_id, setting, about, everyone, then one column per child headed with their name |
+| Lists | list_id, title, items, about |
+| Progress | profile_id, game_id, data (JSON), updated_at |
 
 The family code is kept in the script's settings, not the Sheet. Change a skin's star target by editing `stars_needed` in the Skins tab; the launcher reads it fresh.
 
-## Calls the Apps Script answers (script 0.2.0)
+## Calls the Apps Script answers (script 0.3.0)
 
 | Call | Does |
 |---|---|
 | `ping` | Checks the family code; returns the script version |
 | `profiles` | Active players, plus the Skins tab |
-| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges |
-| `addProfile` | Adds a player (grown-ups' corner) |
-| `updateProfile` | Changes a player's name, animal, colour or skin; a skin only if they have the stars |
-| `sync` | Takes the device outbox: results and badges, duplicates skipped |
+| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges, saved progress |
+| `addProfile` | Adds a player (grown-ups' corner) and their column in Settings (P36) |
+| `updateProfile` | Changes a player's name, animal, colour or skin; a skin only if they have the stars. A new name renames their Settings column |
+| `settings` | The Settings and Lists tabs, with warnings about anything that doesn't fit |
+| `sync` | Takes the device outbox: results, badges and progress; duplicates skipped, older progress never replaces newer |
+
+## Game settings, word lists and progress (P33–P37, built 2026-10-29)
+
+- **Settings tab:** one row per setting. `everyone` is the family value; a child's column overrides it for that child; blank means "use the next one down". Order: this game + this child > "all" games + this child > this game + everyone > "all" + everyone > the game's default (P33).
+- **Shared settings** use game `all`: `word_list` (Kriss Kross and Word Worm) and `speak` (P33).
+- **Lists tab:** named word lists. A `word_list` cell holds a `list_id` or the words themselves (P34).
+- **Progress tab:** one small JSON object per child per game (coins, unlocks), saved on the device first and synced with the outbox; the newest copy wins (P35).
+- **New players:** adding a player adds an empty Settings column with their name; renaming renames it (P36).
+- **One source of truth:** each game describes its settings (name, kind, default, limits, help text) in `games/<id>/settings.js`. `tools/settings-seed.mjs` copies them into `Code.gs`, and `setup` adds only the rows the tab lacks, after a backup (P37).
+- **Bad values** are skipped and the next level down is used; `tools/sheet-check.html` > **Check game settings** shows each game's values per child, where they came from, and anything skipped.
+- **Timing:** the launcher refreshes settings in the background; a game waits up to 2.5 seconds for fresh settings at the start, then uses what's on the device.
+- **Kriss Kross** (P38): opened from the launcher, it starts with the child's `word_list` and its title. It leaves the box alone once someone types in it, and works exactly as before when opened on its own.
 
 ## Safety and privacy (P7, P9, P10)
 
@@ -95,6 +120,11 @@ The family code is kept in the script's settings, not the Sheet. Change a skin's
 - **GitHub Pages:** free on public repos; public or private repos with Pro and above. Published site up to 1 GB; soft bandwidth limit 100 GB a month. Source: docs.github.com, "GitHub Pages limits".
 - **Apps Script (gmail.com account):** 6 minutes per run; 30 simultaneous runs per user; 50,000 settings reads/writes a day. Google says quotas can change without notice. Source: developers.google.com/apps-script/guides/services/quotas.
 - **Google Sheets:** up to 20 million cells per spreadsheet (raised September 2026). Source: Google Workspace Updates blog.
+
+Checked 2026-10-29:
+
+- **Spoken words:** the browser's speech synthesis is Baseline "widely available" (since 2021-03-05): Chrome, Edge, Firefox and Safari, on phones too. Which voices exist differs by device, so every game also works silently. Source: web-platform-dx.github.io/web-features-explorer, "Speech synthesis".
+- **Characters in a cell:** Google's "Files you can store in Google Drive" page gives 20 million cells or 100 MB per spreadsheet, and says cells over 50,000 characters are removed when converting from Excel; it doesn't give a general per-cell limit (TBC). The script keeps well under that: progress up to 20,000 characters per child per game, and it reads up to 5,000 characters from a settings or list cell.
 
 Family use is far inside all of these.
 

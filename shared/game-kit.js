@@ -12,8 +12,20 @@
 //
 // stars (1 to 3) is the headline score (P17). Results go into this device's
 // outbox first and reach the Sheet when the launcher next syncs (P6).
+//
+// Settings from the Sheet (script 0.3.0). Describe them in games/<id>/settings.js
+// (see shared/settings.js), then:
+//   import { SETTINGS } from './settings.js';
+//   const s = await loadSettings(SETTINGS);         // fresh from the Sheet if it answers quickly
+//   s.speed, s.word_list.items ...
+//   settingsNow(SETTINGS)                            // same, from this device only (no waiting)
+//
+// Progress that lasts between rounds (coins, unlocks), one small object per child per game:
+//   const progress = await loadProgress({ coins: 0 });   // defaults for a first visit
+//   progress.coins += 5; saveProgress(progress);         // device first, then the Sheet
 
 import * as api from './api.js';
+import { resolveSettings } from './settings.js';
 import { playerStats, earnedIds, newlyEarned, CELEBRATE_KEY } from './achievements.js';
 
 const LAUNCHER = new URL('../index.html', import.meta.url);
@@ -96,6 +108,65 @@ export async function record({ score = 0, level = 1, stars = 1, seconds = 0 } = 
   return fresh;
 }
 
+// ---------- Settings ----------
+
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+}
+
+// Settings for this game and this child, from what's on the device (no waiting).
+export function settingsNow(schema, gameId = getGameId()) {
+  const player = getPlayer();
+  return resolveSettings(schema, api.getCachedSettings(), gameId, player ? player.profile_id : null).values;
+}
+
+// Asks the Sheet for the latest settings, waiting up to `wait` ms, then answers from the
+// device either way. A late answer still lands on the device for next time.
+export async function loadSettings(schema, { wait = 2500 } = {}) {
+  if (api.isConfigured()) await withTimeout(api.fetchSettings(), wait).catch(() => {});
+  return settingsNow(schema);
+}
+
+// ---------- Progress ----------
+
+const newest = (a, b) => (!a ? b : !b ? a : String(a.updated_at) >= String(b.updated_at) ? a : b);
+const copy = (x) => JSON.parse(JSON.stringify(x));
+
+// This child's saved progress for this game, from the device (no waiting).
+export function progressNow(defaults = {}) {
+  const player = getPlayer();
+  const pid = player ? player.profile_id : 'guest';
+  const gameId = getGameId();
+  const local = api.getDeviceProgress(pid, gameId);
+  const cached = player ? api.getCachedProfile(pid) : null;
+  const remote = cached && cached.progress ? cached.progress[gameId] : null;
+  const pick = newest(local, remote);
+  return { ...copy(defaults), ...(pick && pick.data && typeof pick.data === 'object' ? copy(pick.data) : {}) };
+}
+
+// Checks the Sheet for progress saved on another device (waiting up to `wait` ms), then
+// returns whichever copy is newest, merged over the defaults.
+export async function loadProgress(defaults = {}, { wait = 2000 } = {}) {
+  const player = getPlayer();
+  if (player && api.isConfigured()) await withTimeout(api.fetchProfile(player.profile_id), wait).catch(() => {});
+  return progressNow(defaults);
+}
+
+const MAX_PROGRESS = 20000; // characters of JSON; plenty for coins and unlocks
+
+// Saves progress on the device straight away and sends it to the Sheet in the background.
+export function saveProgress(data) {
+  const json = JSON.stringify(data || {});
+  if (json.length > MAX_PROGRESS) {
+    console.warn(`Progress not saved: ${json.length} characters is over ${MAX_PROGRESS}`);
+    return false;
+  }
+  const player = getPlayer();
+  api.queueProgress({ profile_id: player ? player.profile_id : 'guest', game_id: getGameId(), data: JSON.parse(json) }, !player);
+  if (player) api.flush().catch(() => {});
+  return true;
+}
+
 export function goHome(profileId) {
   const id = profileId === undefined ? (getPlayer() || {}).profile_id : profileId;
   const url = new URL(LAUNCHER);
@@ -121,5 +192,8 @@ export function homeButton({ style = {} } = {}) {
 }
 
 if (typeof window !== 'undefined') {
-  window.FamilyGames = { getPlayer, getGameId, record, finish, goHome, homeButton };
+  window.FamilyGames = {
+    getPlayer, getGameId, record, finish, goHome, homeButton,
+    settingsNow, loadSettings, progressNow, loadProgress, saveProgress,
+  };
 }

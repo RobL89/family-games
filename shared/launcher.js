@@ -439,6 +439,9 @@ async function refresh() {
   } catch (err) {
     handleError(err);
   }
+  // Game settings and word lists, kept on the device so games open with them straight away.
+  // Quietly skipped if the Apps Script is older than 0.3.0.
+  api.fetchSettings().catch(() => {});
 }
 
 function handleError(err) {

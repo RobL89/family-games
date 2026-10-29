@@ -6,10 +6,11 @@ About 10 minutes, once. Menu names below were checked against Google's Apps Scri
 
 ```
 Game in the browser ──POST──▶ Apps Script web app ──▶ Google Sheet
-                              (checks family code)     Profiles, Scores, Achievements, Skins
+                              (checks family code)     Profiles, Scores, Achievements, Skins,
+                                                       Settings, Lists, Progress
 ```
 
-The Sheet will hold first names or nicknames, cartoon avatar choices, scores, badges and skins only. No surnames, birthdays or photos (decision P9).
+The Sheet will hold first names or nicknames, cartoon avatar choices, scores, badges, skins, game settings, word lists and game progress only. No surnames, birthdays or photos (decision P9).
 
 ## 1. The Sheet
 
@@ -35,7 +36,7 @@ The code lives only here and on each device where a grown-up types it in. It nev
 
 1. Back in the editor, pick `setup` from the function list at the top, then **Run**.
 2. Google asks you to authorise the script to work with your spreadsheet. It's your own script; approve it.
-3. The execution log should list the tabs it added (Profiles, Scores, Achievements, Skins) and "FAMILY_CODE is set".
+3. The execution log should list the tabs it added (Profiles, Scores, Achievements, Skins, Settings, Lists, Progress) and "FAMILY_CODE is set".
 
 `setup` only adds missing tabs, header rows and columns. It never changes or removes data, and if the spreadsheet already has tabs it makes a backup copy first and logs the link.
 
@@ -69,6 +70,55 @@ Version 0.2.0 adds the Skins tab, a `skin` column on Profiles, star totals and e
 4. In the launcher's grown-ups' corner, **Check connection** should say "Apps Script version 0.2.0".
 
 To change how many stars a skin needs, edit `stars_needed` in the Skins tab. Set `active` to FALSE to hide a skin.
+
+## Updating to script version 0.3.0 (game settings, word lists, progress)
+
+Version 0.3.0 includes everything in 0.2.0, so if 0.2.0 was never run, this one update does both.
+
+**What changes in the Sheet** when `setup` runs on the Sheet as it was on 2026-10-29 (Profiles, Scores and Achievements with header rows only, plus an empty Sheet1):
+
+1. A backup copy of the whole spreadsheet is made first, and its link is the first line of the log.
+2. Profiles: one new column at the end, `skin`.
+3. New tab **Skins**: four rows (Sticker book 0, Fairy 10, Blocks 20, Unicorn 30 stars).
+4. New tab **Settings**: one row for each game setting (29 rows: 2 shared by all games, 10 for Word Worm, 9 for Monster Café, 8 for Rocket Lander), each with a short "about" note and the starting value in `everyone`. If any players exist by then, each gets an empty column headed with their name.
+5. New tab **Lists**: one starter word list, `starter_words`.
+6. New tab **Progress**: header row only. Games fill it in as the children play.
+
+Nothing already in the Sheet is changed or removed, and Sheet1 is left alone. Running `setup` again later only adds what's missing (for example, the rows for a new game), with a fresh backup first.
+
+**Steps**
+
+1. In the Sheet: **Extensions > Apps Script**, select everything in `Code.gs` and paste in the new `apps-script/Code.gs` from the repo. Save.
+2. Pick `setup` from the function list and **Run**. Check the log matches the list above.
+3. Redeploy so the web app uses the new code (see "Changing the script later" below).
+4. Open `tools/sheet-check.html`, **Check connection** (it should say version 0.3.0), then **Check game settings**.
+5. Tell Claude it's done, so it can compare the Sheet before and after.
+
+When you add a player in the launcher's grown-ups' corner, the script adds a column headed with their name to the Settings tab. Renaming a player renames their column.
+
+## Changing game settings and word lists
+
+Changes reach the games the next time the launcher opens or a game starts. Nothing needs redeploying.
+
+**A new word list (Lists tab).** Add a row:
+
+| list_id | title | items | about |
+|---|---|---|---|
+| `week_5` | Week 5 spellings | ship, shop, shell, fish | Notes for you; the games ignore this |
+
+- `list_id`: letters, numbers, `-` or `_`, no spaces.
+- `title`: shown in the games (Kriss Kross uses it as the puzzle title).
+- `items`: the words, separated by commas, spaces or new lines.
+
+Word lists for Kriss Kross need words that share letters, or some can't be fitted into the grid; the game says which and offers to build without them.
+
+**Choosing each child's word list (Settings tab).** Find the row `all | word_list`. In a child's column, type the `list_id` (for example `week_5`), or type the words themselves separated by commas. Leave a child's cell empty to use the `everyone` value. Kriss Kross and Word Worm both use it.
+
+**Difficulty and other settings (Settings tab).** Each row is one setting, and its `about` note says what it does and what it accepts. Change `everyone` for both children, or type in a child's column for just that child. For example, `word-worm | speed` with `everyone` at 2 and the younger child's column at 1.
+
+**Which value wins.** The most specific one: this game and this child, then "all" games and this child, then this game and everyone, then "all" games and everyone, then the game's own default.
+
+A value that doesn't make sense (a word where a number should be, or a list name that isn't in the Lists tab) is skipped and the next one down is used. **Check game settings** on `tools/sheet-check.html` lists what each game will use for each child, where each value came from, and anything that was skipped.
 
 ## Changing the script later
 

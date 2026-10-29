@@ -1108,10 +1108,39 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 <!-- Family games: everything below this line was added to connect the game to the launcher. -->
 <p id="fgSaved" class="msg good" role="status" style="text-align:center;max-width:1180px;margin:0 auto"></p>
 <script type="module">
-  import { getPlayer, homeButton, record } from '../../shared/game-kit.js';
+  import { getPlayer, homeButton, record, settingsNow, loadSettings } from '../../shared/game-kit.js';
+  import { getCachedSettings } from '../../shared/api.js';
+  import { SETTINGS } from './settings.js';
 
   homeButton({ style: { width: '46px', height: '46px', top: '10px', left: '10px', background: '#0d162b', color: '#3ee8ff', border: '2px solid #3ee8ff', boxShadow: '0 0 12px rgba(62,232,255,.55)' } });
   document.querySelectorAll('.top, .bar').forEach((el) => { el.style.paddingLeft = '58px'; });
+
+  // Word list from the Sheet: when a child opens the game from the launcher, the word box
+  // starts with their word_list (Settings tab) instead of the last words typed on this device.
+  // Opened on its own (no player), the game works exactly as before.
+  const player = getPlayer();
+  if (player) {
+    const words = document.getElementById('wordInput');
+    const title = document.getElementById('puzzleTitle');
+    const note = document.createElement('p');
+    note.className = 'hint';
+    words.insertAdjacentElement('afterend', note);
+    let edited = false;
+    [words, title].forEach((el) => el.addEventListener('input', (e) => { if (e.isTrusted) edited = true; }));
+
+    const useList = (list) => {
+      // Leave it alone until the Sheet has answered at least once (script 0.3.0), and once
+      // someone has typed in the box or started a puzzle.
+      if (!getCachedSettings() || !list || !list.items.length || edited || document.getElementById('setup').hidden) return;
+      words.value = list.items.join('\n');
+      title.value = (list.title || (player.nickname ? `${player.nickname}'s words` : 'My words')).slice(0, 40);
+      note.textContent = list.title ? `Words from the family Sheet: ${list.title}` : 'Words from the family Sheet';
+      words.dispatchEvent(new Event('input'));
+      title.dispatchEvent(new Event('input'));
+    };
+    useList(settingsNow(SETTINGS).word_list);
+    loadSettings(SETTINGS).then((s) => useList(s.word_list));
+  }
 
   // Stars (proposal P30): no hints = 3, one or two hints = 2, more = 1. Showing the solution saves nothing.
   const starsFor = (hints) => (hints === 0 ? 3 : hints <= 2 ? 2 : 1);
