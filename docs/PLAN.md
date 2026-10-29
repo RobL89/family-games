@@ -4,7 +4,7 @@ Status: the proposals log at the bottom records what Rob has adopted or declined
 
 Repo: `RobL89/family-games` (public).
 
-Last updated: 2026-10-28
+Last updated: 2026-10-29
 
 ## What we're building
 
@@ -33,6 +33,7 @@ family-games/
 │  ├─ achievements.js      Badge list and the rules for earning them
 │  ├─ skins.js             Skin list (fallback star targets) and switching
 │  ├─ skin-effects.js      Skin scenery, pictures (wings, horn) and tap effects
+│  ├─ game-setup.js        Grown-ups' corner > Game setup (word lists per player)
 │  ├─ theme.css            Sticker book theme, built from tokens skins can override
 │  ├─ skins/               fairy.css, blocks.css, unicorn.css
 │  ├─ avatars.js           Original cartoon animals and colours
@@ -45,7 +46,8 @@ family-games/
 ├─ apps-script/
 │  └─ Code.gs              The Sheet's backend, pasted into Apps Script
 ├─ tools/
-│  └─ sheet-check.html     Grown-ups' connection check
+│  ├─ sheet-check.html     Grown-ups' connection check
+│  └─ tests/               Browser tests against a stand-in Sheet
 └─ docs/
    ├─ PLAN.md              This file
    ├─ setup-sheet.md       Step-by-step: Sheet, script, deploy, updates
@@ -69,19 +71,21 @@ family-games/
 | Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at |
 | Achievements | profile_id, achievement_id, earned_at |
 | Skins | skin_id, name, stars_needed, active |
+| GameLists | list_id, profile_id, game_id, position, title, words, updated_at (P37) |
 
 The family code is kept in the script's settings, not the Sheet. Change a skin's star target by editing `stars_needed` in the Skins tab; the launcher reads it fresh.
 
-## Calls the Apps Script answers (script 0.2.0)
+## Calls the Apps Script answers (script 0.3.0)
 
 | Call | Does |
 |---|---|
 | `ping` | Checks the family code; returns the script version |
 | `profiles` | Active players, plus the Skins tab |
-| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges |
+| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges, word lists per game |
 | `addProfile` | Adds a player (grown-ups' corner) |
 | `updateProfile` | Changes a player's name, animal, colour or skin; a skin only if they have the stars |
 | `sync` | Takes the device outbox: results and badges, duplicates skipped |
+| `saveLists` | Replaces one player's lists for one game, in order (the first is the default) |
 
 ## Safety and privacy (P7, P9, P10)
 
@@ -105,7 +109,9 @@ Family use is far inside all of these.
 - **P15 Avatars:** six original cartoon animals (fox, frog, owl, bear, bunny, penguin) plus six colours.
 - **P16 Badges:** first game; three stars on any game; try every game; 3 days in a row; beat your best; 10, 50 and 100 games. Locked ones are grey with a "?"; tapping any badge says its name.
 - **P17 Scores:** 1–3 stars is the headline in every game; stars are also the points that unlock skins.
-- **P18 Grown-ups' corner:** press and hold the gear for a second, then answer a times-table sum (P27). Holds: add or edit players, family code and connection check, results waiting to sync, sound on/off.
+- **P18 Grown-ups' corner:** press and hold the gear for a second, then answer Rob's question (P32). Holds: add or edit players, Game setup for each player (P36), family code and connection check, results waiting to sync, sound on/off, and the skin preview switch (P34).
+- **P32/P33 Grown-ups' question:** "Address of first house". Only a one-way hash (PBKDF2) of the answer is in `shared/config.js`, never the answer; capitals, spaces and punctuation don't matter. To change it, ask Claude for a new hash.
+- **P36 Game setup:** per player, per game. For Kriss Kross: word lists. The first list is the default; the game opens with it, and after each puzzle (solved, or solution shown) a **Next list** button loads the next one (P38). Lists can be added, edited, deleted, moved up or down and made the default; every change saves to the Sheet straight away (P39). Words are checked the way Kriss Kross checks them: 2 to 15 letters, at least 2 and at most 30 per list, no repeats. A player with no lists sees the game's own word screen.
 - **P19 Small touches:** sounds with a mute switch; a cloud icon on the home screen while results are waiting to sync.
 - **P20 Phone layout:** on a phone held upright, games sit above the badges.
 
@@ -125,14 +131,14 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 - **Blocks:** an original pixel world at sunset: pixel sun, stars, stepped hills, floating cubes and a passing comet. Everything is a bevelled block; taps pop out pixels. Asked for as "Minecraft" and to look more like it; declined, as Minecraft's look belongs to Mojang. Name TBC.
 - Colours, fonts and frames are one CSS file per skin in `shared/skins/` (P22); scenery, pictures and tap effects are in `shared/skin-effects.js` (P31).
 - A child's chosen skin is saved in the Profiles `skin` column; if the Sheet can't save it yet, it's kept on that device (P24).
-- **Debug skin button** (bottom right) switches skins for grown-ups without unlocking or saving anything. Turn it off with `debug: false` in `shared/config.js` (P28).
+- **Skin preview button** (bottom right, labelled "Debug skin") switches skins for grown-ups without unlocking or saving anything. Turned on and off in the grown-ups' corner under Testing, and remembered on each device (P34). Off by default.
 
 ## Games
 
 | Game | Status |
 |---|---|
-| Bubble pop | Ready (P25): 20 bubbles; 3 stars for 17+, 2 for 11+, otherwise 1 |
-| Kriss Kross (the family's word-grid game) | Ready: solving a puzzle saves stars (P30); "Show solution" saves nothing |
+| Kriss Kross (the family's word-grid game) | Ready, and the only live game (P35): solving a puzzle saves stars (P30); "Show solution" saves nothing; word lists from Game setup (P36) |
+| Bubble pop | "Soon" tile (P35); the game itself is built and kept in `games/bubble-pop/` |
 | Memory match, Count it, Shape sort, Spot it | Placeholder "Soon" tiles (P26); names are placeholders |
 
 ## Open questions (TBC)
@@ -167,10 +173,18 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P22 | Each skin is one CSS file that swaps colours, background and frames | Adopted 2026-10-28 |
 | P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request) |
 | P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Adopted 2026-10-29 |
-| P25 | Bubble pop as the first working game | Adopted 2026-10-29 |
+| P25 | Bubble pop as the first working game | Superseded 2026-10-29 by P35 |
 | P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Adopted 2026-10-29 |
-| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Adopted 2026-10-29 |
-| P28 | Debug skin button, switched by `debug` in `shared/config.js` | Adopted 2026-10-28 (Rob's request) |
+| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Superseded 2026-10-29 by P32 |
+| P28 | Debug skin button, switched by `debug` in `shared/config.js` | Superseded 2026-10-29 by P34 |
 | P29 | `setup()` makes a backup copy before it changes an existing Sheet | Adopted 2026-10-29 |
 | P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29 |
 | P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
+| P32 | Grown-ups' corner asks "Address of first house" instead of a sum | Adopted 2026-10-29 (Rob's request) |
+| P33 | Keep only a one-way hash of that answer in the public repo | Proposed |
+| P34 | Skin preview switch lives in the grown-ups' corner, remembered per device | Adopted 2026-10-29 (Rob's request) |
+| P35 | Kriss Kross is the only live game; Bubble pop becomes a "Soon" tile | Adopted 2026-10-29 (Rob's request) |
+| P36 | Game setup per player per game; Kriss Kross word lists with a default and Next | Adopted 2026-10-29 (Rob's request) |
+| P37 | Lists stored in a GameLists tab, one row per list, script 0.3.0 | Proposed |
+| P38 | Kriss Kross opens on the default list every visit (it doesn't remember the last list); Next also appears after "Show solution" | Proposed |
+| P39 | List changes save to the Sheet straight away; if a save fails, nothing changes | Proposed |

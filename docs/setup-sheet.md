@@ -70,6 +70,15 @@ Version 0.2.0 adds the Skins tab, a `skin` column on Profiles, star totals and e
 
 To change how many stars a skin needs, edit `stars_needed` in the Skins tab. Set `active` to FALSE to hide a skin.
 
+## Updating to script version 0.3.0 (word lists)
+
+Version 0.3.0 adds the word lists set up in the launcher's Game setup. What changes in the Sheet: one new tab, **GameLists**, with a header row (list_id, profile_id, game_id, position, title, words, updated_at) and no data. Nothing else changes.
+
+1. **Extensions > Apps Script**, select everything in `Code.gs`, paste in the new `apps-script/Code.gs` from the repo, and save.
+2. Pick `setup` in the function list at the top and click **Run**. The log should show "Backup made first: …" with a link, then "Added tab GameLists with its header row", then "FAMILY_CODE is set".
+3. **Deploy > Manage deployments**, select the web app, click the pencil (Edit), set **Version** to **New version**, and click **Deploy**.
+4. In the launcher's grown-ups' corner, **Check connection** should say "Apps Script version 0.3.0".
+
 ## Changing the script later
 
 Editing the code doesn't change the live web app until you redeploy:

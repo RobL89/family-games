@@ -1,8 +1,8 @@
 """Browser test for the launcher, run against a stand-in for the Apps Script (no real Sheet is touched).
 Needs Python Playwright. From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
-then: python3 tools/tests/e2e_launcher.py <folder for screenshots>
+then: GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_launcher.py <folder for screenshots>
 """
-import json, sys, uuid, re
+import json, os, sys, uuid, re
 from playwright.sync_api import sync_playwright
 
 OUT = sys.argv[1]
@@ -93,7 +93,8 @@ def run():
         def new_page(w, h, mobile=False):
             ctx = browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2 if mobile else 1,
                                       is_mobile=mobile, has_touch=mobile)
-            ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
+            ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));"
+                                "localStorage.setItem('fg.debug', 'true');")
             ctx.route(re.compile(r'https://script\.google\.com/.*'),
                       lambda route: route.fulfill(status=200, content_type='application/json',
                                                   body=json.dumps(handle(json.loads(route.request.post_data or '{}')))))
@@ -112,7 +113,7 @@ def run():
         pg.screenshot(path=f'{OUT}/02-phone-home.png', full_page=True)
 
         # Play Bubble pop: pop every bubble as it appears.
-        pg.click('[data-g="bubble-pop"]'); pg.wait_for_selector('#play')
+        pg.goto(BASE + 'games/bubble-pop/index.html?player=p_sam'); pg.wait_for_selector('#play')  # Bubble pop is a Soon tile now
         pg.click('#play')
         for _ in range(400):
             pg.evaluate("document.querySelectorAll('.bubble:not(.popped)').forEach(b => b.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true})))")
@@ -158,9 +159,7 @@ def run():
         pc.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
         pc.mouse.down(); pc.wait_for_timeout(1250); pc.mouse.up()
         pc.wait_for_selector('#quiz-a')
-        q = pc.inner_text('label[for="quiz-a"]')
-        a, b = map(int, re.findall(r'\d+', q))
-        pc.fill('#quiz-a', str(a * b)); pc.click('#quiz [type=submit]'); pc.wait_for_selector('[data-add]')
+        pc.fill('#quiz-a', os.environ['GROWNUP_ANSWER']); pc.click('#quiz [type=submit]'); pc.wait_for_selector('[data-add]')
         pc.click('[data-add]'); pc.wait_for_timeout(300)
         pc.screenshot(path=f'{OUT}/13-pc-corner.png')
 

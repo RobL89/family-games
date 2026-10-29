@@ -11,6 +11,7 @@ import {
 import { DEFAULT_SKIN, FALLBACK_SKINS, skinList, isUnlocked, applySkin } from './skins.js';
 import * as sound from './sound.js';
 import { startSkinEffects } from './skin-effects.js';
+import { openGameSetup as gameSetupView } from './game-setup.js';
 
 const app = document.getElementById('app');
 const TILT = [-8, 5, -3, 7, -6, 4, -5, 6];
@@ -499,25 +500,45 @@ function openCorner() {
 corner.addEventListener('close', () => route());
 
 function cornerQuiz(note = '') {
-  const a = 3 + Math.floor(Math.random() * 7);
-  const b = 3 + Math.floor(Math.random() * 7);
+  const g = CONFIG.grownUps || {};
   corner.innerHTML = `
     <div class="pad">
       <button class="x" type="button" data-close aria-label="Close">×</button>
       <h2 id="corner-h">Grown-ups only</h2>
       <form id="quiz">
-        <label for="quiz-a">What's ${a} × ${b}?</label>
-        <input id="quiz-a" type="number" inputmode="numeric" autocomplete="off" required>
+        <label for="quiz-a">${esc(g.question || 'Answer')}</label>
+        <input id="quiz-a" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required>
         <div class="row"><button class="btn primary" type="submit">Open</button></div>
         <p class="msg bad" role="status">${esc(note)}</p>
       </form>
     </div>`;
-  corner.querySelector('#quiz').addEventListener('submit', (e) => {
+  corner.querySelector('#quiz').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (Number(corner.querySelector('#quiz-a').value) === a * b) cornerMain();
-    else cornerQuiz('Not quite. Try this one.');
+    const button = corner.querySelector('#quiz [type=submit]');
+    button.disabled = true;
+    let right = false;
+    try {
+      right = await checkAnswer(corner.querySelector('#quiz-a').value);
+    } catch {
+      return cornerQuiz("This browser can't check the answer. Open the site from its https:// address.");
+    }
+    if (right) cornerMain();
+    else cornerQuiz("That's not it. Try again.");
   });
   setTimeout(() => corner.querySelector('#quiz-a').focus(), 30);
+}
+
+// Only a hash of the answer is in the code (see shared/config.js). Spaces, capitals and
+// punctuation don't matter.
+async function checkAnswer(text) {
+  const g = CONFIG.grownUps;
+  const normal = String(text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(normal), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode(g.salt), iterations: g.iterations }, key, 256);
+  const hex = [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hex === g.hash;
 }
 
 function cornerMain(message = '', good = true) {
@@ -536,7 +557,8 @@ function cornerMain(message = '', good = true) {
         ? `<ul class="plist">${state.profiles.map((p) => `
             <li style="--c:${colourOf(p)}"><span class="chip">${avatarSVG(p.avatar)}</span>
               <span class="grow">${esc(p.nickname)}</span>
-              <button class="btn" type="button" data-edit="${esc(p.profile_id)}">Edit</button></li>`).join('')}</ul>`
+              <button class="btn" type="button" data-edit="${esc(p.profile_id)}">Edit</button>
+              <button class="btn" type="button" data-setup="${esc(p.profile_id)}">Game setup</button></li>`).join('')}</ul>`
         : '<p>No players yet.</p>'}
       <div class="row"><button class="btn" type="button" data-add>Add a player</button></div>
       <div id="pform"></div>
@@ -555,6 +577,10 @@ function cornerMain(message = '', good = true) {
 
       <h3>Sound</h3>
       <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="snd" ${sound.isMuted() ? '' : 'checked'}> Sounds on</label>
+
+      <h3>Testing</h3>
+      <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="dbg" ${debugOn() ? 'checked' : ''}> Skin preview button</label>
+      <p class="small">Shows a button at the bottom right of the screens that switches skins without unlocking or saving them. Remembered on this device.</p>
 
       <h3>More</h3>
       <p class="small"><a href="tools/sheet-check.html">Sheet check page</a></p>
@@ -619,6 +645,8 @@ corner.addEventListener('click', async (e) => {
   if (t.closest('[data-add]')) return playerForm(null);
   const edit = t.closest('[data-edit]');
   if (edit) return playerForm(profileById(edit.dataset.edit));
+  const setup = t.closest('[data-setup]');
+  if (setup) return openGameSetup(setup.dataset.setup);
   if (t.closest('[data-code]')) {
     api.setFamilyCode(corner.querySelector('#fcode').value);
     return cornerMain('Family code saved on this device.');
@@ -650,9 +678,26 @@ corner.addEventListener('change', (e) => {
     sound.setMuted(!e.target.checked);
     if (e.target.checked) sound.play('tap');
   }
+  if (e.target.id === 'dbg') setDebug(e.target.checked);
 });
 
-// ---------- Debug skin button (CONFIG.debug) ----------
+function openGameSetup(pid) {
+  const p = profileById(pid);
+  if (!p) return;
+  gameSetupView(corner, p, state.games, () => cornerMain());
+}
+
+// ---------- Skin preview ("debug") button: switched in the grown-ups' corner ----------
+
+const DEBUG_KEY = 'fg.debug';
+const debugOn = () => !!api.loadLocal(DEBUG_KEY, !!CONFIG.debug);
+
+function setDebug(on) {
+  api.saveLocal(DEBUG_KEY, !!on);
+  document.querySelectorAll('.debug').forEach((b) => b.remove());
+  if (on) addDebug();
+  else state.debugSkin = null;
+}
 
 function addDebug() {
   const order = [null, ...FALLBACK_SKINS.map((s) => s.skin_id)];
@@ -688,7 +733,7 @@ async function start() {
   document.body.insertAdjacentHTML('afterbegin', '<div class="deco" aria-hidden="true"></div>');
   startSkinEffects();
   addGear();
-  if (CONFIG.debug) addDebug();
+  if (debugOn()) addDebug();
   state.games = await loadGames();
   route();
   refresh();

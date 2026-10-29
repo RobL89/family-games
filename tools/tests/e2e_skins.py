@@ -46,7 +46,7 @@ with sync_playwright() as pw:
     br = pw.chromium.launch()
     def page(w, h, mobile=False):
         ctx = br.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
-        ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
+        ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));" "localStorage.setItem('fg.debug', 'true');")
         ctx.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
         ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda r: r.abort())
         pg = ctx.new_page()

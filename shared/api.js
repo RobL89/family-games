@@ -116,6 +116,22 @@ export async function updateProfile(profileId, changes) {
   return profile;
 }
 
+// ---- Per-player game lists (Game setup) --------------------------------------------
+
+// A player's lists for one game, from what this device last read: [{list_id, title, words}].
+export function getCachedLists(profileId, gameId) {
+  const cached = getCachedProfile(profileId);
+  return (cached && cached.lists && cached.lists[gameId]) || [];
+}
+
+// Replaces a player's lists for one game. The first list is the default.
+export async function saveLists(profileId, gameId, lists) {
+  const result = await call('saveLists', { profile_id: profileId, game_id: gameId, lists });
+  const cached = getCachedProfile(profileId) || { profile: { profile_id: profileId } };
+  save(KEYS.profilePrefix + profileId, { ...cached, lists: { ...(cached.lists || {}), [gameId]: result.lists } });
+  return result.lists;
+}
+
 // ---- Outbox --------------------------------------------------------------------
 
 function newId() {

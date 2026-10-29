@@ -10,15 +10,18 @@
  *
  * 0.2.0: Skins tab (star thresholds you can edit in the Sheet), a skin column
  *        on Profiles, star totals, and the updateProfile call.
+ * 0.3.0: GameLists tab: each player's word lists per game (set up in the
+ *        launcher's Game setup), returned by `profile` and saved by `saveLists`.
  */
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 const TABS = {
   Profiles: ['profile_id', 'nickname', 'avatar', 'colour', 'created_at', 'active', 'skin'],
   Scores: ['event_id', 'profile_id', 'game_id', 'score', 'level', 'stars', 'seconds', 'played_at', 'received_at'],
   Achievements: ['profile_id', 'achievement_id', 'earned_at'],
   Skins: ['skin_id', 'name', 'stars_needed', 'active'],
+  GameLists: ['list_id', 'profile_id', 'game_id', 'position', 'title', 'words', 'updated_at'],
 };
 
 // Rows put into a brand-new Skins tab. Change stars_needed in the Sheet any time;
@@ -32,6 +35,9 @@ const DEFAULT_SKINS = [
 
 const RECENT_SCORES = 10;
 const MAX_BATCH = 200;
+const MAX_LISTS = 50;      // per player per game
+const MAX_WORDS = 30;      // per list (Kriss Kross fits up to 30)
+const MAX_WORD_LENGTH = 20;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
 const COLOUR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 
@@ -151,6 +157,7 @@ function doPost(e) {
       case 'profile': return json(Object.assign({ ok: true }, getProfile(body.profile_id)));
       case 'addProfile': return json(withLock(function () { return addProfile(body); }));
       case 'updateProfile': return json(withLock(function () { return updateProfile(body); }));
+      case 'saveLists': return json(withLock(function () { return saveLists(body); }));
       case 'sync': return json(withLock(function () { return sync(body); }));
       default: return json({ ok: false, error: 'unknown_action' });
     }
@@ -222,7 +229,76 @@ function getProfile(profileId) {
       days_played: Object.keys(days).sort(),
     },
     achievements: achievements,
+    lists: listsFor(profileId),
   };
+}
+
+/** A player's lists grouped by game, in order (the first is the default): { game_id: [{list_id, title, words}] } */
+function listsFor(profileId) {
+  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GameLists')) return {};
+  const out = {};
+  rows('GameLists')
+    .filter(function (r) { return r.profile_id === profileId && ID_PATTERN.test(String(r.game_id || '')); })
+    .sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); })
+    .forEach(function (r) {
+      (out[r.game_id] = out[r.game_id] || []).push({
+        list_id: String(r.list_id),
+        title: String(r.title || ''),
+        words: splitWords(r.words),
+      });
+    });
+  return out;
+}
+
+function splitWords(value) {
+  return String(value || '').split(/[\s,;]+/).map(function (w) { return w.trim(); }).filter(Boolean);
+}
+
+/**
+ * Replaces one player's lists for one game, in the order given (the first is the default):
+ *   { profile_id, game_id, lists: [ {list_id?, title, words: ['cat', 'dog']} ] }
+ * An empty lists array removes them all.
+ */
+function saveLists(body) {
+  const profileId = String(body.profile_id || '');
+  const gameId = String(body.game_id || '');
+  if (!ID_PATTERN.test(profileId)) return { ok: false, error: 'bad_profile_id' };
+  if (!ID_PATTERN.test(gameId)) return { ok: false, error: 'bad_game_id' };
+  if (!rows('Profiles').some(function (p) { return p.profile_id === profileId; })) return { ok: false, error: 'no_such_profile' };
+  if (!Array.isArray(body.lists)) return { ok: false, error: 'lists_required' };
+  if (body.lists.length > MAX_LISTS) return { ok: false, error: 'too_many_lists' };
+
+  const now = new Date();
+  const fresh = [];
+  for (let i = 0; i < body.lists.length; i++) {
+    const l = body.lists[i] || {};
+    const words = (Array.isArray(l.words) ? l.words : splitWords(l.words))
+      .map(function (w) { return cleanText(w, MAX_WORD_LENGTH); })
+      .filter(Boolean);
+    if (!words.length) return { ok: false, error: 'empty_list', position: i + 1 };
+    if (words.length > MAX_WORDS) return { ok: false, error: 'too_many_words', position: i + 1 };
+    fresh.push({
+      list_id: ID_PATTERN.test(String(l.list_id || '')) ? String(l.list_id) : 'l_' + Utilities.getUuid().replace(/-/g, '').slice(0, 10),
+      profile_id: profileId,
+      game_id: gameId,
+      position: i + 1,
+      title: cleanText(l.title, 40) || 'List ' + (i + 1),
+      words: words.join(', '),
+      updated_at: now,
+    });
+  }
+
+  // Keep every other player's and game's rows, swap in the new ones, and rewrite the tab body.
+  const s = sheet('GameLists');
+  const headers = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].map(String);
+  const keep = rows('GameLists').filter(function (r) { return !(r.profile_id === profileId && r.game_id === gameId); });
+  const all = keep.concat(fresh).map(function (o) {
+    return headers.map(function (h) { return o[h] === undefined ? '' : o[h]; });
+  });
+  if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, headers.length).clearContent();
+  if (all.length) s.getRange(2, 1, all.length, headers.length).setValues(all);
+
+  return { ok: true, lists: listsFor(profileId)[gameId] || [] };
 }
 
 function starsTotalFor(profileId) {

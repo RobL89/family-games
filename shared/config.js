@@ -8,7 +8,18 @@ export const CONFIG = {
   // How many recent scores the profile screen shows.
   recentScores: 10,
 
-  // Shows the grown-ups' "Debug skin" button on the launcher, which switches
-  // skins without unlocking or saving them. Set to false when you're done testing.
-  debug: true,
+  // The skin preview button is now switched on and off in the grown-ups' corner
+  // (saved on each device). This is only the starting value for a new device.
+  debug: false,
+
+  // The grown-ups' corner question. Only a one-way hash of the answer is kept here
+  // (PBKDF2-SHA256 of the answer in lower case with spaces and punctuation removed),
+  // so the answer itself is never in this public repo. To change it, ask Claude to
+  // make a new hash; don't type the answer into this file.
+  grownUps: {
+    question: 'Address of first house',
+    salt: '349666b56419aaba9a5a497581ab6fb9',
+    iterations: 150000,
+    hash: '9eb68eca0ec47c264397691c0d4fcfa054733b861a18089fc919fd9750d46ee9',
+  },
 };

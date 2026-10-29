@@ -999,6 +999,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     S.revealed = true; S.selected = -1;
     renderAll();
     setMsg('Solution shown. Reset to try again.');
+    document.dispatchEvent(new CustomEvent('kk:revealed')); // Family games: lets the Next list button appear
   });
   $('newBtn').addEventListener('click', function () {
     var res = buildLayout(P.words, Math.floor(Math.random() * 4294967296), 700);
@@ -1108,25 +1109,87 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 <!-- Family games: everything below this line was added to connect the game to the launcher. -->
 <p id="fgSaved" class="msg good" role="status" style="text-align:center;max-width:1180px;margin:0 auto"></p>
 <script type="module">
-  import { getPlayer, homeButton, record } from '../../shared/game-kit.js';
+  import { getPlayer, getGameId, homeButton, record } from '../../shared/game-kit.js';
+  import * as api from '../../shared/api.js';
 
+  const $ = (id) => document.getElementById(id);
   homeButton({ style: { width: '46px', height: '46px', top: '10px', left: '10px', background: '#0d162b', color: '#3ee8ff', border: '2px solid #3ee8ff', boxShadow: '0 0 12px rgba(62,232,255,.55)' } });
   document.querySelectorAll('.top, .bar').forEach((el) => { el.style.paddingLeft = '58px'; });
 
-  // Stars (proposal P30): no hints = 3, one or two hints = 2, more = 1. Showing the solution saves nothing.
+  // ---- Stars (P30): no hints = 3, one or two hints = 2, more = 1. Showing the solution saves nothing.
   const starsFor = (hints) => (hints === 0 ? 3 : hints <= 2 ? 2 : 1);
+  const player = getPlayer();
+  let lists = [];   // this player's lists from Game setup; the first is the default (P36)
+  let index = -1;   // which list is on screen, or -1 for words typed by hand
+
+  // ---- Next list button, at the front of the toolbar
+  const next = document.createElement('button');
+  next.type = 'button';
+  next.className = 'btn small primary';
+  next.hidden = true;
+  $('play').querySelector('.bar-right').prepend(next);
+  next.addEventListener('click', () => startList(index + 1));
+
+  function roundOver() {
+    if (index >= 0 && index + 1 < lists.length) {
+      next.textContent = `Next list: ${lists[index + 1].title}`;
+      next.hidden = false;
+      next.scrollIntoView({ block: 'nearest' });
+    } else if (index >= 0 && lists.length) {
+      $('fgSaved').textContent += (($('fgSaved').textContent ? ' ' : '') + 'That was the last list. Well done!');
+    }
+  }
 
   document.addEventListener('kk:solved', async (e) => {
     const { hints, words, seconds } = e.detail;
     const stars = starsFor(hints);
-    const player = getPlayer();
-    await record({ score: words, level: words, stars, seconds });
-    if (player && player.nickname) {
-      const box = document.getElementById('fgSaved');
-      box.textContent = `${'★'.repeat(stars)} saved for ${player.nickname}!`;
-      box.scrollIntoView({ block: 'nearest' });
-    }
+    await record({ score: words, level: index >= 0 ? index + 1 : 1, stars, seconds });
+    if (player && player.nickname) $('fgSaved').textContent = `${'★'.repeat(stars)} saved for ${player.nickname}!`;
+    roundOver();
   });
+  document.addEventListener('kk:revealed', roundOver);
+
+  // ---- Load a list into the game's own word screen and build it.
+  function startList(i) {
+    const list = lists[i];
+    if (!list) return;
+    index = i;
+    next.hidden = true;
+    $('fgSaved').textContent = '';
+    $('puzzleTitle').value = list.title;
+    $('wordInput').value = list.words.join('\n');
+    $('puzzleTitle').dispatchEvent(new Event('input', { bubbles: true }));
+    $('wordInput').dispatchEvent(new Event('input', { bubbles: true }));
+    $('play').hidden = true;
+    $('setup').hidden = true;
+    $('notice').hidden = true;
+    $('buildBtn').click();
+    // If the words can't be built into a grid, show the word screen so a grown-up can see why.
+    const startedAt = Date.now();
+    const wait = setInterval(() => {
+      if (!$('play').hidden) return clearInterval(wait);
+      if (!$('notice').hidden || Date.now() - startedAt > 4000) {
+        clearInterval(wait);
+        $('setup').hidden = false;
+      }
+    }, 100);
+  }
+
+  // ---- On opening: fetch this player's lists (or use the last ones this device saw).
+  async function loadLists() {
+    if (!player) return [];
+    const gameId = getGameId();
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
+    try { await Promise.race([api.fetchProfile(player.profile_id), timeout]); } catch { /* offline: use the cache */ }
+    return api.getCachedLists(player.profile_id, gameId).filter((l) => l.words && l.words.length >= 2);
+  }
+
+  if (player) {
+    $('setup').hidden = true;
+    lists = await loadLists();
+    if (lists.length) startList(0);
+    else $('setup').hidden = false;
+  }
 </script>
 
 </body></html>
