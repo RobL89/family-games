@@ -238,7 +238,7 @@ Adding a skin is similar: its CSS file, `skin-effects.js` (scene, tap burst, emb
 ### 2. Workflow
 
 **Building and testing**
-- The three tests re-create the Apps Script in Python, three times, and the copies disagree: two answer as script 0.2.0 and one as 0.3.0; one ignores duplicate rounds; one lets any skin be chosen. So they can pass while the real script would fail.
+- The three tests re-create the Apps Script in Python, three times, and the copies disagree: two answer as script 0.2.0 and one as 0.3.0; one counts a resent round twice; one accepts a skin change without checking stars. So they can pass while the real script would fail.
 - They print values and save screenshots rather than pass or fail, and two need your grown-ups' answer typed in each run.
 - **The costliest mistakes here are back-end ones,** because the script is pasted and redeployed by hand. Node 22 was available in this workspace, so the real `Code.gs` could run against a small in-memory stand-in for Google's Sheet services, and the browser tests could talk to that. Every script change would then be tested before you paste it.
 - The pure rules (badges, day streaks, skin unlocks, merging the outbox into stats) have no quick checks of their own. They're the easiest code to test and where edge cases hide (around midnight, a duplicate round, a skin target edited in the Sheet).
@@ -300,7 +300,7 @@ Adding a skin is similar: its CSS file, `skin-effects.js` (scene, tap burst, emb
 ### 4. Features, front end and back end
 
 - **What a game can ask the launcher for** (`game-kit.js`): who's playing, its own id, save a round, go home, a home button. Missing for a framework: the child's level and settings, a shared end-of-round panel, a way to say what was played and how much help was used, and a practice mode that saves nothing.
-- **Untouched games can't follow the corner's sound switch.** Games that import `sound.js` can; your wife's can't. A wrapper can't mute them either; worth knowing, not fixing.
+- **Untouched games can't follow the corner's sound switch.** Games that import `sound.js` can; your wife's can't. A wrapper can't reliably mute them either; worth knowing, not fixing.
 - **The script's version** comes back with every player list, but the launcher ignores it. It's only checked on "Check connection", and only against 0.2.0, so a script that's behind shows up as a failure rather than a clear message.
 - **Rewards** are coded: eight badges, three skins. "Try every game" is spent on the first round (pass 1). "Beat your best" assumes a higher score is better, which a future timed game would get backwards.
 - **Phones:** there's no web app manifest, so "Add to Home Screen" makes a plain bookmark that opens with the browser's address bar. With one, the site opens full-screen with its own icon, leaving fewer ways for a child to wander into the browser. Details differ between iPhone and Android (TBC on your phones).
