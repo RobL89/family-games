@@ -691,3 +691,20 @@ Pass 1's R-items are replaced by these; decide on the pass 2 items.
 | Q17 | No: Kriss Kross lists stay lists | Kriss Kross has `levels: 0`; S1 applies to games with built-in difficulty |
 | Q18 | Yes, an optional tips sheet | W5 as written |
 | Q19 | Template answers correct; save the record | Set-up record saved to the project as `claude/setup-record.md` |
+
+### Mockups for Q10 and Q11 (2026-10-30)
+
+In `docs/review/mockups/`. The shell is `docs/review/shell-mockup.html`; it's review material only, not part of the app.
+
+- **`shell-phone-and-pc.jpg`:** Kriss Kross, **unchanged**, inside the shell on an Android-size phone (390×844) and a Windows PC (1366×768). Real rendering of her page in a frame, with the current hook's additions removed to show it as she made it.
+  - **Bar (about 55 px on a phone, 6% of the height):** home, the child's face and name, star total. Games with levels would add a "Level 2" chip.
+  - **End-of-round panel:** big stars, what was played, any new sticker, and three picture buttons: ↻ Again, ▶ Next, ⌂ Home.
+  - **Phone:** the panel covers the lower part of the screen.
+  - **PC:** a low strip along the bottom, so the finished puzzle stays in view.
+- **`kriss-kross-kid-mode.jpg`:** her toolbar on a phone three ways:
+  1. As she made it.
+  2. Recommended: hide Print sheet and Edit words.
+  3. Also hide Show solution.
+
+  The buttons are hidden by a style rule added from outside; her file is unchanged.
+- **Waiting on Rob:** approve or change the shell's look (G2, G4) and choose 1, 2 or 3 for kid mode (G8).
