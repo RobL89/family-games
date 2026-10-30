@@ -673,3 +673,21 @@ Pass 1's R-items are replaced by these; decide on the pass 2 items.
 ---
 
 **Status:** pass 2 complete (2026-10-29, late). Waiting on Rob: Q9 to Q19, then adopt or decline items by code, for example "adopt phase A and B". Nothing in the app has changed, and nothing has been pushed.
+
+---
+
+## Pass 2 · Rob's answers (2026-10-30, morning)
+
+| # | Answer | What it changes in Stage 3 |
+|---|---|---|
+| Q9 | Project doc, written by Claude at wrap-up | C1 as written |
+| Q10 | Yes, every game; Rob wants to see how the shell looks on a phone and a PC first | G2 waits for Rob to approve the mockups (below) |
+| Q11 | Wants to see an example first | G8 waits for Rob to approve the before-and-after example (below) |
+| Q12 | One general Settings tab; word lists stay in GameLists | D1 as written |
+| Q13 | Clear the test rows after the data change | D3 as written |
+| Q14 | Android phone (Chrome) and Windows PC | The shell trial (phase C), "Add to Home Screen" (U8) and read-aloud voices (U2) are tried on these two. No iPhone checks needed |
+| Q15 | Yes, read aloud, behind the sound switch | U2 as written |
+| Q16 | Everything is a sticker | S3 and T5: "badges" becomes "stickers" everywhere |
+| Q17 | No: Kriss Kross lists stay lists | Kriss Kross has `levels: 0`; S1 applies to games with built-in difficulty |
+| Q18 | Yes, an optional tips sheet | W5 as written |
+| Q19 | Template answers correct; save the record | Set-up record saved to the project as `claude/setup-record.md` |
