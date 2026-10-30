@@ -1,6 +1,6 @@
 # Review only: makes the screenshots in this folder from docs/review/shell-mockup.html.
 # Needs Python Playwright, and local copies of the fonts (npm install @fontsource/patrick-hand @fontsource/orbitron @fontsource/rajdhani);
-# set FONTS below to their folder. Usage: python3 make_shots.py <output folder>
+# set the FONTS environment variable to their folder. Usage: python3 make_shots.py <output folder>
 """Screenshots for the game-shell mockup (review only). Serves the repo locally, uses local font copies."""
 import functools, http.server, os, re, sys, threading
 from playwright.sync_api import sync_playwright
