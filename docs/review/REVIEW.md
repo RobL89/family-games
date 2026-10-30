@@ -708,3 +708,14 @@ In `docs/review/mockups/`. The shell is `docs/review/shell-mockup.html`; it's re
 
   The buttons are hidden by a style rule added from outside; her file is unchanged.
 - **Waiting on Rob:** approve or change the shell's look (G2, G4) and choose 1, 2 or 3 for kid mode (G8).
+
+### Rob's decisions on the mockups (2026-10-30)
+
+- **Shell look (G2, G4): approved, with two changes.**
+  1. **Wide screens:** the end-of-round panel stays centred and only as wide as its contents; it doesn't stretch across a large screen. Done in the mockup.
+  2. **Not every game works the same way.** Some will have levels or lists, some are free play. So the panel is built from what each game declares and reports:
+     - **The manifest declares how a game is played** (`"play": "rounds"` or `"play": "free"`) and what it can offer (levels, lists, a next one).
+     - **Rounds:** the panel shows only what applies. Stars appear only if the game gives stars; "what was played" only if it reports it; ▶ Next only when the game says there is a next one; ↻ Again only if it can restart. ⌂ Home is always there.
+     - **Free play:** no end-of-round panel; the shell's home button ends the visit.
+     - **TBC, decided with the first free-play game:** what free play counts towards (for example minutes played, or a sticker for something made).
+- **Kid mode for Kriss Kross (G8): declined.** The child sees her toolbar as she made it.
