@@ -15,3 +15,9 @@ Simple, child-friendly browser games for the family, played on a phone or comput
 - `apps-script/Code.gs`: the Sheet's backend, pasted into Apps Script by hand
 
 No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
+
+## For other projects
+
+- **What's here:** a family games launcher (profiles, stars, stickers, skins) and its games, with a Google Sheet behind an Apps Script web app.
+- **Ready for others:** nothing is packaged for reuse yet.
+- **Branches:** `main` is the live site; work happens on `work`; `games-wip` holds parked games, not merged.
