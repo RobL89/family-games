@@ -41,7 +41,7 @@ The shell itself is not built yet (the launcher's phase C). Until it is, use `co
 | `games/<id>/game.html` | The game's page. | Proposed (G1) |
 | `games/<id>/*.js`, `*.css` | Everything else the game needs: its own code, art, sounds and speech. | Proposed (new) |
 | `../../shared/bridge.js` | **The only launcher file a game imports.** It sends and receives the messages in section 5. | Proposed (G2) |
-| `tools/tests/e2e_<id>.*` | The game's test (section 9). | Proposed (new) |
+| `tools/tests/games/` | The game's test (section 9), in the games project's test folder. | Proposed (new); the folder is P-034's, from its kick-off |
 
 **A game carries its own sounds and speech code** (a copy of the prototype's `sound.js` is fine). It doesn't import the launcher's other shared files, so that the launcher can change without breaking games, and the game still runs on its own. (Proposed, new.)
 

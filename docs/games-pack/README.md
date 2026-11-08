@@ -53,7 +53,7 @@ Each has a recommendation, marked as mine. Nothing here is decided until Rob say
 
 | # | Question | Options (recommended first) |
 |---|---|---|
-| GQ1 | Where does the games project keep its code? | **a. This repo, on its own branch (for example `games-dev`), handing finished game folders to the launcher project to merge** (my recommendation: the shell expects `games/<id>/` folders here, so a hand-over is a merge, not a copy) · b. Its own repo, with folders copied across · c. In claude.ai artifacts, then copied into the repo |
+| GQ1 | Where does the games project keep its code? | **Settled at the kick-off of P-034 (Kids Games Development), 2026-11-08:** this repo, branch `claude/games`. P-034 writes only `games/`, `games.json`, `docs/games/` and `tools/tests/games/`; P-020 (Family Games Launcher) keeps out of those. |
 | GQ2 | Where do in-game unlocks and coins live (worm hats, café decorations and coins, planets and moon rocks)? | **a. The game keeps a small state object; the shell saves it per child per game in the Settings tab and hands it back at the start** (my recommendation: simple, works for buying things, follows Q12's "one general Settings tab for everything new") · b. Worked out from Scores only, so nothing can be bought: decorations unlock at coin totals instead · c. Kept on the device only, so lost on another device |
 | GQ3 | Word lists for Word Worm: its own, or shared with Kriss Kross? | **a. One set of spelling lists per child, used by every word game** (my recommendation: the weekly spellings are typed once) · b. Each game has its own lists in GameLists, with a "copy to another game" button |
 | GQ4 | Counting in Word Worm: a mode inside Word Worm, or its own tile? | **a. Keep it a mode a grown-up switches on** (my recommendation: no new tile, and levels stay about spelling) · b. A second tile, "Number Worm", from the same folder |
@@ -63,7 +63,7 @@ The launcher's own open questions that affect games are listed in `INTEGRATION.m
 
 ## Suggested first steps for the games project (proposed)
 
-1. Rob answers GQ1 to GQ5.
+1. Rob answers GQ2 to GQ5 (GQ1 is settled).
 2. The launcher project finishes the shell and the real `bridge.js` (its phase C). Until then, the games project works against `contract/fake-shell.html` and the draft `contract/bridge.js`.
 3. Move the first game onto the contract: manifest, `game.html`, bridge, levels, its own sounds. `INTEGRATION.md` has the checklist.
 4. Play it in the fake shell, then hand it to the launcher project as a folder. The launcher project adds it as `testing`, so Rob can try it on the phone before the children see it.
@@ -80,7 +80,7 @@ Then open http://localhost:8000/ and pick a game. With no player picked, the gam
 
 ## Draft instructions for the new project (proposed)
 
-A starting point for the games project's own instructions. Rob adds the family details himself; they stay out of this public repo.
+Written before P-034 (Kids Games Development) was set up; P-034 now has its own instructions, so this is for reference only.
 
 ```
 ## Family games: game development
@@ -91,7 +91,7 @@ This project owns the game folders.
 
 ### Start of every chat
 1. Read handoff.md.
-2. Add RobL89/family-games to the chat and clone it with --branch <GQ1 branch>.
+2. Add RobL89/family-games to the chat and clone it with --branch claude/games.
 
 ### Rules
 - I decide. Label suggestions as proposed until I agree; close each as adopted or declined.
