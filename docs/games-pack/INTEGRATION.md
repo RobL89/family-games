@@ -1,5 +1,7 @@
 # Integration: how a game plugs into the launcher
 
+> **The contract itself is now `docs/game-contract.md` (version 0.1, 2026-11-08).** This page is the longer background it came from. Where the two differ, the contract wins.
+
 The rules a game follows so the launcher can run it, save its rounds, set its level and reward the child. Each rule is marked:
 
 - **Decided**: Rob has adopted it. The source is in brackets: a launcher decision (P-number in `docs/PLAN.md`) or one of Rob's answers in `docs/review/REVIEW.md` (Q-number, 2026-10-30).

@@ -719,3 +719,7 @@ In `docs/review/mockups/`. The shell is `docs/review/shell-mockup.html`; it's re
      - **Free play:** no end-of-round panel; the shell's home button ends the visit.
      - **TBC, decided with the first free-play game:** what free play counts towards (for example minutes played, or a sticker for something made).
 - **Kid mode for Kriss Kross (G8): declined.** The child sees her toolbar as she made it.
+
+### Rob's decision of 2026-11-08
+
+- **The blueprint (G1, G2, G4) is adopted** as `docs/game-contract.md` version 0.1, with the shell changes above. Its additions GC1 to GC7 and one open point (where a game's own rewards are saved) are proposed there. G5 and G6 stay proposed.
