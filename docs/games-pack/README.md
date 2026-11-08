@@ -20,7 +20,7 @@ Made 2026-11-08 from the parked prototypes on the `games-wip` branch (commit `7e
 | `contract/` | Draft `bridge.js` (the messages between a game and the shell), a fake shell to test with, and a tiny example game |
 | `prototype/` (zip only) | The working prototype code of all three games, runnable on a laptop |
 | `images/` | The cover and the "how a game plugs in" diagram |
-| `build/` (repo only) | `make-pack.sh`, which builds this zip from the repo |
+| `build/` (repo only) | `make-pack.sh`, which builds this zip from the repo, and the sources of the pictures |
 
 ## Where the games stand
 

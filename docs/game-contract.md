@@ -1,14 +1,14 @@
 # Game contract
 
-**Version 0.2, 2026-11-08.** What a game must do to run in the launcher, and what the launcher does for it.
+**Version 0.3, 2026-11-08.** What a game must do to run in the launcher, and what the launcher does for it.
 
 **Next review:** after the first game is integrated through the shell. Rob decides any changes then.
 
 - **Owner:** P-020 (Family Games Launcher). Games are built to it by P-034 (Kids Games Development).
 - **Changes:** Rob agrees each change. P-020 edits this file and tells P-034 with a board note.
 - **Status in this file:**
-  - **Decided** means Rob has adopted it. The core (sections 1 to 5) is the review's blueprint (`docs/review/REVIEW.md`, "Blueprint: the game contract") with Rob's changes of 2026-10-30. The additions GC1 to GC7 (section 6) were adopted on 2026-11-08.
-  - **Open** means not decided yet (section 7).
+  - **Decided** means Rob has adopted it. The core (sections 1 to 5) is the review's blueprint (`docs/review/REVIEW.md`, "Blueprint: the game contract") with Rob's changes of 2026-10-30. The additions GC1 to GC8 (section 6) were adopted on 2026-11-08.
+  - **TBC** marks anything still to find out.
 - **Background, not rules:** the longer write-up, a draft `bridge.js`, a fake shell and an example game are in `docs/games-pack/` (`INTEGRATION.md` and `contract/`). Where they differ from this file, this file wins.
 
 ## 1. Every game runs inside the game shell (decided)
@@ -96,7 +96,7 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | The repo is public: no names or family details in any file | Project rule |
 | Artifact games' files are never edited | Project rule |
 
-## 6. Additions GC1 to GC7 (decided 2026-11-08)
+## 6. Additions GC1 to GC8 (decided 2026-11-08)
 
 First drafted in `docs/games-pack/`, where a draft `bridge.js`, a fake shell and an example game passed 26 of 26 checks on 2026-11-08.
 
@@ -106,7 +106,8 @@ First drafted in `docs/games-pack/`, where a draft `bridge.js`, a fake shell and
 |---|---|---|
 | Game → shell | `fg:ready` | none |
 | Game → shell | `fg:round`, once per round | `stars` 0 to 3 (required); if the game has them: `score`, `seconds`, `detail` (what was played, in words), `help` (a number: hints, peeks…), `next` (true if there's a next one), `again` (false if it can't restart) |
-| Shell → game | `fg:start`, after `fg:ready` and for ↻ Again and ▶ Next | `round` (`first`, `again` or `next`), `player` (`{ name, animal, colour }`), `level` (or `null`), `settings` (only what a grown-up set, already checked against the manifest), `lists` (the child's word lists, default first: `[{ title, words }]`), `sound` (true or false) |
+| Game → shell | `fg:state`, when the game's own saved state changes (GC8) | `state`: a small object |
+| Shell → game | `fg:start`, after `fg:ready` and for ↻ Again and ▶ Next | `round` (`first`, `again` or `next`), `player` (`{ name, animal, colour }`), `level` (or `null`), `settings` (only what a grown-up set, already checked against the manifest), `lists` (the child's word lists, default first: `[{ title, words }]`), `sound` (true or false), `state` (the game's saved state, or `null`; GC8) |
 
 **GC2. Manifest additions.**
 - `settings` is a list. An entry is either the name of something the launcher provides (as now: `"word-lists"`), or an object describing one of the game's own settings: `{ "key": "speed", "default": null, "min": 1, "max": 5, "about": "Leave blank to follow the level" }`. Options go in `"options": [...]`. `"default": null` means "follow the level". Game setup builds its controls from these.
@@ -139,13 +140,10 @@ First drafted in `docs/games-pack/`, where a draft `bridge.js`, a fake shell and
 7. No names or family details anywhere.
 8. Its design notes are current: level table, star rule, what ▶ Next means, known issues.
 
-## 7. Open point
-
-**Where a game's own rewards are saved** (Word Worm's hats, Monster Café's coins and decorations, Rocket Lander's planets), now that the Progress tab from `games-wip` isn't used. Options (the games pack's GQ2):
-
-- **a. A small state object per child per game,** saved by the shell in the Settings tab and handed back at the start, with an `fg:state` message. This is recommended: it's simple, it lets a child buy things, and it follows Q12's one general tab.
-- **b. Worked out from Scores only.** Nothing can be bought, so things unlock at totals instead.
-- **c. Kept on the device only.** It's lost on another device.
+**GC8. A game's own rewards** (Word Worm's hats, Monster Café's coins and decorations, Rocket Lander's planets). The game keeps them in one small state object per child. It sends the object with `fg:state` whenever it changes, and gets it back in `fg:start`. The shell saves it in the Settings tab under the key `state` for that child and game, so it follows the child to another device and coins can be spent.
+- It stays small: under 20,000 characters as JSON. That's our own cap; Google's limit for one cell is TBC, to be checked when the script change is built.
+- Saving it needs the Settings tab of script 0.4.0 (the review's D1, proposed). Until then the shell keeps it on the device.
+- These rewards are for fun inside the game. The launcher's stars and stickers stay the shell's (section 1).
 
 ## Changes
 
@@ -153,3 +151,4 @@ First drafted in `docs/games-pack/`, where a draft `bridge.js`, a fake shell and
 |---|---|---|
 | 0.1 | 2026-11-08 | First version: the review's blueprint with Rob's shell changes of 2026-10-30, adopted; GC1 to GC7 proposed; one open point |
 | 0.2 | 2026-11-08 | GC1 to GC7 adopted, with two changes: word lists stay `"word-lists"` in `settings` (GC2), and the 1.5-second wait is a starting value (GC5). Review after the first game is integrated |
+| 0.3 | 2026-11-08 | GC8 adopted: a game's own rewards saved as a state object per child per game in the Settings tab (option a of the open point) |
