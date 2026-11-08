@@ -32,7 +32,7 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | `games/<id>/game.json` | The manifest. The folder name is the id. |
 | `games/<id>/icon.svg` | The launcher tile picture. |
 | `games/<id>/game.html` | The game page, for games made in this repo. |
-| `games/<id>/original.html` + `adapter.js` | For Rob's wife's games: her page exactly as she made it, never edited, and an adapter that watches it and sends the same messages as our own games (section 4). |
+| `games/<id>/original.html` + `adapter.js` | For games brought in as claude.ai artifacts: the page exactly as its maker made it, never edited, and an adapter that watches it and sends the same messages as games made here (section 4). |
 | `games.json` | Order and status only: `ready`, `testing` or `soon`. How `testing` games are shown is the review's G5 (proposed). A "soon" placeholder keeps its title, icon and colour here, as it has no folder. |
 
 **The aim (from the review):** adding a game needs no launcher code edits, just a folder and a line in `games.json`.
@@ -59,14 +59,14 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | Field | Meaning |
 |---|---|
 | `title`, `colour`, `icon` | The tile |
-| `page`, `adapter` | The page to open; the adapter only for her games |
+| `page`, `adapter` | The page to open; the adapter only for artifact games |
 | `play` | `rounds` or `free` |
 | `levels` | How many levels; `0` if the game has none |
 | `settings` | What a grown-up sets for this game in Game setup, such as `word-lists` |
 | `stars` | The star rule in words, for grown-ups |
 | `score` | What the score counts, and whether higher or lower is better |
 | `subject` | One word (`words`, `numbers`…) for grouping games later |
-| `source` | For her games: where the file came from and when it was copied |
+| `source` | For artifact games: where the file came from and when it was copied |
 
 ## 4. What passes between the game and the shell (decided)
 
@@ -76,8 +76,8 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | | Optionally: **ready**, and **there's a next one** (for ▶ Next) |
 
 - **Stars:** 1 to 3 a round (P17). **0 means "finished with the answer shown":** it's saved for the grown-ups and earns nothing.
-- **Our own games** send and receive these as two small messages through `shared/bridge.js`.
-- **Her games** don't change: `adapter.js` runs in the shell, watches her page and sends the same messages.
+- **Games made here** send and receive these as two small messages through `shared/bridge.js`.
+- **Artifact games** don't change: `adapter.js` runs in the shell, watches the page and sends the same messages.
 - **Standalone:** a game still runs on its own, as a plain page or an artifact. With no shell around it, it uses its defaults and saves nothing.
 
 ## 5. Rules every game keeps (decided)
@@ -92,7 +92,7 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | Word lists are lists, not levels | Q17 (Kriss Kross) |
 | Children appear by first name or nickname and a cartoon animal only | P9 |
 | The repo is public: no names or family details in any file | Project rule |
-| Her files are never edited | Project rule |
+| Artifact games' files are never edited | Project rule |
 
 ## 6. Proposed additions (GC1 to GC7)
 
