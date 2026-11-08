@@ -1,12 +1,14 @@
 # Game contract
 
-**Version 0.1, 2026-11-08.** What a game must do to run in the launcher, and what the launcher does for it.
+**Version 0.2, 2026-11-08.** What a game must do to run in the launcher, and what the launcher does for it.
+
+**Next review:** after the first game is integrated through the shell. Rob decides any changes then.
 
 - **Owner:** P-020 (Family Games Launcher). Games are built to it by P-034 (Kids Games Development).
 - **Changes:** Rob agrees each change. P-020 edits this file and tells P-034 with a board note.
 - **Status in this file:**
-  - **Decided** means Rob has adopted it. Version 0.1 adopts the review's blueprint (`docs/review/REVIEW.md`, "Blueprint: the game contract") with Rob's changes of 2026-10-30.
-  - **Proposed** means it's waiting for Rob. Proposed items carry a GC code.
+  - **Decided** means Rob has adopted it. The core (sections 1 to 5) is the review's blueprint (`docs/review/REVIEW.md`, "Blueprint: the game contract") with Rob's changes of 2026-10-30. The additions GC1 to GC7 (section 6) were adopted on 2026-11-08.
+  - **Open** means not decided yet (section 7).
 - **Background, not rules:** the longer write-up, a draft `bridge.js`, a fake shell and an example game are in `docs/games-pack/` (`INTEGRATION.md` and `contract/`). Where they differ from this file, this file wins.
 
 ## 1. Every game runs inside the game shell (decided)
@@ -76,7 +78,7 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | | Optionally: **ready**, and **there's a next one** (for ▶ Next) |
 
 - **Stars:** 1 to 3 a round (P17). **0 means "finished with the answer shown":** it's saved for the grown-ups and earns nothing.
-- **Games made here** send and receive these as two small messages through `shared/bridge.js`.
+- **Games made here** send and receive these as messages through `shared/bridge.js` (format in GC1).
 - **Artifact games** don't change: `adapter.js` runs in the shell, watches the page and sends the same messages.
 - **Standalone:** a game still runs on its own, as a plain page or an artifact. With no shell around it, it uses its defaults and saves nothing.
 
@@ -94,19 +96,48 @@ The launcher opens `play.html?game=<id>&player=<id>`. The shell holds the game i
 | The repo is public: no names or family details in any file | Project rule |
 | Artifact games' files are never edited | Project rule |
 
-## 6. Proposed additions (GC1 to GC7)
+## 6. Additions GC1 to GC7 (decided 2026-11-08)
 
-Drafted in `docs/games-pack/` and tested there with an example game (PASS 26 of 26 on 2026-11-08). Each is proposed until Rob adopts or declines it.
+First drafted in `docs/games-pack/`, where a draft `bridge.js`, a fake shell and an example game passed 26 of 26 checks on 2026-11-08.
 
-| Code | Proposal |
-|---|---|
-| GC1 | **Message format.** `window.postMessage`, same site only, each message `{ type, v: 1, … }`. Game → shell: `fg:ready`; `fg:round` with `stars` (required), `score`, `seconds`, `detail`, `help`, `next` (true if there's a next one), `again` (false if it can't restart). Shell → game: `fg:start` with `round` (`first`, `again` or `next`), `player`, `level`, `settings`, `lists`, `sound`. |
-| GC2 | **Manifest additions.** `lists: "words"` when the game uses word lists (instead of `"word-lists"` in `settings`). `settings` as an object: each key has a default, limits or options, and a one-line `about`, so Game setup can build its controls. `"default": null` means "follow the level". `next` says in words what ▶ Next means. |
-| GC3 | **Levels belong to the game; moving up belongs to the launcher.** The game maps each level to its own difficulty. A grown-up setting overrides the level for that one thing. |
-| GC4 | **A game imports only `shared/bridge.js`** from the launcher, and carries its own sounds and speech code. |
-| GC5 | **Standalone details.** A game runs standalone if it isn't in a frame, or no `fg:start` arrives within about 1.5 seconds. It then plays level 1 (or `?level=`) and shows its own small end card; inside the shell it never does. |
-| GC6 | **A Play button on the first screen.** Chrome on Android only plays sound after a tap on that page (to be checked on the phone). Again and Next skip it. |
-| GC7 | **Hand-over checklist.** Before a game goes to `testing`: it plays a round in the fake shell at 390×844, 844×390 and 1366×768 with no errors; it sends one `fg:round` per round; every level plays; sound off is silent; it runs standalone; an automated test passes; no family details; its design notes are current. |
+**GC1. Message format.** Messages go by `window.postMessage`, between pages on the same site only. Each one is `{ type, v: 1, … }`; the version lets the names change later.
+
+| Direction | Message | Fields |
+|---|---|---|
+| Game → shell | `fg:ready` | none |
+| Game → shell | `fg:round`, once per round | `stars` 0 to 3 (required); if the game has them: `score`, `seconds`, `detail` (what was played, in words), `help` (a number: hints, peeks…), `next` (true if there's a next one), `again` (false if it can't restart) |
+| Shell → game | `fg:start`, after `fg:ready` and for ↻ Again and ▶ Next | `round` (`first`, `again` or `next`), `player` (`{ name, animal, colour }`), `level` (or `null`), `settings` (only what a grown-up set, already checked against the manifest), `lists` (the child's word lists, default first: `[{ title, words }]`), `sound` (true or false) |
+
+**GC2. Manifest additions.**
+- `settings` is a list. An entry is either the name of something the launcher provides (as now: `"word-lists"`), or an object describing one of the game's own settings: `{ "key": "speed", "default": null, "min": 1, "max": 5, "about": "Leave blank to follow the level" }`. Options go in `"options": [...]`. `"default": null` means "follow the level". Game setup builds its controls from these.
+- `next`: what ▶ Next means in this game, in words (for example "the next word list").
+
+```json
+"settings": [
+  "word-lists",
+  { "key": "speak", "default": true, "about": "Say words out loud when sound is on" },
+  { "key": "speed", "default": null, "min": 1, "max": 5, "about": "Leave blank to follow the level" }
+],
+"next": "the next word list"
+```
+
+**GC3. Levels.** The game maps each level to its own difficulty and documents the table. The launcher decides which level a child is on and moves them up. A grown-up setting overrides the level for that one thing.
+
+**GC4. Imports.** A game imports only `shared/bridge.js` from the launcher. It carries its own sounds and speech code, so launcher changes can't break it and it still runs on its own.
+
+**GC5. Running on its own.** A game runs standalone if it isn't in a frame, or if no `fg:start` arrives within about 1.5 seconds. That figure is a starting value, to be adjusted in the shell trial on the phone. Standalone, it plays level 1 (or `?level=` in the address), uses its defaults, saves nothing and shows its own small end card. Inside the shell it never shows its own end card.
+
+**GC6. A Play button on the first screen.** It gives a child a clear start and a moment to hear the first prompt. It may also be what lets the phone play sound: Chrome's guidance says browser-made sound starts switched off until the page is tapped, and doesn't say whether the tap on the launcher's tile carries over. Check that on the phone. ↻ Again and ▶ Next skip the Play screen. (Source: "Autoplay policy in Chrome", developer.chrome.com/blog/autoplay, checked 2026-11-08. The same page says a frame from the same site may play sound without extra permission.)
+
+**GC7. Hand-over checklist.** Before a game goes to `testing`:
+1. It plays a round in the fake shell at 390×844, 844×390 and 1366×768, with no errors.
+2. It sends exactly one `fg:round` per round.
+3. Every level plays, and a grown-up setting overrides its level.
+4. With sound off it makes no sound and says nothing.
+5. It runs on its own.
+6. An automated test plays a round through the fake shell.
+7. No names or family details anywhere.
+8. Its design notes are current: level table, star rule, what ▶ Next means, known issues.
 
 ## 7. Open point
 
@@ -121,3 +152,4 @@ Drafted in `docs/games-pack/` and tested there with an example game (PASS 26 of 
 | Version | Date | What |
 |---|---|---|
 | 0.1 | 2026-11-08 | First version: the review's blueprint with Rob's shell changes of 2026-10-30, adopted; GC1 to GC7 proposed; one open point |
+| 0.2 | 2026-11-08 | GC1 to GC7 adopted, with two changes: word lists stay `"word-lists"` in `settings` (GC2), and the 1.5-second wait is a starting value (GC5). Review after the first game is integrated |
