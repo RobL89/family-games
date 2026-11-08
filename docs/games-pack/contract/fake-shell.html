@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fake shell</title>
+<!--
+  A stand-in for the launcher's game shell, for testing a game before the real shell exists.
+  DRAFT, proposed in the games pack (INTEGRATION.md). It plays the shell's side of bridge.js:
+  sends fg:start, shows the end-of-round panel, logs every message. Nothing is saved anywhere.
+
+  Serve the folder that holds this file and the game, then open for example:
+    fake-shell.html?game=example/game.html
+  The game must be on the same site (same address and port) as this page.
+-->
+<style>
+  :root { --ink: #3B2A4A; --bg: #F3EFE7; --card: #fff; --pink: #E0457B; --sun: #FFD447; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; color: var(--ink); background: var(--bg); display: flex; gap: 16px; padding: 16px; flex-wrap: wrap; }
+  .controls { width: 330px; display: flex; flex-direction: column; gap: 8px; }
+  .controls label { font-weight: 600; font-size: 13px; }
+  .controls input, .controls textarea, .controls select { width: 100%; font: 13px ui-monospace, monospace; padding: 6px; border: 2px solid var(--ink); border-radius: 8px; }
+  .controls textarea { height: 64px; }
+  button { font: 600 14px system-ui; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--sun); cursor: pointer; }
+  #log { height: 220px; overflow: auto; font: 12px ui-monospace, monospace; background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 6px; white-space: pre-wrap; }
+  .device { position: relative; background: #fff; border: 6px solid var(--ink); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; }
+  .bar { height: 55px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 3px solid var(--ink); font-weight: 700; }
+  .bar .home { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--ink); background: var(--sun); display: grid; place-items: center; cursor: pointer; }
+  .bar .chip { border: 2px solid var(--ink); border-radius: 99px; padding: 1px 8px; font-size: 13px; }
+  .bar .stars { margin-left: auto; }
+  iframe { border: 0; width: 100%; flex: 1; }
+  .panel { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); background: #fff; border: 4px solid var(--ink); border-bottom: 0; border-radius: 24px 24px 0 0; padding: 14px 22px 18px; text-align: center; min-width: 280px; max-width: 100%; box-shadow: 0 -6px 30px rgba(0,0,0,.2); }
+  .panel[hidden] { display: none; }
+  .panel .big { font-size: 40px; color: #F5B700; letter-spacing: 4px; }
+  .panel .btns { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+  .panel .btns button { font-size: 24px; width: 70px; height: 56px; }
+</style>
+</head>
+<body>
+<div class="controls">
+  <label>Game page (relative to this file)<input id="game" value="example/game.html"></label>
+  <label>Screen<select id="size">
+    <option value="390x844">Phone upright 390×844</option>
+    <option value="844x390">Phone sideways 844×390</option>
+    <option value="1366x768">PC 1366×768</option>
+  </select></label>
+  <label>Player (JSON)<textarea id="player">{ "name": "Sam", "animal": "fox", "colour": "#2E8FD0" }</textarea></label>
+  <label>Level (blank = none)<input id="level" value="1"></label>
+  <label>Settings a grown-up set (JSON)<textarea id="settings">{}</textarea></label>
+  <label>Word lists, default first (JSON)<textarea id="lists">[{ "title": "Test week", "words": ["ship", "shop", "shell", "fish", "wish"] }]</textarea></label>
+  <label><input type="checkbox" id="sound" checked style="width:auto"> Sound on</label>
+  <label>Saved state (JSON, or null)<textarea id="state">null</textarea></label>
+  <button id="load">Load the game</button>
+  <div id="log"></div>
+</div>
+
+<div class="device" id="device">
+  <div class="bar"><span class="home" id="home" title="Home">⌂</span><span id="who">Sam</span><span class="chip" id="lvl">Level 1</span><span class="stars">★ <span id="total">0</span></span></div>
+  <iframe id="frame" title="game"></iframe>
+  <div class="panel" id="panel" hidden>
+    <div class="big" id="pstars"></div>
+    <div id="pdetail"></div>
+    <div class="btns"><button id="again" title="Again">↻</button><button id="next" title="Next">▶</button><button id="phome" title="Home">⌂</button></div>
+  </div>
+</div>
+
+<script>
+  // The fake shell's side of the bridge (DRAFT v1). Same names as INTEGRATION.md, section 5.
+  const $ = (id) => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  if (q.get('game')) $('game').value = q.get('game');
+  if (q.get('size')) $('size').value = q.get('size');
+  if (q.get('level') !== null) $('level').value = q.get('level');
+  if (q.get('sound') === '0') $('sound').checked = false;
+  if (q.get('settings')) $('settings').value = q.get('settings');
+  if (q.get('lists')) $('lists').value = q.get('lists');
+
+  const shell = { rounds: [], states: [], starts: [], total: 0, state: null };
+  window.__shell = shell; // for automated tests
+
+  const log = (dir, msg) => {
+    $('log').textContent = `${dir} ${JSON.stringify(msg)}\n` + $('log').textContent;
+  };
+  const parse = (id, fallback) => { try { return JSON.parse($(id).value); } catch { return fallback; } };
+
+  function size() {
+    const [w, h] = $('size').value.split('x').map(Number);
+    $('device').style.width = `${w + 12}px`;
+    $('device').style.height = `${h + 12}px`;
+  }
+
+  function start(round) {
+    const levelText = $('level').value.trim();
+    const msg = {
+      type: 'fg:start', v: 1, round,
+      player: parse('player', null),
+      level: levelText === '' ? null : Number(levelText),
+      settings: parse('settings', {}),
+      lists: parse('lists', []),
+      sound: $('sound').checked,
+      state: shell.state,
+    };
+    $('panel').hidden = true;
+    $('who').textContent = msg.player ? msg.player.name : '';
+    $('lvl').textContent = msg.level === null ? '' : `Level ${msg.level}`;
+    $('lvl').hidden = msg.level === null;
+    shell.starts.push(msg);
+    log('→', msg);
+    $('frame').contentWindow.postMessage(msg, location.origin);
+  }
+
+  window.addEventListener('message', (e) => {
+    if (e.source !== $('frame').contentWindow || e.origin !== location.origin) return;
+    const m = e.data;
+    if (!m || m.v !== 1 || typeof m.type !== 'string' || !m.type.startsWith('fg:')) return;
+    log('←', m);
+    if (m.type === 'fg:ready') start('first');
+    if (m.type === 'fg:state') { shell.state = m.state; shell.states.push(m.state); $('state').value = JSON.stringify(m.state); }
+    if (m.type === 'fg:round') {
+      shell.rounds.push(m);
+      shell.total += m.stars;
+      $('total').textContent = shell.total;
+      // The panel shows only what applies (Q10).
+      $('pstars').textContent = m.stars > 0 ? '★'.repeat(m.stars) + '☆'.repeat(3 - m.stars) : '';
+      $('pdetail').textContent = m.detail || '';
+      $('again').hidden = m.again === false;
+      $('next').hidden = !m.next;
+      $('panel').hidden = false;
+    }
+  });
+
+  $('load').onclick = () => {
+    size();
+    shell.state = parse('state', null);
+    $('panel').hidden = true;
+    $('frame').src = $('game').value;
+  };
+  $('again').onclick = () => start('again');
+  $('next').onclick = () => start('next');
+  $('home').onclick = $('phome').onclick = () => { $('panel').hidden = true; $('frame').src = 'about:blank'; log('·', 'home'); };
+  $('size').onchange = size;
+
+  $('load').onclick();
+</script>
+</body>
+</html>

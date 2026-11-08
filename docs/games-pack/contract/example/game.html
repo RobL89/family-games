@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example game</title>
+<!--
+  The smallest game that follows the contract in INTEGRATION.md (DRAFT, proposed).
+  It shows what the shell sent, and reports a round when a button is pressed.
+  Inside the fake shell, the shell draws the end-of-round panel; on its own, the game draws its own.
+-->
+<style>
+  body { margin: 0; font: 18px/1.4 system-ui, sans-serif; color: #3B2A4A; background: #EAF6FF; min-height: 100vh; display: grid; place-items: center; text-align: center; touch-action: none; user-select: none; }
+  button { font: 700 20px system-ui; padding: 12px 18px; margin: 6px; border: 3px solid #3B2A4A; border-radius: 16px; background: #FFD447; min-width: 64px; min-height: 56px; }
+  #play button { font-size: 28px; padding: 16px 40px; }
+  [hidden] { display: none !important; }
+  .card { background: #fff; border: 3px solid #3B2A4A; border-radius: 20px; padding: 16px; margin: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <!-- The first screen has a big Play button: the tap lets the phone play sound (INTEGRATION.md, section 8). -->
+  <section id="play"><h1>Example</h1><button id="go">Play</button></section>
+  <section id="game" hidden>
+    <p id="who"></p>
+    <p class="card" id="word"></p>
+    <button data-stars="3">★★★</button><button data-stars="1">★</button><button data-stars="0">Show the answer</button>
+  </section>
+  <section id="own-end" hidden class="card"><p id="own-stars"></p><button id="own-again">Play again</button></section>
+</main>
+<script type="module">
+  import { connect } from '../bridge.js';
+
+  const $ = (id) => document.getElementById(id);
+  // The game's own defaults and level table (each real game documents its table in DESIGN.md).
+  const LEVELS = { 1: { rounds: 1 }, 2: { rounds: 2 }, 3: { rounds: 3 } };
+  const BUILT_IN_WORDS = { title: 'Built-in words', words: ['cat', 'dog', 'sun'] };
+
+  let start = null;
+  let listIndex = 0;
+  const fg = connect();
+
+  fg.onStart((s) => {
+    start = s;
+    if (s.round === 'next') listIndex += 1;
+    const level = LEVELS[s.level] || LEVELS[1];
+    const settings = { ...level, ...s.settings };           // a grown-up setting beats the level
+    const lists = s.lists.length ? s.lists : [BUILT_IN_WORDS];
+    const list = lists[listIndex % lists.length];
+    $('who').textContent = `${s.player ? s.player.name : 'Guest'} · level ${s.level ?? 'none'} · rounds ${settings.rounds} · sound ${s.sound ? 'on' : 'off'}${s.standalone ? ' · standalone' : ''}`;
+    $('word').textContent = `${list.title}: ${list.words.join(', ')}`;
+    window.__game = { start: s, settings, list, hasNext: listIndex + 1 < lists.length };
+    // Again and Next skip the Play screen.
+    if (s.round !== 'first') show('game');
+  });
+
+  function show(id) { ['play', 'game', 'own-end'].forEach((x) => { $(x).hidden = x !== id; }); }
+
+  $('go').onclick = () => show('game');
+  document.querySelectorAll('[data-stars]').forEach((b) => {
+    b.onclick = () => {
+      const stars = Number(b.dataset.stars);
+      const handled = fg.roundOver({ stars, score: stars * 10, seconds: 5, detail: window.__game.list.title, help: stars === 0 ? 1 : 0, next: window.__game.hasNext });
+      if (!handled) { $('own-stars').textContent = stars ? '★'.repeat(stars) : 'Answer shown'; show('own-end'); }
+    };
+  });
+  $('own-again').onclick = () => show('game');
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "title": "Example",
+  "colour": "#2E8FD0",
+  "icon": "icon.svg",
+  "page": "game.html",
+  "play": "rounds",
+  "levels": 3,
+  "lists": "words",
+  "settings": {
+    "speak": { "default": true, "about": "Say the word out loud (when sound is on)" },
+    "rounds": { "default": null, "min": 1, "max": 5, "about": "Leave blank to follow the level" }
+  },
+  "stars": "Whatever button you press: it's an example",
+  "score": { "counts": "nothing real", "better": "higher" },
+  "subject": "words",
+  "next": "the next word list"
+}
