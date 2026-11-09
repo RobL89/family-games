@@ -1,5 +1,8 @@
 // The rocket games' own small kit, in place of the old launcher's shared/game-kit.js, so a
-// game runs on its own as a plain page (D-004, D-014). Version 1.2. Changes at v1.2 (step
+// game runs on its own as a plain page (D-004, D-014). Version 1.3. Changes at v1.3 (step
+// 2c-build, D-058): one game with a map: its entry is at format version 3 (progress.js: the rocket's
+// place, how far the map is open, each level's best stars and rocks found, rocks, landings, ships),
+// and formats 1 and 2 are no longer read, so test progress starts afresh. Changes at v1.2 (step
 // 2a-4b): the tile's entry is at format version 2, with the ships owned and flown, and a
 // version 1 entry is still read (D-053). Changes at v1.1: a tile's
 // progress is kept on the device (D-042), here and nowhere else. Nothing here reaches a Sheet
@@ -36,13 +39,13 @@ export const reported = () => results.map(copy);
 export function saveState(state) { saved = copy(state || {}); return true; }
 export const savedState = () => (saved ? copy(saved) : null);
 
-// A tile's progress on this device (D-042): one entry, "family-games:<tile>:progress", holding
-// { v: 2, ...state }, the state with `ship` and `ships` since format version 2 (D-053). A
-// version 1 entry is still read, without them (the game then has Classic). If storage is
-// blocked or full, or the entry is broken or of another format version, nothing is kept or
-// read back, and the game plays on from the start.
-const FORMAT = 2;
-const READS = [1, 2];
+// The game's progress on this device (D-042, D-058): one entry, "family-games:<game>:progress",
+// holding { v: 3, ...state }, the map's progress in format 3 (progress.js) with the ships (D-053).
+// Formats 1 and 2 (the two tiles' planets) are not read: the map starts afresh. If storage is
+// blocked or full, or the entry is broken or of another format version, nothing is kept or read
+// back, and the game plays on from the start. One child per device until the shell keeps it (D-058).
+const FORMAT = 3;
+const READS = [3];
 const entryOf = (tile) => `family-games:${tile}:progress`;
 export function keepOnDevice(tile, state) {
   try {

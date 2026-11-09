@@ -1,5 +1,8 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.0.
+// One game with a map of solar systems (D-058). Version 3.1.
+//
+// Changes at v3.1 (step 2c-build, D-066): the map sets the level (round.js and progress.js), so the
+// flat list of levels for levelOf goes.
 //
 // Changes at v3.0 (step 2c-build, D-058, D-068): Rocket Sums joined Rocket Lander. Its sums
 // (sums.js) and levels (sums-levels.js) moved here with git, and its tile retired. The levels sit
@@ -16,7 +19,7 @@
 import { runRocket } from '../_common/rocket/round.js';
 import { SETTINGS } from '../_common/rocket/settings.js';
 import { fmt, say } from '../_common/rocket/numbers.js';
-import { levelOf, followLevel } from '../_common/rocket/ladder.js';
+import { followLevel } from '../_common/rocket/ladder.js';
 import { PLANETS, planetIndex } from '../_common/rocket/planets.js';
 import { LEVELS } from './levels.js';
 import { LEVELS as SUMS_LEVELS } from './sums-levels.js';
@@ -34,8 +37,6 @@ export const MAP = SYSTEMS.map((sys) => {
     levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}`, kind: lv.kind, row: { ...ROWS[lv.kind][lv.level - 1], kind: lv.kind }, about: lv.about, sample: lv.sample })),
   };
 });
-// The levels in the order they are played, system after system (1 to 16 on the stand-in map).
-const ROUTE = MAP.flatMap((sys) => sys.levels.map((lv) => lv.row));
 
 // ---------- Number levels (Number mode, D-035, D-038) ----------
 
@@ -132,6 +133,5 @@ runRocket({
   name: 'Rocket Lander',
   schema: SCHEMA,
   map: MAP,
-  levelOf: (given) => levelOf(ROUTE, given),
   kinds: { number: NUMBER, sums: SUMS },
 });

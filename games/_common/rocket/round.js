@@ -1,5 +1,20 @@
-// The rocket games' round flow, shared by Rocket Lander and Rocket Sums (D-027, D-037).
-// Version 1.4. Changes at v1.4 (step 2c-build, D-058): one game; each level is played the way its
+// The rocket game's round flow (D-027, D-058). Version 2.0.
+//
+// Changes at v2.0 (step 2c-build, D-058, D-064 to D-068): one game with a map of solar systems.
+// The game opens on the map of the system the child is in (starmap.js, D-066), with no start card
+// or planet picker: Play by the waiting rocket starts its level, and any open level opens a card
+// (what it asks, its best stars, the rocks found there) with its own Play. Each level is played the
+// way its kind says (mode.kinds: a number level or a sums level, games/rocket-lander/game.js), on
+// its system's planet. Progress is format 3 (progress.js, kit.js): the rocket's place, how far the
+// map is open, each level's best stars and moon rocks found; a replay pays only what's above what
+// the level holds, so a perfect landing finds a rock only while the level has some left (8 a
+// level), and 2 stars open the next level (D-064). After a round the end card says what was new, and
+// the map shows it: new stars pop in, a level opens, the rocket hops on; a system's last level passed
+// ends in hyperspace to the next system (D-058), with a calm version (D-045). The hangar door is on
+// the map's top bar (D-052's look). The flying, landing, Bip's moment and the showroom are as they
+// were. Earlier notes follow.
+//
+// Changes at v1.4 (step 2c-build, D-058): one game; each level is played the way its
 // kind says (mode.kinds: number or sums, games/rocket-lander/game.js), and each kind's test hooks
 // work on its own levels. Changes at v1.3 (step 2a-4c): in play the ship flown is drawn inside the same edge as
 // its effects, so no part of it (a flame, a glow) reaches the numbers under the line (D-045, ER-003);
@@ -21,16 +36,18 @@
 //
 // Steer a falling rocket onto the spot asked for on the planet's number line. A round is
 // `landings_per_round` landings; stars for how many were right. Moon rocks for perfect
-// landings and planets unlocked by good rounds are kept with saveState(). Runs on its own
-// (D-004, D-014; GC5): level 1, or ?level= in the address, built-in settings, and its state
-// kept in memory while it runs. begin() takes a level, settings and saved state; at stage 3
-// the game contract's start message calls it.
+// landings, and the map's progress, are kept with saveState() and on the device. Runs on its own
+// (D-004, D-014; GC5): the map's place on this device, or ?level= in the address (counted along the
+// map), built-in settings. begin() takes a level, settings and saved state; at stage 3 the game
+// contract's start message calls it.
 //
 // A mode is an object with:
-//   id                         the tile's folder name, for its progress kept on the device;
-//   name                       the tile's name, for console notes;
+//   id                         the game's folder name, for its progress kept on the device;
+//   name                       the game's name, for console notes;
 //   schema                     its settings schema (settings.js's shape);
-//   levelOf(given)             { level, row, note }: the level to play (GC3, GC5);
+//   map                        its systems: [{ id, name, planet, soon, levels: [{ id, kind, row,
+//                              about, sample }] }] (progress.js's map, with what the screens show);
+//   kinds                      { number, sums }: how each kind of level is played, each with:
 //   lineFor(row, S)            the round's line { from, to, step, label_every };
 //   landingLine(T, row, S, rand)  optional: a line for this landing alone (Maths mode's
 //                              window), or null to keep the round's;
@@ -49,17 +66,24 @@ import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevi
 import { play as playSound, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
 import { resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
-import { PLANETS, planetIndex } from './planets.js';
-import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix } from './scene.js';
+import { PLANETS } from './planets.js';
+import { Scene, Fx, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix, INK, FONT } from './scene.js';
 import { FLEET_BY_ID, STARTER, hangarOf, buy as buyShip, pick as pickShip } from './fleet.js';
 import { SHIP_BY_ID, Parts, newState, tickShip, landShip, drawShip, drawTrail } from './ships.js';
 import { Hangar } from './hangar.js';
+import { StarMap } from './starmap.js';
+import { route, placeOf, fresh, tidy as tidyProgress, finish, rockLeft, goTo, levelGiven, bestOf, foundOf, systemStars, ROCKS_PER_LEVEL, PASS_STARS } from './progress.js';
 
 export function runRocket(mode) {
   const heard = []; // the last sounds played, by name, for the tests
   const sfx = (name) => { heard.push(name); if (heard.length > 200) heard.shift(); playSound(name); };
   const $ = (id) => document.getElementById(id);
-  const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0, ship: STARTER, ships: [STARTER] };
+  const MAP = mode.map;
+  const ROUTE = route(MAP);
+  // A level of the map: { id, i (its place along the route), s, n, last, kind, row, about, sample }.
+  const levelById = (id) => { const at = placeOf(MAP, id) || { ...ROUTE[0], i: 0 }; return { ...at, ...MAP[at.s].levels[at.n] }; };
+  // Progress, format 3 (D-058), with the ships (D-053): anything handed in or read back made safe.
+  const tidyAll = (raw) => ({ ...tidyProgress(MAP, raw), ...hangarOf(raw && typeof raw === 'object' ? raw : {}) });
   const FALL_SECONDS = [12, 8, 6, 5, 4]; // speed 1 to 5: seconds from the top to the ground
   const INTRO = 0.7; // seconds the rocket takes to swoop in from above
 
@@ -75,10 +99,9 @@ export function runRocket(mode) {
   // targets, chip and words (games/rocket-lander/game.js).
   const K = () => (mode.kinds ? mode.kinds[(level && level.row.kind) || 'number'] : mode);
   let S = resolveSettings(SCHEMA).values;
-  let level = mode.levelOf(null);
-  let progress = { ...DEFAULT_PROGRESS };
+  let progress = tidyAll(null);
+  let level = levelById(progress.at);
   let ready = false;
-  let chosen = 0; // planet picked on the start screen
   let line = null, lineKey = '', near = null, loggedNotes = '';
 
   // The rocket, the pilot, and everything else drawn on the scene.
@@ -86,12 +109,14 @@ export function runRocket(mode) {
   const V = { rocket: null, pilot: null, flag: null, shadow: null, highlight: null, glow: null, arrow: null, perfect: null,
     pad: null, ladder: null, bigFlag: null, fireworks: null };
   const G = {
-    phase: 'start', t: 0, idx: 0, total: 8, T: null, goal: null, prev: null, plan: [], results: [], right: 0, perfects: 0, roundRocks: 0,
-    startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, unlockedNew: -1, fin: null,
+    phase: 'map', t: 0, idx: 0, total: 8, T: null, goal: null, prev: null, plan: [], results: [], right: 0, perfects: 0, roundRocks: 0,
+    startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, fin: null, result: null,
   };
   const input = { active: false, id: null, x: 0, left: false, right: false };
   let timeScale = 1;
   let hangar = null; // the showroom (made at boot)
+  let starmap = null; // the map, the galaxy and hyperspace (made at boot)
+  let cardId = null; // the level whose card is open
   let flyShip = null; // the ship flown in play, when it isn't today's rocket
   let flownId = null; // the ship last drawn in play (for the tests)
   const SH = newState(80), PP = new Parts(); // its state and effects in play
@@ -141,9 +166,10 @@ export function runRocket(mode) {
     scene.resize(W, H, dpr);
     fx.resize(W, H, dpr);
     if (hangar) hangar.resize();
+    if (starmap) starmap.resize();
     R.h = scene.rocketH;
     sizeNearness();
-    if (G.phase === 'start' || (G.phase === 'end' && !G.fin)) return;
+    if (G.phase === 'map' || (G.phase === 'end' && !G.fin)) return;
     // keep the rocket over the same number after turning the phone
     if (oldV != null) R.x = clamp(scene.xOf(oldV), scene.x0, scene.x1);
     measureFall();
@@ -176,67 +202,86 @@ export function runRocket(mode) {
     });
   }
 
-  function sanitiseProgress() {
-    const p = progress;
-    p.unlocked = Math.round(clamp(Number(p.unlocked) || 1, 1, PLANETS.length));
-    const pi = typeof p.planet === 'number' ? p.planet : planetIndex(p.planet);
-    p.planet = PLANETS[clamp(pi, 0, p.unlocked - 1)].id;
-    p.rocks = Math.max(0, Math.round(Number(p.rocks) || 0));
-    p.landings = Math.max(0, Math.round(Number(p.landings) || 0));
-    Object.assign(p, hangarOf(p)); // D-053: Classic always; only ships owned are flown
-  }
+  // ---------- The map: home (D-066) ----------
 
-  function renderPicker() {
-    sanitiseProgress();
-    chosen = planetIndex(progress.planet);
-    const ul = $('planets');
-    ul.innerHTML = '';
-    PLANETS.forEach((P, i) => {
-      const locked = i >= progress.unlocked;
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'planet';
-      b.dataset.i = i;
-      b.setAttribute('aria-label', locked ? 'Locked planet' : P.name);
-      if (locked) b.setAttribute('aria-disabled', 'true');
-      else b.setAttribute('aria-pressed', String(i === chosen));
-      const c = document.createElement('canvas');
-      c.width = c.height = 208;
-      const x = c.getContext('2d');
-      x.scale(2, 2);
-      drawPlanetBall(x, i, 52, 52, P.rings ? 30 : 36, locked);
-      const name = document.createElement('span');
-      name.textContent = locked ? '?' : P.name;
-      b.append(c, name);
-      b.addEventListener('click', () => pickPlanet(i, b));
-      li.appendChild(b);
-      ul.appendChild(li);
-    });
-    $('start-rocks').textContent = progress.rocks;
+  function renderRocks() {
+    $('map-rocks').textContent = progress.rocks;
     $('rocks-n').textContent = progress.rocks;
   }
 
-  function pickPlanet(i, b) {
-    if (i >= progress.unlocked) {
-      sfx('boop');
-      b.classList.remove('locked-shake'); void b.offsetWidth; b.classList.add('locked-shake');
-      return;
-    }
-    sfx('tap');
-    chosen = i;
-    document.querySelectorAll('.planet[aria-pressed]').forEach((el) => el.setAttribute('aria-pressed', String(Number(el.dataset.i) === i)));
-    scene.setPlanet(i);
+  // The map of the system the rocket is in, its sky and ground without the number line.
+  function showMap(o = {}) {
+    setPhase('map');
+    input.active = false;
+    hideBubble();
+    closeCard(true);
+    $('hud').hidden = true; $('end').hidden = true;
+    Object.assign(V, { rocket: null, pilot: null, flag: null, shadow: null, highlight: null, glow: null, arrow: null, perfect: null,
+      pad: null, ladder: null, bigFlag: null, fireworks: null });
+    G.fin = null;
+    const at = placeOf(MAP, o.from || progress.at) || placeOf(MAP, progress.at);
+    scene.setPlanet(MAP[at.s].planet);
+    scene.setBare(true);
+    scene.offX = 0;
+    home.hidden = false;
+    renderRocks();
+    drawRockIcons();
+    starmap.show(o);
   }
 
-  function drawHero(t) {
-    const c = $('hero');
-    if (!c || !c.offsetParent) return;
-    const x = c.getContext('2d');
-    x.setTransform(1, 0, 0, 1, 0, 0);
-    x.clearRect(0, 0, c.width, c.height);
-    const bob = scene.calm ? 0 : Math.sin(t * 2.2) * 6;
-    drawRocket(x, { x: 100, y: 108 + bob, h: 150, rot: scene.calm ? 0 : Math.sin(t * 1.3) * 0.06, legs: 0, flame: 0.75, pilotIn: true, blink: blinkAt(t), mood: 'happy', look: 0 }, t);
+  // A level's card: what it asks, its best stars, the rocks found there, and Play (sketches 1, §2).
+  function openCard(id) {
+    if (G.phase !== 'map') return;
+    const lv = levelById(id), best = bestOf(progress, id), found = foundOf(progress, id);
+    cardId = id;
+    $('lc-sys').textContent = MAP[lv.s].name;
+    $('lc-h').textContent = `Level ${lv.n + 1}`;
+    $('lc-about').textContent = lv.about || '';
+    const c = mode.kinds[lv.kind].chip(lv.sample, S);
+    const chip = $('lc-chip');
+    chip.className = 'chip' + (c.cls ? ` ${c.cls}` : '');
+    chip.innerHTML = c.html;
+    $('lc-stars').innerHTML = starsHtml(best);
+    $('lc-stars').setAttribute('aria-label', best ? `Your best: ${best} of 3 stars` : 'Not played yet');
+    $('lc-stars').classList.toggle('none', !best);
+    slots($('lc-rocks'), found, 0);
+    const left = ROCKS_PER_LEVEL - found;
+    $('lc-note').textContent = !best ? `${ROCKS_PER_LEVEL} moon rocks to find here!`
+      : left > 0 ? `${left} moon rock${left === 1 ? '' : 's'} still to find!` : `All ${ROCKS_PER_LEVEL} rocks found here!`;
+    $('lc-back').hidden = false;
+    $('level-card').hidden = false;
+    drawRockIcons();
+    if (S.speak) speak(`Level ${lv.n + 1}. ${lv.about || ''}`);
+  }
+
+  function closeCard(quiet) {
+    if (!cardId && $('level-card').hidden) return;
+    cardId = null;
+    $('level-card').hidden = true;
+    $('lc-back').hidden = true;
+    if (!quiet) sfx('tap');
+  }
+
+  function playCard() {
+    const id = cardId;
+    if (!id || G.phase !== 'map') return;
+    sfx('tap');
+    closeCard(true);
+    starmap.launch(id, () => startRound(id));
+  }
+
+  const STAR_PATH = 'M12 2.2l2.9 6 6.5.8-4.8 4.5 1.2 6.5L12 16.9 6.2 20l1.2-6.5L2.6 9l6.5-.8z';
+  function starsHtml(n) {
+    return [0, 1, 2].map((i) => `<svg viewBox="0 0 24 24" class="${i < n ? 'on' : ''}" aria-hidden="true"><path d="${STAR_PATH}" fill="${i < n ? '#FFC93C' : '#D9D3F7'}" stroke="#1B1446" stroke-width="1.6" stroke-linejoin="round"/>${i < n ? '<path d="M8.6 9.6l1.4-.2.8-1.6" fill="none" stroke="#FFF6CF" stroke-width="1.3" stroke-linecap="round"/>' : ''}</svg>`).join('');
+  }
+
+  // A level's eight rock slots: found ones show a rock, the newest popping in one by one.
+  function slots(el, found, fresh) {
+    el.innerHTML = Array.from({ length: ROCKS_PER_LEVEL }, (_, i) => {
+      const on = i < found, isNew = on && i >= found - fresh;
+      return `<span class="slot${on ? ' on' : ''}${isNew ? ' new' : ''}"${isNew ? ` style="animation-delay:${0.5 + (i - (found - fresh)) * 0.18}s"` : ''}>${on ? '<canvas class="rock-icon" width="56" height="56" aria-hidden="true"></canvas>' : ''}</span>`;
+    }).join('');
+    el.setAttribute('aria-label', `Moon rocks found here: ${found} of ${ROCKS_PER_LEVEL}`);
   }
 
   // ---------- The hangar (D-050 to D-053) ----------
@@ -260,38 +305,41 @@ export function runRocket(mode) {
 
   // What's kept: in memory for the shell (GC8) and on this device until the shell keeps it (D-042).
   function keep() {
-    const kept = { unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings, ship: progress.ship, ships: progress.ships.slice() };
+    const kept = { at: progress.at, open: progress.open, levels: JSON.parse(JSON.stringify(progress.levels)), rocks: progress.rocks,
+      landings: progress.landings, ship: progress.ship, ships: progress.ships.slice() };
     saveState(kept);
     keepOnDevice(mode.id, kept);
   }
 
   function openHangar() {
-    if (!ready || G.phase !== 'start' || !hangar.open()) return;
+    if (!ready || G.phase !== 'map' || cardId || starmap.view !== 'map' || starmap.busy || !hangar.open()) return;
     sfx('tap');
-    $('start').hidden = true;
+    $('map').hidden = true;
     home.hidden = true;
   }
 
   function hangarClosed() {
-    $('start').hidden = false;
+    $('map').hidden = false;
     home.hidden = false;
-    renderPicker();
+    renderRocks();
     drawRockIcons();
   }
 
   // ---------- Round ----------
 
-  function startRound() {
+  function startRound(id = level.id) {
     if (!ready) return;
-    sfx('tap');
-    progress.planet = PLANETS[chosen].id;
-    scene.setPlanet(chosen);
+    level = levelById(id);
+    progress = { ...progress, at: level.id };
+    starmap.hide();
+    closeCard(true);
+    scene.setPlanet(MAP[level.s].planet);
+    scene.setBare(false);
     applySettings();
-    $('start').hidden = true;
     $('end').hidden = true;
     $('hud').hidden = false;
     $('say').hidden = !(S.speak && canSpeak() && !isMuted());
-    G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1; G.fin = null;
+    G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.fin = null; G.result = null;
     G.plan = K().planRound(level.row, G.total, Math.random);
     G.started = performance.now();
     $('rocks-n').textContent = progress.rocks;
@@ -577,11 +625,16 @@ export function runRocket(mode) {
     if (V.glow) V.glow.a = 1;
   }
 
+  // A perfect landing finds one of the level's moon rocks while it has some left (D-058): a replay
+  // pays only the rocks not yet found. Counted straight away (paid at the round's end, progress.js);
+  // the counter on screen catches up when the rock arrives. With all 8 found, a burst of gold instead.
   function flyRock() {
-    // counted straight away; the counter on screen catches up when the rock arrives
-    progress.rocks += 1;
+    if (!rockLeft(progress, level.id, G.roundRocks)) {
+      scene.burst(R.x, R.y - R.h * 0.3, scene.calm ? 6 : 16, ['#FFC93C', '#FFFFFF', '#FFE48A']);
+      return;
+    }
     G.roundRocks += 1;
-    const shown = progress.rocks;
+    const shown = progress.rocks + G.roundRocks;
     const el = $('rocks');
     const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
     fx.rock(R.x, R.y - R.h * 0.3, r.left - s.left + 20, r.top - s.top + r.height / 2, () => {
@@ -645,44 +698,98 @@ export function runRocket(mode) {
     const seconds = Math.round((performance.now() - G.started) / 1000);
     const score = G.right + G.perfects;
 
-    progress.landings += G.right;
-    G.unlockedNew = -1;
-    if (stars >= 2 && progress.unlocked < PLANETS.length) {
-      G.unlockedNew = progress.unlocked;
-      progress.unlocked += 1;
-      progress.planet = PLANETS[G.unlockedNew].id;
-    }
-
-    $('end-h').textContent = stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try, pilot!';
-    $('end-stars').innerHTML = [0, 1, 2].map((i) =>
-      `<svg viewBox="0 0 24 24" class="${i < stars ? 'on' : ''}" aria-hidden="true"><path d="M12 2.2l2.9 6 6.5.8-4.8 4.5 1.2 6.5L12 16.9 6.2 20l1.2-6.5L2.6 9l6.5-.8z" fill="${i < stars ? '#FFC93C' : '#D9D3F7'}" stroke="#1B1446" stroke-width="1.6" stroke-linejoin="round"/>${i < stars ? '<path d="M8.6 9.6l1.4-.2.8-1.6" fill="none" stroke="#FFF6CF" stroke-width="1.3" stroke-linecap="round"/>' : ''}</svg>`).join('');
-    $('end-stars').setAttribute('aria-label', `${stars} of 3 stars`);
-    const rocksLine = G.roundRocks ? `<br><canvas class="rock-icon ic" width="56" height="56" aria-hidden="true"></canvas> ${G.roundRocks} moon rock${G.roundRocks === 1 ? '' : 's'}!` : '';
-    $('end-p').innerHTML = `You landed <b>${G.right}</b> of <b>${G.total}</b>!${rocksLine}`;
-    const un = $('unlock');
-    if (G.unlockedNew >= 0) {
-      un.hidden = false;
-      $('unlock-name').textContent = PLANETS[G.unlockedNew].name;
-      const c = $('unlock-ball'), x = c.getContext('2d');
-      x.clearRect(0, 0, c.width, c.height);
-      drawPlanetBall(x, G.unlockedNew, 100, 100, PLANETS[G.unlockedNew].rings ? 58 : 70, false);
-    } else un.hidden = true;
+    // what the round changes (D-058, D-064): best stars, rocks found, the next level, the rocket's place
+    const res = finish(MAP, progress, level.id, { stars, found: G.roundRocks, right: G.right });
+    progress = { ...progress, ...res.progress };
+    G.result = res;
+    renderEnd(res, stars);
     $('end').hidden = false;
     drawRockIcons();
     sfx(stars === 3 ? 'levelup' : 'yay');
     fx.confetti(stars * 45, scene.calm);
-    if (G.unlockedNew >= 0) setTimeout(() => { sfx('unlock'); fx.confetti(90, scene.calm); }, 900);
-    if (S.speak) speak(stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
+    if (res.opened || res.done) setTimeout(() => { sfx('unlock'); fx.confetti(90, scene.calm); }, 900);
+    if (S.speak) speak(res.newBest ? 'New best!' : stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
 
-    report({ score, stars, seconds, level: level.level });
+    report({ score, stars, seconds, level: level.i + 1 });
     keep(); // D-042: until the shell keeps it
+  }
+
+  // The end card (sketches 1, §3): the round's stars, a new best, the level's rocks with the new ones
+  // popping in, what opened, and a system done.
+  function renderEnd(res, stars) {
+    const sys = MAP[level.s], next = res.opened ? levelById(res.opened) : null;
+    $('end-h').textContent = res.newBest ? 'New best!' : stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try, pilot!';
+    $('end-stars').innerHTML = starsHtml(stars) + (res.newBest || (res.first && res.passed) ? '<span class="nb">NEW</span>' : '');
+    $('end-stars').setAttribute('aria-label', `${stars} of 3 stars${res.newBest ? ', a new best' : ''}`);
+    $('end-p').innerHTML = `You landed <b>${G.right}</b> of <b>${G.total}</b>!`;
+    slots($('end-rocks'), res.now.rocks, res.rocks);
+    $('end-rocks-p').innerHTML = res.rocks ? `<b>+${res.rocks}</b> moon rock${res.rocks === 1 ? '' : 's'}!`
+      : res.now.rocks >= ROCKS_PER_LEVEL ? `You've found all ${ROCKS_PER_LEVEL} rocks here` : 'No new rocks this time';
+    const done = $('end-done');
+    if (res.done) {
+      const st = systemStars(MAP, progress, level.s);
+      done.hidden = false;
+      done.textContent = `${sys.name} done! ★ ${st.got} of ${st.of}`;
+    } else done.hidden = true;
+    const un = $('unlock'), c = $('unlock-ball'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    if (res.hyper) {
+      const to = MAP[levelById(res.next).s];
+      un.hidden = false; $('unlock-lbl').textContent = 'Next stop'; $('unlock-name').textContent = to.name;
+      drawPlanetBall(x, to.planet, 100, 100, PLANETS[to.planet].rings ? 58 : 70, false);
+    } else if (res.soon) {
+      const to = MAP[level.s + 1];
+      un.hidden = false; $('unlock-lbl').textContent = 'Coming soon'; $('unlock-name').textContent = 'More systems!';
+      drawPlanetBall(x, to.planet, 100, 100, PLANETS[to.planet].rings ? 58 : 70, true);
+    } else if (next) {
+      un.hidden = false; $('unlock-lbl').textContent = 'Open now!'; $('unlock-name').textContent = `Level ${next.n + 1}`;
+      drawMarkerIcon(x, next.n + 1);
+    } else if (!res.passed && ROUTE[level.i + 1] && !(placeOf(MAP, progress.open).i > level.i)) {
+      un.hidden = false; $('unlock-lbl').textContent = 'Get 2 stars to open'; $('unlock-name').textContent = `Level ${level.n + 2 > sys.levels.length ? 1 : level.n + 2}`;
+      drawMarkerIcon(x, level.n + 2 > sys.levels.length ? 1 : level.n + 2, true);
+    } else un.hidden = true;
+    const go = $('to-map');
+    go.innerHTML = res.hyper ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3 2.4 4.4 5.6 4.4 9.2V17H7.6v-5.3c0-3.6 1.4-6.8 4.4-9.2zM7.6 13.5L4.5 17v3h3.1M16.4 13.5l3.1 3.5v3h-3.1" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg> Hyperspace!' : 'Map';
+    go.classList.toggle('hyper', !!res.hyper);
+  }
+
+  // A level's marker as a picture for the end card: a sun-yellow pad with its number (or locked).
+  function drawMarkerIcon(x, n, locked = false) {
+    x.save();
+    x.beginPath(); x.arc(100, 108, 62, 0, Math.PI * 2); x.fillStyle = INK; x.fill();
+    x.beginPath(); x.arc(100, 100, 62, 0, Math.PI * 2); x.fillStyle = locked ? '#8F87C9' : '#FFC93C'; x.fill();
+    x.lineWidth = 9; x.strokeStyle = INK; x.stroke();
+    x.fillStyle = 'rgba(255,255,255,.6)'; x.beginPath(); x.ellipse(74, 72, 14, 8, -0.7, 0, Math.PI * 2); x.fill();
+    x.font = `700 70px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = INK; x.fillText(String(n), 100, 104);
+    x.restore();
   }
 
   function playAgain() {
     stopSpeaking();
-    chosen = planetIndex(progress.planet);
-    renderPicker();
-    startRound();
+    startRound(level.id);
+  }
+
+  // Back to the map after a round (sketches 1, §3 and §4): new stars pop in on the level just
+  // played, a level that opened bursts open and the rocket hops to it; a system's last level passed
+  // goes through hyperspace to the next system (D-058).
+  function toMap() {
+    stopSpeaking();
+    const res = G.result, from = level.id;
+    if (!res) { showMap(); return; }
+    const stars = res.now.stars > res.was.stars ? { id: from, from: res.was.stars, to: res.now.stars } : null;
+    if (res.hyper) {
+      setPhase('map');
+      $('end').hidden = true; $('hud').hidden = true;
+      V.rocket = null; G.fin = null;
+      fx.bits = []; fx.rocks = []; // the end card's confetti stays behind
+      starmap.hyperspace(levelById(res.next).s, () => {
+        const to = MAP[levelById(res.next).s];
+        showMap({ drop: true, banner: `Welcome to ${to.name}!` });
+        if (S.speak) speak(`Welcome to ${to.name}!`);
+      });
+      return;
+    }
+    showMap({ from, hopTo: res.next !== from ? res.next : null, opened: res.opened, stars, banner: res.soon ? 'More systems soon!' : null });
   }
 
   // ---------- Controls ----------
@@ -715,10 +822,13 @@ export function runRocket(mode) {
   addEventListener('keyup', (e) => { const k = KEYS[e.key]; if (k) input[k] = false; });
   addEventListener('blur', () => { input.left = input.right = false; input.active = false; });
 
-  $('play').addEventListener('click', startRound);
   $('hangar').addEventListener('click', openHangar);
   $('again').addEventListener('click', playAgain);
-  $('done').addEventListener('click', () => { stopSpeaking(); goHome(); });
+  $('to-map').addEventListener('click', toMap);
+  $('lc-play').addEventListener('click', playCard);
+  $('lc-close').addEventListener('click', () => closeCard());
+  $('lc-back').addEventListener('click', () => closeCard());
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && cardId) { e.preventDefault(); closeCard(); } });
   $('say').addEventListener('click', (e) => { e.stopPropagation(); sayTarget(); });
 
   // ---------- The loop ----------
@@ -856,9 +966,11 @@ export function runRocket(mode) {
     update(dt, clock);
     if (!scene.calm) scene.scroll += dt * (G.phase === 'takeoff' ? 60 : 6);
     // the showroom covers the whole stage once its door is up: the scene needn't be drawn
-    const covered = hangar && hangar.isOpen && hangar.door.k >= 1;
-    if (!covered) { scene.draw(V, clock, dt); fx.draw(real, clock); }
-    if (G.phase === 'start' && !$('start').hidden) { drawHero(clock); drawDoorShip(clock, dt); }
+    const covered = (hangar && hangar.isOpen && hangar.door.k >= 1) || (starmap && (starmap.view === 'galaxy' || starmap.view === 'hyper'));
+    if (!covered) scene.draw(V, clock, dt);
+    fx.draw(real, clock); // above the galaxy and hyperspace too, so its canvas never holds a stale frame
+    if (starmap) starmap.frame(dt, clock);
+    if (G.phase === 'map' && !$('map').hidden) drawDoorShip(clock, dt);
     if (hangar) hangar.frame(dt, clock);
     frame = requestAnimationFrame(loop);
   }
@@ -877,14 +989,17 @@ export function runRocket(mode) {
 
   // ---------- Boot ----------
 
-  // GC5: on its own, the game plays level 1, or the level in the address (?level=3).
+  // GC5: on its own, the game plays the map's place, or the level in the address (?level=3),
+  // counted along the map (progress.js, levelGiven); the rocket goes there and the map opens up to it.
   function levelFromAddress() {
     try { return new URLSearchParams(location.search).get('level'); } catch { return null; }
   }
 
   function useLevel(given) {
-    level = mode.levelOf(given);
-    if (level.note) console.info(`${mode.name}: ${level.note}.`);
+    const g = levelGiven(MAP, given);
+    if (g.note) console.info(`${mode.name}: ${g.note}.`);
+    if (g.id) progress = { ...progress, ...goTo(MAP, progress, g.id) };
+    level = levelById(progress.at);
   }
 
   function boot() {
@@ -897,38 +1012,46 @@ export function runRocket(mode) {
       calm: () => scene.calm,
       closed: hangarClosed,
     });
+    starmap = new StarMap(stage, scene, {
+      map: MAP,
+      progress: () => progress,
+      ship: () => progress.ship,
+      tap: (id) => openCard(id),
+      play: (id) => startRound(id),
+      move: (id) => { progress = { ...progress, at: id }; level = levelById(id); keep(); },
+      sfx: (name) => sfx(name),
+      say: (text) => { if (S.speak) speak(text); },
+      calm: () => scene.calm,
+      covered: (on) => { home.hidden = !!on; },
+    });
+    progress = tidyAll(keptOnDevice(mode.id)); // D-042, D-058: format 3 on this device, or afresh
     useLevel(levelFromAddress());
-    progress = { ...DEFAULT_PROGRESS, ...(keptOnDevice(mode.id) || {}) }; // D-042
-    sanitiseProgress();
-    chosen = planetIndex(progress.planet);
-    scene.setPlanet(chosen);
+    scene.setPlanet(MAP[level.s].planet);
     applySettings();
     resize();
-    renderPicker();
     drawRockIcons();
     V.rocket = null;
+    showMap({ intro: true });
     frame = requestAnimationFrame(loop);
     ready = true;
   }
 
   // The level, settings and saved state handed to the game (by a test or the preview's test
-  // panel now, by the shell at stage 3). Only on the start screen; anything missing or odd
-  // falls back to level 1 and the built-in defaults. No level given: the address's, or 1.
+  // panel now, by the shell at stage 3). Only on the map, with the hangar shut; anything missing
+  // or odd falls back to the map's own place and the built-in defaults. A level given (a number
+  // along the map, or a level's id) takes the rocket there and opens the map up to it.
   function begin({ level: givenLevel = undefined, settings = {}, state = null } = {}) {
-    if (G.phase !== 'start' || (hangar && hangar.isOpen)) return false;
-    useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
+    if (G.phase !== 'map' || (hangar && hangar.isOpen)) return false;
     const r = resolveSettings(SCHEMA, settings);
     if (r.notes.length) console.info(`${mode.name} settings: ${r.notes.join('; ')}.`);
     S = r.values;
     // the state handed in (by the shell, a test or the test panel), or else what this device kept
-    progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : keptOnDevice(mode.id) || {}) };
-    sanitiseProgress();
-    chosen = planetIndex(progress.planet);
-    renderPicker();
-    scene.setPlanet(chosen);
+    progress = tidyAll(state && typeof state === 'object' ? state : keptOnDevice(mode.id));
+    useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
+    scene.setPlanet(MAP[level.s].planet);
     applySettings();
     resize();
-    drawRockIcons();
+    showMap();
     return true;
   }
 
@@ -940,15 +1063,17 @@ export function runRocket(mode) {
     state: () => ({
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
       sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,
-      goal: G.goal, level: level.level, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
+      goal: G.goal, level: level.i + 1, levelId: level.id, kind: level.kind, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
       rocks: progress.rocks, progress: { ...progress }, allowed: near && near.allowed, perfect: near && near.perfect, tight: near && near.tight,
       pps: scene.pps, x0: scene.x0, x1: scene.x1, rocketX: R.x, rocketY: R.y, touchY: G.touchY, startY: G.startY, startX: G.startX,
       rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,
       labels: scene.shown.map((s) => s.text), line: line && { from: line.from, to: line.to, step: line.step, count: line.count },
-      results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
+      results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, roundRocks: G.roundRocks,
+      result: G.result && { ...G.result, progress: undefined }, card: cardId, map: starmap ? starmap.state() : null, bare: scene.bare,
+      screen: hangar && hangar.isOpen ? 'hangar' : G.phase !== 'map' ? (G.phase === 'end' ? 'end' : 'round') : cardId ? 'card' : starmap ? starmap.view : null,
       finale: G.fin && { t: G.fin.t, stars: G.fin.stars, pad: !!V.pad && V.pad.k > 0, ladder: !!V.ladder && V.ladder.k > 0,
         flag: !!V.bigFlag && V.bigFlag.grow > 0, shown: V.bigFlag ? V.bigFlag.shown : 0, fireworks: (V.fireworks || []).length, pilotIn: R.pilotIn },
-      hangar: hangar ? hangar.state() : null, doorShip: DS.id, heroShip: STARTER, flown: G.phase === 'start' ? null : flownId,
+      hangar: hangar ? hangar.state() : null, doorShip: DS.id, flown: G.phase === 'map' ? null : flownId,
       ship: flyShip ? { id: flyShip.id, calm: !!SH.calm, k: PP.k, effects: PP.list.length, flap: SH.flapT } : null, heard: heard.slice(),
     }),
     // The ship flown and its effects alone, drawn as in play onto a clear canvas: how many pixels
@@ -1000,6 +1125,13 @@ export function runRocket(mode) {
     },
     // show another planet's scenery (looks only; nothing is saved)
     planet(i) { scene.setPlanet(i); },
+    // where a map button is, in page pixels, for a real tap: a level's marker ('moon-3'), the portal or a galaxy planet ('gx:dust')
+    mapHit(id) {
+      const el = id.startsWith('gx:') ? document.querySelector(`.gx[data-system="${id.slice(3)}"]`) : document.querySelector(`.mk[data-level="${id}"]`);
+      if (!el || !el.offsetParent) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+    },
     freeze(on) { if (on) { cancelAnimationFrame(frame); } else { last = performance.now(); frame = requestAnimationFrame(loop); } },
   };
   // The mode's own hooks, such as making this landing's target a given one (while flying).

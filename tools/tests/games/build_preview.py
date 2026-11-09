@@ -1,4 +1,6 @@
-"""Build a game's private preview page (D-018). Version 1.5.
+"""Build a game's private preview page (D-018). Version 1.6.
+
+Changes at v1.6 (step 2c-build, D-066): the map is home, so the stamp shows while the map does.
 
 Changes at v1.5 (step 2c-build, D-058): Rocket Sums joined Rocket Lander, so its folder and its
 stand-ins are gone; one rocket game is built.
@@ -77,7 +79,7 @@ STAND_INS = {
 STAMP_CSS = (".preview-stamp{position:fixed;right:max(8px,env(safe-area-inset-right));"
              "bottom:max(6px,env(safe-area-inset-bottom));z-index:5;margin:0;font:600 11px/1.2 system-ui,sans-serif;"
              "color:#fff;opacity:.55;pointer-events:none;letter-spacing:.02em}"
-             "body:has(#start[hidden]) .preview-stamp{display:none}")
+             "body:has(#map[hidden]) .preview-stamp{display:none}")
 
 
 class BuildError(Exception):
@@ -339,7 +341,7 @@ def build(game, number, debug=False):
         raise BuildError('index.html must begin with <!doctype html>')
     html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel} and the shared files it uses '
                                             f'({", ".join(shared_dirs) or "none"}): {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.5{" --debug" if debug else ""} -->', 1)
+                                            f'built by tools/tests/games/build_preview.py 1.6{" --debug" if debug else ""} -->', 1)
     leftovers = re.findall(r'(?:src|href)="[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')

@@ -1,4 +1,7 @@
-/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. */
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.0.
+   Changes at v2.0 (step 2c-build, D-058, D-066): the map is home: the start card, its title and the planet
+   picker go; the map's top bar (galaxy, systems, hangar door), its markers and Play bubble, the banner,
+   the galaxy view, the level card and the end card's rocks come. */
 :root {
   --ink: #1B1446;
   --paper: #FFFFFF;
@@ -68,7 +71,7 @@ button { font: inherit; color: inherit; }
 }
 .round svg { width: 60%; height: 60%; }
 .round:active { translate: 0 3px; box-shadow: 0 2px 0 rgba(10, 6, 40, .55); }
-.round:focus-visible, .big:focus-visible, .planet:focus-visible { outline: 4px solid var(--sun); outline-offset: 3px; }
+.round:focus-visible, .big:focus-visible, .play-bubble:focus-visible, .hangar-btn:focus-visible { outline: 4px solid var(--sun); outline-offset: 3px; }
 .say.talking svg { animation: talk .5s ease-in-out 3; }
 @keyframes talk { 50% { transform: scale(1.18); } }
 
@@ -113,47 +116,18 @@ button { font: inherit; color: inherit; }
 }
 @keyframes card-in { from { opacity: 0; transform: translateY(30px) scale(.9); } }
 
-.brand { display: flex; align-items: center; justify-content: center; gap: 4px; margin: -4px 0 4px; }
-.hero { width: 84px; height: 109px; flex: none; margin-left: -10px; }
-.title { margin: 6px 0 10px; display: flex; flex-direction: column; align-items: center; line-height: .9; font-weight: 700; letter-spacing: .01em; }
-.title span {
-  display: block; color: var(--paper); paint-order: stroke fill; -webkit-text-stroke: 10px var(--ink);
-  text-shadow: 0 6px 0 var(--ink);
-}
-.title .w1 { font-size: clamp(46px, 13vw, 72px); color: var(--coral); rotate: -4deg; }
-.title .w2 { font-size: clamp(40px, 11vw, 62px); color: var(--sun); rotate: 3deg; margin-top: -2px; }
-
-.planets {
-  list-style: none; margin: 0 auto 6px; padding: 8px 4px 2px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 6px;
-  max-width: 440px;
-}
-.planet {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; padding: 6px 2px 4px;
-  border: 0; border-radius: 22px; background: transparent; cursor: pointer; color: var(--ink); font-size: 17px; line-height: 1.1;
-}
-.planet canvas { width: 86px; height: 86px; transition: transform .2s; }
-.planet[aria-pressed="true"] { background: rgba(95, 227, 189, .28); box-shadow: inset 0 0 0 4px var(--mint-dk); }
-.planet[aria-pressed="true"] canvas { animation: spin-bob 2.4s ease-in-out infinite; }
-.planet:disabled { cursor: default; color: #8F87C9; }
-.planet:not(:disabled):active canvas { transform: scale(.9); }
-.planet.locked-shake canvas { animation: shake .4s; }
-@keyframes spin-bob { 50% { transform: translateY(-5px) rotate(4deg); } }
-@keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-
-.start-foot { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 44px; }
-.big-rocks { font-size: 28px; padding: 4px 16px 4px 6px; }
-.big-rocks .rock-icon { width: 38px; height: 38px; }
-
 /* The hangar door (D-052: option D2 of the step 2a-4b mock-ups, sketch_rocket_door.py 1.2): the
-   moon-rocks counter is a purple button the height of Play, with a big hangar door standing on
-   its left end; the doorway shows the ship flown (drawn by round.js). The beacon blinks and the
-   shutter lifts a little now and then, to invite a tap. */
+   moon-rocks counter is a purple button with a big hangar door standing on its left end; the doorway
+   shows the ship flown (drawn by round.js). The beacon blinks and the shutter lifts a little now and
+   then, to invite a tap. Since step 2c-build it sits on the map's top bar. */
 .hangar-btn {
   position: relative; display: inline-flex; align-items: center; min-height: 66px; padding: 4px 8px 4px 92px; cursor: pointer;
   border: 4px solid var(--ink); border-radius: 999px; background: #7C6CF0; box-shadow: 0 6px 0 var(--ink); font: inherit; color: var(--ink);
 }
 .hangar-btn:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
 .hangar-btn .big-rocks { box-shadow: none; }
+.big-rocks { font-size: 28px; padding: 4px 16px 4px 6px; }
+.big-rocks .rock-icon { width: 38px; height: 38px; }
 .door-wrap { position: absolute; left: -6px; bottom: -6px; width: 96px; height: 115px; }
 .door-wrap .door-svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .door-ship { position: absolute; left: 29%; top: 44%; width: 42%; height: 47.5%; }
@@ -206,13 +180,6 @@ button { font: inherit; color: inherit; }
 /* Landscape phones: side by side so nothing scrolls */
 @media (orientation: landscape) and (max-height: 520px) {
   .card { width: min(780px, calc(100% - 24px)); padding: 12px 18px 14px; border-radius: 28px; }
-  .start { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 18px; text-align: left; }
-  .title { margin: 0; }
-  .title .w1 { font-size: 54px; } .title .w2 { font-size: 46px; }
-  .planets { margin: 0; padding-top: 0; gap: 2px 4px; }
-  .planet { font-size: 15px; padding: 3px 2px 2px; }
-  .planet canvas { width: 64px; height: 64px; }
-  .start-foot { margin-top: 30px; }
   .end { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 16px; }
   .end-main { grid-row: span 2; }
   .end .row { flex-direction: column; }
@@ -232,13 +199,132 @@ button { font: inherit; color: inherit; }
   .dots { padding: 6px 7px; gap: 4px; }
   .dots li { width: 13px; height: 13px; }
 }
-@media (min-width: 900px) and (min-height: 600px) {
-  .planet canvas { width: 104px; height: 104px; }
-  .planets { max-width: 500px; }
-  .card.start { width: 600px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .big.go:not(:active), .planet[aria-pressed="true"] canvas, .unlock canvas, .door-svg .beacon, .door-svg .shutter { animation: none; }
-  .card, .target.pop, .bubble, .stars .on, .unlock { animation-duration: .01s; animation-delay: 0s; }
+  .big.go:not(:active), .play-bubble:not(:active), .unlock canvas, .door-svg .beacon, .door-svg .shutter { animation: none; }
+  .card, .target.pop, .bubble, .stars .on, .unlock, .banner.pop, .slot.new, .nb { animation-duration: .01s; animation-delay: 0s; }
+}
+
+/* ---------- The map: home (D-066) ---------- */
+.starmap { z-index: 14; pointer-events: none; }
+.map { position: absolute; inset: 0; z-index: 16; pointer-events: none; }
+.map-bar {
+  position: absolute; left: 0; right: 0; top: 0; pointer-events: none;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(80px, calc(env(safe-area-inset-left) + 80px));
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "gal sys hangar"; align-items: center; gap: 10px;
+}
+.map-bar > * { pointer-events: auto; }
+.galaxy-btn { grid-area: gal; width: 56px; height: 56px; background: #7C6CF0; }
+.galaxy-btn svg { width: 74%; height: 74%; }
+.sys { grid-area: sys; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; pointer-events: none; }
+.sys > button { pointer-events: auto; }
+.step-btn { width: 46px; height: 46px; background: var(--paper); }
+.step-btn[aria-disabled="true"] { opacity: .35; box-shadow: none; }
+.sys-title { margin: 0; display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 0; }
+.sys-name {
+  font-size: clamp(28px, 5.4vh, 44px); font-weight: 700; color: var(--sys, var(--sky)); white-space: nowrap;
+  paint-order: stroke fill; -webkit-text-stroke: 8px var(--ink); text-shadow: 0 4px 0 var(--ink);
+}
+.sys-of { margin-top: 5px; font-size: 14px; color: #fff; opacity: .9; paint-order: stroke fill; -webkit-text-stroke: 4px var(--ink); white-space: nowrap; }
+.map-bar .hangar-btn { grid-area: hangar; justify-self: end; min-height: 58px; padding: 3px 8px 3px 70px; margin-top: 16px; }
+.map-bar .door-wrap { left: 0; bottom: -3px; width: 66px; height: 79px; }
+.map-bar .big-rocks { font-size: 24px; padding: 3px 13px 3px 5px; }
+.map-bar .big-rocks .rock-icon { width: 32px; height: 32px; }
+.marks { position: absolute; inset: 0; pointer-events: none; }
+.mk { position: absolute; pointer-events: auto; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.mk[data-state="locked"] { cursor: default; }
+.mk:focus-visible { outline: 4px solid var(--sun); outline-offset: 2px; }
+.play-bubble {
+  position: absolute; z-index: 2; pointer-events: auto; transform-origin: 50% 100%;
+  display: inline-flex; align-items: center; gap: .22em; min-height: 54px; padding: 4px 22px 6px 16px; white-space: nowrap;
+  font-size: 26px; font-weight: 700; color: var(--paper); paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink);
+  border: 4px solid var(--ink); border-radius: 999px; background: var(--coral); box-shadow: 0 5px 0 var(--ink); cursor: pointer;
+}
+.play-bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -12px; width: 18px; height: 18px; translate: -50% 0; rotate: 45deg;
+  background: var(--coral); border: 4px solid var(--ink); border-top: 0; border-left: 0; border-radius: 0 0 5px 0;
+}
+.play-bubble[data-side="below"] { transform-origin: 50% 0; }
+.play-bubble[data-side="below"]::after { bottom: auto; top: -12px; rotate: 225deg; }
+.play-bubble[data-side="right"] { transform-origin: 0 50%; }
+.play-bubble[data-side="right"]::after { left: -12px; bottom: auto; top: 50%; translate: 0 -50%; rotate: 135deg; }
+.play-bubble[data-side="left"] { transform-origin: 100% 50%; }
+.play-bubble[data-side="left"]::after { left: auto; right: -12px; bottom: auto; top: 50%; translate: 0 -50%; rotate: -45deg; }
+.play-bubble svg { width: 1em; height: 1em; -webkit-text-stroke: 0; stroke: var(--ink); stroke-width: 3px; paint-order: stroke fill; }
+.play-bubble:not(:active) { animation: breathe-bubble 2.2s ease-in-out infinite; }
+.play-bubble:active { translate: 0 3px; box-shadow: 0 2px 0 var(--ink); }
+@keyframes breathe-bubble { 50% { scale: 1.07; } }
+.banner {
+  position: absolute; left: 50%; top: 30%; z-index: 3; margin: 0; transform: translate(-50%, 0); pointer-events: none;
+  padding: .28em .9em .34em; border-radius: 999px; background: var(--sun); border: 5px solid var(--ink); box-shadow: 0 6px 0 rgba(10, 6, 40, .6);
+  font-size: clamp(22px, min(4.8vh, 7vw), 42px); font-weight: 700; line-height: 1.1; color: var(--ink); text-align: center;
+  width: max-content; max-width: calc(100% - 32px);
+}
+.banner.pop { animation: banner-in .6s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes banner-in { from { opacity: 0; transform: translate(-50%, 0) scale(.4) rotate(-6deg); } }
+
+/* ---------- The galaxy (D-065) ---------- */
+.galaxy-view { position: absolute; inset: 0; z-index: 16; pointer-events: none; }
+.gx-head {
+  position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  padding: max(10px, env(safe-area-inset-top)) 76px 0;
+}
+.gx-head .round { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top)); background: var(--paper); pointer-events: auto; }
+.gx-title { margin: 6px 0 0; white-space: nowrap; font-size: clamp(26px, min(5.6vh, 8.6vw), 48px); font-weight: 700; color: var(--sun); paint-order: stroke fill; -webkit-text-stroke: 8px var(--ink); text-shadow: 0 4px 0 var(--ink); }
+.gx-orbs { position: absolute; inset: 0; pointer-events: none; }
+.gx { position: absolute; pointer-events: auto; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.gx:focus-visible { outline: 4px solid var(--sun); outline-offset: 2px; }
+
+/* ---------- A level's card (sketches 1, section 2) ---------- */
+.lc-back { position: absolute; inset: 0; z-index: 19; background: rgba(8, 5, 30, .55); }
+.level-card { width: min(430px, calc(100% - 28px)); padding: 16px 20px 22px; }
+.lc-close { position: absolute; z-index: 2; right: 12px; top: 12px; width: 50px; height: 50px; background: var(--paper); }
+.lc-sys { margin: 0; font-size: 18px; color: #5B4CC4; }
+.lc-title {
+  margin: 0 0 2px; font-size: clamp(38px, 8vw, 50px); line-height: 1.05; color: var(--sun); rotate: -2deg;
+  paint-order: stroke fill; -webkit-text-stroke: 9px var(--ink); text-shadow: 0 5px 0 var(--ink);
+}
+.lc-about { margin: 6px 0 10px; font-size: 21px; line-height: 1.2; }
+.lc-sample {
+  display: inline-flex; align-items: center; gap: .3em; margin: 0 0 6px; padding: .1em .16em .1em .6em; border-radius: 999px;
+  background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(10, 6, 40, .4); font-size: 26px; line-height: 1;
+}
+.lc-stars svg { width: 54px; height: 54px; } .lc-stars svg:nth-child(2) { width: 66px; height: 66px; translate: 0 -8px; }
+.lc-stars.none { opacity: .55; }
+.lc-note { margin: 6px 0 14px; font-size: 19px; }
+.slots { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin: 6px 0 2px; }
+.slot { width: 32px; height: 32px; border-radius: 50%; border: 3px dashed #A9A2DC; display: grid; place-items: center; background: rgba(255, 255, 255, .5); }
+.slot.on { border: 3px solid var(--ink); background: #F4F1FF; }
+.slot .rock-icon { width: 28px; height: 28px; }
+.slot.new { animation: star-in .55s cubic-bezier(.3, 1.8, .5, 1) backwards; }
+.rocks-p { margin: 4px 0 12px; font-size: 21px; }
+.rocks-p b { color: #5B4CC4; }
+.end-done {
+  margin: 0 auto 6px; width: fit-content; padding: .18em .8em .22em; border-radius: 999px; background: var(--mint); border: 4px solid var(--ink);
+  font-size: 22px; font-weight: 700; animation: unlock-in .8s .3s cubic-bezier(.3, 1.6, .5, 1) backwards;
+}
+.nb {
+  align-self: center; margin-left: 4px; padding: .12em .5em; border-radius: 999px; background: var(--mint); border: 3px solid var(--ink);
+  font-size: 18px; font-weight: 700; rotate: 10deg; animation: star-in .6s .8s cubic-bezier(.3, 1.8, .5, 1) backwards;
+}
+.big.go.hyper { background: linear-gradient(90deg, #7C6CF0, #FF5D73); }
+
+@media (max-width: 560px) {
+  .map-bar { grid-template-columns: auto 1fr auto; grid-template-areas: "gal . hangar" "sys sys sys"; row-gap: 6px; }
+  .map-bar .hangar-btn { margin-top: 14px; }
+  .sys-name { font-size: 32px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .map-bar { gap: 8px; }
+  .sys-name { font-size: 30px; -webkit-text-stroke-width: 7px; }
+  .sys-of { font-size: 12px; margin-top: 3px; }
+  .step-btn { width: 42px; height: 42px; }
+  .level-card { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 0 16px; width: min(640px, calc(100% - 24px)); padding: 12px 18px 14px; }
+  .level-card > .lc-sys, .level-card > .lc-title, .level-card > .lc-about { grid-column: 1; }
+  .level-card > .lc-sample, .level-card > .lc-stars, .level-card > .slots, .level-card > .lc-note, .level-card > #lc-play { grid-column: 2; justify-self: center; }
+  .level-card > .lc-sample { grid-row: 1; } .level-card > .lc-stars { grid-row: 2; } .level-card > .slots { grid-row: 3; } .level-card > .lc-note { grid-row: 4; margin: 2px 0 8px; } .level-card > #lc-play { grid-row: 5; }
+  .level-card > .lc-sys { grid-row: 1; } .level-card > .lc-title { grid-row: 2; } .level-card > .lc-about { grid-row: 3 / span 2; align-self: start; }
+  .slot { width: 28px; height: 28px; } .slot .rock-icon { width: 24px; height: 24px; }
+  .rocks-p { margin: 2px 0 4px; font-size: 19px; }
+  .end-done { font-size: 19px; }
 }

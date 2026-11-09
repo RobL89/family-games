@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.6.
+"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.7.
+
+Changes at v1.7 (step 2c-build, D-058, D-064): progress is format 3, so a good round on sums level 1
+opens the next level (Red Dust 2, in place of a planet), the agreed shape is the map's, and the
+preview's test panel keeps what the game kept since in format 3.
 
 Changes at v1.6 (step 2c-build, D-058, D-068): Rocket Sums joined Rocket Lander, so this test
 moved with its code (once test_rocket_sums_e2e.py 1.5) and plays the one game: the sums levels are
@@ -206,15 +210,15 @@ with sync_playwright() as pw:
     rows = pc.evaluate('__test.reported()')
     check(len(rows) == 1 and rows[0]['stars'] == 3 and rows[0]['level'] == SUMS + 1, f'the round is reported: 3 stars, level 9 (sums level 1): {rows}')
     saved = pc.evaluate('__test.saved()')
-    check(bool(saved) and saved.get('unlocked') == 2, f'the state is saved: {saved}')
+    check(bool(saved) and saved.get('open') == 'dust-2' and saved.get('levels', {}).get('dust-1', {}).get('stars') == 3,
+          f'the state is saved: Red Dust 2 opened, 3 stars on Red Dust 1 (D-064): {saved}')
     keys = pc.evaluate('Object.keys(localStorage)')
     entry = pc.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 2, **{k: saved[k] for k in ('unlocked', 'planet', 'rocks', 'landings', 'ship', 'ships')}}
-          and saved.get('ship') == 'classic' and saved.get('ships') == ['classic'],
-          f'kept on the device under the tile\'s one entry (D-042): {keys}, {entry}')
+    check(keys == [KEY] and entry == {'v': 3, **saved} and saved.get('ship') == 'classic' and saved.get('ships') == ['classic'],
+          f'kept on the device under the game\'s one entry, format 3 (D-042, D-058): {keys}, {entry}')
     pc.reload()
     pc.wait_for_function('window.__test && __test.state().ready')
-    check(state(pc)['progress']['unlocked'] == 2, 'a reload keeps the progress')
+    check(state(pc)['progress']['open'] == 'dust-2', 'a reload keeps the progress')
     pc.wait_for_timeout(1200)
     pc.screenshot(path=f'{OUT}/pc-end.png')
     no_sideways(pc, 'PC, light')
@@ -320,7 +324,7 @@ with sync_playwright() as pw:
     pv.wait_for_function('window.__test && __test.state().ready')
     check((state(pv)['level'], state(pv)['progress']['rocks']) == (SUMS + 7, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
     pv.evaluate(f'(e) => localStorage.setItem("{KEY}", JSON.stringify(e))',
-                {'v': 2, 'unlocked': 1, 'planet': 'moon', 'rocks': 10, 'landings': 0, 'ship': 'teapot', 'ships': ['classic', 'teapot']})
+                {'v': 3, 'at': 'dust-7', 'open': 'dust-7', 'levels': {}, 'rocks': 10, 'landings': 0, 'ship': 'teapot', 'ships': ['classic', 'teapot']})
     pv.reload()
     pv.wait_for_function('window.__test && __test.state().ready')
     p = state(pv)['progress']

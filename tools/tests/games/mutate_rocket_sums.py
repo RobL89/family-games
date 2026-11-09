@@ -1,5 +1,9 @@
-"""Bench, not part of the close: plants faults in Rocket Sums and counts how many the tests catch.
-Version 1.1. Copied from mutate_rocket_lander.py 1.3 in step 2a-2, with Rocket Sums' faults.
+"""Bench, not part of the close: plants faults in Rocket Lander's sums levels (once Rocket Sums) and
+counts how many the tests catch. Version 1.2. Copied from mutate_rocket_lander.py 1.3 in step 2a-2.
+Changes at v1.2 (step 2c-build, D-058): the sums moved into games/rocket-lander/ (sums.js,
+sums-levels.js) and their checks into test_rocket_lander_core.py and test_rocket_lander_sums_e2e.py,
+so the faults follow them, word for word; run with --fast it shows the merged core test still
+catches every core fault.
 Changes at v1.1: faults in levels 1 and 2's halves (D-040) and the one-0-a-round limit (Q-022).
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/
@@ -15,9 +19,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-G = 'games/rocket-sums/'
+G = 'games/rocket-lander/'
 C = 'games/_common/rocket/'
-CORE, E2E = 'test_rocket_sums_core.py', 'test_rocket_sums_e2e.py'
+CORE, E2E = 'test_rocket_lander_core.py', 'test_rocket_lander_sums_e2e.py'
 
 FAULTS = [
     ('a times sum with a 0 (D-033)', G + 'sums.js', "if (op === '×') for (let a = 1;", "if (op === '×') for (let a = 0;", CORE),
@@ -28,7 +32,7 @@ FAULTS = [
     ('the answer always mid-stretch', G + 'sums.js', 'const from = lo + Math.min(hi - lo, Math.floor(rand() * (hi - lo + 1)));', 'const from = Math.round((lo + hi) / 2);', CORE),
     ('a stretch past the biggest answer', G + 'sums.js', 'hi = Math.min(sum.answer, top - span);', 'hi = sum.answer;', CORE),
     ('the operations setting ignored', G + 'sums.js', 'return set.length ? set : row.ops.slice();', 'return row.ops.slice();', CORE),
-    ('level 1 starts on 0 to 10 (D-039, D-040)', G + 'levels.js', "parts: [{ plus_max: 5, to: 5 },", "parts: [{ plus_max: 5, to: 10 },", CORE),
+    ('level 1 starts on 0 to 10 (D-039, D-040)', G + 'sums-levels.js', "parts: [{ plus_max: 5, to: 5 },", "parts: [{ plus_max: 5, to: 10 },", CORE),
     ('no halves: one part all round', G + 'sums.js', 'Math.min(n - 1, Math.floor((i * n) / total))', '0', CORE),
     ('− ignores its biggest number', G + 'sums.js', 'upTo(row.minus_max ?? 10)', 'upTo(10)', CORE),
     ('sums answering 0 never left out', G + 'sums.js', "if (!zeroOk && all.some((f) => f.answer !== 0))", "if (false)", CORE),

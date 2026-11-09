@@ -1,6 +1,7 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
-// Version 1.2. Changes at v1.2 (step 2a-4b): the round may hand in its own drawing for the ship
+// Version 1.3. Changes at v1.3 (step 2c-build, D-066): setBare(true) draws the planet's sky and ground
+// without the number line, its numbers and lights, as the map's backdrop. Changes at v1.2 (step 2a-4b): the round may hand in its own drawing for the ship
 // flown (v.drawShip, D-053); without one, today's rocket is drawn as before.
 // Changes at v1.1: the pieces of Bip's moment at the end of a round (D-044): the
 // gold pad, the ladder, the big flag with the round's stars, and fireworks.
@@ -693,6 +694,7 @@ export class Scene {
     this.notes = [];
     this.acc = { spark: 0, smoke: 0 };
     this.topPad = 90;
+    this.bare = false; // the map's backdrop: sky and ground, no number line
   }
 
   resize(W, H, dpr) {
@@ -705,6 +707,12 @@ export class Scene {
   setPlanet(i) {
     this.pi = i; this.planet = PLANETS[i];
     if (this.W) this.build();
+  }
+
+  setBare(on) {
+    if (this.bare === !!on) return;
+    this.bare = !!on;
+    if (this.W) this.buildGround();
   }
 
   setLine(line, labelEvery, showAs) {
@@ -988,7 +996,7 @@ export class Scene {
     }
     x.fillStyle = rgba(P.rim, 0.85); x.fillRect(0, gy - 1, W, 3);
     x.fillStyle = rgba(INK, 0.35); x.fillRect(0, gy - 3, W, 2);
-    if (this.line) this.drawStrip(x);
+    if (this.line && !this.bare) this.drawStrip(x);
     this.ground = c;
   }
 
@@ -1318,7 +1326,7 @@ export class Scene {
     ctx.drawImage(this.hills, -this.hillsPad - this.offX * 0.03, 0, this.W + this.hillsPad * 2, this.H);
     ctx.drawImage(this.ground, 0, 0, this.W, this.H);
     this.hlBox = null;
-    if (!this.line) return;
+    if (!this.line || this.bare) return;
     if (v.pad) drawPad(ctx, v.pad, this.groundY, this.rocketH, this.W);
     const hb = v.highlight ? this.highlightBox(v.highlight) : null;
     this.drawLabels(ctx, hb);

@@ -1,5 +1,7 @@
 // Rocket Lander's own sounds, made in the browser (no sound files to download), and
-// words said out loud with the device's own voice. Version 1.1.
+// words said out loud with the device's own voice. Version 1.2.
+//
+// Changes at v1.2 (step 2c-build, D-058): 'warp', hyperspace's rising whoosh and shimmer.
 //
 // Changes at v1.1 (step 2a-4b): the hangar's sounds (the door, the glass, the fanfares) and the
 // ships' touchdown sounds (D-046, D-049), moved here from the step 2a-4a mock-ups
@@ -95,6 +97,7 @@ const SOUNDS = {
   chime: (t) => [1568, 2093, 2637, 3136, 2637].forEach((f, i) => tone(f, t + i * 0.07, 0.7, 'sine', 0.05)),
   harp: (t) => [523, 659, 784, 988, 1175, 1319, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.045, 0.6, 'triangle', 0.05)),
   aurora: (t) => { [523, 659, 784, 1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, t + i * 0.06, 1.0, 'sine', 0.045)); tone(262, t, 1.5, 'triangle', 0.06); tone(392, t + 0.2, 1.3, 'triangle', 0.04); },
+  warp: (t) => { noise(t, 2.6, { from: 200, to: 4200, volume: 0.16, q: 1.4 }); tone(110, t, 2.4, 'sawtooth', 0.035, 880); tone(220, t + 0.3, 2.1, 'triangle', 0.05, 1760); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 2.2 + i * 0.06, 0.6, 'sine', 0.04)); },
   fanLegend: (t) => { [392, 523, 659, 784].forEach((f, i) => tone(f, t + i * 0.12, 0.3, 'square', 0.04)); [1047, 1319, 1568].forEach((f) => tone(f, t + 0.5, 1.1, 'triangle', 0.05)); SOUNDS.aurora(t + 0.6); },
 };
 

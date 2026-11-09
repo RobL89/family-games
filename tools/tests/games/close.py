@@ -1,4 +1,7 @@
-"""Close script for P-034 (Kids Games Development). Version 1.3.
+"""Close script for P-034 (Kids Games Development). Version 1.4.
+
+Changes at v1.4 (step 2c-build, D-066): the map screens' new test, test_rocket_lander_map_e2e.py, runs
+when Rocket Lander's own files change (and with everything when the shared engine does).
 
 Changes at v1.3 (step 2c-build, D-058, D-068): one rocket game. The sums tests moved with the code
 (test_rocket_sums_core.py into test_rocket_lander_core.py; test_rocket_sums_e2e.py is now
@@ -54,6 +57,7 @@ COVERS = {
     'test_rocket_lander_e2e.py': ['games/rocket-lander/'],
     'test_rocket_lander_labels.py': ['games/rocket-lander/'],
     'test_rocket_lander_levels.py': ['games/rocket-lander/'],
+    'test_rocket_lander_map_e2e.py': ['games/rocket-lander/'],
     'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
 }

@@ -1,4 +1,10 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.6.
+"""Rocket Lander's preview bundle (D-018). Version 1.7.
+
+Changes at v1.7 (step 2c-build, D-058, D-068): the map is home, so the stamp and the test panel's cog
+show on the map; the panel sets the level picked (where the rocket goes, the map opening up to it),
+that level's best stars and rocks found, and the moon rocks, in place of the planets unlocked; the
+level is the map's place, kept on the device by the game, so after a reset and a reload the map
+starts from level 1 (the panel no longer puts a level back for the tab); progress is format 3.
 
 Changes at v1.6 (step 2a-4c, ER-004): "home" (a reload) keeps the progress on the device: the
 rocks and planets applied in the test panel, and what the game kept since (a ship bought, rocks
@@ -125,7 +131,7 @@ with sync_playwright() as pw:
         check(not pg.is_visible('.preview-stamp'), f'{tag}: the stamp hides once a round starts')
         pg.evaluate('__test.right()')
         pg.wait_for_function('__test.state().right === 1', timeout=20000)
-        check(stamp_shown, f'{tag}: the stamp shows on the start screen')
+        check(stamp_shown, f'{tag}: the stamp shows on the map')
         check(True, f'{tag}: a right landing counts in the bundle')
         others = [u for u in asked if not u.startswith(LOCAL) and not u.startswith('data:')]
         check(not others, f'{tag}: asks for nothing but itself' + (f': {others[:3]}' if others else ''))
@@ -135,7 +141,7 @@ with sync_playwright() as pw:
         # the --debug build
         pg.goto(LOCAL + 'd.html')
         pg.wait_for_function('window.__test && __test.state().ready')
-        check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the start screen')
+        check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the map')
         pg.click('.pv-cog')
         check(pg.is_visible('.pv-lock') and not pg.is_visible('.pv-level'), f'{tag}: debug build: the cog opens the lock, not the panel (D-055)')
         pg.fill('#pv-code', '1111')
@@ -146,22 +152,23 @@ with sync_playwright() as pw:
         check(pg.is_visible('.pv-level') and not pg.is_visible('.pv-lock'), f'{tag}: debug build: 1234 opens the panel')
         pg.select_option('.pv-level', '6')
         pg.fill('#pv-landings_per_round', '3')
-        pg.fill('#pv-unlocked', '4')
+        pg.fill('#pv-stars', '2')
+        pg.fill('#pv-found', '5')
         pg.fill('#pv-rocks', '12')
         pg.click('.pv-apply')
         s = pg.evaluate('__test.state()')
         got = (s['level'], s['line']['from'], s['line']['to'], s['labels'], s['settings']['from'], s['settings']['landings_per_round'],
-               s['progress']['unlocked'], s['progress']['rocks'])
-        check(got == (6, 0, 10, ['0', '2', '4', '6', '8', '10'], None, 3, 4, 12),
-              f'{tag}: debug build: level 6 (0 to 10, every other number), 3 landings, 4 planets and 12 rocks reach the game: {got}')
-        check(pg.inner_text('#start-rocks') == '12', f'{tag}: debug build: the start screen shows the rocks set')
+               s['progress']['at'], s['progress']['open'], s['progress']['rocks'], s['progress']['levels'].get('moon-6'))
+        check(got == (6, 0, 10, ['0', '2', '4', '6', '8', '10'], None, 3, 'moon-6', 'moon-7', 12, {'stars': 2, 'rocks': 5}),
+              f'{tag}: debug build: level 6 (0 to 10, every other number), 3 landings, its 2 stars (so level 7 opens) and 5 rocks, and 12 rocks reach the game: {got}')
+        check(pg.inner_text('#map-rocks') == '12' and pg.evaluate('__test.state().map.rocketAt') == 'moon-6', f'{tag}: debug build: the map shows the rocks set, the rocket at level 6')
         # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
         pg.reload()
         pg.wait_for_function('window.__test && __test.state().ready')
         s = pg.evaluate('__test.state()')
-        got = (s['progress']['rocks'], s['progress']['unlocked'], s['level'], s['settings']['landings_per_round'])
-        check(got == (12, 4, 6, 3), f'{tag}: debug build: after Apply, home keeps the rocks, planets, level and settings set: {got}')
-        bought = {'v': 2, 'unlocked': 4, 'planet': 'moon', 'rocks': 2, 'landings': 1, 'ship': 'box', 'ships': ['classic', 'box']}
+        got = (s['progress']['rocks'], s['progress']['open'], s['level'], s['settings']['landings_per_round'])
+        check(got == (12, 'moon-7', 6, 3), f'{tag}: debug build: after Apply, home keeps the rocks, the map, the place and the settings set: {got}')
+        bought = {'v': 3, 'at': 'moon-6', 'open': 'moon-7', 'levels': {'moon-6': {'stars': 2, 'rocks': 5}}, 'rocks': 2, 'landings': 1, 'ship': 'box', 'ships': ['classic', 'box']}
         pg.evaluate('(e) => localStorage.setItem("family-games:rocket-lander:progress", JSON.stringify(e))', bought)
         pg.reload()
         pg.wait_for_function('window.__test && __test.state().ready')
@@ -176,17 +183,18 @@ with sync_playwright() as pw:
         else:
             pg.screenshot(path=os.path.join(tmp, 'panel-pc.png'))
         # Reset (D-055): clears both rocket tiles' progress on this device, on a second tap.
-        made_up = {'v': 2, 'unlocked': 5, 'planet': 'ice', 'rocks': 90, 'landings': 70, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
-        pg.evaluate('(e) => { for (const t of ["rocket-lander", "rocket-sums"]) localStorage.setItem(`family-games:${t}:progress`, JSON.stringify(e)); }', made_up)
+        made_up = {'v': 3, 'at': 'dust-2', 'open': 'dust-2', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}}, 'rocks': 90, 'landings': 70, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+        old_sums = {'v': 2, 'unlocked': 5, 'planet': 'ice', 'rocks': 90, 'landings': 70, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+        pg.evaluate('([a, b]) => { localStorage.setItem("family-games:rocket-lander:progress", JSON.stringify(a)); localStorage.setItem("family-games:rocket-sums:progress", JSON.stringify(b)); }', [made_up, old_sums])
         pg.click('.pv-reset')
         kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
         check(all(kept), f'{tag}: debug build: one tap on Reset clears nothing yet')
         pg.click('.pv-reset')
         kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
-        check(kept == [None, None], f'{tag}: debug build: a second tap clears both tiles\' entries: {kept}')
+        check(kept == [None, None], f'{tag}: debug build: a second tap clears the game\'s entry and the old Rocket Sums one: {kept}')
         p = pg.evaluate('__test.state().progress')
-        got = (p['unlocked'], p['rocks'], p['landings'], p['ship'], p['ships'], pg.inner_text('#start-rocks'), pg.input_value('#pv-rocks'))
-        check(got == (1, 0, 0, 'classic', ['classic'], '0', '0'), f'{tag}: debug build: the game starts afresh: {got}')
+        got = (p['open'], p['at'], p['rocks'], p['landings'], p['ship'], p['ships'], pg.inner_text('#map-rocks'), pg.input_value('#pv-rocks'))
+        check(got == ('moon-1', 'moon-1', 0, 0, 'classic', ['classic'], '0', '0'), f'{tag}: debug build: the game starts afresh: {got}')
         pg.evaluate('__test.begin({ level: 6, settings: {}, state: { ships: ["classic", "teapot"], ship: "teapot", rocks: 5 } })')
         pg.wait_for_function('__test.state().doorShip === "teapot"', timeout=5000)
         pg.click('.pv-reset')
@@ -197,8 +205,8 @@ with sync_playwright() as pw:
         pg.wait_for_function('window.__test && __test.state().ready')
         p = pg.evaluate('__test.state().progress')
         lvl = pg.evaluate('__test.state().level')
-        check((p['rocks'], p['unlocked'], lvl) == (0, 1, 6),
-              f'{tag}: debug build: after a reload it stays reset, the level kept for the tab: {p["rocks"]} rocks, {p["unlocked"]} planet, level {lvl}')
+        check((p['rocks'], p['open'], lvl) == (0, 'moon-1', 1),
+              f'{tag}: debug build: after a reload it stays reset, the map from level 1 (the place is the game\'s, not the tab\'s): {p["rocks"]} rocks, open to {p["open"]}, level {lvl}')
         pg.click('.pv-cog')
         check(pg.is_visible('.pv-lock'), f'{tag}: debug build: the lock asks again each time')
         pg.fill('#pv-code', '1234')

@@ -1,5 +1,11 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.2.
+Version 1.3.
+
+Changes at v1.3 (step 2c-build, D-052, D-058, D-066): the map is home. The hangar door is on the
+map's top bar, with the rocks on it, and the showroom shuts back to the map; the map's rocket is the
+ship flown (the start card's title rocket went with the card). Progress is format 3: the made-up
+entries are format 3, an entry without ships has Classic owned and flown, and the unknown format
+version is 4 (formats 1 and 2 start afresh, checked in test_rocket_lander_map_e2e.py).
 
 Changes at v1.2 (step 2c-build, D-058): one rocket game. What ran in both tiles now runs twice in
 Rocket Lander, the second time on a sums level (map level 9 for the round after buying, 15 for the
@@ -53,7 +59,7 @@ httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
 errors, fails, outside = [], [], []
-V1 = {'v': 1, 'unlocked': 3, 'planet': 'moon', 'rocks': 37, 'landings': 40}  # made-up progress
+V1 = {'v': 3, 'at': 'moon-3', 'open': 'moon-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}, 'moon-2': {'stars': 2, 'rocks': 4}}, 'rocks': 37, 'landings': 40}  # made up; no ships
 
 
 def check(ok, what):
@@ -198,11 +204,12 @@ with sync_playwright() as pw:
         # ---------- A version 1 entry loads as Classic (D-053) ----------
         pg = open_tile(br, T, level=lv)
         p = st(pg)['progress']
-        check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 37 and p['unlocked'] == 3,
-              f'{T}: a version 1 entry still loads, with Classic owned and flown: {p}')
-        check(pg.is_visible('#hangar') and pg.inner_text('#start-rocks') == '37',
-              f'{T}: the start card has the hangar door, with the rocks on it (D-052)')
-        check(st(pg)['doorShip'] == 'classic' and st(pg)['heroShip'] == 'classic', f'{T}: the doorway shows the ship flown; the title\'s rocket is today\'s')
+        OPEN = 'moon-3' if lv is None else 'dust-1'  # begin({ level: 9 }) takes the rocket to Red Dust 1 and opens the map up to it
+        check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 37 and p['open'] == OPEN,
+              f'{T}: an entry without ships loads with Classic owned and flown: {p}')
+        check(pg.is_visible('#hangar') and pg.inner_text('#map-rocks') == '37',
+              f'{T}: the map\'s top bar has the hangar door, with the rocks on it (D-052)')
+        check(st(pg)['doorShip'] == 'classic' and st(pg)['map']['rocket']['ship'] == 'classic', f'{T}: the doorway and the map\'s rocket show the ship flown')
         pg.screenshot(path=f'{OUT}/{T}-start.png')
 
         # ---------- The showroom: starts on the ship flown ----------
@@ -220,8 +227,8 @@ with sync_playwright() as pw:
         p = st(pg)['progress']
         check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: bought at its price, 37 - 30 = 7 left: {p}')
         e = entry_of(pg, T)
-        check(e and e.get('v') == 2 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'],
-              f'{T}: the purchase is kept on the device straight away, at format version 2: {e}')
+        check(e and e.get('v') == 3 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'] and e.get('open') == OPEN,
+              f'{T}: the purchase is kept on the device straight away, at format version 3, the map kept too: {e}')
         pg.wait_for_timeout(700)
         pg.screenshot(path=f'{OUT}/{T}-showroom-bought.png')
         pg.wait_for_function('__test.state().progress.ship === "teapot" && !__test.state().hangar.bip', timeout=10000)
@@ -254,12 +261,12 @@ with sync_playwright() as pw:
         pg.wait_for_function('__test.state().hangar.cur === "phoenix" && !__test.state().hangar.switching', timeout=5000)
         check(True, f'{T}: a swipe shows the next ship')
 
-        # ---------- Back to the start card, and into play ----------
+        # ---------- Back to the map, and into play ----------
         tap(pg, 'back')
         pg.wait_for_function('!__test.state().hangar.open', timeout=8000)
         pg.wait_for_timeout(300)
-        check(pg.is_visible('#start') and st(pg)['doorShip'] == 'teapot' and st(pg)['heroShip'] == 'classic',
-              f'{T}: back on the start card, the doorway shows the Teapot and the title\'s rocket is unchanged')
+        check(pg.is_visible('#map') and st(pg)['doorShip'] == 'teapot' and st(pg)['map']['rocket']['ship'] == 'teapot',
+              f'{T}: back on the map, the doorway and the map\'s rocket show the Teapot')
         pg.screenshot(path=f'{OUT}/{T}-start-teapot.png')
         pg.click('#play', force=True)
         pg.wait_for_function('__test.state().phase === "fly"')
@@ -277,15 +284,15 @@ with sync_playwright() as pw:
         p = st(pg)['progress']
         check(p['ship'] == 'teapot' and p['ships'] == ['classic', 'teapot'] and p['rocks'] == 7, f'{T}: a reload keeps the ships: {p}')
         for bad, want, why in (
-            ({**V1, 'v': 2, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 37), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
-            ({**V1, 'v': 3, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version starts afresh'),
+            ({**V1, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 37), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
+            ({**V1, 'v': 4, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version starts afresh'),
         ):
             pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(T), bad])
             pg.reload(); ready(pg)
             p = st(pg)['progress']
             check((p['ship'], p['ships'], p['rocks']) == want, f'{T}: {why}: {p}')
         # the shell hands the state in (stage 3): begin() takes the ships
-        ok = pg.evaluate('(s) => __test.begin({ state: s })', {'unlocked': 1, 'planet': 'moon', 'rocks': 3, 'landings': 0, 'ship': 'box', 'ships': ['classic', 'box']})
+        ok = pg.evaluate('(s) => __test.begin({ state: s })', {'at': 'moon-1', 'open': 'moon-1', 'levels': {}, 'rocks': 3, 'landings': 0, 'ship': 'box', 'ships': ['classic', 'box']})
         pg.wait_for_timeout(200)
         check(ok and st(pg)['progress']['ship'] == 'box' and st(pg)['doorShip'] == 'box', f'{T}: begin() takes the ships handed in')
         pg.context.close()
@@ -312,7 +319,7 @@ with sync_playwright() as pw:
         tap(pg, 'back')
         pg.wait_for_function('!__test.state().hangar.open', timeout=8000)
         pg.wait_for_timeout(300)
-        check(st(pg)['doorShip'] == 'aurora', f'{T}: the doorway shows the Aurora Cruiser')
+        check(st(pg)['doorShip'] == 'aurora' and st(pg)['map']['rocket']['ship'] == 'aurora', f'{T}: the doorway and the map show the Aurora Cruiser')
         pg.click('#play', force=True)
         pg.wait_for_function('__test.state().phase === "fly"')
         pg.wait_for_timeout(900)
@@ -329,20 +336,20 @@ with sync_playwright() as pw:
     # ---------- Effects never over the numbers (D-045): each ship flown, its effects drawn alone ----------
     for tile, ships, lv in (('rocket-lander', [s for s, _ in OTHERS + PREMIUM], None), ('sums level', [s for s, _ in PREMIUM], 15)):
         for sid in ships:
-            pg = open_tile(br, tile, 844, 390, True, {**V1, 'v': 2, 'ship': sid, 'ships': ['classic', sid]})
+            pg = open_tile(br, tile, 844, 390, True, {**V1, 'ship': sid, 'ships': ['classic', sid]})
             pix = play_round_pixels(pg, sid, tile.replace(' ', '-'), full=tile == 'rocket-lander', level=lv)
             check(pix['flown'] == sid and pix['n'] > 10 and pix['drawn'] and pix['below'] == 0,
                   f'{tile} {sid}: flown; in {pix["n"]} looks (flying, landing{", Bip" + chr(39) + "s moment" if pix["finale"] else ""}) '
                   f'nothing of the ship or its effects below the line\'s edge: {pix}')
             pg.context.close()
     # less motion: the ship flown is calm, makes about a third of the effects, and stays off the numbers
-    pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'v': 2, 'ship': 'aurora', 'ships': ['classic', 'aurora']}, motion='reduce')
+    pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'ship': 'aurora', 'ships': ['classic', 'aurora']}, motion='reduce')
     pix = play_round_pixels(pg, 'aurora', 'calm', full=False)
     sh = st(pg)['ship']
     check(sh and sh['calm'] and sh['k'] == 0.35 and pix['below'] == 0, f'less motion: the Aurora Cruiser flies calmly, with fewer effects, off the numbers: {sh} {pix}')
     pg.context.close()
     for motion, still in (('reduce', True), ('no-preference', False)):
-        pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'v': 2, 'ship': 'phoenix', 'ships': ['classic', 'phoenix']}, motion=motion)
+        pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'ship': 'phoenix', 'ships': ['classic', 'phoenix']}, motion=motion)
         play_round_pixels(pg, 'phoenix', 'calm' if still else 'beat', full=False)
         sh = st(pg)['ship']
         check(sh and (sh['flap'] == 0) == still, f'{motion}: the Golden Phoenix\'s wings {"hold still" if still else "beat"} (wing beat clock {sh and sh["flap"]})')
@@ -353,7 +360,7 @@ with sync_playwright() as pw:
         for scheme in ('light', 'dark'):
             pg = open_tile(br, 'rocket-lander', w, h, mobile, {**V1, 'rocks': 75}, scheme=scheme)
             wide = pg.evaluate('document.documentElement.scrollWidth - innerWidth')
-            card = pg.evaluate('(() => { const c = document.getElementById("start"); return c.scrollHeight - c.clientHeight; })()')
+            card = pg.evaluate('(() => { const r = document.getElementById("hangar").getBoundingClientRect(); return r.right > innerWidth || r.left < 0 || r.top < -20 ? 2 : 0; })()')
             if scheme == 'light':
                 pg.screenshot(path=f'{OUT}/size-{w}x{h}-start.png')
             open_hangar(pg)
@@ -361,7 +368,7 @@ with sync_playwright() as pw:
             wide = max(wide, pg.evaluate('document.documentElement.scrollWidth - innerWidth'))
             hits = {k: pg.evaluate(f'__test.hangarHit("{k}")') for k in ('action', 'back', 'left', 'right', 'badge:classic', 'badge:aurora')}
             on = all(v and 0 <= v['x'] <= w and 0 <= v['y'] <= h for v in hits.values())
-            check(wide <= 0 and card <= 1 and on, f'{w}x{h} {scheme}: no sideways scrolling ({wide}), start card fits ({card}), showroom buttons on screen: {hits}')
+            check(wide <= 0 and card <= 1 and on, f'{w}x{h} {scheme}: no sideways scrolling ({wide}), the hangar door on screen on the map ({card}), showroom buttons on screen: {hits}')
             if scheme == 'light':
                 pg.screenshot(path=f'{OUT}/size-{w}x{h}-showroom.png')
             pg.context.close()

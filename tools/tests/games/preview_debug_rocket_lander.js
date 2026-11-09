@@ -1,5 +1,11 @@
-// Rocket Lander's test panel for previews. Version 1.6.
+// Rocket Lander's test panel for previews. Version 1.7.
 //
+// Changes at v1.7 (step 2c-build, D-058, D-068): the map. The level picked is where Apply sends the
+// rocket (any system and level, the map opening up to it); its best stars (0: not played) and the
+// rocks found there can be set; the moon rocks stay. Planets unlocked go (the map's progress is format
+// 3). Reset clears the one game's entry and the old Rocket Sums one, and the cog shows on the map only.
+// Only the settings are kept for the tab now: the level is the rocket's place on the map, part of the
+// progress the game keeps on the device, so a reload no longer sends the rocket back (as ER-004).
 // Changes at v1.6 (step 2c-build, D-058): one game. The level picker lists the map's levels in
 // play order (Moon's eight number levels, then Red Dust's eight sums levels: the stand-in map),
 // and the settings are the game's own schema (game.js's SCHEMA), the sums' operations included.
@@ -22,13 +28,12 @@
 // A cog in the top-right corner of the start screen opens a sheet with the level to play
 // (Number mode's eight, from levels.js), the settings built from the game's own schema (so
 // new settings show up by themselves; empty means "as the level says") and the game's
-// progress (planets unlocked, moon rocks).
+// progress (the moon rocks, and the best stars and rocks found of the level picked).
 // Apply hands them to the game through its begin() seam, the same way the shell will.
 // The values are kept in sessionStorage for this tab only, so they survive "home"
 // (which reloads the preview); if storage is refused they are simply not kept.
 (() => {
   const { resolveSettings } = __m_games__common_rocket_settings;
-  const { PLANETS } = __m_games__common_rocket_planets;
   const { MAP, SCHEMA: SETTINGS } = __m_games_rocket_lander_game; // the game's own map and settings
   // the map's levels in play order, numbered as begin({ level }) counts them
   const ROUTE = MAP.flatMap((sys) => sys.levels.map((lv, n) => ({ sys, lv, n })));
@@ -41,7 +46,7 @@
   width:56px;height:56px;display:grid;place-items:center;border-radius:50%;border:4px solid #1B1446;background:#fff;
   color:#1B1446;box-shadow:0 4px 0 rgba(10,6,40,.55);cursor:pointer;padding:0}
 .pv-cog svg{width:62%;height:62%}
-body:has(#start[hidden]) .pv-cog{display:none}
+body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{display:none}
 .pv-back{position:fixed;inset:0;z-index:2000;background:rgba(10,6,40,.55);display:flex;justify-content:flex-end}
 .pv-back[hidden]{display:none}
 .pv-sheet{width:min(100%,420px);height:100%;overflow:auto;background:#fff;color:#1B1446;font:16px/1.35 system-ui,sans-serif;
@@ -100,21 +105,32 @@ body:has(#start[hidden]) .pv-cog{display:none}
   }
 
   const level = el('select', { className: 'pv-level' }, ROUTE.map((r, i) => el('option', { value: String(i + 1), textContent: levelName(r, i) })));
-  level.addEventListener('change', () => { msg.textContent = 'Press Apply to play this level.'; });
+  level.addEventListener('change', () => { showLevel(); msg.textContent = 'Press Apply to send the rocket to this level.'; });
   const levelBox = el('fieldset', {}, [el('legend', { textContent: 'Level' }), level,
     el('small', { textContent: 'The map\'s levels in play order: Moon\'s number levels, then Red Dust\'s sums levels (stand-in until the level plan). Settings below left empty follow the level; a value overrides it for that one thing.' })]);
 
-  const unlocked = el('input', { type: 'number', min: 1, max: PLANETS.length, step: 1, id: 'pv-unlocked', inputMode: 'numeric' });
   const rocks = el('input', { type: 'number', min: 0, max: 9999, step: 1, id: 'pv-rocks', inputMode: 'numeric' });
+  const stars = el('input', { type: 'number', min: 0, max: 3, step: 1, id: 'pv-stars', inputMode: 'numeric' });
+  const found = el('input', { type: 'number', min: 0, max: 8, step: 1, id: 'pv-found', inputMode: 'numeric' });
   const progressBox = el('fieldset', {}, [el('legend', { textContent: 'Progress' }),
-    el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-unlocked', textContent: 'planets unlocked' }), unlocked,
-      el('small', { textContent: `1 to ${PLANETS.length}: ${PLANETS.map((p) => p.name).join(', ')}` })]),
-    el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-rocks', textContent: 'moon rocks' }), rocks])]);
+    el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-rocks', textContent: 'moon rocks' }), rocks,
+      el('small', { textContent: 'To spend in the hangar.' })]),
+    el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-stars', textContent: 'this level\'s best stars' }), stars,
+      el('small', { textContent: '0 to 3, for the level picked above; 0: not played yet. 2 or more opens the next level.' })]),
+    el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-found', textContent: 'rocks found here' }), found,
+      el('small', { textContent: '0 to 8, for the level picked above: a replay finds only the rest.' })])]);
+  // the best stars and rocks of the level picked, as the game holds them now
+  const levelId = () => { const r = ROUTE[Number(level.value) - 1]; return r ? r.lv.id : null; };
+  function showLevel() {
+    const e = (T.state().progress.levels || {})[levelId()] || { stars: 0, rocks: 0 };
+    stars.value = String(e.stars); found.value = String(e.rocks);
+  }
 
-  // Reset (D-055): clears both rocket tiles' progress on this device, on a second tap.
+  // Reset (D-055): clears the game's progress on this device, on a second tap: its entry, which held
+  // Rocket Lander's own before the map, and the old Rocket Sums one.
   const TILES = ['rocket-lander', 'rocket-sums'];
-  const reset = el('button', { type: 'button', className: 'pv-reset', textContent: 'Reset both games' });
-  progressBox.append(reset, el('small', { textContent: 'Planets, moon rocks, landings and ships, in Rocket Lander and Rocket Sums on this device.' }));
+  const reset = el('button', { type: 'button', className: 'pv-reset', textContent: 'Reset the game' });
+  progressBox.append(reset, el('small', { textContent: 'The map, moon rocks, landings and ships on this device, and the old Rocket Sums entry.' }));
 
   const msg = el('p', { className: 'pv-msg', role: 'status' });
   const apply = el('button', { type: 'button', className: 'pv-apply', textContent: 'Apply' });
@@ -136,7 +152,7 @@ body:has(#start[hidden]) .pv-cog{display:none}
   back.addEventListener('click', (e) => { if (e.target === back) back.hidden = true; });
   document.body.append(cog, back);
 
-  function disarm() { reset.classList.remove('armed'); reset.textContent = 'Reset both games'; }
+  function disarm() { reset.classList.remove('armed'); reset.textContent = 'Reset the game'; }
   function show() {
     disarm();
     const s = T.state();
@@ -144,27 +160,29 @@ body:has(#start[hidden]) .pv-cog{display:none}
       if (typeof spec.default === 'boolean') inputs[key].checked = !!s.settings[key];
       else inputs[key].value = s.settings[key] === null ? '' : String(s.settings[key]);
     }
-    unlocked.value = String(s.progress.unlocked);
     rocks.value = String(s.progress.rocks);
     level.value = String(s.level);
+    showLevel();
   }
   function read() {
     const settings = {};
     for (const [key, spec] of Object.entries(SETTINGS)) {
       settings[key] = typeof spec.default === 'boolean' ? inputs[key].checked : inputs[key].value;
     }
-    const progress = T.state().progress;
-    return { level: Number(level.value), settings, state: { ...progress, unlocked: Number(unlocked.value) || 1, rocks: Number(rocks.value) || 0 } };
+    const progress = T.state().progress, id = levelId(), levels = { ...(progress.levels || {}) };
+    const st = Math.max(0, Math.min(3, Math.round(Number(stars.value) || 0))), fd = Math.max(0, Math.min(8, Math.round(Number(found.value) || 0)));
+    if (st > 0) levels[id] = { stars: st, rocks: fd }; else delete levels[id];
+    return { level: Number(level.value), settings, state: { ...progress, levels, rocks: Number(rocks.value) || 0 } };
   }
   function use(given, quiet) {
     const notes = resolveSettings(SETTINGS, given.settings).notes;
     const ok = T.begin(given);
     if (ok) {
-      // the level and settings for this tab; the progress on the device, as the game keeps it (ER-004)
-      try { sessionStorage.setItem(KEY, JSON.stringify({ level: given.level, settings: given.settings })); } catch (e) { /* not kept */ }
+      // the settings for this tab; the place and progress on the device, as the game keeps them (ER-004)
+      try { sessionStorage.setItem(KEY, JSON.stringify({ settings: given.settings })); } catch (e) { /* not kept */ }
       if (given.state) __m_games__common_rocket_kit.keepOnDevice('rocket-lander', T.state().progress);
     }
-    if (!quiet) msg.textContent = ok ? `Applied.${notes.length ? ' ' + notes.join('; ') + '.' : ''}` : 'Go back to the start screen first.';
+    if (!quiet) msg.textContent = ok ? `Applied.${notes.length ? ' ' + notes.join('; ') + '.' : ''}` : 'Go back to the map first.';
     return ok;
   }
 
@@ -187,8 +205,8 @@ body:has(#start[hidden]) .pv-cog{display:none}
     disarm();
     for (const t of TILES) { try { localStorage.removeItem(`family-games:${t}:progress`); } catch (e) { /* nothing kept */ } }
     // state null: the game reads the device again, now empty, so it starts afresh
-    if (use({ ...read(), state: null }, true)) { show(); msg.textContent = 'Both games reset: Classic, 0 moon rocks, one planet.'; }
-    else msg.textContent = 'Go back to the start screen first.';
+    if (use({ ...read(), level: undefined, state: null }, true)) { show(); msg.textContent = 'Reset: Classic, 0 moon rocks, the map from the Moon\'s level 1.'; }
+    else msg.textContent = 'Go back to the map first.';
   });
   close.addEventListener('click', () => { back.hidden = true; });
   apply.addEventListener('click', () => { if (use(read())) { show(); } });
@@ -197,12 +215,12 @@ body:has(#start[hidden]) .pv-cog{display:none}
       if (typeof spec.default === 'boolean') inputs[key].checked = spec.default;
       else inputs[key].value = spec.default === null ? '' : String(spec.default);
     }
-    level.value = '1';
+    level.value = '1'; showLevel();
     msg.textContent = 'Level 1 and the defaults filled. Press Apply to use them.';
   });
 
   try {
     const kept = JSON.parse(sessionStorage.getItem(KEY) || 'null');
-    if (kept && typeof kept === 'object') use({ level: kept.level, settings: kept.settings, state: null }, true); // progress: the device's
+    if (kept && typeof kept === 'object') use({ settings: kept.settings, state: null }, true); // the place and progress: the device's
   } catch (e) { /* nothing kept */ }
 })();

@@ -1,4 +1,13 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.4.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.5.
+
+Changes at v1.5 (step 2c-build, D-058, D-064, D-066): one game with a map. The game opens on the
+map, so a round starts from the Play bubble by the waiting rocket, and what the start card and its
+planet picker showed is now on the map: a good round opens the next level (in place of the next
+planet), and the map shows the levels and rocks kept. Progress is format 3 (the map's place, how
+far it's open, each level's best stars and rocks found), so the agreed shape changes, the unknown
+format version is 4, and a format 2 entry starts afresh. Every planet's scenery is still shot, by
+the test hook, since only the Moon and Red Dust can be played on the stand-in map. The map's own
+screens have their own test, test_rocket_lander_map_e2e.py.
 
 Changes at v1.4 (step 2a-4b): the progress entry is at format version 2, with the ships owned
 and flown (D-053), so the agreed shape gains `ship` and `ships`, and the unknown version is 3.
@@ -111,7 +120,7 @@ def saved(pg):
 
 
 def start(pg):
-    pg.click('#play', force=True)  # force: the Play button gently "breathes"
+    pg.click('#play', force=True)  # force: the Play bubble gently "breathes"; the rocket blasts off first
     pg.wait_for_function('__test.state().phase === "fly"')
 
 
@@ -206,41 +215,46 @@ with sync_playwright() as pw:
     ph.screenshot(path=f'{OUT}/ph-end.png')
     s = state(ph)
     check(s['right'] == 7, f'7 right landings counted ({s["right"]})')
-    check(s['unlockedNew'] == 1, 'a 3-star round unlocks the next planet')
+    check(s['result']['opened'] == 'moon-2', f'a 3-star round opens the next level (D-064): {s["result"]["opened"]}')
     rows = reported(ph)
     check(len(rows) == 1 and rows[0]['stars'] == 3, f'the round is reported with 3 stars: {rows}')
     check(rows and rows[0]['score'] == 7 + s['perfects'], f'score = right + perfects ({rows[0]["score"] if rows else None})')
     prog = saved(ph)
-    check(bool(prog) and prog.get('unlocked') == 2 and prog.get('landings') == 7
-          and prog.get('planet') == 'dust' and prog.get('rocks') == s['perfects'],
+    rk = min(8, s['perfects'])  # a level's rocks: one for each perfect landing, 8 at most (D-058)
+    check(bool(prog) and prog.get('open') == 'moon-2' and prog.get('at') == 'moon-2' and prog.get('landings') == 7
+          and prog.get('rocks') == rk and prog.get('levels') == {'moon-1': {'stars': 3, 'rocks': rk}},
           f'the state is saved: {prog}')
 
     # D-042: the progress is kept on the device, under the tile's one entry, with a format version
     keys = ph.evaluate('Object.keys(localStorage)')
     entry = ph.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 2, 'unlocked': 2, 'planet': 'dust', 'rocks': s['perfects'], 'landings': 7, 'ship': 'classic', 'ships': ['classic']},
-          f'only the tile\'s entry is written, in the agreed shape: {keys}, {entry}')
+    check(keys == [KEY] and entry == {'v': 3, 'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 3, 'rocks': rk}}, 'rocks': rk,
+                                      'landings': 7, 'ship': 'classic', 'ships': ['classic']},
+          f'only the game\'s entry is written, in the agreed shape (format 3, D-058): {keys}, {entry}')
     ph.reload()
     ph.wait_for_function('window.__test && __test.state().ready')
     p2 = state(ph)['progress']
-    check(saved(ph) is None and (p2['unlocked'], p2['planet'], p2['rocks'], p2['landings']) == (2, 'dust', s['perfects'], 7),
+    check(saved(ph) is None and (p2['at'], p2['open'], p2['rocks'], p2['landings']) == ('moon-2', 'moon-2', rk, 7),
           f'a reload keeps the progress: {p2}')
-    check(ph.locator('.planet:not([aria-disabled])').count() == 2 and ph.inner_text('#start-rocks') == str(s['perfects']),
-          'the start screen shows the kept planets and rocks')
-    for bad, why in (('{broken', 'a broken entry'), ('{"v":3,"unlocked":5,"rocks":9}', 'an entry of an unknown format version')):
+    mk = state(ph)['map']['markers']
+    check([k['state'] for k in mk][:3] == ['done', 'next', 'locked'] and mk[0]['stars'] == 3 and ph.inner_text('#map-rocks') == str(rk),
+          'the map shows the kept levels and rocks')
+    for bad, why in (('{broken', 'a broken entry'), ('{"v":4,"at":"dust-3","open":"dust-3","rocks":9}', 'an entry of an unknown format version'),
+                     ('{"v":2,"unlocked":5,"planet":"ice","rocks":9}', 'a format 2 entry, from before the map')):
         ph.evaluate(f'localStorage.setItem("{KEY}", {bad!r})')
         ph.reload()
         ph.wait_for_function('window.__test && __test.state().ready')
         p3 = state(ph)['progress']
-        check(p3['unlocked'] == 1 and p3['rocks'] == 0, f'{why} starts afresh: {p3}')
+        check(p3['open'] == 'moon-1' and p3['rocks'] == 0, f'{why} starts afresh: {p3}')
     ph.evaluate('localStorage.clear()')
-    # The saved state handed back, as the shell will: two planets unlocked in the picker
+    # The saved state handed back, as the shell will: two levels open on the map
     check(begin(ph, None, prog), 'begin() takes the saved state back')
     ph.wait_for_timeout(600)
-    ph.screenshot(path=f'{OUT}/ph-picker-two.png')
-    check(ph.locator('.planet:not([aria-disabled])').count() == 2, 'picker: two planets can be tapped')
-    # The picked planet changes the scenery; play a round on Red Dust with a 1-star result
+    ph.screenshot(path=f'{OUT}/ph-map-two.png')
+    check([k['state'] for k in state(ph)['map']['markers']][:3] == ['done', 'next', 'locked'], 'the map: two levels can be played')
+    # Play by the rocket: level 2, with a 1-star result
     start(ph)
+    check(state(ph)['levelId'] == 'moon-2', 'Play by the rocket plays level 2, where it waits')
     ph.wait_for_timeout(900)
     ph.screenshot(path=f'{OUT}/ph-dust-fly.png')
     play_round(ph, [True, False, False, True, False, False, False, False], {'finale': 'ph-finale-miss'}, stars=1)  # after a miss too
@@ -248,8 +262,8 @@ with sync_playwright() as pw:
     ph.screenshot(path=f'{OUT}/ph-end-1star.png')
     rows = reported(ph)
     check(len(rows) == 1 and rows[0]['stars'] == 1, f'2 of 8 right gives 1 star: {rows}')
-    check(saved(ph)['unlocked'] == 2 and saved(ph)['planet'] == 'dust', 'a 1-star round unlocks nothing')
-    check(begin(ph) is False, 'begin() is refused away from the start screen')
+    check(saved(ph)['open'] == 'moon-2' and saved(ph)['at'] == 'moon-2' and saved(ph)['levels']['moon-2']['stars'] == 1, 'a 1-star round opens nothing')
+    check(begin(ph) is False, 'begin() is refused away from the map')
     ph.context.close()
 
     # ---------- PC: a full round, mouse and keys ----------
@@ -271,7 +285,7 @@ with sync_playwright() as pw:
     pc.screenshot(path=f'{OUT}/pc-end.png')
     rows = reported(pc)
     check(len(rows) == 1 and rows[0]['stars'] == 2, f'PC: 5 of 8 gives 2 stars: {rows}')
-    check((saved(pc) or {}).get('unlocked') == 2, 'PC: 2 stars unlocks the next planet')
+    check((saved(pc) or {}).get('open') == 'moon-2', 'PC: 2 stars opens the next level (D-064)')
     pc.context.close()
 
     # ---------- Landscape phone ----------
@@ -364,31 +378,21 @@ with sync_playwright() as pw:
     check(s['results'][0]['right'] and s['results'][0]['spot'] == s['target'] + off, f'close_enough 2: landing 2 away counts ({s["results"][0]})')
     pg.context.close()
 
-    # The planet picker with two planets unlocked (PC), and every planet's scenery
-    pg = open_game(br, 1280, 800, False, None, {'unlocked': 2, 'planet': 'dust', 'rocks': 5, 'landings': 20})
+    # The map with two levels open (PC), and every planet's scenery in flight (the test hook shows the
+    # planets the stand-in map can't reach yet; looks only)
+    pg = open_game(br, 1280, 800, False, None, {'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 2, 'rocks': 3}}, 'rocks': 5, 'landings': 20})
     pg.wait_for_timeout(500)
-    pg.screenshot(path=f'{OUT}/pc-picker-two.png')
-    check(pg.locator('#start-rocks').inner_text() == '5', 'PC picker: the moon rock total comes from the saved state')
+    pg.screenshot(path=f'{OUT}/pc-map-two.png')
+    check(pg.locator('#map-rocks').inner_text() == '5', 'PC map: the moon rock total comes from the saved state')
     pg.context.close()
-    ALL = {'unlocked': 6, 'planet': 'moon', 'rocks': 12, 'landings': 80}
-    pg = open_game(br, 390, 844, True, None, ALL)
-    pg.wait_for_timeout(400)
-    pg.screenshot(path=f'{OUT}/ph-picker-all.png')
-    for i, name in enumerate(['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed']):
-        pg.click(f'.planet[data-i="{i}"]')
+    for (w, h, mob, tag) in ((390, 844, True, 'ph'), (1280, 800, False, 'pc')):
+        pg = open_game(br, w, h, mob)
         start(pg)
-        pg.wait_for_timeout(1400)
-        pg.screenshot(path=f'{OUT}/planet-{name}-ph.png')
-        pg.reload(); pg.wait_for_function('window.__test && __test.state().ready'); begin(pg, None, ALL); pg.wait_for_timeout(200)
-    pg.context.close()
-    pg = open_game(br, 1280, 800, False, None, ALL)
-    for i, name in enumerate(['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed']):
-        pg.click(f'.planet[data-i="{i}"]')
-        start(pg)
-        pg.wait_for_timeout(1400)
-        pg.screenshot(path=f'{OUT}/planet-{name}-pc.png')
-        pg.reload(); pg.wait_for_function('window.__test && __test.state().ready'); begin(pg, None, ALL); pg.wait_for_timeout(200)
-    pg.context.close()
+        for i, name in enumerate(['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed']):
+            pg.evaluate(f'__test.planet({i})')
+            pg.wait_for_timeout(700)
+            pg.screenshot(path=f'{OUT}/planet-{name}-{tag}.png')
+        pg.context.close()
 
     # Phone, phone sideways and PC, light and dark: no sideways scrolling, start screen and in flight
     for (w, h, mobile) in [(390, 844, True), (844, 390, True), (1280, 800, False)]:
