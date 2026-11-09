@@ -1,4 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.7.
+"""Rocket Lander's preview bundle (D-018). Version 1.8.
+
+Changes at v1.8 (step 2c-build): the test panel's cog covers none of the map's buttons, the
+hangar's rocks count or the stamp (it covered the rocks count from the top-right corner).
 
 Changes at v1.7 (step 2c-build, D-058, D-068): the map is home, so the stamp and the test panel's cog
 show on the map; the panel sets the level picked (where the rocket goes, the map opening up to it),
@@ -34,8 +37,8 @@ Checks that build_preview.py:
 3. makes a page that asks for nothing but itself (D-043), with its font loaded from inside
    the page, no page errors, and that plays a landing;
 4. passes the RL-3 labels test (test_rocket_lander_labels.py --page) as the bundle;
-5. with --debug: the cog shows on the start screen only, a level, a setting and progress
-   applied in the panel reach the game, and a normal build has no cog.
+5. with --debug: the cog shows on the map only, clear of its buttons, a level, a setting and
+   progress applied in the panel reach the game, and a normal build has no cog.
 
 Stand-ins: headless Chromium (Playwright) for phone and PC; a local static server.
 Usage, from the repo root:
@@ -142,6 +145,13 @@ with sync_playwright() as pw:
         pg.goto(LOCAL + 'd.html')
         pg.wait_for_function('window.__test && __test.state().ready')
         check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the map')
+        covered = pg.evaluate('''() => {
+          const c = document.querySelector('.pv-cog').getBoundingClientRect();
+          const hit = (r) => r.width && r.height && r.left < c.right && c.left < r.right && r.top < c.bottom && c.top < r.bottom;
+          return [...document.querySelectorAll('button[aria-label="Back to games"], #map-bar button, #map-rocks, #marks .mk, #play, #banner, .preview-stamp')]
+            .filter((e) => e.offsetParent !== null && hit(e.getBoundingClientRect())).map((e) => e.id || e.className);
+        }''')
+        check(not covered, f'{tag}: debug build: the cog covers none of the map\'s buttons, the rocks count or the stamp' + (f': {covered}' if covered else ''))
         pg.click('.pv-cog')
         check(pg.is_visible('.pv-lock') and not pg.is_visible('.pv-level'), f'{tag}: debug build: the cog opens the lock, not the panel (D-055)')
         pg.fill('#pv-code', '1111')

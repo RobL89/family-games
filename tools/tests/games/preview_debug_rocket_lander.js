@@ -1,5 +1,7 @@
-// Rocket Lander's test panel for previews. Version 1.7.
+// Rocket Lander's test panel for previews. Version 1.8.
 //
+// Changes at v1.8 (step 2c-build): the cog moves to the map's bottom-left corner, above the stamp,
+// since in the top-right it covered the hangar's moon rocks count on the map bar.
 // Changes at v1.7 (step 2c-build, D-058, D-068): the map. The level picked is where Apply sends the
 // rocket (any system and level, the map opening up to it); its best stars (0: not played) and the
 // rocks found there can be set; the moon rocks stay. Planets unlocked go (the map's progress is format
@@ -25,7 +27,7 @@
 // module script; it is never in the game's own files, so game screens stay child-only
 // (D-009) and trial-week previews are built without it (D-020).
 //
-// A cog in the top-right corner of the start screen opens a sheet with the level to play
+// A cog in the bottom-left corner of the map opens a sheet with the level to play
 // (Number mode's eight, from levels.js), the settings built from the game's own schema (so
 // new settings show up by themselves; empty means "as the level says") and the game's
 // progress (the moon rocks, and the best stars and rocks found of the level picked).
@@ -42,7 +44,7 @@
   const levelName = ({ sys, lv, n }, i) => `${i + 1} · ${sys.name} ${n + 1} · ${lv.about}`;
 
   const css = `
-.pv-cog{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:1001;
+.pv-cog{position:fixed;bottom:max(44px,calc(env(safe-area-inset-bottom) + 38px));left:max(12px,env(safe-area-inset-left));z-index:1001;
   width:56px;height:56px;display:grid;place-items:center;border-radius:50%;border:4px solid #1B1446;background:#fff;
   color:#1B1446;box-shadow:0 4px 0 rgba(10,6,40,.55);cursor:pointer;padding:0}
 .pv-cog svg{width:62%;height:62%}
