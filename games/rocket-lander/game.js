@@ -675,6 +675,18 @@ window.__test = {
   },
   wrong() { const v = this.wrongSpot(); if (v == null) return false; this.place(v); this.drop(); return v; },
   speed(k) { timeScale = k; },
+  // make this landing's target a given number on the line (while flying)
+  aim(v) {
+    if (G.phase !== 'fly' || !line) return false;
+    G.target = line.value(line.index(v)); G.prev = G.target; showTarget(); return G.target;
+  },
+  // RL-3: labels still showing (alpha over 0.05) under the lit-up number after a miss
+  overlaps() {
+    const h = scene.hlBox;
+    if (!h || h.a < 0.95) return null;
+    const hit = (b) => b.x < h.x + h.w && h.x < b.x + b.w && b.y < h.y + h.h && h.y < b.y + b.h;
+    return (scene.labelBoxes || []).filter((b) => b.alpha > 0.05 && hit(b)).map((b) => ({ text: b.text, alpha: b.alpha }));
+  },
   // show another planet's scenery (looks only; nothing is saved)
   planet(i) { scene.setPlanet(i); },
   freeze(on) { if (on) { cancelAnimationFrame(frame); } else { last = performance.now(); frame = requestAnimationFrame(loop); } },

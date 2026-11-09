@@ -868,10 +868,13 @@ export class Scene {
     // numbers
     const fs = this.fs, ly = gy + 17 + fs * 0.92;
     x.font = `600 ${fs}px ${FONT}`; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
-    this.shown.forEach(({ i, text }) => {
+    // The numbers themselves are drawn each frame by drawLabels() (RL-3); here only where they go.
+    const lw = Math.max(3, fs * 0.28);
+    this.labelStyle = { fs, lw, ly };
+    this.labelBoxes = this.shown.map(({ i, text }) => {
       const px = x0 + i * pps;
-      x.lineWidth = Math.max(3, fs * 0.28); x.strokeStyle = INK; x.strokeText(text, px, ly);
-      x.fillStyle = '#FFFFFF'; x.fillText(text, px, ly);
+      const w = x.measureText(text).width + lw;
+      return { i, text, px, x: px - w / 2, y: ly - fs * 0.8 - lw / 2, w, h: fs * 0.8 + lw, alpha: 1 };
     });
     this.labelY = ly;
   }
@@ -1051,14 +1054,39 @@ export class Scene {
     ctx.globalAlpha = a;
     rr(ctx, px - 3.5, gy - 18, 7, 36, 3.5); ctx.fillStyle = INK; ctx.fill();
     rr(ctx, px - 2, gy - 16.5, 4, 33, 2); ctx.fillStyle = SUN; ctx.fill();
-    const fs = Math.round(this.fs * 1.2);
+    const { fs, text, bx, cy, tw } = this.highlightBox(Hl);
     ctx.font = `600 ${fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const text = fmt(Hl.value, this.showAs), tw = ctx.measureText(text).width;
-    const cy = gy + 17 + this.fs * 0.55;
-    const bx = clamp(px, tw / 2 + 12, this.W - tw / 2 - 12);
     rr(ctx, bx - tw / 2 - 9, cy - fs * 0.68, tw + 18, fs * 1.36, fs * 0.5);
     ctx.fillStyle = SUN; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = INK; ctx.fillText(text, bx, cy + fs * 0.04);
+    ctx.globalAlpha = 1;
+  }
+
+  // Where the lit-up number's box sits, outline included (x, y, w, h), and what's in it.
+  highlightBox(Hl) {
+    const fs = Math.round(this.fs * 1.2);
+    this.ctx.font = `600 ${fs}px ${FONT}`;
+    const text = fmt(Hl.value, this.showAs), tw = this.ctx.measureText(text).width;
+    const cy = this.groundY + 17 + this.fs * 0.55;
+    const bx = clamp(this.xOf(Hl.value), tw / 2 + 12, this.W - tw / 2 - 12);
+    return { fs, text, bx, cy, tw, x: bx - tw / 2 - 10.5, y: cy - fs * 0.68 - 1.5, w: tw + 21, h: fs * 1.36 + 3, a: Hl.a };
+  }
+
+  // The numbers under the line, drawn each frame. RL-3: a number the lit-up box would
+  // cover fades out as the box lights up, so the two never sit on top of each other.
+  drawLabels(ctx, hb) {
+    const S = this.labelStyle;
+    if (!S || !this.labelBoxes) return;
+    const crosses = (b) => hb && b.x < hb.x + hb.w && hb.x < b.x + b.w && b.y < hb.y + hb.h && hb.y < b.y + b.h;
+    ctx.font = `600 ${S.fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+    ctx.lineWidth = S.lw;
+    for (const b of this.labelBoxes) {
+      b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;
+      if (b.alpha <= 0) continue;
+      ctx.globalAlpha = b.alpha;
+      ctx.strokeStyle = INK; ctx.strokeText(b.text, b.px, S.ly);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillText(b.text, b.px, S.ly);
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -1126,8 +1154,11 @@ export class Scene {
     this.drawFar(ctx, t);
     ctx.drawImage(this.hills, -this.hillsPad - this.offX * 0.03, 0, this.W + this.hillsPad * 2, this.H);
     ctx.drawImage(this.ground, 0, 0, this.W, this.H);
+    this.hlBox = null;
     if (!this.line) return;
-    if (v.highlight) this.drawHighlight(ctx, v.highlight, t);
+    const hb = v.highlight ? this.highlightBox(v.highlight) : null;
+    this.drawLabels(ctx, hb);
+    if (v.highlight) { this.drawHighlight(ctx, v.highlight, t); this.hlBox = hb; }
     if (v.glow) this.drawGlow(ctx, v.glow, t);
     this.drawLights(ctx, t);
     if (v.shadow) this.drawShadow(ctx, v.shadow);

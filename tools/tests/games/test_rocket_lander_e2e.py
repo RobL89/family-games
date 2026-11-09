@@ -13,7 +13,8 @@ Needs Python Playwright. From the repo root:
 It starts its own server on a free port. Screenshots go to a temporary folder unless one
 is given; they show made-up play only and are never committed.
 Fails on any request that leaves the local server other than the blocked fonts, on any
-console error or warning, and on RL-3 (the label after a miss overlapping its neighbours).
+console error or warning, and on sideways scrolling at phone, phone-sideways and PC sizes,
+light and dark. RL-3 has its own test, test_rocket_lander_labels.py.
 """
 import functools, http.server, os, re, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
@@ -338,6 +339,18 @@ with sync_playwright() as pw:
         pg.screenshot(path=f'{OUT}/planet-{name}-pc.png')
         pg.reload(); pg.wait_for_function('window.__test && __test.state().ready'); begin(pg, None, ALL); pg.wait_for_timeout(200)
     pg.context.close()
+
+    # Phone, phone sideways and PC, light and dark: no sideways scrolling, start screen and in flight
+    for (w, h, mobile) in [(390, 844, True), (844, 390, True), (1280, 800, False)]:
+        for scheme in ('light', 'dark'):
+            pg = open_game(br, w, h, mobile)
+            pg.emulate_media(color_scheme=scheme)
+            wide = pg.evaluate('document.documentElement.scrollWidth - innerWidth')
+            start(pg)
+            pg.wait_for_timeout(900)
+            wide = max(wide, pg.evaluate('document.documentElement.scrollWidth - innerWidth'))
+            check(wide <= 0, f'{w}x{h} {scheme}: no sideways scrolling ({wide}px over)')
+            pg.context.close()
 
     # Odd settings handed in are fixed, not used (resolveSettings)
     infos.clear()

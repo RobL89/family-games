@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.1 · 2026-11-09 |
+| **Version** | 1.2 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
 
-**Changes at v1.1:** the repo check no longer looks for the children's names (P-034's decision D-017), so the "Private names" note is gone and the privacy line says what stays out.
+**Changes at v1.2:** Rocket Lander is on `claude/games`, running on its own, with its three tests and a fault bench in the checks table.
 
 This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the launcher, the shell, the Sheet's script and the game contract. **P-034 (Kids Games Development)** owns the games. Each project writes only to its own folders, so their work never collides.
 
@@ -36,16 +36,17 @@ This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the 
 
 ## Checks
 
-All of them are in [`tools/tests/games/`](../../tools/tests/games/) and use only Python's standard library and git. Run them from the repo root.
+All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks use only Python's standard library and git; the games' tests also need Node and Python Playwright with Chromium. Run them from the repo root.
 
 | Script | What it checks |
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
-| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests as they are added |
+| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3) and `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes) |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
 | `mutate_checks.py` | A bench, not part of the close: plants faults in the checks and counts how many the tests catch |
+| `mutate_rocket_lander.py` | A bench, not part of the close: plants faults in Rocket Lander and counts how many its tests catch |
 
 ```
 python3 -B tools/tests/games/close.py
@@ -65,7 +66,8 @@ python3 -B tools/tests/games/close.py
 | `games.json` | Live on `main`. P-034 keeps it from now on | The launcher (P-020) |
 | `games/bubble-pop/` | Built; a "Soon" tile | Nobody yet |
 | `games/_template/` | P-020's earlier template; to be redone to the contract | Nobody yet |
-| Rocket Lander, Word Worm, Monster Café | Being brought over from `games-wip`, then built to the contract | Nobody yet |
+| `games/rocket-lander/` | On `claude/games`, running on its own as a plain page (built-in settings, nothing saved); to be built to the contract at stage 2 | Nobody yet |
+| Word Worm, Monster Café | Being brought over from `games-wip`, then built to the contract | Nobody yet |
 | This guide and the checks | On `claude/games` | P-034, and P-020 to see the folder map |
 
 **Live branch:** `main`. Work in progress is on `claude/games`. Anything there may change without notice until it's published.
@@ -78,5 +80,6 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.2 | 2026-11-09 | Rocket Lander brought over (step 1b): its tests and bench listed; the games' tests need Node and Playwright |
 | 1.1 | 2026-11-09 | Names check removed from the repo check (D-017) |
 | 1.0 | 2026-11-09 | First version: folder map from D-002, branches, checks, section for other projects |
