@@ -10,6 +10,8 @@
   --mint-dk: #23A985;
   --sky: #8CF5FF;
   --night: #120C3A;
+  --even: #7FD8FF;  /* Number mode: even numbers, sky blue (D-035, E1) */
+  --odd: #FFC93C;   /* Number mode: odd numbers, sun yellow; with --even, a pair colour-blind eyes keep apart */
   --font: "Fredoka", "Baloo 2", "Nunito", "Arial Rounded MT Bold", "Segoe UI Rounded", system-ui, sans-serif;
   color-scheme: dark;
 }
@@ -49,6 +51,13 @@ button { font: inherit; color: inherit; }
   background: var(--sun); border: 3px solid var(--ink); font-weight: 700; font-size: 1.32em; color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+.chip.word { font-size: 1em; padding: .14em .5em .18em; }
+.chip.even, .bubble b.even { background: var(--even); }
+.chip.odd, .bubble b.odd { background: var(--odd); }
+.chip.dice { padding: .08em .22em; }
+.chip .die { display: block; width: 1.05em; height: 1.05em; }
+.chip .die rect { fill: var(--paper); stroke: var(--ink); stroke-width: 2.6; }
+.chip .die circle { fill: var(--ink); }
 .target.pop { animation: pop .55s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes pop { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 60% { transform: scale(1.08) rotate(2deg); opacity: 1; } 100% { transform: none; } }
 

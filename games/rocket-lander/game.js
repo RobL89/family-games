@@ -1,16 +1,22 @@
-// Rocket Lander: steer a falling rocket onto the number asked for on the planet's number line.
-// A round is `landings_per_round` landings; stars for how many were right. Moon rocks for
-// perfect landings and planets unlocked by good rounds are kept with saveState().
+// Rocket Lander, Number mode: steer a falling rocket onto the number asked for on the
+// planet's number line. A round is `landings_per_round` landings; stars for how many were
+// right. Moon rocks for perfect landings and planets unlocked by good rounds are kept with
+// saveState().
 //
-// Runs on its own (D-004, D-014): built-in settings, and its state kept in memory while it
-// runs. begin() takes settings and saved state; at stage 2a the game contract's start
-// message calls it.
+// Levels (contract v0.3 GC3) come from levels.js (D-038): each sets the line, how the
+// numbers are written and what a round asks for (any number, even or odd, dice faces;
+// rules.js, D-035). Runs on its own (D-004, D-014; GC5): level 1, or ?level= in the
+// address, built-in settings, and its state kept in memory while it runs. begin() takes a
+// level, settings and saved state; at stage 3 the game contract's start message calls it.
+// The shared engine is in games/_common/rocket/ (D-027).
 
 import { homeButton, report, reported, goHome, saveState, savedState } from '../_common/rocket/kit.js';
 import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from '../_common/rocket/sound.js';
 import { SETTINGS, resolveSettings } from '../_common/rocket/settings.js';
 import { makeLine, labelGap, nearness, fmt, say, starsFor, tidy } from '../_common/rocket/numbers.js';
 import { PLANETS, planetIndex } from '../_common/rocket/planets.js';
+import { LEVELS } from './levels.js';
+import { levelOf, followLevel, lineFor, planRound, pickTarget as pickRuleTarget, isRight, goalOf } from './rules.js';
 import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from '../_common/rocket/scene.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,7 +31,10 @@ const calm = matchMedia('(prefers-reduced-motion: reduce)');
 scene.calm = calm.matches;
 calm.addEventListener?.('change', () => { scene.calm = calm.matches; });
 
-let S = resolveSettings(SETTINGS).values;
+// Number mode's settings: the shared ones, with the line's left to the level (GC3).
+const SCHEMA = followLevel(SETTINGS, ['from', 'to', 'label_every']);
+let S = resolveSettings(SCHEMA).values;
+let level = levelOf(LEVELS, null);
 let progress = { ...DEFAULT_PROGRESS };
 let ready = false;
 let chosen = 0; // planet picked on the start screen
@@ -35,7 +44,7 @@ let line = null, near = null, loggedNotes = '';
 const R = { x: 0, y: -200, h: 80, rot: 0, sx: 1, sy: 1, legs: 0, flame: 0, pilotIn: true, blink: 0, mood: '', look: 0, vx: 0 };
 const V = { rocket: null, pilot: null, flag: null, shadow: null, highlight: null, glow: null, arrow: null, perfect: null };
 const G = {
-  phase: 'start', t: 0, idx: 0, total: 8, target: null, prev: null, results: [], right: 0, perfects: 0, roundRocks: 0,
+  phase: 'start', t: 0, idx: 0, total: 8, T: null, goal: null, prev: null, plan: [], results: [], right: 0, perfects: 0, roundRocks: 0,
   startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, unlockedNew: -1,
 };
 const input = { active: false, id: null, x: 0, left: false, right: false };
@@ -46,8 +55,10 @@ homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: 
 // ---------- Settings and the line ----------
 
 function applySettings() {
-  line = makeLine(S);
-  scene.setLine(line, Math.max(0, Number(S.label_every) || 0), S.show_as);
+  const L = lineFor(level.row, S);
+  line = makeLine(L);
+  scene.setLine(line, Math.max(0, Number(L.label_every) || 0), S.show_as);
+  scene.setLabelLook(level.row.labels);
   sizeNearness();
   const notes = [...line.notes, ...scene.notes];
   const key = notes.join('; ');
@@ -186,6 +197,7 @@ function startRound() {
   $('hud').hidden = false;
   $('say').hidden = !(S.speak && canSpeak() && !isMuted());
   G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1;
+  G.plan = planRound(level.row.mix, G.total, Math.random);
   G.started = performance.now();
   $('rocks-n').textContent = progress.rocks;
   renderDots();
@@ -206,17 +218,15 @@ function renderDots() {
   ol.setAttribute('aria-label', `Landing ${Math.min(G.idx + 1, G.total)} of ${G.total}`);
 }
 
-function pickTarget() {
-  let i, tries = 0;
-  do { i = Math.floor(Math.random() * line.count); tries++; } while (G.prev != null && line.value(i) === G.prev && tries < 50);
-  return line.value(i);
-}
+// The spot a target points at: its number, or for even or odd the nearest right one to x.
+function spotFor(T, x = R.x) { return T.rule === 'parity' ? goalOf(T, scene.valueAt(x), line) : T.value; }
 
 function nextLanding() {
-  G.target = pickTarget();
-  G.prev = G.target;
+  G.T = pickRuleTarget(G.plan[G.idx] || 'any', line, G.prev, Math.random);
+  G.prev = G.T;
+  G.goal = null;
   measureFall();
-  const xt = scene.xOf(G.target);
+  const xt = scene.xOf(spotFor(G.T, scene.W / 2));
   const span = scene.x1 - scene.x0;
   const zone = Math.min(span * 0.28, Math.max(R.h * 0.9, scene.W * 0.16));
   let x, tries = 0;
@@ -233,10 +243,23 @@ function nextLanding() {
   renderDots();
 }
 
+// A dice face for the chip (D-035's D1): the usual pip patterns for 1 to 6.
+const PIPS = { 1: [[15, 15]], 2: [[8, 8], [22, 22]], 3: [[8, 8], [15, 15], [22, 22]], 4: [[8, 8], [22, 8], [8, 22], [22, 22]],
+  5: [[8, 8], [22, 8], [15, 15], [8, 22], [22, 22]], 6: [[8, 8], [22, 8], [8, 15], [22, 15], [8, 22], [22, 22]] };
+const dieSvg = (n) => `<svg class="die" viewBox="0 0 30 30" aria-hidden="true"><rect x="1.8" y="1.8" width="26.4" height="26.4" rx="6.5"/>${
+  PIPS[n].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.1"/>`).join('')}</svg>`;
+
+// What the target says out loud, and its words for screen readers.
+function targetWords(T) {
+  return T.rule === 'parity' ? `an ${T.parity} number` : say(T.value, S.show_as);
+}
+
 function showTarget() {
-  const el = $('target');
-  $('target-n').textContent = fmt(G.target, S.show_as);
-  el.setAttribute('aria-label', `Land on ${say(G.target, S.show_as)}`);
+  const el = $('target'), chip = $('target-n'), T = G.T;
+  chip.className = 'chip' + (T.rule === 'parity' ? ` word ${T.parity}` : T.rule === 'dice' ? ' dice' : '');
+  if (T.rule === 'dice') chip.innerHTML = dieSvg(T.value);
+  else chip.textContent = T.rule === 'parity' ? T.parity : fmt(T.value, S.show_as);
+  el.setAttribute('aria-label', `Land on ${targetWords(T)}`);
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
   fitTarget();
   sayTarget();
@@ -252,7 +275,7 @@ function fitTarget() {
 
 function sayTarget() {
   if (!S.speak) return;
-  if (speak(`Land on ${say(G.target, S.show_as)}!`)) {
+  if (speak(`Land on ${targetWords(G.T)}!`)) {
     const b = $('say');
     b.classList.remove('talking'); void b.offsetWidth; b.classList.add('talking');
   }
@@ -267,10 +290,12 @@ function at(time, fn) { G.events.push({ at: time, fn }); }
 function touchDown() {
   const raw = scene.valueAt(R.x);
   const spot = line.value(line.index(raw));
-  const right = Math.abs(spot - G.target) <= near.allowed + 1e-9;
-  const perfect = right && Math.abs(raw - G.target) <= near.perfect + 1e-9;
+  const T = G.T;
+  const right = isRight(T, spot, near.allowed);
+  const perfect = right && Math.abs(raw - (T.rule === 'parity' ? spot : T.value)) <= near.perfect + 1e-9;
+  G.goal = right ? spot : goalOf(T, raw, line);
   G.land = { raw, spot, right, perfect, x: scene.xOf(spot), fromX: R.x, dir: R.x < scene.W / 2 ? 1 : -1, impact: 0 };
-  G.results[G.idx] = { target: G.target, spot, right, perfect };
+  G.results[G.idx] = { target: T.rule === 'parity' ? null : T.value, rule: T.rule, parity: T.parity || null, goal: G.goal, spot, right, perfect };
   R.y = G.touchY; R.vx = 0; R.flame = 0;
   V.shadow = null;
   setPhase('landed');
@@ -303,10 +328,11 @@ function touchDown() {
     R.mood = 'oh';
     at(0.4, () => sfx('boop'));
     at(0.55, () => {
-      V.highlight = { value: G.target, a: 0 };
-      V.arrow = { x: scene.xOf(G.target), a: 0 };
+      V.highlight = { value: G.goal, a: 0 };
+      V.arrow = { x: scene.xOf(G.goal), a: 0 };
       showBubble(spot);
-      if (S.speak) speak(`That's ${say(spot, S.show_as)}. ${say(G.target, S.show_as)} is over here!`);
+      if (S.speak) speak(T.rule === 'parity' ? `That's ${say(spot, S.show_as)}. ${say(G.goal, S.show_as)} is ${T.parity}!`
+        : `That's ${say(spot, S.show_as)}. ${say(G.goal, S.show_as)} is over here!`);
     });
     at(2.6, () => { hideBubble(); sfx('whoosh'); });
     at(3.55, () => {
@@ -353,7 +379,9 @@ function afterTakeOff() {
 
 function showBubble(spot) {
   const b = $('bubble');
-  b.innerHTML = `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b>${fmt(G.target, S.show_as)}</b> is over here!`;
+  const T = G.T, there = fmt(G.goal, S.show_as);
+  b.innerHTML = T.rule === 'parity' ? `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b class="${T.parity}">${there}</b> is ${T.parity}!`
+    : `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b>${there}</b> is over here!`;
   b.hidden = false;
   b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
   placeBubble();
@@ -366,7 +394,7 @@ function placeBubble() {
   const x = R.x;
   let y = R.y - R.h * 0.62 - 12;
   // keep clear of the arrow when the right number is close by
-  if (G.phase === 'landed' && scene.arrowCrowded(R.x, scene.xOf(G.target))) y = Math.min(y, scene.arrowTop(true) - 10);
+  if (G.phase === 'landed' && G.goal != null && scene.arrowCrowded(R.x, scene.xOf(G.goal))) y = Math.min(y, scene.arrowTop(true) - 10);
   const left = clamp(x, w / 2 + 10, scene.W - w / 2 - 10);
   b.style.left = left + 'px';
   b.style.top = y + 'px';
@@ -416,7 +444,7 @@ async function endRound() {
   if (G.unlockedNew >= 0) setTimeout(() => { sfx('unlock'); fx.confetti(90, scene.calm); }, 900);
   if (S.speak) speak(stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
 
-  report({ score, stars, seconds, level: 1 });
+  report({ score, stars, seconds, level: level.level });
   saveState({ unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings });
 }
 
@@ -520,13 +548,13 @@ function update(dt, t) {
       R.rot = Math.sin(t2 * 9) * 0.08 * Math.exp(-t2 * 2.5);
       if (t2 >= 2.6 && t2 < 3.55) {
         const k = (t2 - 2.6) / 0.95;
-        x = lerp(L.x, scene.xOf(G.target), ease.inOut(k));
+        x = lerp(L.x, scene.xOf(G.goal), ease.inOut(k));
         y = G.touchY - Math.sin(k * Math.PI) * R.h * 0.75;
         R.flame = Math.sin(k * Math.PI) * 0.85;
-        R.rot = Math.sin(k * Math.PI) * 0.18 * Math.sign(scene.xOf(G.target) - L.x);
+        R.rot = Math.sin(k * Math.PI) * 0.18 * Math.sign(scene.xOf(G.goal) - L.x);
         scene.exhaust(x, y, R.h, R.flame, dt);
       } else if (t2 >= 3.55) {
-        x = scene.xOf(G.target);
+        x = scene.xOf(G.goal);
         R.flame = 0;
         const a2 = t2 - 3.55, sq2 = 0.16 * Math.exp(-a2 * 7) * Math.cos(a2 * 20);
         R.sy = 1 - sq2; R.sx = 1 + sq2 * 0.6; R.rot = 0;
@@ -534,7 +562,7 @@ function update(dt, t) {
       if (V.highlight) V.highlight.a = clamp((t2 - 0.55) / 0.3, 0, 1);
       if (V.arrow) {
         V.arrow.a = V.arrow.leaving ? Math.max(0, V.arrow.a - dt * 4) : clamp((t2 - 0.55) / 0.35, 0, 1);
-        V.arrow.x = scene.xOf(G.target);
+        V.arrow.x = scene.xOf(G.goal);
         V.arrow.rocketX = x;
       }
       placeBubble();
@@ -611,7 +639,18 @@ document.addEventListener('visibilitychange', () => {
 
 // ---------- Boot ----------
 
+// GC5: on its own, the game plays level 1, or the level in the address (?level=3).
+function levelFromAddress() {
+  try { return new URLSearchParams(location.search).get('level'); } catch { return null; }
+}
+
+function useLevel(given) {
+  level = levelOf(LEVELS, given);
+  if (level.note) console.info(`Rocket Lander: ${level.note}.`);
+}
+
 function boot() {
+  useLevel(levelFromAddress());
   sanitiseProgress();
   chosen = planetIndex(progress.planet);
   scene.setPlanet(chosen);
@@ -624,11 +663,13 @@ function boot() {
   ready = true;
 }
 
-// Settings and saved state handed to the game (by a test now, by the shell at stage 2a).
-// Only on the start screen; anything missing or odd falls back to the built-in defaults.
-function begin({ settings = {}, state = null } = {}) {
+// The level, settings and saved state handed to the game (by a test or the preview's test
+// panel now, by the shell at stage 3). Only on the start screen; anything missing or odd
+// falls back to level 1 and the built-in defaults. No level given: the address's, or 1.
+function begin({ level: givenLevel = undefined, settings = {}, state = null } = {}) {
   if (G.phase !== 'start') return false;
-  const r = resolveSettings(SETTINGS, settings);
+  useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
+  const r = resolveSettings(SCHEMA, settings);
   if (r.notes.length) console.info(`Rocket Lander settings: ${r.notes.join('; ')}.`);
   S = r.values;
   progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : {}) };
@@ -644,11 +685,12 @@ function begin({ settings = {}, state = null } = {}) {
 
 boot();
 
-// ---------- Test hook (used by tools/tests/games/test_rocket_lander_e2e.py) ----------
+// ---------- Test hook (used by test_rocket_lander_e2e.py and test_rocket_lander_levels.py) ----------
 
 window.__test = {
   state: () => ({
-    phase: G.phase, target: G.target, idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
+    phase: G.phase, target: G.T && G.T.rule !== 'parity' ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
+    goal: G.goal, level: level.level, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
     rocks: progress.rocks, progress: { ...progress }, allowed: near && near.allowed, perfect: near && near.perfect, tight: near && near.tight,
     pps: scene.pps, x0: scene.x0, x1: scene.x1, rocketX: R.x, rocketY: R.y, touchY: G.touchY, startY: G.startY, startX: G.startX,
     rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,
@@ -659,17 +701,21 @@ window.__test = {
   reported,
   saved: savedState,
   xOf: (v) => scene.xOf(v),
+  // each written number's fill and strength, by the level's label look (D-035, D-038)
+  labelFills: () => (scene.labelBoxes || []).map((b) => ({ text: b.text, ...scene.labelFill(b.i) })),
   // put the rocket over a number (it keeps falling)
   place(v) { R.x = clamp(scene.xOf(v), scene.x0, scene.x1); R.vx = 0; input.active = false; },
   // skip most of the fall
   drop() { if (G.phase === 'fly') { G.t = Math.max(G.t, INTRO); R.y = G.touchY - R.h * 0.25; } },
-  right(offset = 0) { this.place(G.target + offset); this.drop(); },
+  right(offset = 0) { this.place(spotFor(G.T) + offset); this.drop(); },
+  // the wrong spot nearest the target (for even or odd, nearest a right one)
   wrongSpot() {
     if (!line) return null;
+    const aim = spotFor(G.T);
     let best = null;
     for (let i = 0; i < line.count; i++) {
-      const v = line.value(i), d = Math.abs(v - G.target);
-      if (d > near.allowed + 1e-9 && (best == null || d < Math.abs(best - G.target))) best = v;
+      const v = line.value(i);
+      if (!isRight(G.T, v, near.allowed) && (best == null || Math.abs(v - aim) < Math.abs(best - aim))) best = v;
     }
     return best;
   },
@@ -678,7 +724,13 @@ window.__test = {
   // make this landing's target a given number on the line (while flying)
   aim(v) {
     if (G.phase !== 'fly' || !line) return false;
-    G.target = line.value(line.index(v)); G.prev = G.target; showTarget(); return G.target;
+    G.T = { rule: 'any', value: line.value(line.index(v)) }; G.prev = G.T; showTarget(); return G.T.value;
+  },
+  // make this landing's target a dice face (n) or even or odd ('even', 'odd'), while flying
+  aimRule(rule, x) {
+    if (G.phase !== 'fly' || !line) return false;
+    G.T = rule === 'parity' ? { rule, parity: x } : { rule, value: line.value(line.index(x)) };
+    G.prev = G.T; showTarget(); return true;
   },
   // RL-3: labels still showing (alpha over 0.05) under the lit-up number after a miss
   overlaps() {

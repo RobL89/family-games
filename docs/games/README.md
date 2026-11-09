@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.6 · 2026-11-09 |
+| **Version** | 1.7 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.7:** Rocket Lander's Number mode levels (D-038) and their browser test.
 
 **Changes at v1.6:** Rocket Lander's engine moved to `games/_common/rocket/`, shared by its two tiles (D-027); a game may import from `games/_common/` and nothing else outside its folder (D-036).
 
@@ -49,7 +51,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | Script | What it checks |
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
-| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, nothing fetched but Google Fonts, RL-3 on the bundle) |
+| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, nothing fetched but Google Fonts, RL-3 on the bundle) |
 | `build_preview.py` | Not a check: bundles a game folder into one page for a private preview (D-018), with a stamp naming the commit and the folder's sha256. Writes outside the repo by default. `--debug` adds the game's test panel (`preview_debug_<game>.js`: a cog on the start screen, for Rob's testing only, never in a trial preview; D-020) |
 | `measure_rocket_lander_line.py` | A measurement, not a check: how many numbers fit on the line, exactly aimable, at phone and PC sizes |
 | `sketch_rocket_lander_number_mode.py` | Not a check: draws options for Rob to choose from, by playing a copy of the game with small drawing changes, and writes one page of pictures for a private artifact. The game's own files are never changed |
@@ -91,6 +93,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.7 | 2026-11-09 | Number mode's levels test listed (D-038) |
 | 1.6 | 2026-11-09 | Rocket Lander's engine in `games/_common/rocket/` (D-027, D-036) |
 | 1.5 | 2026-11-09 | Number mode sketch script listed (step 2a-1) |
 | 1.4 | 2026-11-09 | Test panel for previews (D-020) and the line measuring script |

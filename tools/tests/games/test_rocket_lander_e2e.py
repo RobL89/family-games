@@ -1,4 +1,7 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.0.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.1.
+
+Changes at v1.1: played on its own, the game is on level 1, whose line is 0 to 5 (D-038,
+contract v0.3 GC5); Number mode's other levels have their own test, test_rocket_lander_levels.py.
 
 Copied from games-wip (7ef1ff0) tools/tests/e2e_rocket-lander.py and changed for step 1b:
 no stand-in Sheet any more (D-004). The game plays on built-in defaults (D-014); settings
@@ -152,13 +155,13 @@ def steer_by_hand(pg, mobile):
 with sync_playwright() as pw:
     br = pw.chromium.launch()
 
-    # ---------- Phone: a full round with default settings (0 to 10) ----------
+    # ---------- Phone: a full round with default settings (level 1: 0 to 5) ----------
     ph = open_game(br, 390, 844, True)
     ph.screenshot(path=f'{OUT}/ph-start.png')
     check(reported(ph) == [] and saved(ph) is None, 'nothing reported or saved before a round')
     s = state(ph)
-    check(s['line'] == {'from': 0, 'to': 10, 'step': 1, 'count': 11}, 'default line is 0 to 10 in ones')
-    check(s['labels'] == [str(i) for i in range(11)], f'phone shows every number 0 to 10: {s["labels"]}')
+    check(s['level'] == 1 and s['line'] == {'from': 0, 'to': 5, 'step': 1, 'count': 6}, f'on its own: level 1, a line of 0 to 5 in ones ({s["line"]})')
+    check(s['labels'] == [str(i) for i in range(6)], f'phone shows every number 0 to 5: {s["labels"]}')
     start(ph)
     s = state(ph)
     check(abs(s['startX'] - ph.evaluate(f'__test.xOf({s["target"]})')) > 50, 'rocket does not start straight above the target')

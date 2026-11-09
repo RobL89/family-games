@@ -583,6 +583,29 @@ export class Scene {
     if (this.W) this.layout();
   }
 
+  // How the written numbers look (Number mode's levels, D-035, D-038): 'plain' (white),
+  // 'parity' (even and odd in the stylesheet's --even and --odd colours), 'parity-faint'
+  // (those colours faded towards white) or 'odd-faint' (odd numbers faint).
+  setLabelLook(look = 'plain') {
+    this.labelLook = look;
+    const cs = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
+    const v = (name) => (cs && cs.getPropertyValue(name).trim()) || '#FFFFFF';
+    this.parityColours = { even: v('--even'), odd: v('--odd') };
+  }
+
+  // A written number's fill and how strongly it shows, by the label look.
+  labelFill(i) {
+    const value = this.line.value(i), whole = Math.abs(value - Math.round(value)) < 1e-6;
+    const parity = Math.abs(Math.round(value)) % 2 === 0 ? 'even' : 'odd';
+    const look = this.labelLook || 'plain';
+    if (whole && (look === 'parity' || look === 'parity-faint')) {
+      const c = this.parityColours[parity];
+      return { fill: look === 'parity' ? c : mix(c, '#FFFFFF', 0.55), a: 1 };
+    }
+    if (whole && look === 'odd-faint' && parity === 'odd') return { fill: '#FFFFFF', a: 0.3 };
+    return { fill: '#FFFFFF', a: 1 };
+  }
+
   layout() {
     const { W, H } = this;
     this.groundH = Math.round(clamp(H * 0.19, 84, 150));
@@ -1083,9 +1106,10 @@ export class Scene {
     for (const b of this.labelBoxes) {
       b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;
       if (b.alpha <= 0) continue;
-      ctx.globalAlpha = b.alpha;
+      const look = this.labelFill(b.i);
+      ctx.globalAlpha = b.alpha * look.a;
       ctx.strokeStyle = INK; ctx.strokeText(b.text, b.px, S.ly);
-      ctx.fillStyle = '#FFFFFF'; ctx.fillText(b.text, b.px, S.ly);
+      ctx.fillStyle = look.fill; ctx.fillText(b.text, b.px, S.ly);
     }
     ctx.globalAlpha = 1;
   }
