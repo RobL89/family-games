@@ -1,4 +1,10 @@
-"""Close script for P-034 (Kids Games Development). Version 1.1.
+"""Close script for P-034 (Kids Games Development). Version 1.2.
+
+Changes at v1.2 (step 2a-4c, D-056): after a full close has passed in this clone (a stamp in
+.git/p034-close-pass, never committed, so each chat's fresh clone starts with a full run), a
+later close runs the fast checks and only the browser tests whose files changed since that pass
+(pick_tests, with the map below). A change to the shared engine, this script, or any file the
+map doesn't know runs everything; so does --full. Nothing changed since: the fast checks only.
 
 Changes at v1.1: the repo check is paths only (D-017), so no names variable is needed.
 
@@ -13,7 +19,7 @@ compares with today's main. It never commits or pushes: that stays a step the
 chat takes, naming the file versions, once this passes.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/close.py [--no-fetch]
+    python3 -B tools/tests/games/close.py [--no-fetch] [--full]
 Exit 0 only if every part passes.
 """
 import glob
@@ -32,6 +38,59 @@ def run(label, cmd):
     return r.returncode
 
 
+T = 'tools/tests/games/'
+STAMP = os.path.join(REPO, '.git', 'p034-close-pass')
+# Fast checks (no browser): always run.
+FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py', 'test_rocket_sums_core.py'}
+# Browser tests, and the paths whose change re-runs each. The hangar test has none of its own:
+# it covers the shared engine, and a change there runs everything.
+COVERS = {
+    'test_rocket_hangar_e2e.py': [],
+    'test_rocket_lander_e2e.py': ['games/rocket-lander/'],
+    'test_rocket_lander_labels.py': ['games/rocket-lander/'],
+    'test_rocket_lander_levels.py': ['games/rocket-lander/'],
+    'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
+    'test_rocket_sums_e2e.py': ['games/rocket-sums/', T + 'build_preview.py', T + 'preview_debug_rocket_sums.js'],
+}
+# Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).
+FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_']
+
+
+def pick_tests(changed, tests):
+    """Which tests to run: ('full' | 'unchanged' | 'some', [test file names]). changed is the
+    list of repo paths changed since the last full pass in this clone, or None if there is none."""
+    if changed is None:
+        return 'full', list(tests)
+    if not changed:
+        return 'unchanged', [t for t in tests if t in FAST]
+    pick = {t for t in tests if t in FAST or t not in COVERS}  # a test the map doesn't know always runs
+    for path in changed:
+        name = path[len(T):] if path.startswith(T) else None
+        if name and name.startswith('test_') and name.endswith('.py'):
+            pick.add(name)
+            continue
+        hits = [t for t, prefixes in COVERS.items() if any(path.startswith(p) for p in prefixes)]
+        if hits:
+            pick.update(h for h in hits if h in tests)
+        elif not any(path.startswith(p) for p in FAST_ONLY):
+            return 'full', list(tests)  # the shared engine, this script, or anything unknown
+    return 'some', [t for t in tests if t in pick]
+
+
+def changed_since_pass():
+    """Paths changed since the last full pass in this clone (committed, staged, unstaged or new),
+    or None if there is no pass on record or its commit can't be found."""
+    try:
+        base = open(STAMP).read().split()[0]
+    except (OSError, IndexError):
+        return None
+    r = subprocess.run(['git', 'diff', '--name-only', base], cwd=REPO, capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    new = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], cwd=REPO, capture_output=True, text=True).stdout
+    return sorted({p for p in (r.stdout + new).splitlines() if p})
+
+
 def main():
     fetch = '--no-fetch' not in sys.argv[1:]
     results = []
@@ -41,7 +100,13 @@ def main():
         results.append(('fetch main', 'PASS' if r.returncode == 0 else 'FAIL'))
         if r.returncode != 0:
             print('fetch main failed:', r.stderr.strip())
-    tests = sorted(glob.glob(os.path.join(HERE, 'test_*.py')), key=lambda p: (not p.endswith('test_checks.py'), p))
+    found = sorted(glob.glob(os.path.join(HERE, 'test_*.py')), key=lambda p: (not p.endswith('test_checks.py'), p))
+    changed = None if '--full' in sys.argv[1:] else changed_since_pass()
+    mode, names = pick_tests(changed, [os.path.basename(p) for p in found])
+    tests = [p for p in found if os.path.basename(p) in names]
+    print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {open(STAMP).read().split()[0][:7]}; '
+                                 f'changed: {", ".join(changed) or "nothing"})'))
+    results.append((f'tests chosen: {mode}, {len(tests)} of {len(found)}', 'PASS'))
     for t in tests:
         code = run(os.path.relpath(t, REPO), PY + [t])
         results.append((os.path.relpath(t, REPO), 'PASS' if code == 0 else 'FAIL'))
@@ -56,6 +121,10 @@ def main():
     for label, res in results:
         print(f'  {res:<22} {label}')
     ok = all(res == 'PASS' for _, res in results)
+    if ok and mode == 'full':
+        full = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO, capture_output=True, text=True).stdout.strip()
+        with open(STAMP, 'w') as f:
+            f.write(full + '\n')
     print('CLOSE:', 'PASS' if ok else 'FAIL')
     return 0 if ok else 1
 
