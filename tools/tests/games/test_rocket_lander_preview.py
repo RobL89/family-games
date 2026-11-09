@@ -1,4 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.2.
+"""Rocket Lander's preview bundle (D-018). Version 1.3.
+
+Changes at v1.3: the test panel's level picker plays Number mode's real levels (D-038):
+level 6 picked in the panel reaches the game with its line and written numbers.
 
 Changes at v1.2: the shared engine is in games/_common/rocket/ (D-027): the stamp's sha256
 and commit cover it, the stand-ins are in its kit.js, and the bundle may reach no further
@@ -14,7 +17,7 @@ Checks that build_preview.py:
 3. makes a page that asks for nothing but itself and Google Fonts (the only outside
    host the game uses, Q-008), with no page errors, and that plays a landing;
 4. passes the RL-3 labels test (test_rocket_lander_labels.py --page) as the bundle;
-5. with --debug: the cog shows on the start screen only, a proposed level and progress
+5. with --debug: the cog shows on the start screen only, a level, a setting and progress
    applied in the panel reach the game, and a normal build has no cog.
 
 Stand-ins: headless Chromium (Playwright) for phone and PC; a local static server.
@@ -120,15 +123,16 @@ with sync_playwright() as pw:
         check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the start screen')
         pg.click('.pv-cog')
         check(pg.is_visible('.pv-sheet'), f'{tag}: debug build: the cog opens the panel')
-        pg.select_option('.pv-level', '0')
+        pg.select_option('.pv-level', '6')
         pg.fill('#pv-landings_per_round', '3')
         pg.fill('#pv-unlocked', '4')
         pg.fill('#pv-rocks', '12')
         pg.click('.pv-apply')
         s = pg.evaluate('__test.state()')
-        got = (s['settings']['from'], s['settings']['to'], s['settings']['speed'], s['settings']['landings_per_round'],
+        got = (s['level'], s['line']['from'], s['line']['to'], s['labels'], s['settings']['from'], s['settings']['landings_per_round'],
                s['progress']['unlocked'], s['progress']['rocks'])
-        check(got == (0, 5, 1, 3, 4, 12), f'{tag}: debug build: level 1, 3 landings, 4 planets and 12 rocks reach the game: {got}')
+        check(got == (6, 0, 10, ['0', '2', '4', '6', '8', '10'], None, 3, 4, 12),
+              f'{tag}: debug build: level 6 (0 to 10, every other number), 3 landings, 4 planets and 12 rocks reach the game: {got}')
         check(pg.inner_text('#start-rocks') == '12', f'{tag}: debug build: the start screen shows the rocks set')
         if tag == 'phone':
             pg.screenshot(path=os.path.join(tmp, 'panel-phone.png'))

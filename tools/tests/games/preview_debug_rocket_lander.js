@@ -1,34 +1,32 @@
-// Rocket Lander's test panel for previews. Version 1.1.
+// Rocket Lander's test panel for previews. Version 1.2.
 //
+// Changes at v1.2: the level picker plays Number mode's real levels (levels.js, D-038)
+// through begin({ level }), in place of the design notes' proposed table; the line
+// settings left empty follow the level (contract v0.3 GC3).
 // Changes at v1.1: the bundle's names for the shared engine's modules, now in games/_common/rocket/ (D-027).
 //
 // Added only by `build_preview.py rocket-lander --debug`, appended inside the bundle's
 // module script; it is never in the game's own files, so game screens stay child-only
 // (D-009) and trial-week previews are built without it (D-020).
 //
-// A cog in the top-right corner of the start screen opens a sheet built from the game's
-// own SETTINGS (so new settings show up by themselves), plus the proposed level table
-// from P-020's design notes (docs/games-pack/rocket-lander/DESIGN.md on `work`, marked
-// there as a judgement) and the game's progress (planets unlocked, moon rocks).
+// A cog in the top-right corner of the start screen opens a sheet with the level to play
+// (Number mode's eight, from levels.js), the settings built from the game's own schema (so
+// new settings show up by themselves; empty means "as the level says") and the game's
+// progress (planets unlocked, moon rocks).
 // Apply hands them to the game through its begin() seam, the same way the shell will.
 // The values are kept in sessionStorage for this tab only, so they survive "home"
 // (which reloads the preview); if storage is refused they are simply not kept.
 (() => {
-  const { SETTINGS, resolveSettings } = __m_games__common_rocket_settings;
+  const { SETTINGS: SHARED, resolveSettings } = __m_games__common_rocket_settings;
   const { PLANETS } = __m_games__common_rocket_planets;
+  const { LEVELS } = __m_games_rocket_lander_levels;
+  const { followLevel } = __m_games_rocket_lander_rules;
+  const SETTINGS = followLevel(SHARED, ['from', 'to', 'label_every']); // as game.js does
   const T = window.__test;
   const KEY = 'rocket-lander-preview-test-panel';
-  const LEVEL_KEYS = ['from', 'to', 'step', 'label_every', 'close_enough', 'speed'];
-  const LEVELS = [
-    ['1 · 0 to 5, every number, slow', [0, 5, 1, 1, 0, 1]],
-    ['2 · 0 to 10, every number, slow', [0, 10, 1, 1, 0, 1]],
-    ['3 · 0 to 10, labels 0, 5, 10', [0, 10, 1, 5, 0, 2]],
-    ['4 · 0 to 20, labels every 5', [0, 20, 1, 5, 0, 2]],
-    ['5 · 0 to 20, ends only, within 1', [0, 20, 1, 0, 1, 2]],
-    ['6 · 0 to 100, labels every 10', [0, 100, 1, 10, 0, 2]],
-    ['7 · 0 to 5 in halves', [0, 5, 0.5, 1, 0, 2]],
-    ['8 · −10 to 10, labels every 5, faster', [-10, 10, 1, 5, 0, 3]],
-  ];
+  const NAMES = { any: 'any number', parity: 'even or odd', dice: 'dice faces' };
+  const levelName = (r) => `${r.level} · ${r.from} to ${r.to}, ${r.label_every === 1 ? 'every number' : r.label_every === 0 ? 'ends only' : `every ${r.label_every}`}`
+    + `${r.labels === 'plain' ? '' : `, ${r.labels.replace('-', ' ')}`} · ${Object.keys(r.mix).map((k) => NAMES[k]).join(', ')}`;
 
   const css = `
 .pv-cog{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:1001;
@@ -75,24 +73,19 @@ body:has(#start[hidden]) .pv-cog{display:none}
     let input;
     if (typeof spec.default === 'boolean') input = el('input', { type: 'checkbox' });
     else if (spec.options) input = el('select', {}, spec.options.map((o) => el('option', { value: o, textContent: o })));
-    else input = el('input', { type: 'number', min: spec.min, max: spec.max, step: 'any', inputMode: 'decimal' });
+    else input = el('input', { type: 'number', min: spec.min, max: spec.max, step: 'any', inputMode: 'decimal', placeholder: spec.default === null ? 'level' : '' });
     input.id = `pv-${key}`;
     inputs[key] = input;
     settingsBox.append(el('div', { className: 'pv-row' }, [
       el('label', { htmlFor: input.id, textContent: key }), input,
-      el('small', { textContent: spec.about + (spec.options ? '' : typeof spec.default === 'number' ? ` (${spec.min} to ${spec.max}; default ${spec.default})` : ` (default ${spec.default ? 'on' : 'off'})`) }),
+      el('small', { textContent: spec.about + (spec.options ? '' : spec.type === 'number' || typeof spec.default === 'number' ? ` (${spec.min} to ${spec.max}; default ${spec.default === null ? 'the level\'s' : spec.default})` : ` (default ${spec.default ? 'on' : 'off'})`) }),
     ]));
   }
 
-  const level = el('select', { className: 'pv-level' }, [el('option', { value: '', textContent: 'Fill from a proposed level…' }),
-    ...LEVELS.map(([name], i) => el('option', { value: String(i), textContent: name }))]);
-  level.addEventListener('change', () => {
-    if (level.value === '') return;
-    LEVELS[Number(level.value)][1].forEach((v, i) => { inputs[LEVEL_KEYS[i]].value = String(v); });
-    msg.textContent = 'Filled. Press Apply to use it.';
-  });
-  const levelBox = el('fieldset', {}, [el('legend', { textContent: 'Difficulty' }), level,
-    el('small', { textContent: "The 8 levels proposed in P-020's design notes (a judgement, not agreed yet). Fills the line, labels, leeway and speed; the rest stays as set." })]);
+  const level = el('select', { className: 'pv-level' }, LEVELS.map((r) => el('option', { value: String(r.level), textContent: levelName(r) })));
+  level.addEventListener('change', () => { msg.textContent = 'Press Apply to play this level.'; });
+  const levelBox = el('fieldset', {}, [el('legend', { textContent: 'Level' }), level,
+    el('small', { textContent: 'Number mode\'s eight levels (D-038), as the launcher will hand them over. Settings below left empty follow the level; a value overrides it for that one thing.' })]);
 
   const unlocked = el('input', { type: 'number', min: 1, max: PLANETS.length, step: 1, id: 'pv-unlocked', inputMode: 'numeric' });
   const rocks = el('input', { type: 'number', min: 0, max: 9999, step: 1, id: 'pv-rocks', inputMode: 'numeric' });
@@ -118,11 +111,11 @@ body:has(#start[hidden]) .pv-cog{display:none}
     const s = T.state();
     for (const [key, spec] of Object.entries(SETTINGS)) {
       if (typeof spec.default === 'boolean') inputs[key].checked = !!s.settings[key];
-      else inputs[key].value = String(s.settings[key]);
+      else inputs[key].value = s.settings[key] === null ? '' : String(s.settings[key]);
     }
     unlocked.value = String(s.progress.unlocked);
     rocks.value = String(s.progress.rocks);
-    level.value = '';
+    level.value = String(s.level);
   }
   function read() {
     const settings = {};
@@ -130,7 +123,7 @@ body:has(#start[hidden]) .pv-cog{display:none}
       settings[key] = typeof spec.default === 'boolean' ? inputs[key].checked : inputs[key].value;
     }
     const progress = T.state().progress;
-    return { settings, state: { ...progress, unlocked: Number(unlocked.value) || 1, rocks: Number(rocks.value) || 0 } };
+    return { level: Number(level.value), settings, state: { ...progress, unlocked: Number(unlocked.value) || 1, rocks: Number(rocks.value) || 0 } };
   }
   function use(given, quiet) {
     const notes = resolveSettings(SETTINGS, given.settings).notes;
@@ -146,9 +139,10 @@ body:has(#start[hidden]) .pv-cog{display:none}
   defaults.addEventListener('click', () => {
     for (const [key, spec] of Object.entries(SETTINGS)) {
       if (typeof spec.default === 'boolean') inputs[key].checked = spec.default;
-      else inputs[key].value = String(spec.default);
+      else inputs[key].value = spec.default === null ? '' : String(spec.default);
     }
-    msg.textContent = 'Defaults filled. Press Apply to use them.';
+    level.value = '1';
+    msg.textContent = 'Level 1 and the defaults filled. Press Apply to use them.';
   });
 
   try {
