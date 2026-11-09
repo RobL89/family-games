@@ -1,4 +1,9 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.1.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.2.
+
+Changes at v1.2 (step 2a-3): the round ends with Bip's moment (D-044), checked to play before
+the round is reported; progress is kept on the device under the tile's one entry (D-042), and a
+broken or unknown entry starts afresh; the font comes from games/_common/fonts/ and nothing at
+all is fetched from outside (D-043).
 
 Changes at v1.1: played on its own, the game is on level 1, whose line is 0 to 5 (D-038,
 contract v0.3 GC5); Number mode's other levels have their own test, test_rocket_lander_levels.py.
@@ -9,13 +14,13 @@ and saved state are handed in with __test.begin(), the way the shell will at sta
 results and state are read back with __test.reported() and __test.saved().
 
 Stand-ins: headless Chromium (Playwright) for the phone and PC, a local static server for
-the family site, and system fonts in place of Google Fonts (blocked here).
+the family site.
 
 Needs Python Playwright. From the repo root:
     python3 -B tools/tests/games/test_rocket_lander_e2e.py [folder for screenshots]
 It starts its own server on a free port. Screenshots go to a temporary folder unless one
 is given; they show made-up play only and are never committed.
-Fails on any request that leaves the local server other than the blocked fonts, on any
+Fails on any request that leaves the local server, on any
 console error or warning, and on sideways scrolling at phone, phone-sideways and PC sizes,
 light and dark. RL-3 has its own test, test_rocket_lander_labels.py.
 """
@@ -39,13 +44,13 @@ threading.Thread(target=httpd.serve_forever, daemon=True).start()
 PORT = httpd.server_address[1]
 LOCAL = f'http://127.0.0.1:{PORT}/'
 BASE = f'{LOCAL}games/rocket-lander/index.html'
-FONTS = re.compile(r'https://fonts\.(googleapis|gstatic)\.com/')
+KEY = 'family-games:rocket-lander:progress'  # D-042: the tile's one entry on the device
 
 errors, infos, fails, outside = [], [], [], []
 
 
 def new_page(browser, w, h, mobile=False):
-    """A fresh phone or PC page. Fonts are blocked; any other outside request is a failure."""
+    """A fresh phone or PC page. Any outside request is a failure (D-043)."""
     ctx = browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2 if mobile else 1,
                               is_mobile=mobile, has_touch=mobile)
 
@@ -53,14 +58,13 @@ def new_page(browser, w, h, mobile=False):
         url = r.request.url
         if url.startswith(LOCAL) or url.startswith('data:') or url.startswith('blob:'):
             return r.continue_()
-        if not FONTS.match(url):
-            outside.append(url)
+        outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
-          if m.type in ('error', 'warning') and 'fonts' not in m.text and 'ERR_FAILED' not in m.text else None)
+          if m.type in ('error', 'warning') and 'ERR_FAILED' not in m.text else None)
     return pg
 
 
@@ -125,11 +129,30 @@ def land(pg, good, shot=None, wait=1700):
     pg.evaluate('__test.speed(1)')
 
 
-def play_round(pg, pattern, shots=None):
+def finale(pg, stars, shot=None):
+    """Bip's moment after the last landing (D-044): it plays before the round is reported."""
+    pg.wait_for_function('__test.state().phase === "finale"', timeout=20000)
+    check(reported(pg) == [], 'the round is reported only after Bip\'s moment')
+    pg.wait_for_function('__test.state().finale.t > 3.3', timeout=20000)
+    f = state(pg)['finale']
+    check(f['stars'] == stars and f['pad'] and f['ladder'] and f['flag'] and f['fireworks'] > 0 and not f['pilotIn'],
+          f'Bip\'s moment: the pad, ladder, a flag with {stars} stars and fireworks, Bip outside: {f}')
+    if shot:
+        pg.screenshot(path=f'{OUT}/{shot}.png')
+    pg.wait_for_function('__test.state().phase === "end"', timeout=20000)
+    check(len(reported(pg)) == 1, 'then the round is reported once')
+
+
+def play_round(pg, pattern, shots=None, stars=None):
     shots = shots or {}
-    for i, good in enumerate(pattern):
+    for i, good in enumerate(pattern[:-1]):
         land(pg, good, shots.get(i), 1700 if good else 1500)
-    pg.wait_for_function('__test.state().phase === "end"')
+    idx = state(pg)['idx']
+    pg.wait_for_timeout(250)
+    pg.evaluate('__test.right()' if pattern[-1] else '__test.wrong()')
+    if stars is not None:
+        finale(pg, stars, shots.get('finale'))
+    pg.wait_for_function('__test.state().phase === "end"', timeout=20000)
 
 
 def steer_by_hand(pg, mobile):
@@ -169,7 +192,9 @@ with sync_playwright() as pw:
     ph.screenshot(path=f'{OUT}/ph-fly.png')
     steer_by_hand(ph, True)
     # 7 right of 8 = 87.5% -> 3 stars
-    play_round(ph, [True, True, False, True, True, True, True, True], {0: 'ph-right', 2: 'ph-wrong'})
+    check(ph.evaluate("document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"),
+          'the Fredoka font loads from games/_common/fonts/ (D-043)')
+    play_round(ph, [True, True, False, True, True, True, True, True], {0: 'ph-right', 2: 'ph-wrong', 'finale': 'ph-finale'}, stars=3)
     ph.wait_for_timeout(1600)
     ph.screenshot(path=f'{OUT}/ph-end.png')
     s = state(ph)
@@ -183,11 +208,25 @@ with sync_playwright() as pw:
           and prog.get('planet') == 'dust' and prog.get('rocks') == s['perfects'],
           f'the state is saved: {prog}')
 
-    # A reload starts afresh: nothing is kept on the device (data map: play history lives in P-020's Sheet)
+    # D-042: the progress is kept on the device, under the tile's one entry, with a format version
+    keys = ph.evaluate('Object.keys(localStorage)')
+    entry = ph.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
+    check(keys == [KEY] and entry == {'v': 1, 'unlocked': 2, 'planet': 'dust', 'rocks': s['perfects'], 'landings': 7},
+          f'only the tile\'s entry is written, in the agreed shape: {keys}, {entry}')
     ph.reload()
     ph.wait_for_function('window.__test && __test.state().ready')
-    check(saved(ph) is None and state(ph)['progress']['unlocked'] == 1, 'a reload keeps nothing on the device')
-    check(ph.evaluate('localStorage.length') == 0, 'nothing written to localStorage')
+    p2 = state(ph)['progress']
+    check(saved(ph) is None and (p2['unlocked'], p2['planet'], p2['rocks'], p2['landings']) == (2, 'dust', s['perfects'], 7),
+          f'a reload keeps the progress: {p2}')
+    check(ph.locator('.planet:not([aria-disabled])').count() == 2 and ph.inner_text('#start-rocks') == str(s['perfects']),
+          'the start screen shows the kept planets and rocks')
+    for bad, why in (('{broken', 'a broken entry'), ('{"v":2,"unlocked":5,"rocks":9}', 'an entry of an unknown format version')):
+        ph.evaluate(f'localStorage.setItem("{KEY}", {bad!r})')
+        ph.reload()
+        ph.wait_for_function('window.__test && __test.state().ready')
+        p3 = state(ph)['progress']
+        check(p3['unlocked'] == 1 and p3['rocks'] == 0, f'{why} starts afresh: {p3}')
+    ph.evaluate('localStorage.clear()')
     # The saved state handed back, as the shell will: two planets unlocked in the picker
     check(begin(ph, None, prog), 'begin() takes the saved state back')
     ph.wait_for_timeout(600)
@@ -197,7 +236,7 @@ with sync_playwright() as pw:
     start(ph)
     ph.wait_for_timeout(900)
     ph.screenshot(path=f'{OUT}/ph-dust-fly.png')
-    play_round(ph, [True, False, False, True, False, False, False, False])
+    play_round(ph, [True, False, False, True, False, False, False, False], {'finale': 'ph-finale-miss'}, stars=1)  # after a miss too
     ph.wait_for_timeout(1400)
     ph.screenshot(path=f'{OUT}/ph-end-1star.png')
     rows = reported(ph)
@@ -220,7 +259,7 @@ with sync_playwright() as pw:
     check((s2['rocketX'] - s['rocketX']) * (gx - s['rocketX']) > 0 and abs(s2['rocketX'] - s['rocketX']) > 60, 'holding the mouse glides the rocket towards the pointer')
     pc.screenshot(path=f'{OUT}/pc-fly.png')
     # 5 of 8 = 62.5% -> 2 stars
-    play_round(pc, [True, False, True, True, False, True, False, True], {0: 'pc-right', 1: 'pc-wrong'})
+    play_round(pc, [True, False, True, True, False, True, False, True], {0: 'pc-right', 1: 'pc-wrong', 'finale': 'pc-finale'}, stars=2)
     pc.wait_for_timeout(1700)
     pc.screenshot(path=f'{OUT}/pc-end.png')
     rows = reported(pc)
@@ -367,7 +406,7 @@ with sync_playwright() as pw:
     br.close()
 
 httpd.shutdown()
-check(not outside, 'nothing fetched from outside the local server (fonts aside)' + ('' if not outside else ': ' + ' | '.join(sorted(set(outside))[:5])))
+check(not outside, 'nothing fetched from outside the local server' + ('' if not outside else ': ' + ' | '.join(sorted(set(outside))[:5])))
 check(not errors, 'no console errors or warnings' + ('' if not errors else ': ' + ' | '.join(errors[:5])))
 print(f'Screenshots: {OUT}')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')

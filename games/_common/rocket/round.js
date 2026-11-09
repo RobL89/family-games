@@ -1,6 +1,11 @@
 // The rocket games' round flow, shared by Rocket Lander and Rocket Sums (D-027, D-037).
-// Version 1.0. Moved here from games/rocket-lander/game.js in step 2a-2, unchanged in what
-// it does; what differs between the two tiles comes in as a mode (below).
+// Version 1.1. Changes at v1.1 (step 2a-3): the round ends with Bip's moment (D-044): after the
+// last landing (a right one, or after the hop to the right number) a gold pad slides out, a
+// ladder drops, Bip climbs down and plants a big flag with the round's stars, fireworks go
+// off, and only then is the round reported and the end card shown. Played on its own, a tile
+// keeps its progress on the device (D-042, kit.js). Version 1.0 moved the flow here from
+// games/rocket-lander/game.js in step 2a-2; what differs between the two tiles comes in as a
+// mode (below).
 //
 // Steer a falling rocket onto the spot asked for on the planet's number line. A round is
 // `landings_per_round` landings; stars for how many were right. Moon rocks for perfect
@@ -10,6 +15,7 @@
 // the game contract's start message calls it.
 //
 // A mode is an object with:
+//   id                         the tile's folder name, for its progress kept on the device;
 //   name                       the tile's name, for console notes;
 //   schema                     its settings schema (settings.js's shape);
 //   levelOf(given)             { level, row, note }: the level to play (GC3, GC5);
@@ -27,12 +33,12 @@
 //   testHooks                  optional extra __test functions, each called while flying
 //                              as fn(...args, { line, set(T) }).
 
-import { homeButton, report, reported, goHome, saveState, savedState } from './kit.js';
+import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevice, keptOnDevice } from './kit.js';
 import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
 import { resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
 import { PLANETS, planetIndex } from './planets.js';
-import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from './scene.js';
+import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix } from './scene.js';
 
 export function runRocket(mode) {
   const $ = (id) => document.getElementById(id);
@@ -57,10 +63,11 @@ export function runRocket(mode) {
 
   // The rocket, the pilot, and everything else drawn on the scene.
   const R = { x: 0, y: -200, h: 80, rot: 0, sx: 1, sy: 1, legs: 0, flame: 0, pilotIn: true, blink: 0, mood: '', look: 0, vx: 0 };
-  const V = { rocket: null, pilot: null, flag: null, shadow: null, highlight: null, glow: null, arrow: null, perfect: null };
+  const V = { rocket: null, pilot: null, flag: null, shadow: null, highlight: null, glow: null, arrow: null, perfect: null,
+    pad: null, ladder: null, bigFlag: null, fireworks: null };
   const G = {
     phase: 'start', t: 0, idx: 0, total: 8, T: null, goal: null, prev: null, plan: [], results: [], right: 0, perfects: 0, roundRocks: 0,
-    startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, unlockedNew: -1,
+    startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, unlockedNew: -1, fin: null,
   };
   const input = { active: false, id: null, x: 0, left: false, right: false };
   let timeScale = 1;
@@ -110,13 +117,14 @@ export function runRocket(mode) {
     fx.resize(W, H, dpr);
     R.h = scene.rocketH;
     sizeNearness();
-    if (G.phase === 'start' || G.phase === 'end') return;
+    if (G.phase === 'start' || (G.phase === 'end' && !G.fin)) return;
     // keep the rocket over the same number after turning the phone
     if (oldV != null) R.x = clamp(scene.xOf(oldV), scene.x0, scene.x1);
     measureFall();
     if (G.phase === 'fly') R.y = Math.min(G.touchY, lerp(G.startY, G.touchY, oldK == null ? 0 : clamp((oldK * H - G.startY) / (G.touchY - G.startY), 0, 1)));
-    else if (G.phase === 'landed') R.y = G.touchY;
+    else if (G.phase === 'landed' || G.fin) R.y = G.touchY;
     if (G.land) G.land.x = scene.xOf(G.land.spot);
+    if (G.fin) { G.fin.x = R.x; placeFinale(); }
     placeBubble();
   }
 
@@ -216,7 +224,7 @@ export function runRocket(mode) {
     $('end').hidden = true;
     $('hud').hidden = false;
     $('say').hidden = !(S.speak && canSpeak() && !isMuted());
-    G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1;
+    G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1; G.fin = null;
     G.plan = mode.planRound(level.row, G.total, Math.random);
     G.started = performance.now();
     $('rocks-n').textContent = progress.rocks;
@@ -260,7 +268,8 @@ export function runRocket(mode) {
     let x, tries = 0;
     do { x = scene.x0 + Math.random() * span; tries++; } while (Math.abs(x - xt) < zone && tries < 80);
     Object.assign(R, { x, y: -R.h, rot: 0, sx: 1, sy: 1, legs: 0, flame: 0.6, pilotIn: true, mood: '', look: 0, vx: 0 });
-    Object.assign(V, { rocket: R, pilot: null, flag: null, highlight: null, glow: null, arrow: null, perfect: null });
+    Object.assign(V, { rocket: R, pilot: null, flag: null, highlight: null, glow: null, arrow: null, perfect: null,
+      pad: null, ladder: null, bigFlag: null, fireworks: null });
     V.shadow = { x, k: 0, half: 0, a: 0, fromY: 0 };
     G.startX = x;
     G.land = null;
@@ -319,7 +328,26 @@ export function runRocket(mode) {
     setPhase('landed');
     input.active = false;
     const dustCol = mix(scene.planet.ground[1], '#FFFFFF', 0.45);
-    if (right) {
+    const last = G.idx >= G.total - 1;
+    if (right && last) {
+      // the round's last landing: Bip's moment instead of the small flag and take-off (D-044)
+      G.right += 1;
+      if (perfect) G.perfects += 1;
+      sfx('puff');
+      scene.dust(R.x, scene.groundY, scene.calm ? 6 : 16, R.h, dustCol);
+      R.mood = 'happy';
+      V.glow = { value: spot, a: 0 };
+      at(0.12, () => sfx('thud'));
+      if (perfect) {
+        at(0.3, () => {
+          V.perfect = { x: R.x, y: R.y - R.h * 0.85, t: 0 };
+          sfx('sparkle');
+          scene.burst(R.x, R.y - R.h * 0.2, scene.calm ? 8 : 22);
+        });
+        at(0.5, () => flyRock());
+      }
+      at(0.6, () => startFinale());
+    } else if (right) {
       G.right += 1;
       if (perfect) G.perfects += 1;
       sfx('puff');
@@ -359,9 +387,95 @@ export function runRocket(mode) {
         R.mood = 'happy';
         if (V.arrow) V.arrow.leaving = true;
       });
-      at(4.3, () => takeOff());
+      at(4.3, () => (last ? startFinale() : takeOff()));
     }
     renderDots();
+  }
+
+  // ---------- Bip's moment (D-025, D-044) ----------
+  // Times in seconds from its start: the pad slides out, the ladder drops (0.5), Bip climbs
+  // down (0.95 to 1.75) and walks over (to 2.05), the big flag goes up (2.0 to 2.5) and its
+  // stars light one by one, fireworks (from 3.1) while Bip jumps, then the round ends (4.5).
+  const FIN = { ladder: 0.5, out: 0.95, down: 1.75, walk: 2.05, flag: 2.0, stars: 2.55, bang: 3.1, end: 4.5 };
+  const BURSTS = [
+    { x: 0.2, y: 0.24, r: 0.2, cols: ['#FFC93C', '#FFFFFF', '#FF8FB1'], n: 18, turn: 0.1 },
+    { x: 0.8, y: 0.28, r: 0.22, cols: ['#B9A7FF', '#FF5D73', '#FFC93C'], n: 18, turn: 0 },
+    { x: 0.5, y: 0.16, r: 0.16, cols: ['#5FE3BD', '#8CF5FF', '#FFFFFF'], n: 16, turn: 0.3 },
+  ];
+
+  function startFinale() {
+    hideBubble();
+    $('hud').hidden = true;
+    const stars = starsFor(G.right, G.total);
+    const dir = R.x < scene.W / 2 ? 1 : -1;
+    G.fin = { stars, dir, x: R.x, t: 0 };
+    Object.assign(V, { arrow: null, highlight: null, flag: null, pilot: null, perfect: null, bigFlag: null, fireworks: [] });
+    V.glow = { value: G.goal, a: 1 };
+    V.pad = { x: R.x, k: 0 };
+    V.ladder = { x: R.x, dir, k: 0 };
+    Object.assign(R, { y: G.touchY, legs: 1, flame: 0, sx: 1, sy: 1, rot: 0, mood: 'happy', pilotIn: true });
+    setPhase('finale');
+    sfx('sparkle');
+    at(FIN.ladder, () => sfx('pop'));
+    at(FIN.out, () => {
+      R.pilotIn = false;
+      V.pilot = { x: R.x, y: G.touchY, s: R.h * 0.5, mood: 'happy', wave: false, squash: 0, flip: dir < 0, blink: 0 };
+    });
+    at(FIN.flag, () => { V.bigFlag = { x: 0, dir, grow: 0, stars, shown: 0 }; sfx('whoosh'); placeFinale(); });
+    for (let i = 0; i < stars; i++) at(FIN.stars + i * 0.22, () => { if (V.bigFlag) V.bigFlag.shown = i + 1; sfx('ding'); });
+    (scene.calm ? BURSTS.slice(0, 1) : BURSTS).forEach((b, i) => at(FIN.bang + i * 0.3, () => {
+      V.fireworks.push({ ...b, k: 0, a: 1, age: 0 });
+      sfx(i ? 'pop' : 'sparkle');
+    }));
+    at(FIN.end, () => endRound());
+    placeFinale();
+  }
+
+  // Where the finale's pieces stand, from the rocket's spot (also after the screen turns).
+  function placeFinale() {
+    const F = G.fin;
+    if (!F) return;
+    R.x = F.x;
+    if (V.pad) V.pad.x = F.x;
+    if (V.ladder) V.ladder.x = F.x;
+    const s = R.h * 0.5, outX = F.x + F.dir * (R.h * 0.42 + s * 0.38);
+    F.plantX = outX + F.dir * s * 0.18;
+    if (V.bigFlag) V.bigFlag.x = outX + F.dir * s * 0.55;
+  }
+
+  function finaleFrame(dt) {
+    const F = G.fin;
+    if (G.phase === 'finale') F.t = G.t;
+    const t2 = F.t, gy = scene.groundY;
+    R.y = G.touchY;
+    if (V.pad) V.pad.k = clamp(t2 / 0.5, 0, 1);
+    if (V.ladder) V.ladder.k = clamp((t2 - FIN.ladder) / 0.4, 0, 1);
+    const P = V.pilot;
+    if (P) {
+      const { top, foot } = ladderEnds(F.x, gy, R.h, F.dir);
+      P.s = R.h * 0.5; P.blink = R.blink;
+      if (t2 < FIN.down) {
+        const k = clamp((t2 - FIN.out) / (FIN.down - FIN.out), 0, 1);
+        P.x = lerp(top.x, foot.x, k); P.y = lerp(top.y + P.s * 0.15, gy - 1, k) - Math.abs(Math.sin(k * Math.PI * 4)) * P.s * 0.06;
+        P.wave = false; P.squash = 0;
+      } else if (t2 < FIN.walk) {
+        const k = ease.inOut(clamp((t2 - FIN.down) / (FIN.walk - FIN.down), 0, 1));
+        P.x = lerp(foot.x, F.plantX, k); P.y = gy - 1 - Math.abs(Math.sin(k * Math.PI * 2)) * P.s * 0.08;
+      } else {
+        P.x = F.plantX;
+        const jump = !scene.calm && t2 > FIN.bang && t2 < FIN.end - 0.2;
+        P.y = gy - 1 - (jump ? Math.abs(Math.sin((t2 - FIN.bang) * 5.5)) * R.h * 0.22 : 0);
+        P.wave = t2 > FIN.flag + 0.3;
+        P.squash = 0;
+      }
+    }
+    if (V.bigFlag) V.bigFlag.grow = clamp((t2 - FIN.flag) / 0.5, 0, 1);
+    for (const b of V.fireworks || []) {
+      b.age += dt;
+      b.k = ease.out(clamp(b.age / 0.8, 0, 1));
+      b.a = 1 - clamp((b.age - 0.9) / 0.9, 0, 1);
+    }
+    if (V.glow) V.glow.a = 1;
   }
 
   function flyRock() {
@@ -426,7 +540,8 @@ export function runRocket(mode) {
     input.active = false;
     hideBubble();
     $('hud').hidden = true;
-    V.rocket = null; V.shadow = null;
+    if (!G.fin) V.rocket = null;
+    V.shadow = null;
     const stars = starsFor(G.right, G.total);
     const seconds = Math.round((performance.now() - G.started) / 1000);
     const score = G.right + G.perfects;
@@ -461,7 +576,9 @@ export function runRocket(mode) {
     if (S.speak) speak(stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
 
     report({ score, stars, seconds, level: level.level });
-    saveState({ unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings });
+    const kept = { unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings };
+    saveState(kept);
+    keepOnDevice(mode.id, kept); // D-042: until the shell keeps it
   }
 
   function playAgain() {
@@ -625,6 +742,8 @@ export function runRocket(mode) {
       if (V.glow) V.glow.a = Math.max(0, V.glow.a - dt * 3);
       if (V.highlight) V.highlight.a = Math.max(0, V.highlight.a - dt * 3);
       if (R.y < -R.h * 1.4) afterTakeOff();
+    } else if (G.fin && (G.phase === 'finale' || G.phase === 'end')) {
+      finaleFrame(dt);
     }
   }
 
@@ -669,6 +788,7 @@ export function runRocket(mode) {
 
   function boot() {
     useLevel(levelFromAddress());
+    progress = { ...DEFAULT_PROGRESS, ...(keptOnDevice(mode.id) || {}) }; // D-042
     sanitiseProgress();
     chosen = planetIndex(progress.planet);
     scene.setPlanet(chosen);
@@ -690,7 +810,8 @@ export function runRocket(mode) {
     const r = resolveSettings(SCHEMA, settings);
     if (r.notes.length) console.info(`${mode.name} settings: ${r.notes.join('; ')}.`);
     S = r.values;
-    progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : {}) };
+    // the state handed in (by the shell, a test or the test panel), or else what this device kept
+    progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : keptOnDevice(mode.id) || {}) };
     sanitiseProgress();
     chosen = planetIndex(progress.planet);
     renderPicker();
@@ -715,6 +836,8 @@ export function runRocket(mode) {
       rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,
       labels: scene.shown.map((s) => s.text), line: line && { from: line.from, to: line.to, step: line.step, count: line.count },
       results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
+      finale: G.fin && { t: G.fin.t, stars: G.fin.stars, pad: !!V.pad && V.pad.k > 0, ladder: !!V.ladder && V.ladder.k > 0,
+        flag: !!V.bigFlag && V.bigFlag.grow > 0, shown: V.bigFlag ? V.bigFlag.shown : 0, fireworks: (V.fireworks || []).length, pilotIn: R.pilotIn },
     }),
     begin,
     reported,

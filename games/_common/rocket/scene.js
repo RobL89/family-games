@@ -1,5 +1,7 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
+// Version 1.1. Changes at v1.1: the pieces of Bip's moment at the end of a round (D-044): the
+// gold pad, the ladder, the big flag with the round's stars, and fireworks.
 
 import { PLANETS } from './planets.js';
 import { fmt, labelSpots, tidy } from './numbers.js';
@@ -448,6 +450,132 @@ export function drawRock(ctx, x, y, r, rot = 0) {
   [[0.3, 0.3, 0.22], [-0.35, 0.35, 0.14], [0.05, -0.35, 0.12]].forEach(([dx, dy, s]) => { ctx.beginPath(); ctx.arc(dx * r, dy * r, s * r, 0, TAU); ctx.fill(); });
   ctx.fillStyle = '#FFFFFF';
   sparkle(ctx, -r * 0.42, -r * 0.4, r * 0.32);
+  ctx.restore();
+}
+
+// ---------- Bip's moment at the end of a round (D-025, D-044) ----------
+
+function starPath(ctx, x, y, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5, rad = i % 2 ? r * 0.45 : r;
+    ctx.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
+  }
+  ctx.closePath();
+}
+
+// The gold pad that slides out under the rocket. P: { x, k (0 to 1, grows from the middle) };
+// gy the ground line, h the rocket's height, W the screen's width.
+export function drawPad(ctx, P, gy, h, W) {
+  const k = ease.back(clamp(P.k, 0, 1));
+  if (k <= 0.01) return;
+  const x = P.x, w = Math.min(h * 2.2, W * 0.3) * k, y = gy - 9, ph = 17;
+  ctx.save();
+  const g = ctx.createRadialGradient(x, gy, 0, x, gy, Math.max(1, w * 0.8));
+  g.addColorStop(0, rgba(SUN, 0.55)); g.addColorStop(1, rgba(SUN, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, gy, w * 0.85, h * 0.5, 0, 0, TAU); ctx.fill();
+  rr(ctx, x - w / 2, y, w, ph, 8); ctx.fillStyle = SUN; ctx.fill();
+  ctx.save(); rr(ctx, x - w / 2, y, w, ph, 8); ctx.clip();
+  ctx.fillStyle = INK;
+  for (const end of [-1, 1]) {
+    for (let i = 0; i < 3; i++) {
+      const sx = x + end * (w / 2 - 6 - i * 11);
+      ctx.beginPath(); ctx.moveTo(sx - 3, y + ph); ctx.lineTo(sx + 3, y + ph); ctx.lineTo(sx + 9, y); ctx.lineTo(sx + 3, y); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillRect(x - w / 2, y + 2, w, 3);
+  ctx.restore();
+  rr(ctx, x - w / 2, y, w, ph, 8); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+  for (const end of [-1, 1]) {
+    const lx = x + end * (w / 2 + 2);
+    const lg = ctx.createRadialGradient(lx, y - 4, 0, lx, y - 4, 13);
+    lg.addColorStop(0, rgba(MINT, 0.9)); lg.addColorStop(1, rgba(MINT, 0));
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(lx, y - 4, 13, 0, TAU); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(lx, y - 4, 5.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = MINT; ctx.beginPath(); ctx.arc(lx, y - 4, 3.5, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Where the ladder from the rocket's side meets the rocket and the ground.
+export function ladderEnds(x, gy, h, dir) {
+  return { top: { x: x + dir * h * 0.2, y: gy - h * 0.62 }, foot: { x: x + dir * h * 0.36, y: gy - 2 } };
+}
+
+// A rope ladder dropping from the rocket's side. L: { x, dir, k (0 to 1, how far it has dropped) }.
+export function drawLadder(ctx, L, gy, h) {
+  const k = clamp(L.k, 0, 1);
+  if (k <= 0.01) return;
+  const { top, foot } = ladderEnds(L.x, gy, h, L.dir);
+  const x1 = lerp(top.x, foot.x, k), y1 = lerp(top.y, foot.y, k);
+  ctx.save(); ctx.lineCap = 'round';
+  for (const dx of [-h * 0.06, h * 0.06]) {
+    ctx.beginPath(); ctx.moveTo(top.x + dx, top.y); ctx.lineTo(x1 + dx, y1);
+    ctx.strokeStyle = INK; ctx.lineWidth = 5; ctx.stroke();
+    ctx.strokeStyle = '#D9D3F7'; ctx.lineWidth = 2.2; ctx.stroke();
+  }
+  for (let i = 1; i <= 4; i++) {
+    const u = i / 5;
+    if (u > k) break;
+    const rx = lerp(top.x, foot.x, u), ry = lerp(top.y, foot.y, u);
+    ctx.beginPath(); ctx.moveTo(rx - h * 0.06, ry); ctx.lineTo(rx + h * 0.06, ry);
+    ctx.strokeStyle = INK; ctx.lineWidth = 4.5; ctx.stroke(); ctx.strokeStyle = SUN; ctx.lineWidth = 2; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// The big flag Bip plants: a tall pole and a wide cloth with the round's stars, gold for each
+// one earned and shown so far, pale otherwise. F: { x, dir, grow (0 to 1), stars, shown }.
+export function drawBigFlag(ctx, F, gy, h, t) {
+  const grow = ease.out(clamp(F.grow, 0, 1));
+  if (grow <= 0.01) return;
+  const ph = h * 1.55 * grow, top = gy - 2 - ph, x = F.x, dir = F.dir || 1;
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = INK; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(x, gy - 2); ctx.lineTo(x, top); ctx.stroke();
+  ctx.strokeStyle = '#F4F1FF'; ctx.lineWidth = 4.5; ctx.stroke();
+  ctx.fillStyle = SUN; ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(x, top - 5, 7.5, 0, TAU); ctx.fill(); ctx.stroke();
+  const unfurl = clamp((F.grow - 0.6) / 0.4, 0, 1);
+  if (unfurl <= 0) { ctx.restore(); return; }
+  const cw = h * 1.25 * unfurl, ch = h * 0.56, y0 = top + 3;
+  const wav = (u) => Math.sin(t * 5 - u * 4) * ch * 0.07 * u;
+  ctx.beginPath(); ctx.moveTo(x, y0);
+  for (let u = 0; u <= 1.001; u += 0.05) ctx.lineTo(x + dir * cw * u, y0 + wav(u));
+  for (let u = 1; u >= -0.001; u -= 0.05) ctx.lineTo(x + dir * cw * u, y0 + ch + wav(u));
+  ctx.closePath(); ctx.fillStyle = CORAL; ctx.fill(); ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+  if (unfurl < 1) { ctx.restore(); return; }
+  for (let i = 0; i < 3; i++) {
+    const u = (i + 0.5) / 3, sx = x + dir * cw * u, sy = y0 + ch / 2 + wav(u) + ch * 0.03;
+    const gold = i < Math.min(F.stars, F.shown);
+    starPath(ctx, sx, sy, ch * 0.33);
+    ctx.fillStyle = gold ? SUN : 'rgba(255,255,255,.35)'; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.globalAlpha = gold ? 1 : 0.55; ctx.stroke(); ctx.globalAlpha = 1;
+    if (gold) { ctx.fillStyle = '#FFF6CF'; sparkle(ctx, sx - ch * 0.1, sy - ch * 0.1, ch * 0.06); }
+  }
+  ctx.restore();
+}
+
+// One firework burst in the sky. B: { x, y (fractions of the screen), r (fraction of its
+// shorter side), cols, n, turn, k (0 to 1, how far it has spread), a (0 to 1, how bright) }.
+export function drawFirework(ctx, B, W, H) {
+  const a = clamp(B.a, 0, 1), k = clamp(B.k, 0, 1);
+  if (a <= 0.01 || k <= 0.01) return;
+  const x = B.x * W, y = B.y * H, r = B.r * Math.min(W, H), n = B.n || 16;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r * 0.8);
+  g.addColorStop(0, rgba('#FFF6CF', 0.35 * a)); g.addColorStop(1, rgba('#FFF6CF', 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 0.8, 0, TAU); ctx.fill();
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * TAU + (B.turn || 0);
+    for (let j = 0; j < 6; j++) {
+      const d = r * k * (1 - j * 0.11), drop = (d / r) ** 2 * r * 0.12;
+      ctx.globalAlpha = a * (1 - j / 6); ctx.fillStyle = B.cols[i % B.cols.length];
+      ctx.beginPath(); ctx.arc(x + Math.cos(ang) * d, y + Math.sin(ang) * d + drop, Math.max(1.2, r * 0.045 * (1 - j * 0.12)), 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = a; ctx.fillStyle = '#FFFFFF';
+    sparkle(ctx, x + Math.cos(ang) * r * k, y + Math.sin(ang) * r * k + r * 0.12 * k * k, r * 0.07);
+  }
   ctx.restore();
 }
 
@@ -1184,10 +1312,12 @@ export class Scene {
     this.drawStars(ctx, t);
     this.drawShooting(ctx);
     this.drawFar(ctx, t);
+    if (v.fireworks) v.fireworks.forEach((b) => drawFirework(ctx, b, this.W, this.H));
     ctx.drawImage(this.hills, -this.hillsPad - this.offX * 0.03, 0, this.W + this.hillsPad * 2, this.H);
     ctx.drawImage(this.ground, 0, 0, this.W, this.H);
     this.hlBox = null;
     if (!this.line) return;
+    if (v.pad) drawPad(ctx, v.pad, this.groundY, this.rocketH, this.W);
     const hb = v.highlight ? this.highlightBox(v.highlight) : null;
     this.drawLabels(ctx, hb);
     if (v.highlight) { this.drawHighlight(ctx, v.highlight, t); this.hlBox = hb; }
@@ -1196,7 +1326,9 @@ export class Scene {
     if (v.shadow) this.drawShadow(ctx, v.shadow);
     this.drawParticles(ctx, false);
     if (v.flag) drawFlag(ctx, { ...v.flag, y: this.groundY - 2, h: this.rocketH * 0.95 }, t, FONT);
+    if (v.bigFlag) drawBigFlag(ctx, v.bigFlag, this.groundY, this.rocketH, t);
     if (v.rocket) drawRocket(ctx, v.rocket, t);
+    if (v.ladder) drawLadder(ctx, v.ladder, this.groundY, this.rocketH);
     if (v.pilot) drawPilot(ctx, v.pilot, t);
     this.drawParticles(ctx, true);
     if (v.arrow) this.drawArrow(ctx, v.arrow, t);

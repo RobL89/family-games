@@ -1,4 +1,8 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.3.
+"""Rocket Lander's pure core and its boundaries. Version 1.4.
+
+Changes at v1.4 (step 2a-3): device storage is allowed in games/_common/rocket/kit.js alone, for
+a tile's progress (D-042), and must be there; index.html may load nothing from outside the site,
+the web font included, and the shipped font files are checked (D-043).
 
 Changes at v1.3: levelOf and followLevel moved, word for word, to games/_common/rocket/ladder.js
 (step 2a-2), shared with Rocket Sums; their checks now read them there, and ladder.js is
@@ -241,6 +245,8 @@ OUTSIDE = {
     GAME: re.compile(r'''from\s+['"]\.\./(?!_common/[\w-]+/[\w-]+\.js['"])|from\s+['"]\.\./_common/[^'"]*\.\./|import\(\s*['"]\.\./''' + KEEPS),
     COMMON: re.compile(r'''from\s+['"]\.\./|import\(\s*['"]\.\./''' + KEEPS),
 }
+# D-042: kit.js alone may keep a tile's progress on the device, in localStorage and nothing else.
+SAVER = os.path.join(COMMON, 'kit.js')
 for folder, rx in OUTSIDE.items():
     where = os.path.relpath(folder, REPO)
     for f in sorted(os.listdir(folder)):
@@ -249,12 +255,33 @@ for folder, rx in OUTSIDE.items():
         raw = open(os.path.join(folder, f), encoding='utf-8').read()
         body = re.sub(r'(?m)^\s*//.*$', '', raw)
         hits = sorted({m.group(0) for m in rx.finditer(body)})
-        check(not hits, f'{where}/{f} stays in bounds and keeps nothing on the device' + (f': {hits}' if hits else ''))
+        if os.path.join(folder, f) == SAVER:
+            check(hits == ['localStorage'], f'{where}/{f} stays in bounds and keeps only localStorage (D-042): {hits}')
+        else:
+            check(not hits, f'{where}/{f} stays in bounds and keeps nothing on the device' + (f': {hits}' if hits else ''))
+saver = open(SAVER, encoding='utf-8').read()
+check(len(re.findall(r'localStorage\.(?:getItem|setItem)\(', saver)) == 2 and 'try' in saver,
+      'kit.js reads and writes one entry, inside try (D-042)')
 html = open(os.path.join(GAME, 'index.html'), encoding='utf-8').read()
 urls = sorted(set(re.findall(r'(?:src|href)="([^"]+)"', html)))
-far = [u for u in urls if re.match(r'(https?:)?//', u) and not re.match(r'https://fonts\.(googleapis|gstatic)\.com', u)]
+far = [u for u in urls if re.match(r'(https?:)?//', u)]
 up = [u for u in urls if u.startswith('../') and not re.match(r'\.\./_common/[\w-]+/[\w.-]+$', u)]
-check(not far and not up, f'index.html loads only its own files, games/_common/ and the web font: {urls}')
+check(not far and not up, f'index.html loads only its own files and games/_common/, nothing from outside (D-043): {urls}')
+check('../_common/fonts/fredoka.css' in urls, 'index.html links the shipped font (D-043)')
+
+# D-043: the font files as shipped: Fredoka latin 500, 600, 700 from @fontsource/fredoka 5.3.0, with the OFL.
+FONTS = os.path.join(REPO, 'games', '_common', 'fonts')
+SIZES = {'fredoka-latin-500-normal.woff2': 16248, 'fredoka-latin-600-normal.woff2': 16468, 'fredoka-latin-700-normal.woff2': 15900}
+for name, size in SIZES.items():
+    path = os.path.join(FONTS, name)
+    ok = os.path.exists(path) and os.path.getsize(path) == size and open(path, 'rb').read(4) == b'wOF2'
+    check(ok, f'games/_common/fonts/{name}: a woff2 file of {size} bytes')
+lic = os.path.join(FONTS, 'OFL.txt')
+check(os.path.exists(lic) and 'SIL Open Font License, Version 1.1' in open(lic, encoding='utf-8').read(), 'the OFL 1.1 licence is beside the fonts')
+css = open(os.path.join(FONTS, 'fredoka.css'), encoding='utf-8').read() if os.path.exists(os.path.join(FONTS, 'fredoka.css')) else ''
+css_urls = re.findall(r"url\(([^)]*)\)", css)
+check(sorted(css_urls) == sorted(SIZES) and 'http' not in css,
+      f'fredoka.css points at the three files beside it and nothing else: {css_urls}')
 
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)

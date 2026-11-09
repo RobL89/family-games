@@ -1,5 +1,6 @@
 // Rocket Sums, the rocket game's maths tile (D-021, D-027, D-037): a sum at the top, and the
-// rocket steered onto its answer on the number line. Version 1.1, step 2a-2. Changes at
+// rocket steered onto its answer on the number line. Version 1.2. Changes at v1.2 (step 2a-3):
+// the tile's id, for its progress kept on the device (D-042). Changes at
 // v1.1: levels in parts, such as levels 1 and 2's two halves (D-040), each landing asking
 // from its part, on its part's line; at most one sum answering 0 a round (proposed, Q-022).
 //
@@ -37,6 +38,7 @@ let zeroAsked = false, lastPart = 0;
 const ANSWER = { '+': (a, b) => a + b, '−': (a, b) => a - b, '×': (a, b) => a * b, '÷': (a, b) => a / b };
 
 runRocket({
+  id: 'rocket-sums',
   name: 'Rocket Sums',
   schema: SCHEMA,
   levelOf: (given) => levelOf(LEVELS, given),

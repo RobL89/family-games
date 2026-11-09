@@ -1,5 +1,9 @@
 """Bench, not part of the close: plants faults in Rocket Lander and counts how many the tests catch.
-Version 1.3.
+Version 1.4.
+
+Changes at v1.4: faults in Bip's moment (D-044), the progress kept on the device (D-042) and
+the shipped font (D-043); two faults' texts follow round.js 1.1; --finale runs only these new
+faults. Not planted: faults in build_preview.py, as a copy without git history can't build.
 
 Changes at v1.3: the round flow moved to games/_common/rocket/round.js (step 2a-2), so the
 faults planted in it point there; two faults in the mode interface; --engine runs only the
@@ -14,7 +18,7 @@ folders (a temporary folder), run against the test meant to catch it. The repo i
 never changed. A fault whose text isn't found exactly once is an error, not a catch.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/mutate_rocket_lander.py [--fast] [--number-mode] [--engine]
+    python3 -B tools/tests/games/mutate_rocket_lander.py [--fast] [--number-mode] [--engine] [--finale]
 --fast skips the faults that need a full browser test (about 3 minutes each).
 --number-mode runs only the Number mode faults (added at v1.2).
 --engine runs only the faults in round.js and games/rocket-lander/game.js (added at v1.3).
@@ -42,7 +46,7 @@ FAULTS = [
      "export function saveState(state) { saved = copy(state || {}); localStorage.setItem('rl', '1');", CORE),
     ('RL-3: labels never fade', C + 'scene.js', 'b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;', 'b.alpha = 1;', LABELS),
     ('RL-3: overlap tested on half the box', C + 'scene.js', 'b.x < hb.x + hb.w && hb.x < b.x + b.w', 'b.x < hb.x + hb.w / 2 && hb.x + hb.w / 2 < b.x + b.w', LABELS),
-    ('begin() drops the saved state', C + 'round.js', "progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : {}) };",
+    ('begin() drops the saved state', C + 'round.js', "progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : keptOnDevice(mode.id) || {}) };",
      'progress = { ...DEFAULT_PROGRESS };', E2E),
     ('a good round unlocks nothing', C + 'round.js', 'if (stars >= 2 && progress.unlocked < PLANETS.length) {', 'if (stars >= 3 && progress.unlocked < PLANETS.length) {', E2E),
     # Number mode (D-035, D-038)
@@ -60,10 +64,29 @@ FAULTS = [
     ('odd numbers not faint', C + 'scene.js', "return { fill: '#FFFFFF', a: 0.3 };", "return { fill: '#FFFFFF', a: 1 };", LEVELS),
     ('even chip in the odd colour', C + 'game.css', '.chip.even, .bubble b.even { background: var(--even); }', '.chip.even, .bubble b.even { background: var(--odd); }', LEVELS),
     ('the report says level 1', C + 'round.js', 'report({ score, stars, seconds, level: level.level });', 'report({ score, stars, seconds, level: 1 });', LEVELS),
-    ('the address level ignored', C + 'round.js', '    useLevel(levelFromAddress());\n    sanitiseProgress();', '    useLevel(null);\n    sanitiseProgress();', LEVELS),
+    ('the address level ignored', C + 'round.js', '    useLevel(levelFromAddress());\n    progress =', '    useLevel(null);\n    progress =', LEVELS),
     # The mode interface (v1.3)
     ('right landings scored as wrong', C + 'round.js', 'const right = mode.isRight(T, spot, near.allowed);', 'const right = !mode.isRight(T, spot, near.allowed);', E2E),
     ('the even or odd chip loses its colour', G + 'game.js', "{ cls: `word ${T.parity}`, html: T.parity }", "{ cls: 'word', html: T.parity }", LEVELS),
+    # Bip's moment, progress on the device, the shipped font (v1.4; D-042, D-043, D-044)
+    ('Bip\'s moment skipped', C + 'round.js', 'at(0.6, () => startFinale());', 'at(0.6, () => endRound());', E2E),
+    ('no moment after a missed last landing', C + 'round.js', 'at(4.3, () => (last ? startFinale() : takeOff()));', 'at(4.3, () => takeOff());', E2E),
+    ('reported before the moment', C + 'round.js', "    setPhase('finale');\n    sfx('sparkle');",
+     "    setPhase('finale');\n    report({ score: 0, stars, seconds: 0, level: level.level });\n    sfx('sparkle');", E2E),
+    ('the big flag shows no stars', C + 'round.js', 'const stars = starsFor(G.right, G.total);\n    const dir', 'const stars = 0;\n    const dir', E2E),
+    ('no fireworks', C + 'round.js', 'V.fireworks.push({ ...b, k: 0, a: 1, age: 0 });', '', E2E),
+    ('Bip stays in the rocket', C + 'round.js', '      R.pilotIn = false;\n      V.pilot = {', '      V.pilot = {', E2E),
+    ('progress not kept', C + 'round.js', 'keepOnDevice(mode.id, kept);', '', E2E),
+    ('kept progress not read back', C + 'round.js', 'progress = { ...DEFAULT_PROGRESS, ...(keptOnDevice(mode.id) || {}) };', 'progress = { ...DEFAULT_PROGRESS };', E2E),
+    ('any format version accepted', C + 'kit.js', 'e.v !== FORMAT)', 'false)', E2E),
+    ('one entry for both tiles', C + 'kit.js', 'const entryOf = (tile) => `family-games:${tile}:progress`;', "const entryOf = (tile) => 'family-games:progress';", E2E),
+    ('the entry loses its format version', C + 'kit.js', 'JSON.stringify({ v: FORMAT, ...copy(state || {}) })', 'JSON.stringify(copy(state || {}))', E2E),
+    ('a second keeper of progress', C + 'scene.js', 'export class Scene {', "export const peek = () => sessionStorage.getItem('x');\nexport class Scene {", CORE),
+    ('a storage read outside try', C + 'kit.js', "export function keptOnDevice(tile) {\n  try {", "export function keptOnDevice(tile) {\n  localStorage.getItem('x');\n  try {", CORE),
+    ('the web font comes back', G + 'index.html', '<link rel="stylesheet" href="../_common/fonts/fredoka.css">',
+     '<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">', CORE),
+    ('the font file renamed', 'games/_common/fonts/fredoka.css', 'url(fredoka-latin-600-normal.woff2)', 'url(fredoka-600.woff2)', CORE),
+    ('the font never loads', 'games/_common/fonts/fredoka.css', "font-family: 'Fredoka'; font-style: normal; font-weight: 600;", "font-family: 'Fredoka One'; font-style: normal; font-weight: 600;", E2E),
 ]
 
 
@@ -90,6 +113,9 @@ if '--number-mode' in sys.argv:  # only the Number mode faults (v1.2)
     faults = [f for f in faults if FAULTS.index(f) >= first]
 if '--engine' in sys.argv:  # only the faults in the round flow and the mode file (v1.3)
     faults = [f for f in faults if f[1] in (C + 'round.js', G + 'game.js')]
+if '--finale' in sys.argv:  # only the faults added at v1.4
+    first = next(i for i, f in enumerate(FAULTS) if f[0] == 'Bip\'s moment skipped')
+    faults = [f for f in faults if FAULTS.index(f) >= first]
 with ThreadPoolExecutor(max_workers=3) as ex:
     results = list(ex.map(run, faults))
 for name, res in results:

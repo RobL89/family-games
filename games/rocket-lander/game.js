@@ -1,5 +1,6 @@
 // Rocket Lander, Number mode: steer a falling rocket onto the number asked for on the
-// planet's number line. Version 2.0. Changes at v2.0: the round flow moved to the shared
+// planet's number line. Version 2.1. Changes at v2.1: the tile's id, for its progress kept on
+// the device (D-042). Changes at v2.0: the round flow moved to the shared
 // engine, games/_common/rocket/round.js (D-027, step 2a-2); this file is now Number mode's
 // part of it: its levels, targets, chip and words.
 //
@@ -22,6 +23,7 @@ const dieSvg = (n) => `<svg class="die" viewBox="0 0 30 30" aria-hidden="true"><
   PIPS[n].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.1"/>`).join('')}</svg>`;
 
 runRocket({
+  id: 'rocket-lander',
   name: 'Rocket Lander',
   // Number mode's settings: the shared ones, with the line's left to the level (GC3).
   schema: followLevel(SETTINGS, ['from', 'to', 'label_every']),

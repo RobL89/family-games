@@ -1,4 +1,8 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.1.
+"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.2.
+
+Changes at v1.2 (step 2a-3): the round ends with Bip's moment (D-044), here after a missed last
+landing, and is reported only after it; progress is kept under the tile's one entry on the
+device (D-042); nothing at all is fetched from outside, and the preview carries its font (D-043).
 
 Changes at v1.1: levels 1 and 2 play in two halves, each on its own line (D-040), and a round
 asks at most one sum answering 0 (proposed, Q-022), checked over whole rounds.
@@ -17,11 +21,11 @@ test_rocket_sums_core.py; this one plays it:
   - the --debug preview bundle builds the same bytes twice and plays, with its test panel.
 
 Stand-ins: headless Chromium (Playwright) for the phone and PC, a local static server for
-the family site, and system fonts in place of Google Fonts (blocked here).
+the family site.
 
 Needs Python Playwright. From the repo root:
     python3 -B tools/tests/games/test_rocket_sums_e2e.py [folder for screenshots]
-Fails on any request that leaves the local server other than the blocked fonts, on any
+Fails on any request that leaves the local server, on any
 console error or warning, and on sideways scrolling at phone (both ways round) and PC
 sizes, light and dark. Screenshots show made-up play only and are never committed.
 """
@@ -44,7 +48,8 @@ httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
 BASE = f'{LOCAL}games/rocket-sums/index.html'
-FONTS = re.compile(r'https://fonts\.(googleapis|gstatic)\.com/')
+KEY = 'family-games:rocket-sums:progress'  # D-042: the tile's one entry on the device
+FONT_LOADED = "document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"
 ANSWER = {'+': lambda a, b: a + b, '−': lambda a, b: a - b, '×': lambda a, b: a * b, '÷': lambda a, b: a // b}
 errors, fails, outside = [], [], []
 
@@ -63,14 +68,13 @@ def open_game(br, w, h, mobile=False, dark=False, query=''):
         url = r.request.url
         if url.startswith(LOCAL) or url.startswith('data:') or url.startswith('blob:'):
             return r.continue_()
-        if not FONTS.match(url):
-            outside.append(url)
+        outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
-          if m.type in ('error', 'warning') and 'fonts' not in m.text and 'ERR_FAILED' not in m.text else None)
+          if m.type in ('error', 'warning') and 'ERR_FAILED' not in m.text else None)
     pg.goto(BASE + query)
     pg.wait_for_function('window.__test && __test.state().ready')
     return pg
@@ -156,11 +160,23 @@ with sync_playwright() as pw:
     pc = open_game(br, 1280, 800)
     start(pc)
     seen1 = []
+    check(pc.evaluate(FONT_LOADED), 'the Fredoka font loads from games/_common/fonts/ (D-043)')
     for i, good in enumerate([True, True, True, True, True, True, True, False]):
         s = state(pc)
         seen1.append((s['sum'], s['target'], s['line']['to']))
         land(pc, good)
-        next_fly(pc, i + 1)
+        if i < 7:
+            next_fly(pc, i + 1)
+    # Bip's moment (D-044) after a missed last landing: it follows the hop to the right answer
+    pc.wait_for_function('__test.state().phase === "finale"', timeout=20000)
+    f0 = state(pc)
+    check(pc.evaluate('__test.reported()') == [] and abs(f0['rocketX'] - pc.evaluate(f'__test.xOf({f0["goal"]})')) < 2,
+          f'after a miss, Bip\'s moment starts on the right answer, before the round is reported (rocket at {f0["rocketX"]:.0f})')
+    pc.wait_for_function('__test.state().finale.t > 3.3', timeout=20000)
+    f = state(pc)['finale']
+    check(f['stars'] == 3 and f['pad'] and f['ladder'] and f['flag'] and f['fireworks'] > 0 and not f['pilotIn'],
+          f'Bip\'s moment: the pad, ladder, a flag with 3 stars and fireworks: {f}')
+    pc.screenshot(path=f'{OUT}/pc-finale.png')
     check(all(to == 5 and ans <= 5 for _, ans, to in seen1[:4]) and all(to == 10 and ans <= 10 for _, ans, to in seen1[4:])
           and all(sum_ok({'sum': t, 'target': a}, '+') for t, a, _ in seen1),
           f'level 1: + to 5 on 0 to 5, then + to 10 on 0 to 10 (D-040): {seen1}')
@@ -170,6 +186,13 @@ with sync_playwright() as pw:
     check(len(rows) == 1 and rows[0]['stars'] == 3 and rows[0]['level'] == 1, f'the round is reported: 3 stars, level 1: {rows}')
     saved = pc.evaluate('__test.saved()')
     check(bool(saved) and saved.get('unlocked') == 2, f'the state is saved: {saved}')
+    keys = pc.evaluate('Object.keys(localStorage)')
+    entry = pc.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
+    check(keys == [KEY] and entry == {'v': 1, **{k: saved[k] for k in ('unlocked', 'planet', 'rocks', 'landings')}},
+          f'kept on the device under the tile\'s one entry (D-042): {keys}, {entry}')
+    pc.reload()
+    pc.wait_for_function('window.__test && __test.state().ready')
+    check(state(pc)['progress']['unlocked'] == 2, 'a reload keeps the progress')
     pc.wait_for_timeout(1200)
     pc.screenshot(path=f'{OUT}/pc-end.png')
     no_sideways(pc, 'PC, light')
@@ -252,11 +275,12 @@ with sync_playwright() as pw:
     with open(os.path.join(tmp, 'p.html'), 'w', encoding='utf-8') as f:
         f.write(page)
     ctx = br.new_context(viewport={'width': 844, 'height': 390}, is_mobile=True, has_touch=True)
-    ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith('file:') else (r.abort(), None if FONTS.match(r.request.url) else outside.append(r.request.url)))
+    ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith('file:') or r.request.url.startswith('data:') else (r.abort(), outside.append(r.request.url)))
     pv = ctx.new_page()
     pv.on('pageerror', lambda e: errors.append(f'preview pageerror: {e}'))
     pv.goto('file://' + os.path.join(tmp, 'p.html'))
     pv.wait_for_function('window.__test && __test.state().ready')
+    check(pv.evaluate(FONT_LOADED), 'the preview carries its font inside the page (D-043)')
     pv.click('.pv-cog')
     opts = pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
@@ -271,7 +295,7 @@ with sync_playwright() as pw:
     ctx.close()
     br.close()
 
-check(not outside, f'nothing fetched from outside but the (blocked) web font: {outside[:3]}')
+check(not outside, f'nothing fetched from outside: {outside[:3]}')
 check(not errors, f'no console errors or warnings: {errors[:3]}')
 print(f'Screenshots: {OUT}')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')

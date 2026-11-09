@@ -1,8 +1,11 @@
-// Rocket Lander's own small kit, in place of the old launcher's shared/game-kit.js, so the
-// game runs on its own as a plain page (D-004, D-014). Nothing here reaches a Sheet, the
-// network or the device's storage:
+// The rocket games' own small kit, in place of the old launcher's shared/game-kit.js, so a
+// game runs on its own as a plain page (D-004, D-014). Version 1.1. Changes at v1.1: a tile's
+// progress is kept on the device (D-042), here and nowhere else. Nothing here reaches a Sheet
+// or the network:
 //   - report(result) keeps each finished round's result in memory (reported());
-//   - saveState(state) keeps the game's rewards in memory (savedState()).
+//   - saveState(state) keeps the game's rewards in memory (savedState());
+//   - keepOnDevice(tile, state) and keptOnDevice(tile): the tile's progress in this browser,
+//     one localStorage entry per tile with a format version, until the shell keeps it.
 // At stage 2a these become the game contract's messages (contract v0.3): the result is
 // sent to the shell, and the state goes out with fg:state and comes back in fg:start.
 //
@@ -30,6 +33,26 @@ export const reported = () => results.map(copy);
 // The game's own rewards (planets, moon rocks). Kept in memory only, so a reload starts afresh.
 export function saveState(state) { saved = copy(state || {}); return true; }
 export const savedState = () => (saved ? copy(saved) : null);
+
+// A tile's progress on this device (D-042): one entry, "family-games:<tile>:progress", holding
+// { v: 1, ...state }. If storage is blocked or full, or the entry is broken or of another
+// format version, nothing is kept or read back, and the game plays on from the start.
+const FORMAT = 1;
+const entryOf = (tile) => `family-games:${tile}:progress`;
+export function keepOnDevice(tile, state) {
+  try {
+    localStorage.setItem(entryOf(tile), JSON.stringify({ v: FORMAT, ...copy(state || {}) }));
+    return true;
+  } catch { return false; }
+}
+export function keptOnDevice(tile) {
+  try {
+    const e = JSON.parse(localStorage.getItem(entryOf(tile)));
+    if (!e || typeof e !== 'object' || Array.isArray(e) || e.v !== FORMAT) return null;
+    const { v, ...state } = e;
+    return state;
+  } catch { return null; }
+}
 
 // Back to the launcher's page, three folders up from games/_common/rocket/ on the family site.
 export function goHome() { location.href = LAUNCHER.href; }

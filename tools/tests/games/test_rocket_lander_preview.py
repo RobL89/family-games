@@ -1,4 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.3.
+"""Rocket Lander's preview bundle (D-018). Version 1.4.
+
+Changes at v1.4 (step 2a-3): the font ships with the games (D-043): the bundle carries it inside
+the page, its files are covered by the stamp, and the page asks for nothing but itself.
 
 Changes at v1.3: the test panel's level picker plays Number mode's real levels (D-038):
 level 6 picked in the panel reaches the game with its line and written numbers.
@@ -14,8 +17,8 @@ Checks that build_preview.py:
 1. gives the same bytes on a rebuild, and stamps the game folder's sha256 and commit;
 2. stops, rather than building something wrong, when a stand-in's text no longer
    matches the game's files exactly once;
-3. makes a page that asks for nothing but itself and Google Fonts (the only outside
-   host the game uses, Q-008), with no page errors, and that plays a landing;
+3. makes a page that asks for nothing but itself (D-043), with its font loaded from inside
+   the page, no page errors, and that plays a landing;
 4. passes the RL-3 labels test (test_rocket_lander_labels.py --page) as the bundle;
 5. with --debug: the cog shows on the start screen only, a level, a setting and progress
    applied in the panel reach the game, and a normal build has no cog.
@@ -51,10 +54,13 @@ page = open(a, 'rb').read()
 check(page == open(b, 'rb').read(), 'a rebuild gives the same bytes')
 src = bp.source_hash('rocket-lander')
 used = bp.used_files('rocket-lander')
-check('games/_common/rocket/scene.js' in used and 'games/_common/rocket/game.css' in used and 'games/rocket-lander/game.js' in used,
-      f'the bundle is made from the game folder and the shared engine ({len(used)} files)')
-check(f'games/_common/rocket): {src}'.encode() in page, 'the stamp carries the sha256 of the game and the shared files')
-check(bp.commit_of('games/rocket-lander', 'games/_common/rocket').encode() in page, 'the stamp carries their last commit')
+check('games/_common/rocket/scene.js' in used and 'games/_common/rocket/game.css' in used and 'games/rocket-lander/game.js' in used
+      and 'games/_common/fonts/fredoka.css' in used and 'games/_common/fonts/fredoka-latin-600-normal.woff2' in used,
+      f'the bundle is made from the game folder, the shared engine and the font ({len(used)} files)')
+check(f'games/_common/fonts, games/_common/rocket): {src}'.encode() in page, 'the stamp carries the sha256 of the game and the shared files')
+check(bp.commit_of('games/rocket-lander', 'games/_common/fonts', 'games/_common/rocket').encode() in page, 'the stamp carries their last commit')
+check(page.count(b'url(data:font/woff2;base64,') == 3 and b'fonts.googleapis' not in page and b'fonts.gstatic' not in page,
+      'the three font files are inside the page, and Google Fonts is not named (D-043)')
 check(b'window.__test' in page and b'import.meta' not in page, 'test hook kept; no import.meta left')
 check(b'pv-cog' not in page and b'pv-cog' in open(d, 'rb').read(), 'the test panel is only in the --debug build')
 
@@ -91,7 +97,6 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-FONTS = re.compile(r'^https://fonts\.(googleapis|gstatic)\.com/')
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()
@@ -99,12 +104,14 @@ with sync_playwright() as pw:
         ctx = br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile)
         asked, errors = [], []
         ctx.route('**/*', lambda r: (asked.append(r.request.url),
-                                     r.continue_() if r.request.url.startswith(LOCAL) else r.abort()))
+                                     r.continue_() if r.request.url.startswith(LOCAL) or r.request.url.startswith('data:') else r.abort()))
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append(str(e)))
         pg.goto(LOCAL + 'a.html')
         pg.wait_for_function('window.__test && __test.state().ready')
         stamp_shown = pg.is_visible('.preview-stamp')
+        check(pg.evaluate("document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"),
+              f'{tag}: the font loads from inside the page')
         pg.click('#play', force=True)
         pg.wait_for_function('__test.state().phase === "fly"', timeout=20000)
         check(not pg.is_visible('.preview-stamp'), f'{tag}: the stamp hides once a round starts')
@@ -112,8 +119,8 @@ with sync_playwright() as pw:
         pg.wait_for_function('__test.state().right === 1', timeout=20000)
         check(stamp_shown, f'{tag}: the stamp shows on the start screen')
         check(True, f'{tag}: a right landing counts in the bundle')
-        others = [u for u in asked if not u.startswith(LOCAL) and not FONTS.match(u)]
-        check(not others, f'{tag}: asks for nothing but itself and Google Fonts' + (f': {others[:3]}' if others else ''))
+        others = [u for u in asked if not u.startswith(LOCAL) and not u.startswith('data:')]
+        check(not others, f'{tag}: asks for nothing but itself' + (f': {others[:3]}' if others else ''))
         sideways = pg.evaluate('document.documentElement.scrollWidth > innerWidth')
         check(not sideways, f'{tag}: no sideways scrolling')
         check(pg.locator('.pv-cog').count() == 0, f'{tag}: no cog in a normal build')

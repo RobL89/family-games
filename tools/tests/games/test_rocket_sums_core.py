@@ -1,4 +1,7 @@
-"""Rocket Sums' pure core and its boundaries. Version 1.1.
+"""Rocket Sums' pure core and its boundaries. Version 1.2.
+
+Changes at v1.2 (step 2a-3): index.html may load nothing from outside the site, the web font
+included, and links the shipped font (D-043).
 
 Changes at v1.1: levels 1 and 2 play in two halves (D-040, Rob, 2026-11-09: "make level 1
 split so that the first half is plus to 5 and the second half is plus to 10. then make level
@@ -224,9 +227,10 @@ for name in sorted(os.listdir(GAME)):
         check(not hits, f'games/rocket-sums/{name} stays in bounds and keeps nothing on the device' + (f': {hits}' if hits else ''))
 html = open(os.path.join(GAME, 'index.html'), encoding='utf-8').read()
 urls = sorted(set(re.findall(r'(?:src|href)="([^"]+)"', html)))
-far = [u for u in urls if re.match(r'(https?:)?//', u) and not re.match(r'https://fonts\.(googleapis|gstatic)\.com', u)]
+far = [u for u in urls if re.match(r'(https?:)?//', u)]
 up = [u for u in urls if u.startswith('../') and not re.match(r'\.\./_common/[\w-]+/[\w.-]+$', u)]
-check(not far and not up, f'index.html loads only its own files, games/_common/ and the web font: {urls}')
+check(not far and not up, f'index.html loads only its own files and games/_common/, nothing from outside (D-043): {urls}')
+check('../_common/fonts/fredoka.css' in urls, 'index.html links the shipped font (D-043)')
 
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)

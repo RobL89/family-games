@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.9 · 2026-11-09 |
+| **Version** | 1.10 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.10:** the rocket games end each round with Bip's moment (D-044), keep a tile's progress on the device until the shell does (D-042), and ship their font in `games/_common/fonts/`, so they fetch nothing from outside (D-043).
 
 **Changes at v1.9:** a mock-up script for Bip's end-of-round moment is listed (step 2a-3, D-025).
 
@@ -30,7 +32,7 @@ This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the 
 |---|---|---|
 | `games/<id>/` | P-034 | One folder per game: its page, manifest, tile picture, and an adapter if it has one |
 | `games/_template/` | P-034 | A working mini-game built to the contract |
-| `games/_common/` | P-034 | Code shared between games only. `rocket/` is the rocket games' engine (the round flow in `round.js`, the scene, sounds, settings and level helpers), shared by the two tiles, Rocket Lander and Rocket Sums (D-027, D-037). A game may import from here and from nothing else outside its folder (D-036) |
+| `games/_common/` | P-034 | Code shared between games only. `rocket/` is the rocket games' engine (the round flow in `round.js`, the scene, sounds, settings and level helpers), shared by the two tiles, Rocket Lander and Rocket Sums (D-027, D-037). `fonts/` holds the games' font, Fredoka, with its OFL licence (D-043). A game may import from here and from nothing else outside its folder (D-036) |
 | [`games.json`](../../games.json) | P-034 | The list of games: order and status, in the format the contract sets |
 | `docs/games/` | P-034 | The games' docs, this guide among them |
 | `tools/tests/games/` | P-034 | The games' tests and P-034's checks |
@@ -83,7 +85,7 @@ python3 -B tools/tests/games/close.py
 | `games.json` | Live on `main`. P-034 keeps it from now on | The launcher (P-020) |
 | `games/bubble-pop/` | Built; a "Soon" tile | Nobody yet |
 | `games/_template/` | P-020's earlier template; to be redone to the contract | Nobody yet |
-| `games/rocket-lander/` | On `claude/games`, running on its own as a plain page (built-in settings, nothing saved), its engine in `games/_common/rocket/`; being built to the contract at stage 2 | Nobody yet |
+| `games/rocket-lander/` | On `claude/games`, running on its own as a plain page (built-in settings), its engine in `games/_common/rocket/`; being built to the contract at stage 2 | Nobody yet |
 | `games/rocket-sums/` | On `claude/games`, Rocket Lander's maths tile on the same engine, running on its own as a plain page; being built to the contract at stage 2 | Nobody yet |
 | Word Worm, Monster Café | Being brought over from `games-wip`, then built to the contract | Nobody yet |
 | This guide and the checks | On `claude/games` | P-034, and P-020 to see the folder map |
@@ -92,12 +94,15 @@ python3 -B tools/tests/games/close.py
 
 **What's private:** the repo and every branch are public, so nothing here holds the children's photos, voices or ages. Profiles, stars and settings live in P-020's Sheet, never in this repo.
 
+**On the device:** played on its own, each rocket tile keeps its progress (planets, moon rocks) in the browser's localStorage, under one entry, `family-games:<tile>:progress`, holding `{ "v": 1, ... }` (D-042). Nothing else in `games/` uses device storage. Inside the shell (stage 3) the shell keeps it instead.
+
 **Changes that affect you:** P-034 tells P-020 by a board note before a shared part changes or goes, and keeps the old form until P-020 has moved.
 
 ## Change log
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.10 | 2026-11-09 | Bip's moment, progress kept on the device, the font shipped (D-042 to D-044) |
 | 1.9 | 2026-11-09 | Bip's moment mock-up script listed (step 2a-3) |
 | 1.8 | 2026-11-09 | Rocket Sums and its tests and bench listed (D-037, D-039) |
 | 1.7 | 2026-11-09 | Number mode's levels test listed (D-038) |

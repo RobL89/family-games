@@ -1,4 +1,8 @@
-"""Build a game's private preview page (D-018). Version 1.3.
+"""Build a game's private preview page (D-018). Version 1.4.
+
+Changes at v1.4: the font ships with the games (D-043): a linked stylesheet's url(...) font
+files (woff2 only, in bounds) are inlined as data: URIs and covered by the stamp's sha256, and
+the page may name no outside address at all, Google Fonts included.
 
 Changes at v1.3: Rocket Sums (games/rocket-sums/, D-037) gets the same stand-ins as Rocket
 Lander, as both use the shared kit.js.
@@ -39,6 +43,7 @@ Usage, from the repo root:
 Prints the output path and the source hash.
 """
 import argparse
+import base64
 import hashlib
 import os
 import posixpath
@@ -52,6 +57,7 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 IMPORT = re.compile(r"^import \{([^}]*)\} from '((?:\./|\.\./_common/[\w-]+/)[\w-]+)\.js';\s*$")
 EXPORT = re.compile(r"^export (?:async )?(function\*?|const|let|class) (\w+)")
 CSS_LINK = re.compile(r'<link rel="stylesheet" href="([\w./-]+\.css)">')
+CSS_URL = re.compile(r'url\(([^)]*)\)')
 
 # Per-game stand-ins: (file under games/, exact old text, new text). Each old text must match once.
 STAND_INS = {
@@ -114,6 +120,9 @@ def used_files(game):
             raise BuildError(f'index.html links {href}, outside games/{game}/ and games/_common/')
         if not key.startswith(rel + '/'):
             shared.add(key)
+        for font in css_fonts(game, key):
+            if not font.startswith(rel + '/'):
+                shared.add(font)
     todo = [f'{rel}/{n[:-3]}' for n in game_files(folder) if n.endswith('.js')]
     seen = set(todo)
     while todo:
@@ -131,6 +140,32 @@ def used_files(game):
                     if not dep.startswith(rel + '/'):
                         shared.add(dep + '.js')
     return own + sorted(shared)
+
+
+def css_fonts(game, css_key):
+    """The font files a stylesheet points at with url(...), as repo paths (D-043): woff2 only,
+    beside or below the stylesheet's folder in bounds; anything else stops the build."""
+    out = []
+    for ref in CSS_URL.findall(read(os.path.join(REPO, css_key))):
+        ref = ref.strip().strip('\'"')
+        key = posixpath.normpath(posixpath.join(posixpath.dirname(css_key), ref))
+        if not ref.endswith('.woff2') or re.match(r'[a-z]+:', ref) or not in_bounds(game, key):
+            raise BuildError(f'{css_key}: url({ref}) is not a woff2 file in bounds')
+        if not os.path.isfile(os.path.join(REPO, key)):
+            raise BuildError(f'{css_key}: url({ref}) does not exist')
+        out.append(key)
+    return out
+
+
+def inline_fonts(game, css_key, css):
+    """The stylesheet with each url(x.woff2) replaced by the file as a data: URI."""
+    def one(m):
+        ref = m.group(1).strip().strip('\'"')
+        key = posixpath.normpath(posixpath.join(posixpath.dirname(css_key), ref))
+        with open(os.path.join(REPO, key), 'rb') as f:
+            return 'url(data:font/woff2;base64,' + base64.b64encode(f.read()).decode() + ')'
+    css_fonts(game, css_key)  # the same rules as for the hash
+    return CSS_URL.sub(one, css)
 
 
 def source_hash(game):
@@ -289,7 +324,8 @@ def build(game, number, debug=False):
     stand = (' · home reloads' if STAND_INS.get(game) else '') + (' · test panel' if debug else '')
 
     for href in links:
-        css = read(os.path.join(REPO, posixpath.normpath(posixpath.join(rel, href))))
+        css_key = posixpath.normpath(posixpath.join(rel, href))
+        css = inline_fonts(game, css_key, read(os.path.join(REPO, css_key)))
         if '</style' in css.lower():
             raise BuildError(f'{href}: "</style" would end the inline style')
         html = html.replace(f'<link rel="stylesheet" href="{href}">', f'<style>\n{css}</style>', 1)
@@ -301,10 +337,13 @@ def build(game, number, debug=False):
         raise BuildError('index.html must begin with <!doctype html>')
     html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel} and the shared files it uses '
                                             f'({", ".join(shared_dirs) or "none"}): {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.3{" --debug" if debug else ""} -->', 1)
-    leftovers = re.findall(r'(?:src|href)="(?!https://fonts\.(?:googleapis|gstatic)\.com)[^"#][^"]*"', html)
+                                            f'built by tools/tests/games/build_preview.py 1.4{" --debug" if debug else ""} -->', 1)
+    leftovers = re.findall(r'(?:src|href)="[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')
+    far = re.findall(r'https?://[\w.-]+', html)
+    if far:
+        raise BuildError(f'outside addresses named in the page (D-043): {sorted(set(far))[:5]}')
     return html, src, stamp
 
 
