@@ -1,4 +1,7 @@
-"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.0.
+"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.1.
+
+Changes at v1.1: with pads, a landing between pads but nearer the answer must count as
+the answer (a planted fault, pads ignored on landing, got past v1.0).
 
 1. sums.js by Node, with a seeded random (so the run is the same every time), 5000 sums
    per set of operations:
@@ -149,6 +152,14 @@ with sync_playwright() as pw:
             if tag.startswith('phone') and layout == 'pads':
                 pg.wait_for_timeout(700)
                 pg.screenshot(path=os.path.join(OUT, 'maths-pads-miss.png'))
+            if layout == 'pads':
+                pg.wait_for_function('__test.state().phase === "fly" && __test.state().idx === 2', timeout=20000)
+                v = pg.evaluate('''(() => { const s = __test.state(), t = s.target, top = s.line.to;
+                    const d = Math.max(1, Math.floor(Math.min(...s.pads.filter((p) => p !== t).map((p) => Math.abs(p - t))) / 3));
+                    const v = t + d <= top ? t + d : t - d; __test.place(v); __test.drop(); return v; })()''')
+                pg.wait_for_function('__test.state().results.length === 3', timeout=20000)
+                r3 = pg.evaluate('__test.state().results[2]')
+                check(r3['right'] and r3['spot'] == r3['target'], f'{name}: landing on {v}, nearest the answer pad {r3["target"]}, counts as the answer ({r3})')
             sideways = pg.evaluate('document.documentElement.scrollWidth > innerWidth')
             check(not sideways and not errors, f'{name}: no sideways scrolling, no page errors' + (f': {errors[:2]}' if errors else ''))
             ctx.close()
