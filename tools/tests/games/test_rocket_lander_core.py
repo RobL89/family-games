@@ -1,4 +1,11 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.5.
+"""Rocket Lander's pure core and its boundaries. Version 1.6.
+
+Changes at v1.6 (step 2c-build, D-058, D-064): the progress on the map (games/_common/rocket/
+progress.js, format 3): the route, a new player, tidying odd progress, what a round changes (best
+stars, rocks found once each across replays up to 8 a level, 2 stars opening the next level, the
+rocket's place, hyperspace at a system's end, the systems coming soon), a system's stars, where the
+rocket waits in a system it flies to, a picked level, and levels given by number or id. It is held to
+the purity rule, strings included.
 
 Changes at v1.5 (step 2c-build, D-058, D-068): Rocket Sums joined Rocket Lander, so every check of
 test_rocket_sums_core.py 1.2 moved here, unchanged but for the paths: its sums (sums.js) and
@@ -43,7 +50,7 @@ GAME = os.path.join(REPO, 'games', 'rocket-lander')
 COMMON = os.path.join(REPO, 'games', '_common', 'rocket')
 CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js'), (COMMON, 'ladder.js'), (GAME, 'levels.js'), (GAME, 'rules.js')]
 # Held to the purity rule with strings included, as test_rocket_sums_core.py 1.2 held the sums files.
-STRICT = [(GAME, 'sums-levels.js'), (GAME, 'sums.js'), (GAME, 'map.js')]
+STRICT = [(GAME, 'sums-levels.js'), (GAME, 'sums.js'), (GAME, 'map.js'), (COMMON, 'progress.js')]
 fails = []
 
 
@@ -195,6 +202,55 @@ const out = {
     systems: MP.SYSTEMS.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv) => [lv.kind, lv.level]),
       about: sys.levels.map((lv) => lv.about), samples: sys.levels.map(sampleOk) })),
   },
+};
+// The progress on the map (progress.js, D-058, D-064), on the stand-in map with the game's level ids
+const PG = await import(c + '/progress.js');
+const MAPX = MP.SYSTEMS.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}` })) }));
+const lv = (pairs) => Object.fromEntries(pairs.map(([id, stars, rocks]) => [id, { stars, rocks }]));
+const allMoon = (stars, rocks) => lv([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`moon-${n}`, stars, rocks]));
+const fin = (p, id, r) => { const before = JSON.stringify(p); const x = PG.finish(MAPX, p, id, r); return x && { ...x, untouched: JSON.stringify(p) === before }; };
+const P0 = PG.fresh(MAPX);
+const P1 = { ...P0, at: 'moon-2', open: 'moon-2', levels: lv([['moon-1', 3, 5]]), rocks: 5, landings: 7 };
+const P7 = { ...P0, at: 'moon-8', open: 'moon-8', levels: lv([1, 2, 3, 4, 5, 6, 7].map((n) => [`moon-${n}`, 3, 8])), rocks: 56, landings: 56 };
+const PD = { ...P0, at: 'dust-8', open: 'dust-8', levels: { ...allMoon(3, 8), ...lv([1, 2, 3, 4, 5, 6, 7].map((n) => [`dust-${n}`, 2, 4])) }, rocks: 90, landings: 100 };
+out.progress = {
+  ROCKS: PG.ROCKS_PER_LEVEL, PASS: PG.PASS_STARS,
+  route: PG.route(MAPX),
+  fresh: P0,
+  tidyJunk: [null, [], 'x', 7].map((j) => PG.tidy(MAPX, j)),
+  tidyLevels: PG.tidy(MAPX, { at: 'moon-1', open: 'moon-1', levels: { 'moon-1': { stars: 5, rocks: 12 }, 'moon-2': { stars: 2.6, rocks: -3 }, 'moon-3': { stars: 0, rocks: 4 },
+    'nope-1': { stars: 3, rocks: 1 }, 'moon-4': 'x' }, rocks: '12.4', landings: -5 }),
+  tidyPlaces: [{ at: 'zz', open: 'zz' }, { at: 'dust-3', open: 'moon-2' }, { levels: { 'moon-8': { stars: 3, rocks: 0 } } }, { at: 'dust-8', open: 'dust-8', levels: { 'dust-8': { stars: 3, rocks: 0 } } },
+    { levels: { 'moon-2': { stars: 1, rocks: 0 } } }].map((x) => { const t = PG.tidy(MAPX, x); return [t.at, t.open]; }),
+  open: ['moon-1', 'moon-2', 'moon-3', 'dust-1', 'zz'].map((id) => PG.isOpen(MAPX, P1, id)),
+  best: [PG.bestOf(P1, 'moon-1'), PG.bestOf(P1, 'moon-2'), PG.foundOf(P1, 'moon-1'), PG.foundOf(P1, 'moon-2')],
+  left: [PG.rockLeft(P1, 'moon-1'), PG.rockLeft(P1, 'moon-1', 2), PG.rockLeft(P1, 'moon-1', 3), PG.rockLeft(P1, 'moon-2', 7), PG.rockLeft(P1, 'moon-2', 8),
+    PG.rockLeft({ levels: lv([['moon-1', 3, 8]]) }, 'moon-1')],
+  firstPass: fin(P0, 'moon-1', { stars: 3, found: 5, right: 7 }),
+  firstFail: fin(P0, 'moon-1', { stars: 1, found: 1, right: 4 }),
+  replayCap: fin(P1, 'moon-1', { stars: 2, found: 4, right: 5 }),
+  replayBest: fin({ ...P1, levels: lv([['moon-1', 2, 3]]) }, 'moon-1', { stars: 3, found: 2, right: 8 }),
+  replayWorse: fin(P1, 'moon-1', { stars: 1, found: 0, right: 2 }),
+  allFound: fin({ ...P1, levels: lv([['moon-1', 3, 8]]) }, 'moon-1', { stars: 3, found: 3, right: 8 }),
+  moon8: fin(P7, 'moon-8', { stars: 2, found: 2, right: 5 }),
+  moon8fail: fin(P7, 'moon-8', { stars: 1, found: 0, right: 3 }),
+  moon8again: fin({ ...P7, open: 'dust-4', levels: { ...P7.levels, 'moon-8': { stars: 2, rocks: 3 } } }, 'moon-8', { stars: 3, found: 1, right: 8 }),
+  dust8: fin(PD, 'dust-8', { stars: 3, found: 8, right: 8 }),
+  unknown: PG.finish(MAPX, P1, 'candy-1', { stars: 3 }),
+  oddStars: [fin(P0, 'moon-1', { stars: 5 }).now.stars, fin(P0, 'moon-1', { stars: 0 }).now.stars, fin(P0, 'moon-1', { stars: 0 }).passed],
+  stars: [PG.systemStars(MAPX, { levels: lv([['moon-1', 3, 0], ['moon-2', 2, 0], ['moon-3', 3, 0]]) }, 0), PG.systemStars(MAPX, P0, 1), PG.systemStars(MAPX, P0, 2)],
+  reached: [[P0, 0], [P0, 1], [{ ...P0, open: 'dust-1' }, 1], [{ ...P0, open: 'dust-8' }, 2]].map(([p, s]) => PG.reached(MAPX, p, s)),
+  placeIn: [
+    PG.placeIn(MAPX, P0, 0), PG.placeIn(MAPX, P0, 1),
+    PG.placeIn(MAPX, { ...PD, open: 'dust-3' }, 1),
+    PG.placeIn(MAPX, { ...PD, open: 'dust-3', levels: { ...PD.levels, 'moon-4': { stars: 3, rocks: 5 } } }, 0),
+    PG.placeIn(MAPX, { ...PD, open: 'dust-3', levels: { ...PD.levels, 'moon-6': { stars: 2, rocks: 8 } } }, 0),
+    PG.placeIn(MAPX, { ...PD, open: 'dust-3' }, 0),
+    PG.placeIn(MAPX, PD, 2),
+  ],
+  goTo: (() => { const a = PG.goTo(MAPX, P0, 'dust-3'), b = PG.goTo(MAPX, a, 'moon-2'), c2 = PG.goTo(MAPX, b, 'zz');
+    return [[a.at, a.open], [b.at, b.open], c2 === b, JSON.stringify(P0) === JSON.stringify(PG.fresh(MAPX))]; })(),
+  given: [1, '9', 16, 17, 'dust-2', 0, 2.5, 'x', null, undefined, ''].map((g) => PG.levelGiven(MAPX, g)),
 };
 console.log(JSON.stringify(out));
 """
@@ -420,6 +476,72 @@ check(all(isinstance(t, str) and 0 < len(t) <= 32 for x in mp['systems'] for t i
 bad = [(x['id'], i + 1, r) for x in mp['systems'] for i, r in enumerate(x['samples']) if r != 'ok']
 check(not bad, f'every level\'s sample chip is a target the level can ask: {bad}')
 check(not os.path.exists(os.path.join(REPO, 'games', 'rocket-sums')), 'games/rocket-sums/ is retired: the sums tile is part of Rocket Lander now (D-058)')
+
+# ---------- The progress on the map (progress.js, D-058, D-064): format 3's rules ----------
+pr = o['progress']
+check(pr['ROCKS'] == 8 and pr['PASS'] == 2, f"8 moon rocks to find on each level; 2 stars open the next (D-064): {pr['ROCKS']}, {pr['PASS']}")
+ids = [r['id'] for r in pr['route']]
+check(ids == [f'moon-{n}' for n in range(1, 9)] + [f'dust-{n}' for n in range(1, 9)], f'the route: Moon 1 to 8, then Red Dust 1 to 8; the coming-soon systems have none: {ids}')
+check([r['s'] for r in pr['route']] == [0] * 8 + [1] * 8 and [r['id'] for r in pr['route'] if r['last']] == ['moon-8', 'dust-8'],
+      'each level knows its system, and level 8 ends each system')
+check(pr['fresh'] == {'at': 'moon-1', 'open': 'moon-1', 'levels': {}, 'rocks': 0, 'landings': 0}, f"a new player: the rocket on Moon 1, nothing else open: {pr['fresh']}")
+check(all(t == pr['fresh'] for t in pr['tidyJunk']), f"junk instead of progress (null, a list, a word, a number) starts afresh: {pr['tidyJunk']}")
+tl = pr['tidyLevels']
+check(tl['levels'] == {'moon-1': {'stars': 3, 'rocks': 8}, 'moon-2': {'stars': 3, 'rocks': 0}},
+      f"tidied levels: 5 stars kept to 3 and 12 rocks to 8, 2.6 stars rounded to 3 and −3 rocks to 0; 0 stars, an unknown level and a word dropped: {tl['levels']}")
+check(tl['rocks'] == 12 and tl['landings'] == 0 and tl['open'] == 'moon-3', f"rocks '12.4' read as 12, −5 landings as 0; the passed levels open the next: {tl}")
+check(pr['tidyPlaces'] == [['moon-1', 'moon-1'], ['dust-3', 'dust-3'], ['moon-1', 'dust-1'], ['dust-8', 'dust-8'], ['moon-1', 'moon-1']],
+      f"tidied places: unknown ids go to Moon 1; the open end never before the rocket; Moon 8 passed opens Red Dust 1; Red Dust 8 has nothing after; 1 star opens nothing: {pr['tidyPlaces']}")
+check(pr['open'] == [True, True, False, False, False], f"open up to the open end only: {pr['open']}")
+check(pr['best'] == [3, 0, 5, 0], f"best stars and rocks found: a level played and one not: {pr['best']}")
+check(pr['left'] == [True, True, False, True, False, False], f"a rock is left while the level's found plus the round's are under 8: 5+0, 5+2 yes; 5+3 no; 0+7 yes, 0+8 no; all 8 found no: {pr['left']}")
+f1 = pr['firstPass']
+check(f1['now'] == {'stars': 3, 'rocks': 5} and f1['first'] and f1['passed'] and not f1['newBest'] and f1['rocks'] == 5,
+      f"a first round of 3 stars with 5 perfect landings: best 3, 5 rocks found and paid, not called a new best: {f1}")
+check(f1['opened'] == 'moon-2' and f1['next'] == 'moon-2' and not f1['hyper'] and not f1['done'] and f1['untouched'],
+      'it opens Moon 2 and the rocket goes there (D-064); the progress handed in is left as it was')
+check(f1['progress']['rocks'] == 5 and f1['progress']['landings'] == 7 and f1['progress']['open'] == 'moon-2' and f1['progress']['at'] == 'moon-2',
+      f"the new progress: 0 + 5 rocks, 0 + 7 landings, open to Moon 2, the rocket at Moon 2: {f1['progress']}")
+f2 = pr['firstFail']
+check(not f2['passed'] and f2['opened'] is None and f2['next'] == 'moon-1' and f2['progress']['open'] == 'moon-1' and f2['now'] == {'stars': 1, 'rocks': 1},
+      f"1 star opens nothing, and the rocket waits on the same level to try again: {f2['progress']['at']}, open {f2['progress']['open']}")
+f3 = pr['replayCap']
+check(f3['now'] == {'stars': 3, 'rocks': 8} and f3['rocks'] == 3 and f3['progress']['rocks'] == 8 and not f3['newBest'] and f3['opened'] is None,
+      f"a replay pays only what's missing: 2 stars keep the best 3; 4 perfect landings with 5 found already pay 3, up to 8 (5 + 3 = 8): {f3['now']}, paid {f3['rocks']}")
+check(f3['next'] == 'moon-2' and f3['progress']['open'] == 'moon-2', f"a replay passed: the rocket goes on to the next level, already open: {f3['next']}")
+f4 = pr['replayBest']
+check(f4['newBest'] and f4['now'] == {'stars': 3, 'rocks': 5} and f4['rocks'] == 2, f"a replay that beats the best is a new best: 2 to 3 stars; 3 + 2 = 5 rocks: {f4['now']}")
+f5 = pr['replayWorse']
+check(f5['now'] == {'stars': 3, 'rocks': 5} and f5['rocks'] == 0 and f5['next'] == 'moon-1' and f5['progress']['open'] == 'moon-2',
+      f"a worse replay takes nothing away, and nothing closes: {f5['now']}, open {f5['progress']['open']}")
+f6 = pr['allFound']
+check(f6['rocks'] == 0 and f6['now']['rocks'] == 8 and f6['progress']['rocks'] == 5,
+      f"all 8 found already: no more rocks, whatever the round says: paid {f6['rocks']}")
+f7 = pr['moon8']
+check(f7['passed'] and f7['done'] and f7['hyper'] and f7['opened'] == 'dust-1' and f7['next'] == 'dust-1' and not f7['soon'],
+      f"Moon 8 passed: Moon is done, Red Dust 1 opens and the rocket goes there through hyperspace: {f7}")
+f8 = pr['moon8fail']
+check(not f8['done'] and not f8['hyper'] and f8['next'] == 'moon-8' and f8['progress']['open'] == 'moon-8', 'Moon 8 with 1 star: no hyperspace; try again')
+f9 = pr['moon8again']
+check(f9['done'] and f9['hyper'] and f9['opened'] is None and f9['next'] == 'dust-1' and f9['newBest'] and f9['progress']['open'] == 'dust-4',
+      f"Moon 8 passed again later: hyperspace again to Red Dust 1, nothing new opened, the open end kept: {f9['next']}, open {f9['progress']['open']}")
+f10 = pr['dust8']
+check(f10['done'] and f10['soon'] and not f10['hyper'] and f10['next'] == 'dust-8' and f10['opened'] is None,
+      f"Red Dust 8 passed: Red Dust is done, but the next systems are coming soon, so the rocket stays: {f10}")
+check(pr['unknown'] is None, 'a level the map does not have changes nothing (null)')
+check(pr['oddStars'] == [3, 1, False], f"stars outside 1 to 3 are kept to them: {pr['oddStars']}")
+check(pr['stars'] == [{'got': 8, 'of': 24}, {'got': 0, 'of': 24}, {'got': 0, 'of': 0}],
+      f"a system's stars: 3 + 2 + 3 = 8 of 24 on Moon; none yet on Red Dust; Candy has no levels yet: {pr['stars']}")
+check(pr['reached'] == [True, False, True, False], f"reached: Moon at once; Red Dust once its level 1 opens; Candy, coming soon, never: {pr['reached']}")
+check(pr['placeIn'] == ['moon-1', None, 'dust-3', 'moon-4', 'moon-6', 'moon-1', None],
+      f"flying to a system: the open end if it's there; otherwise its first level with stars or rocks to win, else level 1; nowhere if not reached: {pr['placeIn']}")
+gt = pr['goTo']
+check(gt[0] == ['dust-3', 'dust-3'] and gt[1] == ['moon-2', 'dust-3'] and gt[2] and gt[3],
+      f"goTo: the rocket goes to a picked level and the map opens up to it; going back keeps the open end; an unknown level changes nothing: {gt}")
+gv = pr['given']
+check([g['id'] for g in gv] == ['moon-1', 'dust-1', 'dust-8', None, 'dust-2', None, None, None, None, None, None]
+      and all(g['note'] for g in gv[3:4] + gv[5:8]) and not any(g['note'] for g in gv[:3] + gv[4:5] + gv[8:]),
+      f"a level given as a number along the map (1 to 16) or an id; anything else is noted and the map's place is played: {gv}")
 
 # ---------- Boundaries ----------
 def code_only(text):
