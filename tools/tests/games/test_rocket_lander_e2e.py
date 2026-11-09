@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.3.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.4.
+
+Changes at v1.4 (step 2a-4b): the progress entry is at format version 2, with the ships owned
+and flown (D-053), so the agreed shape gains `ship` and `ships`, and the unknown version is 3.
+The hangar has its own test, test_rocket_hangar_e2e.py.
 
 Changes at v1.3: the close_enough check lands 2 away on the side that stays on the line, and
 always aims at 4, near the end of level 1's 0 to 5, where it used to fail by chance (ER-002).
@@ -214,7 +218,7 @@ with sync_playwright() as pw:
     # D-042: the progress is kept on the device, under the tile's one entry, with a format version
     keys = ph.evaluate('Object.keys(localStorage)')
     entry = ph.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 1, 'unlocked': 2, 'planet': 'dust', 'rocks': s['perfects'], 'landings': 7},
+    check(keys == [KEY] and entry == {'v': 2, 'unlocked': 2, 'planet': 'dust', 'rocks': s['perfects'], 'landings': 7, 'ship': 'classic', 'ships': ['classic']},
           f'only the tile\'s entry is written, in the agreed shape: {keys}, {entry}')
     ph.reload()
     ph.wait_for_function('window.__test && __test.state().ready')
@@ -223,7 +227,7 @@ with sync_playwright() as pw:
           f'a reload keeps the progress: {p2}')
     check(ph.locator('.planet:not([aria-disabled])').count() == 2 and ph.inner_text('#start-rocks') == str(s['perfects']),
           'the start screen shows the kept planets and rocks')
-    for bad, why in (('{broken', 'a broken entry'), ('{"v":2,"unlocked":5,"rocks":9}', 'an entry of an unknown format version')):
+    for bad, why in (('{broken', 'a broken entry'), ('{"v":3,"unlocked":5,"rocks":9}', 'an entry of an unknown format version')):
         ph.evaluate(f'localStorage.setItem("{KEY}", {bad!r})')
         ph.reload()
         ph.wait_for_function('window.__test && __test.state().ready')

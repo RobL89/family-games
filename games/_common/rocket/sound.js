@@ -1,5 +1,10 @@
 // Rocket Lander's own sounds, made in the browser (no sound files to download), and
-// words said out loud with the device's own voice.
+// words said out loud with the device's own voice. Version 1.1.
+//
+// Changes at v1.1 (step 2a-4b): the hangar's sounds (the door, the glass, the fanfares) and the
+// ships' touchdown sounds (D-046, D-049), moved here from the step 2a-4a mock-ups
+// (tools/tests/games/sketch_rocket_hangar.js 1.0, its SYN table) and written with this file's
+// tone() and noise(); fleet.js names each ship's sound.
 //
 // Copied from the old launcher's shared/sound.js (games-wip, 7ef1ff0) so the game runs
 // on its own (D-004): the import of shared/api.js is gone, and with it the mute saved on
@@ -44,7 +49,7 @@ function noise(start, length, { from = 1200, to = 300, type = 'bandpass', volume
   filter.type = type;
   filter.Q.value = q;
   filter.frequency.setValueAtTime(from, start);
-  filter.frequency.exponentialRampToValueAtTime(to, start + length);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(20, to), start + length);
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
@@ -77,6 +82,20 @@ const SOUNDS = {
   unlock: (t) => { [784, 988, 1175, 1568].forEach((f, i) => tone(f, t + i * 0.08, 0.35, 'sine', 0.1)); noise(t + 0.3, 0.5, { from: 3000, to: 6000, type: 'highpass', volume: 0.05 }); },
   boop: (t) => tone(330, t, 0.1, 'sine', 0.14, 520),
   slurp: (t) => tone(300, t, 0.25, 'sawtooth', 0.04, 900),
+
+  // The hangar (step 2a-4b): the door, the glass or force field, and the ships' touchdowns
+  rumble: (t) => { noise(t, 1.1, { from: 160, to: 70, type: 'lowpass', volume: 0.4 }); tone(52, t, 1.1, 'sawtooth', 0.04, 46); for (let i = 0; i < 6; i++) noise(t + i * 0.17, 0.06, { from: 900, to: 500, volume: 0.06 }); },
+  clunk: (t) => { tone(170, t, 0.12, 'square', 0.06, 90); noise(t, 0.08, { from: 1800, to: 600, volume: 0.18 }); },
+  crack: (t) => { noise(t, 0.14, { from: 5000, to: 2500, type: 'highpass', volume: 0.22 }); tone(2400, t, 0.05, 'square', 0.03); },
+  shatter: (t) => { for (let i = 0; i < 8; i++) tone(1800 + Math.random() * 2800, t + i * 0.028, 0.18, 'triangle', 0.045); noise(t, 0.4, { from: 7000, to: 3000, type: 'highpass', volume: 0.16 }); },
+  boing: (t) => { tone(200, t, 0.4, 'sine', 0.18, 560); tone(400, t + 0.05, 0.25, 'triangle', 0.05, 900); },
+  toot: (t) => { tone(523, t, 0.38, 'square', 0.05); tone(784, t, 0.38, 'triangle', 0.05); noise(t, 0.6, { from: 3000, to: 1400, volume: 0.12 }); },
+  clunkLock: (t) => { SOUNDS.clunk(t); tone(988, t + 0.1, 0.3, 'sine', 0.08); tone(1319, t + 0.18, 0.35, 'sine', 0.06); },
+  hum: (t) => { tone(110, t, 0.7, 'sawtooth', 0.035, 170); tone(880, t + 0.15, 0.35, 'sine', 0.05, 660); tone(660, t + 0.35, 0.4, 'sine', 0.04, 990); },
+  chime: (t) => [1568, 2093, 2637, 3136, 2637].forEach((f, i) => tone(f, t + i * 0.07, 0.7, 'sine', 0.05)),
+  harp: (t) => [523, 659, 784, 988, 1175, 1319, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.045, 0.6, 'triangle', 0.05)),
+  aurora: (t) => { [523, 659, 784, 1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, t + i * 0.06, 1.0, 'sine', 0.045)); tone(262, t, 1.5, 'triangle', 0.06); tone(392, t + 0.2, 1.3, 'triangle', 0.04); },
+  fanLegend: (t) => { [392, 523, 659, 784].forEach((f, i) => tone(f, t + i * 0.12, 0.3, 'square', 0.04)); [1047, 1319, 1568].forEach((f) => tone(f, t + 0.5, 1.1, 'triangle', 0.05)); SOUNDS.aurora(t + 0.6); },
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);

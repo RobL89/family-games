@@ -1,5 +1,11 @@
 // The rocket games' round flow, shared by Rocket Lander and Rocket Sums (D-027, D-037).
-// Version 1.1. Changes at v1.1 (step 2a-3): the round ends with Bip's moment (D-044): after the
+// Version 1.2. Changes at v1.2 (step 2a-4b): the hangar (D-050 to D-053). The moon-rocks counter
+// on the start card is the hangar door, its doorway showing the ship flown (the title's rocket
+// stays today's, as the logo); it opens the showroom (hangar.js), where ships are bought and
+// picked through fleet.js. The ship flown is drawn in play (ships.js) with its own effects,
+// kept above the ground so they never cover the numbers (D-045), and its own touchdown sound;
+// Bip's fireworks take its colours. Progress gains `ship` and `ships` (D-053).
+// Changes at v1.1 (step 2a-3): the round ends with Bip's moment (D-044): after the
 // last landing (a right one, or after the hop to the right number) a gold pad slides out, a
 // ladder drops, Bip climbs down and plants a big flag with the round's stars, fireworks go
 // off, and only then is the round reported and the end card shown. Played on its own, a tile
@@ -39,10 +45,13 @@ import { resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
 import { PLANETS, planetIndex } from './planets.js';
 import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix } from './scene.js';
+import { FLEET_BY_ID, STARTER, hangarOf, buy as buyShip, pick as pickShip } from './fleet.js';
+import { SHIP_BY_ID, Parts, newState, tickShip, landShip, drawShip, drawTrail } from './ships.js';
+import { Hangar } from './hangar.js';
 
 export function runRocket(mode) {
   const $ = (id) => document.getElementById(id);
-  const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0 };
+  const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0, ship: STARTER, ships: [STARTER] };
   const FALL_SECONDS = [12, 8, 6, 5, 4]; // speed 1 to 5: seconds from the top to the ground
   const INTRO = 0.7; // seconds the rocket takes to swoop in from above
 
@@ -71,8 +80,13 @@ export function runRocket(mode) {
   };
   const input = { active: false, id: null, x: 0, left: false, right: false };
   let timeScale = 1;
+  let hangar = null; // the showroom (made at boot)
+  let flyShip = null; // the ship flown in play, when it isn't today's rocket
+  let flownId = null; // the ship last drawn in play (for the tests)
+  const SH = newState(80), PP = new Parts(); // its state and effects in play
+  const DS = { id: null, S: null, P: new Parts() }; // the ship in the hangar door's doorway
 
-  homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: '0 4px 0 rgba(10,6,40,.55)' } });
+  const home = homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: '0 4px 0 rgba(10,6,40,.55)' } });
 
   // ---------- Settings and the line ----------
 
@@ -115,6 +129,7 @@ export function runRocket(mode) {
     const oldK = scene.H ? R.y / scene.H : null;
     scene.resize(W, H, dpr);
     fx.resize(W, H, dpr);
+    if (hangar) hangar.resize();
     R.h = scene.rocketH;
     sizeNearness();
     if (G.phase === 'start' || (G.phase === 'end' && !G.fin)) return;
@@ -157,6 +172,7 @@ export function runRocket(mode) {
     p.planet = PLANETS[clamp(pi, 0, p.unlocked - 1)].id;
     p.rocks = Math.max(0, Math.round(Number(p.rocks) || 0));
     p.landings = Math.max(0, Math.round(Number(p.landings) || 0));
+    Object.assign(p, hangarOf(p)); // D-053: Classic always; only ships owned are flown
   }
 
   function renderPicker() {
@@ -212,6 +228,46 @@ export function runRocket(mode) {
     drawRocket(x, { x: 100, y: 108 + bob, h: 150, rot: scene.calm ? 0 : Math.sin(t * 1.3) * 0.06, legs: 0, flame: 0.75, pilotIn: true, blink: blinkAt(t), mood: 'happy', look: 0 }, t);
   }
 
+  // ---------- The hangar (D-050 to D-053) ----------
+
+  // The ship flown, in the hangar door's doorway on the start card (D-052), with its effects.
+  function drawDoorShip(t, dt) {
+    const c = $('door-ship');
+    if (!c || !c.offsetParent) return;
+    const ship = SHIP_BY_ID[progress.ship] || SHIP_BY_ID[STARTER];
+    if (DS.id !== ship.id) { DS.id = ship.id; DS.S = newState(150); DS.P.clear(); }
+    const S = DS.S;
+    DS.P.k = scene.calm ? 0.35 : 1;
+    Object.assign(S, { x: 70, y: 86 + (scene.calm ? 0 : Math.sin(t * 2.2) * 6), rot: scene.calm ? 0 : Math.sin(t * 1.3) * 0.06, legs: 0, thrust: 0.75, air: true, gy: 190 });
+    tickShip(ship, S, DS.P, dt, t);
+    DS.P.update(dt);
+    const x = c.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.clearRect(0, 0, c.width, c.height);
+    DS.P.draw(x, 'back'); drawShip(x, ship, S, t); DS.P.draw(x, 'front');
+  }
+
+  // What's kept: in memory for the shell (GC8) and on this device until the shell keeps it (D-042).
+  function keep() {
+    const kept = { unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings, ship: progress.ship, ships: progress.ships.slice() };
+    saveState(kept);
+    keepOnDevice(mode.id, kept);
+  }
+
+  function openHangar() {
+    if (!ready || G.phase !== 'start' || !hangar.open()) return;
+    sfx('tap');
+    $('start').hidden = true;
+    home.hidden = true;
+  }
+
+  function hangarClosed() {
+    $('start').hidden = false;
+    home.hidden = false;
+    renderPicker();
+    drawRockIcons();
+  }
+
   // ---------- Round ----------
 
   function startRound() {
@@ -230,7 +286,34 @@ export function runRocket(mode) {
     $('rocks-n').textContent = progress.rocks;
     renderDots();
     R.h = scene.rocketH;
+    // the ship flown (D-053): today's rocket is drawn as before; any other by ships.js
+    flyShip = progress.ship !== STARTER && SHIP_BY_ID[progress.ship] ? SHIP_BY_ID[progress.ship] : null;
+    flownId = flyShip ? null : STARTER; // set by drawFlyShip once the ship is really drawn
+    PP.clear(); PP.k = scene.calm ? 0.35 : 1;
+    V.drawShip = flyShip ? drawFlyShip : null;
     nextLanding();
+  }
+
+  // The ship flown follows the rocket's every move (R), so play is the same whichever it is
+  // (D-046); its own moving parts and effects come from ships.js.
+  function syncShip(dt, t) {
+    if (!flyShip) return;
+    Object.assign(SH, { x: R.x, y: R.y, h: R.h, rot: R.rot, legs: R.legs, pilotIn: R.pilotIn, mood: R.mood || 'happy', look: R.look, gy: scene.groundY });
+    SH.thrust = clamp(R.flame, 0, 1.25);
+    SH.air = G.phase === 'fly' || G.phase === 'takeoff' || R.flame > 0.05;
+    SH.steer = clamp(R.vx / 300, -1, 1);
+    tickShip(flyShip, SH, PP, dt, t);
+    SH.sx = R.sx; SH.sy = R.sy; SH.sqT = null; SH.blink = R.blink; // the round's own squash and blink
+    PP.update(dt);
+  }
+
+  // Effects stay above the ground, so they never cover the numbers under the line (D-045).
+  function drawFlyShip(ctx, t) {
+    const clip = () => { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, scene.W, scene.groundY + 6); ctx.clip(); };
+    clip(); drawTrail(ctx, flyShip, SH, t); PP.draw(ctx, 'back'); ctx.restore();
+    drawShip(ctx, flyShip, SH, t);
+    flownId = flyShip.id;
+    clip(); PP.draw(ctx, 'front'); ctx.restore();
   }
 
   function renderDots() {
@@ -329,6 +412,8 @@ export function runRocket(mode) {
     input.active = false;
     const dustCol = mix(scene.planet.ground[1], '#FFFFFF', 0.45);
     const last = G.idx >= G.total - 1;
+    const touch = (FLEET_BY_ID[progress.ship] || FLEET_BY_ID[STARTER]).sound; // each ship's own (D-046)
+    if (flyShip && right) { SH.dust = dustCol; landShip(flyShip, SH, PP); SH.sqT = null; }
     if (right && last) {
       // the round's last landing: Bip's moment instead of the small flag and take-off (D-044)
       G.right += 1;
@@ -337,7 +422,7 @@ export function runRocket(mode) {
       scene.dust(R.x, scene.groundY, scene.calm ? 6 : 16, R.h, dustCol);
       R.mood = 'happy';
       V.glow = { value: spot, a: 0 };
-      at(0.12, () => sfx('thud'));
+      at(0.12, () => sfx(touch));
       if (perfect) {
         at(0.3, () => {
           V.perfect = { x: R.x, y: R.y - R.h * 0.85, t: 0 };
@@ -354,7 +439,7 @@ export function runRocket(mode) {
       scene.dust(R.x, scene.groundY, scene.calm ? 6 : 16, R.h, dustCol);
       R.mood = 'happy';
       V.glow = { value: spot, a: 0 };
-      at(0.12, () => sfx('thud'));
+      at(0.12, () => sfx(touch));
       at(0.45, () => { V.pilot = { x: R.x, y: R.y, s: R.h * 0.5, mood: 'happy', wave: false, squash: 0, flip: G.land.dir < 0 }; R.pilotIn = false; });
       at(0.95, () => { V.flag = { x: 0, grow: 0, text: fmt(spot, S.show_as), dir: G.land.dir }; });
       at(1.15, () => sfx('ding'));
@@ -424,7 +509,8 @@ export function runRocket(mode) {
     at(FIN.flag, () => { V.bigFlag = { x: 0, dir, grow: 0, stars, shown: 0 }; sfx('whoosh'); placeFinale(); });
     for (let i = 0; i < stars; i++) at(FIN.stars + i * 0.22, () => { if (V.bigFlag) V.bigFlag.shown = i + 1; sfx('ding'); });
     (scene.calm ? BURSTS.slice(0, 1) : BURSTS).forEach((b, i) => at(FIN.bang + i * 0.3, () => {
-      V.fireworks.push({ ...b, k: 0, a: 1, age: 0 });
+      V.fireworks.push({ ...b, ...(flyShip ? { cols: flyShip.fw[i % flyShip.fw.length] } : {}), k: 0, a: 1, age: 0 });
+      if (!i && flyShip && flyShip.finale) flyShip.finale(SH, PP, scene.W);
       sfx(i ? 'pop' : 'sparkle');
     }));
     at(FIN.end, () => endRound());
@@ -576,9 +662,7 @@ export function runRocket(mode) {
     if (S.speak) speak(stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
 
     report({ score, stars, seconds, level: level.level });
-    const kept = { unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings };
-    saveState(kept);
-    keepOnDevice(mode.id, kept); // D-042: until the shell keeps it
+    keep(); // D-042: until the shell keeps it
   }
 
   function playAgain() {
@@ -619,6 +703,7 @@ export function runRocket(mode) {
   addEventListener('blur', () => { input.left = input.right = false; input.active = false; });
 
   $('play').addEventListener('click', startRound);
+  $('hangar').addEventListener('click', openHangar);
   $('again').addEventListener('click', playAgain);
   $('done').addEventListener('click', () => { stopSpeaking(); goHome(); });
   $('say').addEventListener('click', (e) => { e.stopPropagation(); sayTarget(); });
@@ -658,7 +743,7 @@ export function runRocket(mode) {
       // with a beam (D-032) it points at the one spot, so no band of leeway is drawn
       V.shadow = { x: R.x, k, half: mode.beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: !!mode.beam,
         snap: line.value(line.index(scene.valueAt(R.x))) };
-      scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
+      if (!flyShip) scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
       scene.offX = lerp(scene.offX, (R.x - scene.W / 2) * 0.6, Math.min(1, dt * 2));
       if (R.y >= G.touchY) touchDown();
     } else if (G.phase === 'landed') {
@@ -687,7 +772,7 @@ export function runRocket(mode) {
           y = G.touchY - Math.sin(k * Math.PI) * R.h * 0.75;
           R.flame = Math.sin(k * Math.PI) * 0.85;
           R.rot = Math.sin(k * Math.PI) * 0.18 * Math.sign(scene.xOf(G.goal) - L.x);
-          scene.exhaust(x, y, R.h, R.flame, dt);
+          if (!flyShip) scene.exhaust(x, y, R.h, R.flame, dt);
         } else if (t2 >= 3.55) {
           x = scene.xOf(G.goal);
           R.flame = 0;
@@ -737,7 +822,7 @@ export function runRocket(mode) {
       const a = (2 * (G.takeFrom + R.h * 1.5)) / (0.95 * 0.95);
       R.y = G.takeFrom - 0.5 * a * Math.max(0, t2 - 0.12) ** 2;
       if (t2 < 0.2 && Math.random() < 0.6) scene.dust(R.x, scene.groundY, 1, R.h, mix(scene.planet.ground[1], '#FFFFFF', 0.45));
-      scene.exhaust(R.x, R.y, R.h, R.flame, dt);
+      if (!flyShip) scene.exhaust(R.x, R.y, R.h, R.flame, dt);
       if (V.flag) V.flag.grow = Math.max(0, V.flag.grow - dt * 4);
       if (V.glow) V.glow.a = Math.max(0, V.glow.a - dt * 3);
       if (V.highlight) V.highlight.a = Math.max(0, V.highlight.a - dt * 3);
@@ -745,6 +830,7 @@ export function runRocket(mode) {
     } else if (G.fin && (G.phase === 'finale' || G.phase === 'end')) {
       finaleFrame(dt);
     }
+    syncShip(dt, t);
   }
 
   let last = performance.now(), frame = 0, clock = 0;
@@ -756,9 +842,11 @@ export function runRocket(mode) {
     clock += dt;
     update(dt, clock);
     if (!scene.calm) scene.scroll += dt * (G.phase === 'takeoff' ? 60 : 6);
-    scene.draw(V, clock, dt);
-    fx.draw(real, clock);
-    if (G.phase === 'start') drawHero(clock);
+    // the showroom covers the whole stage once its door is up: the scene needn't be drawn
+    const covered = hangar && hangar.isOpen && hangar.door.k >= 1;
+    if (!covered) { scene.draw(V, clock, dt); fx.draw(real, clock); }
+    if (G.phase === 'start' && !$('start').hidden) { drawHero(clock); drawDoorShip(clock, dt); }
+    if (hangar) hangar.frame(dt, clock);
     frame = requestAnimationFrame(loop);
   }
 
@@ -787,6 +875,15 @@ export function runRocket(mode) {
   }
 
   function boot() {
+    hangar = new Hangar(stage, {
+      progress: () => progress,
+      buy: (id) => { const p = buyShip(progress, id); if (!p) return false; progress = p; keep(); return true; },
+      pick: (id) => { const p = pickShip(progress, id); if (!p) return false; progress = p; keep(); return true; },
+      sfx: (name) => sfx(name),
+      say: (text) => { if (S.speak) speak(text); },
+      calm: () => scene.calm,
+      closed: hangarClosed,
+    });
     useLevel(levelFromAddress());
     progress = { ...DEFAULT_PROGRESS, ...(keptOnDevice(mode.id) || {}) }; // D-042
     sanitiseProgress();
@@ -805,7 +902,7 @@ export function runRocket(mode) {
   // panel now, by the shell at stage 3). Only on the start screen; anything missing or odd
   // falls back to level 1 and the built-in defaults. No level given: the address's, or 1.
   function begin({ level: givenLevel = undefined, settings = {}, state = null } = {}) {
-    if (G.phase !== 'start') return false;
+    if (G.phase !== 'start' || (hangar && hangar.isOpen)) return false;
     useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
     const r = resolveSettings(SCHEMA, settings);
     if (r.notes.length) console.info(`${mode.name} settings: ${r.notes.join('; ')}.`);
@@ -838,7 +935,10 @@ export function runRocket(mode) {
       results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
       finale: G.fin && { t: G.fin.t, stars: G.fin.stars, pad: !!V.pad && V.pad.k > 0, ladder: !!V.ladder && V.ladder.k > 0,
         flag: !!V.bigFlag && V.bigFlag.grow > 0, shown: V.bigFlag ? V.bigFlag.shown : 0, fireworks: (V.fireworks || []).length, pilotIn: R.pilotIn },
+      hangar: hangar ? hangar.state() : null, doorShip: DS.id, heroShip: STARTER, flown: G.phase === 'start' ? null : flownId,
     }),
+    // the middle of one of the showroom's buttons, in page pixels, for a real tap
+    hangarHit: (id) => (hangar ? hangar.hitPoint(id) : null),
     begin,
     reported,
     saved: savedState,

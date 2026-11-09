@@ -1,11 +1,14 @@
 """Animated mock-ups of the hangar's ships and two hangar layouts, for Rob to choose from
-(step 2a-4a; D-045 to D-047). Version 1.0.
+(step 2a-4a; D-045 to D-047). Version 1.1.
+
+Changes at v1.1 (step 2a-4b): the ships moved to games/_common/rocket/ships.js (D-053), so the
+page bundles them from there, with the table in fleet.js; the mock-ups are otherwise unchanged.
 
 Not a check, and not part of the game: it builds one page of moving mock-ups to look at and
 try before anything is built. It bundles
-  - tools/tests/games/sketch_rocket_ships.js 1.0: the ships, how they look and what they do
-    (drawn here only until Rob has chosen; the chosen ones move into games/_common/rocket/), and
-  - tools/tests/games/sketch_rocket_hangar.js 1.0: the page: a gallery of the ships, and the
+  - games/_common/rocket/ships.js: the ships, how they look and what they do (drawn in
+    tools/tests/games/sketch_rocket_ships.js 1.0 until Rob had chosen, D-049), and
+  - tools/tests/games/sketch_rocket_hangar.js 1.1: the page: a gallery of the ships, and the
     two hangars, A (the hall) and B (the showroom), working, with pretend moon rocks,
 with the shared engine modules they import from games/_common/rocket/ (scene, numbers,
 planets, sound), unchanged, the same way build_preview.py bundles a game (its module rules,
@@ -34,9 +37,9 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 
 REPO = bp.REPO
 GAME = 'ships-mock'  # a folder name for the bundle only: no such folder exists in games/
-VIRTUAL = {f'games/{GAME}/page': 'sketch_rocket_hangar.js', f'games/{GAME}/ships': 'sketch_rocket_ships.js'}
+VIRTUAL = {f'games/{GAME}/page': 'sketch_rocket_hangar.js'}
 FONT_CSS = 'games/_common/fonts/fredoka.css'
-VERSION = '1.0'
+VERSION = '1.1'
 
 
 def source_of(key):
@@ -167,7 +170,7 @@ On the real start screen, the hangar would open from a door-shaped button beside
 </ol>
 <p class="why">The prices (20 to 200 moon rocks) are starting values, to tune from the trial week's rock counts (Q-025).</p></section>
 
-<p class="stamp">Mock-ups, not the game. Built from claude/games at {commit} by tools/tests/games/sketch_rocket_ships.py {VERSION}: the ships are drawn by sketch_rocket_ships.js {VERSION},
+<p class="stamp">Mock-ups, not the game. Built from claude/games at {commit} by tools/tests/games/sketch_rocket_ships.py {VERSION}: the ships are drawn by games/_common/rocket/ships.js,
 the page by sketch_rocket_hangar.js {VERSION}, with the game's games/_common/rocket/ scene, numbers, planets and sounds as they are. Fredoka is inlined from games/_common/fonts/ (D-043);
 nothing is fetched. All drawing and sounds are original and made in code. Checked in headless Chromium, standing in for the phone and PC.
 With "Less motion" on, or when the device asks for less motion, there are fewer sparks, one firework and no bobbing.</p>

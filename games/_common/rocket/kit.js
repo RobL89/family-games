@@ -1,5 +1,7 @@
 // The rocket games' own small kit, in place of the old launcher's shared/game-kit.js, so a
-// game runs on its own as a plain page (D-004, D-014). Version 1.1. Changes at v1.1: a tile's
+// game runs on its own as a plain page (D-004, D-014). Version 1.2. Changes at v1.2 (step
+// 2a-4b): the tile's entry is at format version 2, with the ships owned and flown, and a
+// version 1 entry is still read (D-053). Changes at v1.1: a tile's
 // progress is kept on the device (D-042), here and nowhere else. Nothing here reaches a Sheet
 // or the network:
 //   - report(result) keeps each finished round's result in memory (reported());
@@ -35,9 +37,12 @@ export function saveState(state) { saved = copy(state || {}); return true; }
 export const savedState = () => (saved ? copy(saved) : null);
 
 // A tile's progress on this device (D-042): one entry, "family-games:<tile>:progress", holding
-// { v: 1, ...state }. If storage is blocked or full, or the entry is broken or of another
-// format version, nothing is kept or read back, and the game plays on from the start.
-const FORMAT = 1;
+// { v: 2, ...state }, the state with `ship` and `ships` since format version 2 (D-053). A
+// version 1 entry is still read, without them (the game then has Classic). If storage is
+// blocked or full, or the entry is broken or of another format version, nothing is kept or
+// read back, and the game plays on from the start.
+const FORMAT = 2;
+const READS = [1, 2];
 const entryOf = (tile) => `family-games:${tile}:progress`;
 export function keepOnDevice(tile, state) {
   try {
@@ -48,7 +53,7 @@ export function keepOnDevice(tile, state) {
 export function keptOnDevice(tile) {
   try {
     const e = JSON.parse(localStorage.getItem(entryOf(tile)));
-    if (!e || typeof e !== 'object' || Array.isArray(e) || e.v !== FORMAT) return null;
+    if (!e || typeof e !== 'object' || Array.isArray(e) || !READS.includes(e.v)) return null;
     const { v, ...state } = e;
     return state;
   } catch { return null; }

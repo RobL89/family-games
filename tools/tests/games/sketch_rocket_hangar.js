@@ -1,10 +1,12 @@
 // The step 2a-4a mock-up page (D-045 to D-047): a gallery of the hangar's ships, and the two
-// hangar layouts to try, A (the hall) and B (the showroom). Version 1.0. A mock-up, not the
-// game: bundled by tools/tests/games/sketch_rocket_ships.py with the ships in
-// sketch_rocket_ships.js and the game's own scene code from games/_common/rocket/. Rocks,
-// ships and choices here are pretend, kept in memory only, and lost on a reload.
+// hangar layouts to try, A (the hall) and B (the showroom). Version 1.1. A mock-up, not the
+// game: bundled by tools/tests/games/sketch_rocket_ships.py with the ships and the game's own
+// scene code from games/_common/rocket/. Rocks, ships and choices here are pretend, kept in
+// memory only, and lost on a reload.
+// Changes at v1.1 (step 2a-4b): the ships are imported from games/_common/rocket/ships.js,
+// where they moved (D-053); nothing else changed. The game's showroom is games/_common/rocket/hangar.js.
 
-import { SHIPS, SHIP_BY_ID, TIERS, Parts, newState, tickShip, landShip, drawShip, drawTrail, glow, star5 } from './ships.js';
+import { SHIPS, SHIP_BY_ID, TIERS, Parts, newState, tickShip, landShip, drawShip, drawTrail, glow, star5 } from '../_common/rocket/ships.js';
 import { Scene, drawPilot, drawLadder, drawFirework, drawRock, drawPlanetBall, ladderEnds, rr, rgba, mix, clamp, lerp, ease, sparkle, rng, INK, FONT } from '../_common/rocket/scene.js';
 import { makeLine } from '../_common/rocket/numbers.js';
 import { play, speak, setMuted, canSpeak } from '../_common/rocket/sound.js';

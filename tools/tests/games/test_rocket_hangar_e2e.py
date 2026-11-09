@@ -1,0 +1,254 @@
+"""Browser test for the rocket tiles' hangar: the door, the showroom, buying and flying a ship.
+Version 1.0.
+
+Step 2a-4b (D-046, D-050 to D-053). Played on its own as a plain page, in both tiles (Rocket
+Lander and Rocket Sums share the engine in games/_common/rocket/). With real taps on the page:
+  - a version 1 progress entry still loads, as Classic owned and flown (D-053);
+  - the hangar door on the start card shows the ship flown; the title's rocket never changes (D-052);
+  - the door opens the showroom, which starts on the ship flown; badges, arrows and a swipe
+    change ship; the big button buys a ship there are enough rocks for, at its price, once;
+  - it refuses a ship the rocks don't cover and the three not flying until 2a-4c (D-051);
+  - after buying, Bip runs in and the new ship is flown: in the doorway and in play;
+  - the progress entry is written at format version 2 with the ships, and a reload keeps them;
+    odd entries are tidied, and an unknown version starts afresh;
+  - begin() takes ships in the saved state, as the shell will;
+  - the showroom fits phone, phone sideways and PC, light and dark, with no sideways scrolling
+    and its buttons on screen, and still works with less motion.
+
+Stand-ins: headless Chromium (Playwright) for the phone and PC, a local static server for the
+family site. Screenshots show made-up play only and are never committed.
+Usage, from the repo root:
+    python3 -B tools/tests/games/test_rocket_hangar_e2e.py [folder for screenshots]
+"""
+import functools, http.server, json, os, socketserver, sys, tempfile, threading
+from playwright.sync_api import sync_playwright
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+OUT = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='hangar-shots-')
+os.makedirs(OUT, exist_ok=True)
+
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+
+httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=REPO))
+httpd.daemon_threads = True
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
+errors, fails, outside = [], [], []
+V1 = {'v': 1, 'unlocked': 3, 'planet': 'moon', 'rocks': 37, 'landings': 40}  # made-up progress
+
+
+def check(ok, what):
+    print(('ok   ' if ok else 'FAIL ') + what)
+    if not ok:
+        fails.append(what)
+
+
+def new_page(br, w, h, mobile, scheme='light', motion='no-preference'):
+    ctx = br.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2 if mobile else 1,
+                         is_mobile=mobile, has_touch=mobile, color_scheme=scheme, reduced_motion=motion)
+
+    def route(r):
+        url = r.request.url
+        if url.startswith(LOCAL) or url.startswith('data:') or url.startswith('blob:'):
+            return r.continue_()
+        outside.append(url)
+        return r.abort()
+    ctx.route('**/*', route)
+    pg = ctx.new_page()
+    pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
+    pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
+          if m.type in ('error', 'warning') and 'ERR_FAILED' not in m.text else None)
+    return pg
+
+
+def ready(pg):
+    pg.wait_for_function('window.__test && __test.state().ready')
+
+
+def open_tile(br, tile, w=390, h=844, mobile=True, entry=V1, **kw):
+    pg = new_page(br, w, h, mobile, **kw)
+    pg.goto(f'{LOCAL}games/{tile}/index.html')
+    ready(pg)
+    if entry is not None:
+        pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(tile), entry])
+        pg.reload()
+        ready(pg)
+    pg.wait_for_timeout(300)
+    return pg
+
+
+def key(tile):
+    return f'family-games:{tile}:progress'
+
+
+def st(pg):
+    return pg.evaluate('__test.state()')
+
+
+def hangar(pg):
+    return pg.evaluate('__test.state().hangar')
+
+
+def entry_of(pg, tile):
+    return pg.evaluate(f'JSON.parse(localStorage.getItem("{key(tile)}"))')
+
+
+def tap(pg, hit):
+    """A real tap or click on one of the showroom's buttons, where it is drawn."""
+    p = pg.evaluate(f'__test.hangarHit({json.dumps(hit)})')
+    if not p:
+        return False
+    pg.mouse.click(p['x'], p['y'])
+    return True
+
+
+def open_hangar(pg):
+    pg.click('#hangar')
+    pg.wait_for_function('__test.state().hangar && __test.state().hangar.open && __test.state().hangar.door >= 1', timeout=10000)
+    pg.wait_for_timeout(200)
+
+
+def show(pg, ship):
+    ok = tap(pg, f'badge:{ship}')
+    pg.wait_for_function(f'__test.state().hangar.cur === "{ship}" && !__test.state().hangar.switching', timeout=5000)
+    return ok
+
+
+with sync_playwright() as pw:
+    br = pw.chromium.launch()
+    for tile in ('rocket-lander', 'rocket-sums'):
+        T = tile
+        # ---------- A version 1 entry loads as Classic (D-053) ----------
+        pg = open_tile(br, T)
+        p = st(pg)['progress']
+        check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 37 and p['unlocked'] == 3,
+              f'{T}: a version 1 entry still loads, with Classic owned and flown: {p}')
+        check(pg.is_visible('#hangar') and pg.inner_text('#start-rocks') == '37',
+              f'{T}: the start card has the hangar door, with the rocks on it (D-052)')
+        check(st(pg)['doorShip'] == 'classic' and st(pg)['heroShip'] == 'classic', f'{T}: the doorway shows the ship flown; the title\'s rocket is today\'s')
+        pg.screenshot(path=f'{OUT}/{T}-start.png')
+
+        # ---------- The showroom: starts on the ship flown ----------
+        open_hangar(pg)
+        h = hangar(pg)
+        check(h['cur'] == 'classic' and h['verdict'] == 'flying', f'{T}: the showroom opens on the ship flown: {h}')
+        pg.screenshot(path=f'{OUT}/{T}-showroom-classic.png')
+
+        # ---------- Buy the Teapot (30) with 37 rocks ----------
+        show(pg, 'teapot')
+        check(hangar(pg)['verdict'] == 'buy', f'{T}: the Teapot can be bought with 37 rocks')
+        pg.screenshot(path=f'{OUT}/{T}-showroom-teapot.png')
+        tap(pg, 'action')
+        pg.wait_for_function('__test.state().progress.ships.includes("teapot")', timeout=8000)
+        p = st(pg)['progress']
+        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: bought at its price, 37 - 30 = 7 left: {p}')
+        e = entry_of(pg, T)
+        check(e and e.get('v') == 2 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'],
+              f'{T}: the purchase is kept on the device straight away, at format version 2: {e}')
+        pg.wait_for_timeout(700)
+        pg.screenshot(path=f'{OUT}/{T}-showroom-bought.png')
+        pg.wait_for_function('__test.state().progress.ship === "teapot" && !__test.state().hangar.bip', timeout=10000)
+        check(hangar(pg)['verdict'] == 'flying', f'{T}: after Bip runs in, the Teapot is the ship flown')
+        check(entry_of(pg, T).get('ship') == 'teapot', f'{T}: the ship flown is kept on the device')
+        tap(pg, 'action')
+        pg.wait_for_timeout(500)
+        check(st(pg)['progress']['rocks'] == 7, f'{T}: pressing the button again buys nothing')
+
+        # ---------- Refused: not enough rocks; not flying until 2a-4c ----------
+        tap(pg, 'right')
+        pg.wait_for_function('__test.state().hangar.cur === "pod" && !__test.state().hangar.switching', timeout=5000)
+        check(hangar(pg)['verdict'] == 'need', f'{T}: the right arrow shows the Bubble Pod, 43 rocks short')
+        tap(pg, 'action')
+        pg.wait_for_timeout(600)
+        p = st(pg)['progress']
+        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: the Bubble Pod is refused with 7 rocks: {p}')
+        pg.screenshot(path=f'{OUT}/{T}-showroom-need.png')
+        show(pg, 'crystal')
+        check(hangar(pg)['verdict'] == 'soon', f'{T}: Crystal Comet shows, locked, not on sale yet (D-051)')
+        pg.screenshot(path=f'{OUT}/{T}-showroom-crystal.png')
+        # a swipe to the left shows the next ship
+        box = pg.locator('#hangar-room').bounding_box()
+        y = box['y'] + box['height'] * 0.45
+        pg.mouse.move(box['x'] + box['width'] * 0.7, y); pg.mouse.down()
+        for i in range(1, 9):
+            pg.mouse.move(box['x'] + box['width'] * (0.7 - 0.05 * i), y)
+            pg.wait_for_timeout(16)
+        pg.mouse.up()
+        pg.wait_for_function('__test.state().hangar.cur === "phoenix" && !__test.state().hangar.switching', timeout=5000)
+        check(True, f'{T}: a swipe shows the next ship')
+
+        # ---------- Back to the start card, and into play ----------
+        tap(pg, 'back')
+        pg.wait_for_function('!__test.state().hangar.open', timeout=8000)
+        pg.wait_for_timeout(300)
+        check(pg.is_visible('#start') and st(pg)['doorShip'] == 'teapot' and st(pg)['heroShip'] == 'classic',
+              f'{T}: back on the start card, the doorway shows the Teapot and the title\'s rocket is unchanged')
+        pg.screenshot(path=f'{OUT}/{T}-start-teapot.png')
+        pg.click('#play', force=True)
+        pg.wait_for_function('__test.state().phase === "fly"')
+        pg.wait_for_timeout(900)
+        check(st(pg)['flown'] == 'teapot', f'{T}: the Teapot flies in play')
+        pg.screenshot(path=f'{OUT}/{T}-fly-teapot.png')
+        pg.evaluate('__test.right()')
+        pg.wait_for_function('__test.state().phase === "landed"')
+        pg.wait_for_timeout(500)
+        pg.screenshot(path=f'{OUT}/{T}-land-teapot.png')
+        check(st(pg)['results'][0]['right'], f'{T}: it lands like any rocket')
+
+        # ---------- A reload keeps the ships ----------
+        pg.reload(); ready(pg)
+        p = st(pg)['progress']
+        check(p['ship'] == 'teapot' and p['ships'] == ['classic', 'teapot'] and p['rocks'] == 7, f'{T}: a reload keeps the ships: {p}')
+        for bad, want, why in (
+            ({**V1, 'v': 2, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('classic', ['classic', 'box'], 37), 'odd ships are tidied'),
+            ({**V1, 'v': 3, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version starts afresh'),
+        ):
+            pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(T), bad])
+            pg.reload(); ready(pg)
+            p = st(pg)['progress']
+            check((p['ship'], p['ships'], p['rocks']) == want, f'{T}: {why}: {p}')
+        # the shell hands the state in (stage 3): begin() takes the ships
+        ok = pg.evaluate('(s) => __test.begin({ state: s })', {'unlocked': 1, 'planet': 'moon', 'rocks': 3, 'landings': 0, 'ship': 'box', 'ships': ['classic', 'box']})
+        pg.wait_for_timeout(200)
+        check(ok and st(pg)['progress']['ship'] == 'box' and st(pg)['doorShip'] == 'box', f'{T}: begin() takes the ships handed in')
+        pg.context.close()
+
+    # ---------- Sizes and looks (Rocket Lander): phone, sideways, PC; light and dark ----------
+    for (w, h, mobile) in [(390, 844, True), (844, 390, True), (1280, 800, False)]:
+        for scheme in ('light', 'dark'):
+            pg = open_tile(br, 'rocket-lander', w, h, mobile, {**V1, 'rocks': 75}, scheme=scheme)
+            wide = pg.evaluate('document.documentElement.scrollWidth - innerWidth')
+            card = pg.evaluate('(() => { const c = document.getElementById("start"); return c.scrollHeight - c.clientHeight; })()')
+            if scheme == 'light':
+                pg.screenshot(path=f'{OUT}/size-{w}x{h}-start.png')
+            open_hangar(pg)
+            show(pg, 'saucer')
+            wide = max(wide, pg.evaluate('document.documentElement.scrollWidth - innerWidth'))
+            hits = {k: pg.evaluate(f'__test.hangarHit("{k}")') for k in ('action', 'back', 'left', 'right', 'badge:classic', 'badge:aurora')}
+            on = all(v and 0 <= v['x'] <= w and 0 <= v['y'] <= h for v in hits.values())
+            check(wide <= 0 and card <= 1 and on, f'{w}x{h} {scheme}: no sideways scrolling ({wide}), start card fits ({card}), showroom buttons on screen: {hits}')
+            if scheme == 'light':
+                pg.screenshot(path=f'{OUT}/size-{w}x{h}-showroom.png')
+            pg.context.close()
+
+    # ---------- Less motion: the showroom still opens and buys ----------
+    pg = open_tile(br, 'rocket-sums', 390, 844, True, {**V1, 'rocks': 25}, motion='reduce')
+    open_hangar(pg)
+    show(pg, 'box')
+    tap(pg, 'action')
+    pg.wait_for_function('__test.state().progress.ship === "box"', timeout=12000)
+    check(st(pg)['progress']['rocks'] == 5 and hangar(pg)['calm'], 'less motion: the Cardboard Box is bought and flown, calmly (25 - 20 = 5)')
+    pg.context.close()
+    br.close()
+
+httpd.shutdown()
+check(not outside, 'nothing fetched from outside the local server' + ('' if not outside else ': ' + ' | '.join(sorted(set(outside))[:5])))
+check(not errors, 'no console errors or warnings' + ('' if not errors else ': ' + ' | '.join(errors[:5])))
+print(f'Screenshots: {OUT}')
+print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
+sys.exit(1 if fails else 0)

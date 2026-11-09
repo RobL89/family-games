@@ -1,6 +1,8 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
-// Version 1.1. Changes at v1.1: the pieces of Bip's moment at the end of a round (D-044): the
+// Version 1.2. Changes at v1.2 (step 2a-4b): the round may hand in its own drawing for the ship
+// flown (v.drawShip, D-053); without one, today's rocket is drawn as before.
+// Changes at v1.1: the pieces of Bip's moment at the end of a round (D-044): the
 // gold pad, the ladder, the big flag with the round's stars, and fireworks.
 
 import { PLANETS } from './planets.js';
@@ -1327,7 +1329,7 @@ export class Scene {
     this.drawParticles(ctx, false);
     if (v.flag) drawFlag(ctx, { ...v.flag, y: this.groundY - 2, h: this.rocketH * 0.95 }, t, FONT);
     if (v.bigFlag) drawBigFlag(ctx, v.bigFlag, this.groundY, this.rocketH, t);
-    if (v.rocket) drawRocket(ctx, v.rocket, t);
+    if (v.rocket) { if (v.drawShip) v.drawShip(ctx, t); else drawRocket(ctx, v.rocket, t); }
     if (v.ladder) drawLadder(ctx, v.ladder, this.groundY, this.rocketH);
     if (v.pilot) drawPilot(ctx, v.pilot, t);
     this.drawParticles(ctx, true);

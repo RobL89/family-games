@@ -1,8 +1,10 @@
-// The hangar's ships for the rocket games (D-045, D-046): how each one looks and what it does
-// when it comes down, lands and shows off. Version 1.0, for the step 2a-4a mock-ups only
-// (tools/tests/games/sketch_rocket_ships.py bundles it); nothing in the games uses it yet.
-// Once Rob has chosen, the chosen ships move into games/_common/rocket/ (steps 2a-4b, 2a-4c).
-// All original and drawn in code (D-010).
+// The hangar's ships for the rocket games (D-045, D-046, D-049): how each one looks and what it
+// does when it comes down, lands and shows off. Version 1.1. All original and drawn in code (D-010).
+//
+// Changes at v1.1 (step 2a-4b, D-053): moved here unchanged from
+// tools/tests/games/sketch_rocket_ships.js 1.0, the step 2a-4a mock-ups' drawings, which Rob
+// accepted (D-049). The names, tiers, prices and touchdown sounds now come from the one table in
+// fleet.js, merged into each ship below; the drawings, moving parts and effects are as they were.
 //
 // Every ship keeps the classic rocket's envelope, so play is the same whichever is flown
 // (D-045, D-046): drawn round its middle (x, y), h tall, feet on the ground at y + h/2 once
@@ -13,7 +15,8 @@
 // open and openT (wings and sails, now and wanted), spin, lock, flap, hop, steer (-1 to 1),
 // trail (world points, for ribbons), sqT (time since touchdown, for the squash).
 
-import { drawRocket, drawPilotHead, drawPilot, rr, rgba, mix, clamp, lerp, ease, sparkle, INK } from '../_common/rocket/scene.js';
+import { drawRocket, drawPilotHead, drawPilot, rr, rgba, mix, clamp, lerp, ease, sparkle, INK } from './scene.js';
+import { FLEET_BY_ID } from './fleet.js';
 
 const TAU = Math.PI * 2;
 const CORAL = '#FF5D73';
@@ -327,7 +330,7 @@ function sweep(ctx, h, t, speed, col = 'rgba(255,255,255,.6)', width = 0.09) {
 
 // Classic: today's rocket, unchanged, with two fin-tip lights that blink in the hangar.
 const classic = {
-  id: 'classic', name: 'Classic', tier: 'starter', price: 0, sound: 'thud',
+  id: 'classic',
   look: 'Today\'s rocket: free, and yours from the start.',
   fw: [[SUN, '#FFFFFF', PINK], [LILAC, CORAL, SUN], [MINT, SKY, '#FFFFFF']],
   conf: [CORAL, SUN, MINT, SKY, '#FFFFFF'],
@@ -378,7 +381,7 @@ function crayonFlame(ctx, h, p, boil) {
 }
 
 const box = {
-  id: 'box', name: 'Cardboard Box', tier: 'fun', price: 20, sound: 'boing',
+  id: 'box',
   look: 'A box, sticky tape, a party hat and paper fins. Crayon flame; drawn-on stars fly off it.',
   fw: [[CORAL, SUN, '#3D6CF0'], ['#2FB892', '#FFB020', '#9B5DE5'], ['#FFFFFF', CORAL, '#3D6CF0']],
   conf: ['#FF5D73', '#3D6CF0', '#FFC93C', '#2FB892', '#9B5DE5', '#FFFFFF'],
@@ -487,7 +490,7 @@ function gasRing(ctx, h, p, t) {
 }
 
 const teapot = {
-  id: 'teapot', name: 'Teapot', tier: 'fun', price: 30, sound: 'toot',
+  id: 'teapot',
   look: 'A spotty china teapot. Little blue flames underneath, a rattling lid, and a big toot of steam when it lands.',
   fw: [['#4F7BEA', '#FFFFFF', SUN], [PINK, '#FFFFFF', '#4F7BEA'], [SUN, MINT, '#FFFFFF']],
   conf: ['#4F7BEA', '#FFFFFF', SUN, PINK, MINT],
@@ -592,7 +595,7 @@ function podRing(ctx, h, S, t, front, tilt, dir) {
 }
 
 const pod = {
-  id: 'pod', name: 'Bubble Pod', tier: 'cool', price: 50, sound: 'clunk',
+  id: 'pod',
   look: 'A glass ball held in two spinning chrome rings of chasing lights, with Bip sitting inside. Jets puff as you steer; the rings lock green on landing.',
   fw: [[MINT, SKY, '#FFFFFF'], [SUN, PINK, SKY], [SKY, '#FFFFFF', MINT]],
   conf: [MINT, SKY, SUN, PINK, '#FFFFFF'],
@@ -657,7 +660,7 @@ const pod = {
 // Saucer: a humming disc with a glass dome and chasing rim bulbs, riding a beam of light.
 const BULBS = [CORAL, SUN, MINT, SKY, LILAC, PINK];
 const saucer = {
-  id: 'saucer', name: 'Saucer', tier: 'cool', price: 70, sound: 'hum',
+  id: 'saucer',
   look: 'A humming disc with a glass dome and chasing rim bulbs. A beam of light reaches the ground before it does; ripples spread when it lands.',
   fw: [[SKY, LILAC, '#FFFFFF'], [MINT, SKY, SUN], [PINK, LILAC, SKY]],
   conf: [SKY, LILAC, MINT, PINK, '#FFFFFF'],
@@ -740,7 +743,7 @@ const CR_FACETS = [['N', 'R1', 'C1', 1], ['N', 'C1', 'L1', 5], ['R1', 'R2', 'C2'
 const CR_OUT = ['N', 'R1', 'R2', 'R3', 'B', 'L3', 'L2', 'L1'];
 
 const crystal = {
-  id: 'crystal', name: 'Crystal Comet', tier: 'premium', price: 100, sound: 'chime',
+  id: 'crystal',
   look: 'Cut ice-blue crystal with silver trim and glints sweeping across it. A long glittering comet tail; crystal shards ring up out of the ground when it lands.',
   fw: [[SKY, '#FFFFFF', LILAC], ['#C6F5FF', PINK, '#FFFFFF'], [LILAC, SKY, '#FFFFFF']],
   conf: ['#FFFFFF', '#C6F5FF', '#93E2FA', LILAC, '#FFC6F0'],
@@ -844,7 +847,7 @@ function phoenixBody(ctx, h) {
 }
 
 const phoenix = {
-  id: 'phoenix', name: 'Golden Phoenix', tier: 'premium', price: 140, sound: 'harp',
+  id: 'phoenix',
   look: 'A gold and flame-orange firebird. Wings of light unfold and beat slowly to brake it; golden feathers drift down when it lands.',
   fw: [[SUN, '#FFF3B0', '#FF7A2F'], ['#FF5D2E', SUN, '#FFFFFF'], ['#E8364F', '#FFB347', SUN]],
   conf: [SUN, '#FFE48A', '#FF7A2F', '#E8364F', '#FFFFFF'],
@@ -963,7 +966,7 @@ function petals(ctx, h, open, t) {
 }
 
 const aurora = {
-  id: 'aurora', name: 'Aurora Cruiser', tier: 'legendary', price: 200, sound: 'aurora',
+  id: 'aurora',
   look: 'Pearl and chrome with rainbow running lights and a halo of stars. Rainbow ribbons stream behind it like the northern lights; solar sails open like petals when it lands.',
   fw: [['#FF5D73', '#FFC93C', '#FFFFFF'], ['#5FE3BD', '#8CF5FF', '#FFFFFF'], ['#B9A7FF', '#FF8FB1', '#FFFFFF'], ['#FFC93C', '#5FE3BD', '#8CF5FF'], ['#FF8FB1', '#B9A7FF', '#FFC93C']],
   conf: ['#FF5D73', '#FFC93C', '#5FE3BD', '#8CF5FF', '#B9A7FF', '#FF8FB1', '#FFFFFF'],
@@ -1076,7 +1079,8 @@ const aurora = {
   },
 };
 
-export const SHIPS = [classic, box, teapot, pod, saucer, crystal, phoenix, aurora];
+// Each ship's name, tier, price and sound from fleet.js's table (D-053), merged into the drawing.
+export const SHIPS = [classic, box, teapot, pod, saucer, crystal, phoenix, aurora].map((s) => Object.assign(s, FLEET_BY_ID[s.id]));
 export const SHIP_BY_ID = Object.fromEntries(SHIPS.map((s) => [s.id, s]));
 export const TIERS = {
   starter: { name: 'Starter', col: '#B9BFE6', ink: INK },

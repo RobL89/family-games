@@ -40,9 +40,29 @@
       <div class="pick">
         <ul id="planets" class="planets" aria-label="Planets"></ul>
         <div class="start-foot">
-          <div class="rocks big-rocks" aria-label="Moon rocks">
-            <canvas class="rock-icon" width="72" height="72" aria-hidden="true"></canvas><span id="start-rocks">0</span>
-          </div>
+          <button id="hangar" class="hangar-btn" type="button" aria-label="Hangar: your ships and moon rocks">
+            <span class="door-wrap" aria-hidden="true">
+              <svg class="door-svg" viewBox="0 0 100 120">
+                <defs>
+                  <linearGradient id="dg-in" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A1F6B"/><stop offset="1" stop-color="#8CF5FF"/></linearGradient>
+                  <pattern id="dg-haz" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="12" height="12" fill="#FFC93C"/><rect width="6" height="12" fill="#1B1446"/></pattern>
+                </defs>
+                <path d="M8 116V44Q8 10 50 10Q92 10 92 44V116Z" fill="#5B4CC4" stroke="#1B1446" stroke-width="5" stroke-linejoin="round"/>
+                <path d="M20 112V48Q20 24 50 24Q80 24 80 48V112Z" fill="url(#dg-in)" stroke="#1B1446" stroke-width="4"/>
+                <g class="shutter">
+                  <path d="M20 48Q20 24 50 24Q80 24 80 48V50H20Z" fill="#B9B3E6" stroke="#1B1446" stroke-width="4" stroke-linejoin="round"/>
+                  <path d="M24 36H76M21 44H79" stroke="#1B1446" stroke-width="2.5" opacity=".55"/>
+                  <rect x="20" y="46" width="60" height="7" fill="url(#dg-haz)" stroke="#1B1446" stroke-width="3"/>
+                </g>
+                <rect x="4" y="110" width="92" height="9" rx="4" fill="url(#dg-haz)" stroke="#1B1446" stroke-width="4"/>
+                <circle class="beacon" cx="50" cy="9" r="7" fill="#FF5D73" stroke="#1B1446" stroke-width="4"/>
+              </svg>
+              <canvas id="door-ship" class="door-ship" width="140" height="190"></canvas>
+            </span>
+            <span class="rocks big-rocks" aria-label="Moon rocks">
+              <canvas class="rock-icon" width="72" height="72" aria-hidden="true"></canvas><span id="start-rocks">0</span>
+            </span>
+          </button>
           <button id="play" class="big go" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
             Play

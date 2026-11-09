@@ -1,4 +1,9 @@
-"""Mock-ups: where the hangar door goes on the rocket tiles' start screen. Version 1.2.
+"""Mock-ups: where the hangar door goes on the rocket tiles' start screen. Version 1.3.
+
+Changes at v1.3 (step 2a-4b): the ship drawings are read from games/_common/rocket/ships.js,
+where they moved (D-053). The game now has door D2 built in (D-052), so this script adds a
+second door to a start card that already has one: to rebuild mock-ups 3 as Rob saw them, run it
+from commit 26b299c. It is kept as the record of how they were made.
 
 Changes at v1.2: mock-ups 3. Rob leans to D and asked for a bigger door, and for the rocket at
 the top of the start card to show the ship being flown. Three ways to give D a bigger door
@@ -34,7 +39,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/door'
 os.makedirs(OUT, exist_ok=True)
-VERSION = '1.2'
+VERSION = '1.3'
 SHIP = 'teapot'  # the bought ship shown in mock-ups 3 (made-up progress)
 
 # The door: an arched frame, a roller shutter part raised, hazard stripes, a beacon and a glow
@@ -158,7 +163,8 @@ SHOTS = ([('rocket-lander', o, s, SHIP) for o in ('D1', 'D2', 'D3') for s, _, _ 
 root = tempfile.mkdtemp(prefix='door-')
 os.makedirs(os.path.join(root, 'games', 'ships-mock'))
 os.symlink(os.path.join(REPO, 'games', '_common'), os.path.join(root, 'games', '_common'))
-shutil.copyfile(os.path.join(HERE, 'sketch_rocket_ships.js'), os.path.join(root, 'games', 'ships-mock', 'ships.js'))
+with open(os.path.join(root, 'games', 'ships-mock', 'ships.js'), 'w') as fh:  # the ships moved to the engine (D-053)
+    fh.write("export * from '../_common/rocket/ships.js';\n")
 for game in ('rocket-lander', 'rocket-sums'):
     r = subprocess.run([sys.executable, '-B', os.path.join(HERE, 'build_preview.py'), game, '--number', 'D',
                         '--out', os.path.join(root, game + '.html')], cwd=REPO, capture_output=True, text=True)

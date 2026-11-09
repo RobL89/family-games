@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.11 · 2026-11-09 |
+| **Version** | 1.12 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.12:** the rocket games' hangar (step 2a-4b, D-050 to D-053): the ships' table `fleet.js`, their drawings `ships.js` (moved from the mock-ups) and the showroom `hangar.js` in `games/_common/rocket/`; two new tests and a fault bench; the progress entry is at format version 2, with the ships.
 
 **Changes at v1.11:** the hangar's mock-up script and its two drawing files are listed (step 2a-4a, D-046); the preview test's row now says it lets nothing be fetched, as D-043 made it.
 
@@ -34,7 +36,7 @@ This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the 
 |---|---|---|
 | `games/<id>/` | P-034 | One folder per game: its page, manifest, tile picture, and an adapter if it has one |
 | `games/_template/` | P-034 | A working mini-game built to the contract |
-| `games/_common/` | P-034 | Code shared between games only. `rocket/` is the rocket games' engine (the round flow in `round.js`, the scene, sounds, settings and level helpers), shared by the two tiles, Rocket Lander and Rocket Sums (D-027, D-037). `fonts/` holds the games' font, Fredoka, with its OFL licence (D-043). A game may import from here and from nothing else outside its folder (D-036) |
+| `games/_common/` | P-034 | Code shared between games only. `rocket/` is the rocket games' engine (the round flow in `round.js`, the scene, sounds, settings and level helpers, and the hangar: the ships' one table of names, tiers, prices and sounds with the rules for buying in `fleet.js`, their drawings in `ships.js`, and the showroom in `hangar.js`), shared by the two tiles, Rocket Lander and Rocket Sums (D-027, D-037). `fonts/` holds the games' font, Fredoka, with its OFL licence (D-043). A game may import from here and from nothing else outside its folder (D-036) |
 | [`games.json`](../../games.json) | P-034 | The list of games: order and status, in the format the contract sets |
 | `docs/games/` | P-034 | The games' docs, this guide among them |
 | `tools/tests/games/` | P-034 | The games' tests and P-034's checks |
@@ -59,16 +61,17 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | Script | What it checks |
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
-| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, the font inside the page and nothing fetched, RL-3 on the bundle); for Rocket Sums, `test_rocket_sums_core.py` (its levels, sums and lines, by Node) and `test_rocket_sums_e2e.py` (rounds, levels and its preview in a headless browser, about 2 minutes) |
+| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, the font inside the page and nothing fetched, RL-3 on the bundle); for Rocket Sums, `test_rocket_sums_core.py` (its levels, sums and lines, by Node) and `test_rocket_sums_e2e.py` (rounds, levels and its preview in a headless browser, about 2 minutes); for both tiles' hangar, `test_rocket_fleet_core.py` (the ships' table and the rules for buying and picking, by Node) and `test_rocket_hangar_e2e.py` (the door, the showroom, buying and flying a ship with real taps, in both tiles, about 2 minutes) |
 | `build_preview.py` | Not a check: bundles a game folder into one page for a private preview (D-018), with a stamp naming the commit and the folder's sha256. Writes outside the repo by default. `--debug` adds the game's test panel (`preview_debug_<game>.js`: a cog on the start screen, for Rob's testing only, never in a trial preview; D-020) |
 | `measure_rocket_lander_line.py` | A measurement, not a check: how many numbers fit on the line, exactly aimable, at phone and PC sizes |
 | `sketch_rocket_lander_number_mode.py`, `sketch_rocket_bip_moment.py` | Not checks: draw options for Rob to choose from, by playing a copy of the game with small drawing changes (Number mode's targets; Bip's end-of-round moment), and write one page of pictures for a private artifact. The game's own files are never changed |
-| `sketch_rocket_ships.py`, with `sketch_rocket_ships.js` and `sketch_rocket_hangar.js` | Not a check: builds one page of moving mock-ups of the hangar's ships and two hangar layouts (step 2a-4a, D-046), bundling the two drawing files with `games/_common/rocket/` as `build_preview.py` does, for a private artifact; then checks the page at phone and PC sizes and plays both hangars by mouse. The ship drawings live here until Rob has chosen, then move into `games/_common/rocket/` |
+| `sketch_rocket_ships.py`, with `sketch_rocket_hangar.js` | Not a check: builds one page of moving mock-ups of the hangar's ships and two hangar layouts (step 2a-4a, D-046), bundling the page with `games/_common/rocket/` (the ships now among it, in `ships.js`, D-053) as `build_preview.py` does, for a private artifact; then checks the page at phone and PC sizes and plays both hangars by mouse |
+| `sketch_rocket_door.py` | Not a check: draws places for the hangar door on copies of the real start screens (step 2a-4b, D-052), for a private artifact. The game's own files are never changed |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
 | `mutate_checks.py` | A bench, not part of the close: plants faults in the checks and counts how many the tests catch |
-| `mutate_rocket_lander.py`, `mutate_rocket_sums.py` | Benches, not part of the close: plant faults in each game and count how many its tests catch |
+| `mutate_rocket_lander.py`, `mutate_rocket_sums.py`, `mutate_rocket_hangar.py` | Benches, not part of the close: plant faults in each game, and in the hangar, and count how many its tests catch |
 
 ```
 python3 -B tools/tests/games/close.py
@@ -97,7 +100,7 @@ python3 -B tools/tests/games/close.py
 
 **What's private:** the repo and every branch are public, so nothing here holds the children's photos, voices or ages. Profiles, stars and settings live in P-020's Sheet, never in this repo.
 
-**On the device:** played on its own, each rocket tile keeps its progress (planets, moon rocks) in the browser's localStorage, under one entry, `family-games:<tile>:progress`, holding `{ "v": 1, ... }` (D-042). Nothing else in `games/` uses device storage. Inside the shell (stage 3) the shell keeps it instead.
+**On the device:** played on its own, each rocket tile keeps its progress (planets, moon rocks) in the browser's localStorage, under one entry, `family-games:<tile>:progress`, holding `{ "v": 2, ... }` since step 2a-4b, with the ships owned and flown (D-042, D-053); a version 1 entry is still read. Nothing else in `games/` uses device storage. Inside the shell (stage 3) the shell keeps it instead.
 
 **Changes that affect you:** P-034 tells P-020 by a board note before a shared part changes or goes, and keeps the old form until P-020 has moved.
 
@@ -105,6 +108,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.12 | 2026-11-09 | The hangar: `fleet.js`, `ships.js`, `hangar.js`, two tests, the door mock-up script; progress format 2 (D-050 to D-053) |
 | 1.11 | 2026-11-09 | Hangar mock-up script listed (step 2a-4a); preview test row says nothing is fetched |
 | 1.10 | 2026-11-09 | Bip's moment, progress kept on the device, the font shipped (D-042 to D-044) |
 | 1.9 | 2026-11-09 | Bip's moment mock-up script listed (step 2a-3) |

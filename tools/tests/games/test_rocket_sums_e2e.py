@@ -1,4 +1,8 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.2.
+"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.3.
+
+Changes at v1.3 (step 2a-4b): the progress entry is at format version 2, with the ships owned
+and flown (D-053), so the agreed shape gains `ship` and `ships`. The hangar has its own test,
+test_rocket_hangar_e2e.py.
 
 Changes at v1.2 (step 2a-3): the round ends with Bip's moment (D-044), here after a missed last
 landing, and is reported only after it; progress is kept under the tile's one entry on the
@@ -188,7 +192,8 @@ with sync_playwright() as pw:
     check(bool(saved) and saved.get('unlocked') == 2, f'the state is saved: {saved}')
     keys = pc.evaluate('Object.keys(localStorage)')
     entry = pc.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 1, **{k: saved[k] for k in ('unlocked', 'planet', 'rocks', 'landings')}},
+    check(keys == [KEY] and entry == {'v': 2, **{k: saved[k] for k in ('unlocked', 'planet', 'rocks', 'landings', 'ship', 'ships')}}
+          and saved.get('ship') == 'classic' and saved.get('ships') == ['classic'],
           f'kept on the device under the tile\'s one entry (D-042): {keys}, {entry}')
     pc.reload()
     pc.wait_for_function('window.__test && __test.state().ready')
