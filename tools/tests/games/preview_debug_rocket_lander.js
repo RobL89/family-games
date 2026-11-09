@@ -1,5 +1,8 @@
-// Rocket Lander's test panel for previews. Version 1.4.
+// Rocket Lander's test panel for previews. Version 1.5.
 //
+// Changes at v1.5 (step 2a-4c, ER-004): only the level and settings are kept for the tab; the
+// progress applied is kept on the device, as the game keeps it, so "home" (a reload) no longer
+// puts back the rocks, planets and ships from when Apply was pressed.
 // Changes at v1.4 (step 2a-4b+): the panel opens only with the code 1234, asked each time, and
 // its Progress box has Reset, which clears both rocket tiles' progress on this device on a
 // second tap (D-055).
@@ -154,7 +157,11 @@ body:has(#start[hidden]) .pv-cog{display:none}
   function use(given, quiet) {
     const notes = resolveSettings(SETTINGS, given.settings).notes;
     const ok = T.begin(given);
-    if (ok) { try { sessionStorage.setItem(KEY, JSON.stringify(given)); } catch (e) { /* not kept */ } }
+    if (ok) {
+      // the level and settings for this tab; the progress on the device, as the game keeps it (ER-004)
+      try { sessionStorage.setItem(KEY, JSON.stringify({ level: given.level, settings: given.settings })); } catch (e) { /* not kept */ }
+      if (given.state) __m_games__common_rocket_kit.keepOnDevice('rocket-lander', T.state().progress);
+    }
     if (!quiet) msg.textContent = ok ? `Applied.${notes.length ? ' ' + notes.join('; ') + '.' : ''}` : 'Go back to the start screen first.';
     return ok;
   }
@@ -194,6 +201,6 @@ body:has(#start[hidden]) .pv-cog{display:none}
 
   try {
     const kept = JSON.parse(sessionStorage.getItem(KEY) || 'null');
-    if (kept && typeof kept === 'object') use(kept, true);
+    if (kept && typeof kept === 'object') use({ level: kept.level, settings: kept.settings, state: null }, true); // progress: the device's
   } catch (e) { /* nothing kept */ }
 })();

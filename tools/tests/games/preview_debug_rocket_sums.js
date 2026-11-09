@@ -1,5 +1,8 @@
-// Rocket Sums' test panel for previews. Version 1.2.
+// Rocket Sums' test panel for previews. Version 1.3.
 //
+// Changes at v1.3 (step 2a-4c, ER-004): only the level and settings are kept for the tab; the
+// progress applied is kept on the device, as the game keeps it, so "home" (a reload) no longer
+// puts back the rocks, planets and ships from when Apply was pressed.
 // Changes at v1.2 (step 2a-4b+): the lock (code 1234) and Reset, as Rocket Lander's panel 1.4 (D-055).
 // Changes at v1.1: level names show a level's halves (D-040).
 // Copied from preview_debug_rocket_lander.js 1.3 in step 2a-2 and changed only where Rocket
@@ -149,7 +152,11 @@ body:has(#start[hidden]) .pv-cog{display:none}
   function use(given, quiet) {
     const notes = resolveSettings(SETTINGS, given.settings).notes;
     const ok = T.begin(given);
-    if (ok) { try { sessionStorage.setItem(KEY, JSON.stringify(given)); } catch (e) { /* not kept */ } }
+    if (ok) {
+      // the level and settings for this tab; the progress on the device, as the game keeps it (ER-004)
+      try { sessionStorage.setItem(KEY, JSON.stringify({ level: given.level, settings: given.settings })); } catch (e) { /* not kept */ }
+      if (given.state) __m_games__common_rocket_kit.keepOnDevice('rocket-sums', T.state().progress);
+    }
     if (!quiet) msg.textContent = ok ? `Applied.${notes.length ? ' ' + notes.join('; ') + '.' : ''}` : 'Go back to the start screen first.';
     return ok;
   }
@@ -189,6 +196,6 @@ body:has(#start[hidden]) .pv-cog{display:none}
 
   try {
     const kept = JSON.parse(sessionStorage.getItem(KEY) || 'null');
-    if (kept && typeof kept === 'object') use(kept, true);
+    if (kept && typeof kept === 'object') use({ level: kept.level, settings: kept.settings, state: null }, true); // progress: the device's
   } catch (e) { /* nothing kept */ }
 })();

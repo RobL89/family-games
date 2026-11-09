@@ -1,4 +1,7 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.4.
+"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.5.
+
+Changes at v1.5 (step 2a-4c, ER-004): in the preview, "home" (a reload) keeps the rocks applied in
+the test panel and what the game kept since (a ship bought), not the panel's copy from Apply.
 
 Changes at v1.4 (step 2a-4b+): the preview's test panel opens only with the code 1234 (D-055).
 
@@ -297,8 +300,22 @@ with sync_playwright() as pw:
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
     check(opts == 8 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers 8 levels and the operations: {opts}, {ops}')
     pv.select_option('.pv-level', '7')
+    pv.fill('#pv-rocks', '40')
     pv.click('.pv-apply')
     check(state(pv)['level'] == 7, 'Apply plays the level picked')
+    # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
+    pv.reload()
+    pv.wait_for_function('window.__test && __test.state().ready')
+    check((state(pv)['level'], state(pv)['progress']['rocks']) == (7, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
+    pv.evaluate('(e) => localStorage.setItem("family-games:rocket-sums:progress", JSON.stringify(e))',
+                {'v': 2, 'unlocked': 1, 'planet': 'moon', 'rocks': 10, 'landings': 0, 'ship': 'teapot', 'ships': ['classic', 'teapot']})
+    pv.reload()
+    pv.wait_for_function('window.__test && __test.state().ready')
+    p = state(pv)['progress']
+    check((p['rocks'], p['ship']) == (10, 'teapot'), f'what the game kept since (the Teapot bought, 40 - 30 = 10 rocks) survives home: {p["rocks"]}, {p["ship"]}')
+    pv.click('.pv-cog')
+    pv.fill('#pv-code', '1234')
+    pv.click('.pv-open')
     pv.screenshot(path=f'{OUT}/preview-panel.png')
     pv.click('.pv-btns button:nth-child(3)')
     start(pv)

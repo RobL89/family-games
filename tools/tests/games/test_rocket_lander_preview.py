@@ -1,4 +1,8 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.5.
+"""Rocket Lander's preview bundle (D-018). Version 1.6.
+
+Changes at v1.6 (step 2a-4c, ER-004): "home" (a reload) keeps the progress on the device: the
+rocks and planets applied in the test panel, and what the game kept since (a ship bought, rocks
+spent), are not replaced by the panel's copy from when Apply was pressed.
 
 Changes at v1.5 (step 2a-4b+): the test panel opens only with the code 1234, asks again each
 time, and its Reset clears both rocket tiles' progress on a second tap, staying reset after a
@@ -151,6 +155,22 @@ with sync_playwright() as pw:
         check(got == (6, 0, 10, ['0', '2', '4', '6', '8', '10'], None, 3, 4, 12),
               f'{tag}: debug build: level 6 (0 to 10, every other number), 3 landings, 4 planets and 12 rocks reach the game: {got}')
         check(pg.inner_text('#start-rocks') == '12', f'{tag}: debug build: the start screen shows the rocks set')
+        # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
+        pg.reload()
+        pg.wait_for_function('window.__test && __test.state().ready')
+        s = pg.evaluate('__test.state()')
+        got = (s['progress']['rocks'], s['progress']['unlocked'], s['level'], s['settings']['landings_per_round'])
+        check(got == (12, 4, 6, 3), f'{tag}: debug build: after Apply, home keeps the rocks, planets, level and settings set: {got}')
+        bought = {'v': 2, 'unlocked': 4, 'planet': 'moon', 'rocks': 2, 'landings': 1, 'ship': 'box', 'ships': ['classic', 'box']}
+        pg.evaluate('(e) => localStorage.setItem("family-games:rocket-lander:progress", JSON.stringify(e))', bought)
+        pg.reload()
+        pg.wait_for_function('window.__test && __test.state().ready')
+        p = pg.evaluate('__test.state().progress')
+        got = (p['rocks'], p['ship'], p['ships'])
+        check(got == (2, 'box', ['classic', 'box']), f'{tag}: debug build: what the game kept since (a ship bought, 2 rocks left) survives home: {got}')
+        pg.click('.pv-cog')
+        pg.fill('#pv-code', '1234')
+        pg.click('.pv-open')
         if tag == 'phone':
             pg.screenshot(path=os.path.join(tmp, 'panel-phone.png'))
         else:
