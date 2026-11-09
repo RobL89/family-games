@@ -6,12 +6,12 @@
 // runs. begin() takes settings and saved state; at stage 2a the game contract's start
 // message calls it.
 
-import { homeButton, report, reported, goHome, saveState, savedState } from './kit.js';
-import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
-import { SETTINGS, resolveSettings } from './settings.js';
-import { makeLine, labelGap, nearness, fmt, say, starsFor, tidy } from './numbers.js';
-import { PLANETS, planetIndex } from './planets.js';
-import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from './scene.js';
+import { homeButton, report, reported, goHome, saveState, savedState } from '../_common/rocket/kit.js';
+import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from '../_common/rocket/sound.js';
+import { SETTINGS, resolveSettings } from '../_common/rocket/settings.js';
+import { makeLine, labelGap, nearness, fmt, say, starsFor, tidy } from '../_common/rocket/numbers.js';
+import { PLANETS, planetIndex } from '../_common/rocket/planets.js';
+import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from '../_common/rocket/scene.js';
 
 const $ = (id) => document.getElementById(id);
 const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0 };

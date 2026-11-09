@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.5 · 2026-11-09 |
+| **Version** | 1.6 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.6:** Rocket Lander's engine moved to `games/_common/rocket/`, shared by its two tiles (D-027); a game may import from `games/_common/` and nothing else outside its folder (D-036).
 
 **Changes at v1.5:** a sketch script for Rocket Lander's Number mode options is listed (step 2a-1).
 
@@ -22,7 +24,7 @@ This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the 
 |---|---|---|
 | `games/<id>/` | P-034 | One folder per game: its page, manifest, tile picture, and an adapter if it has one |
 | `games/_template/` | P-034 | A working mini-game built to the contract |
-| `games/_common/` | P-034 | Code shared between games only (made when two games need it) |
+| `games/_common/` | P-034 | Code shared between games only. `rocket/` is Rocket Lander's engine, shared by its two tiles, Rocket Lander and Rocket Sums (D-027, D-037). A game may import from here and from nothing else outside its folder (D-036) |
 | [`games.json`](../../games.json) | P-034 | The list of games: order and status, in the format the contract sets |
 | `docs/games/` | P-034 | The games' docs, this guide among them |
 | `tools/tests/games/` | P-034 | The games' tests and P-034's checks |
@@ -75,7 +77,7 @@ python3 -B tools/tests/games/close.py
 | `games.json` | Live on `main`. P-034 keeps it from now on | The launcher (P-020) |
 | `games/bubble-pop/` | Built; a "Soon" tile | Nobody yet |
 | `games/_template/` | P-020's earlier template; to be redone to the contract | Nobody yet |
-| `games/rocket-lander/` | On `claude/games`, running on its own as a plain page (built-in settings, nothing saved); to be built to the contract at stage 2 | Nobody yet |
+| `games/rocket-lander/` | On `claude/games`, running on its own as a plain page (built-in settings, nothing saved), its engine in `games/_common/rocket/`; being built to the contract at stage 2 | Nobody yet |
 | Word Worm, Monster Café | Being brought over from `games-wip`, then built to the contract | Nobody yet |
 | This guide and the checks | On `claude/games` | P-034, and P-020 to see the folder map |
 
@@ -89,6 +91,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.6 | 2026-11-09 | Rocket Lander's engine in `games/_common/rocket/` (D-027, D-036) |
 | 1.5 | 2026-11-09 | Number mode sketch script listed (step 2a-1) |
 | 1.4 | 2026-11-09 | Test panel for previews (D-020) and the line measuring script |
 | 1.3 | 2026-11-09 | Preview build script and its test added (step 1b+) |

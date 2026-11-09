@@ -1,10 +1,15 @@
-"""Build a game's private preview page (D-018). Version 1.1.
+"""Build a game's private preview page (D-018). Version 1.2.
+
+Changes at v1.2: a game may use shared files in games/_common/ (D-027, D-036). The bundle
+follows its imports and stylesheet links there and nowhere else outside the game's folder,
+and the stamp's commit and sha256 cover those shared files too.
 
 Changes at v1.1: --debug adds the game's test panel (a cog on the start screen) from
 tools/tests/games/preview_debug_<game, with _ for ->.js, for Rob's testing only (D-020); without it
 the page is as before.
 
-Bundles one game folder (its index.html, CSS and ES modules) into one self-contained
+Bundles one game folder (its index.html, CSS and ES modules, with the shared ones it uses
+from games/_common/) into one self-contained
 HTML page for a private artifact preview, so Rob can try the game on the phone and PC
 before anything is published. No bundler is installed: the modules use only plain named
 imports and `export function|const|let|class`, and anything else stops the build.
@@ -14,11 +19,11 @@ What changes on the way in, and nothing else:
     become reads from the modules before it;
   - the page's <link rel="stylesheet" href="game.css"> and <script type="module"
     src="game.js"> are replaced by the inlined CSS and script;
-  - Rocket Lander's kit.js: "back to games" can't reach the launcher from a preview, so
+  - Rocket Lander's kit.js (in games/_common/rocket/): "back to games" can't reach the launcher from a preview, so
     goHome() reloads the page (back to the start screen). A stand-in, named in the stamp;
   - a small build stamp on the start screen and in a comment at the top: game, preview
-    number, the last commit that touched the game folder (with "+changes" if the folder
-    differs from it) and the sha256 of the game's files, so the preview can be matched
+    number, the last commit that touched the game folder or the shared files it uses (with
+    "+changes" if they differ from it) and the sha256 of all those files, so the preview can be matched
     to the files.
 The test hook (window.__test) stays: it only reads and steers the game, and the tests
 run against the bundle with it.
@@ -33,6 +38,7 @@ Prints the output path and the source hash.
 import argparse
 import hashlib
 import os
+import posixpath
 import re
 import subprocess
 import sys
@@ -40,16 +46,17 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 
-IMPORT = re.compile(r"^import \{([^}]*)\} from '\./([\w-]+)\.js';\s*$")
+IMPORT = re.compile(r"^import \{([^}]*)\} from '((?:\./|\.\./_common/[\w-]+/)[\w-]+)\.js';\s*$")
 EXPORT = re.compile(r"^export (?:async )?(function\*?|const|let|class) (\w+)")
+CSS_LINK = re.compile(r'<link rel="stylesheet" href="([\w./-]+\.css)">')
 
-# Per-game stand-ins: (file, exact old text, new text). Each old text must match once.
+# Per-game stand-ins: (file under games/, exact old text, new text). Each old text must match once.
 STAND_INS = {
     'rocket-lander': [
-        ('kit.js',
-         "const LAUNCHER = new URL('../../index.html', import.meta.url);",
+        ('_common/rocket/kit.js',
+         "const LAUNCHER = new URL('../../../index.html', import.meta.url);",
          "// Preview stand-in (build_preview.py): no launcher to go back to, so home reloads the page."),
-        ('kit.js',
+        ('_common/rocket/kit.js',
          "export function goHome() { location.href = LAUNCHER.href; }",
          "export function goHome() { location.reload(); }"),
     ],
@@ -74,12 +81,61 @@ def game_files(folder):
     return sorted(n for n in os.listdir(folder) if os.path.isfile(os.path.join(folder, n)))
 
 
-def source_hash(folder):
+def in_bounds(game, key):
+    """D-036: a game's bundle may hold its own folder's files and files in games/_common/, nothing else."""
+    return key.startswith(f'games/{game}/') or key.startswith('games/_common/')
+
+
+def resolve(game, importer, spec):
+    """The repo path (no .js) that an import in `importer` (a repo path, no .js) points at."""
+    key = posixpath.normpath(posixpath.join(posixpath.dirname(importer), spec))
+    if not in_bounds(game, key):
+        raise BuildError(f'{importer}.js imports {spec}.js, outside games/{game}/ and games/_common/')
+    return key
+
+
+def used_files(game):
+    """Every file the bundle is made from, as repo paths: the game folder's files, then the
+    shared modules and stylesheets it reaches in games/_common/ (D-036)."""
+    rel = f'games/{game}'
+    folder = os.path.join(REPO, rel)
+    if not os.path.isdir(folder):
+        raise BuildError(f'no folder {rel}')
+    own = [f'{rel}/{n}' for n in game_files(folder)]
+    html = read(os.path.join(folder, 'index.html'))
+    shared = set()
+    for href in CSS_LINK.findall(html):
+        key = posixpath.normpath(posixpath.join(rel, href))
+        if not in_bounds(game, key):
+            raise BuildError(f'index.html links {href}, outside games/{game}/ and games/_common/')
+        if not key.startswith(rel + '/'):
+            shared.add(key)
+    todo = [f'{rel}/{n[:-3]}' for n in game_files(folder) if n.endswith('.js')]
+    seen = set(todo)
+    while todo:
+        key = todo.pop()
+        path = os.path.join(REPO, key + '.js')
+        if not os.path.exists(path):
+            raise BuildError(f'{key}.js is imported but does not exist')
+        for line in read(path).split('\n'):
+            m = IMPORT.match(line)
+            if m:
+                dep = resolve(game, key, m.group(2))
+                if dep not in seen:
+                    seen.add(dep)
+                    todo.append(dep)
+                    if not dep.startswith(rel + '/'):
+                        shared.add(dep + '.js')
+    return own + sorted(shared)
+
+
+def source_hash(game):
+    """sha256 over every file the bundle is made from, each labelled with its repo path."""
     h = hashlib.sha256()
-    for n in game_files(folder):
-        with open(os.path.join(folder, n), 'rb') as f:
+    for key in used_files(game):
+        with open(os.path.join(REPO, key), 'rb') as f:
             data = f.read()
-        h.update(n.encode() + b'\0' + str(len(data)).encode() + b'\0' + data)
+        h.update(key.encode() + b'\0' + str(len(data)).encode() + b'\0' + data)
     return h.hexdigest()
 
 
@@ -90,27 +146,29 @@ def git(*args):
     return r.stdout.strip()
 
 
-def commit_of(rel):
-    c = git('log', '-1', '--format=%h', '--', rel)
+def commit_of(*paths):
+    """The last commit touching any of the paths, with "+changes" if any of them differs from it."""
+    c = git('log', '-1', '--format=%h', '--', *paths)
     if not c:
-        raise BuildError(f'no commit touches {rel}')
-    dirty = git('status', '--porcelain', '--', rel)
+        raise BuildError(f'no commit touches {" ".join(paths)}')
+    dirty = git('status', '--porcelain', '--', *paths)
     return c + ('+changes' if dirty else '')
 
 
-def apply_stand_ins(game, name, text):
+def apply_stand_ins(game, key, text):
     for file, old, new in STAND_INS.get(game, []):
-        if file != name:
+        if f'games/{file}' != key + '.js':
             continue
         n = text.count(old)
         if n != 1:
-            raise BuildError(f'{game}/{file}: stand-in text found {n} times, expected once: {old!r}')
+            raise BuildError(f'{file}: stand-in text found {n} times, expected once: {old!r}')
         text = text.replace(old, new)
     return text
 
 
-def parse_module(game, name, text):
-    """Return (imports [(module, [(name, local)])], exports [names], body)."""
+def parse_module(game, key, text):
+    """Return (imports [(module key, [(name, local)])], exports [names], body)."""
+    name = key + '.js'
     imports, exports, out = [], [], []
     for i, line in enumerate(text.split('\n'), 1):
         m = IMPORT.match(line)
@@ -127,7 +185,7 @@ def parse_module(game, name, text):
                     names.append((bits[0], bits[2]))
                 else:
                     raise BuildError(f'{name}:{i}: import form not handled: {line.strip()}')
-            imports.append((m.group(2), names))
+            imports.append((resolve(game, key, m.group(2)), names))
             out.append('')  # keep line numbers stable inside the module
             continue
         if re.match(r'^\s*import\b', line) and not line.lstrip().startswith('import('):
@@ -156,7 +214,7 @@ def order_modules(entry, mods):
         if m in seen:
             raise BuildError(f'import cycle at {m}.js')
         if m not in mods:
-            raise BuildError(f'{m}.js is imported but not in the game folder')
+            raise BuildError(f'{m}.js is imported but not bundled')
         seen.add(m)
         for dep, _ in mods[m][0]:
             visit(dep)
@@ -183,12 +241,10 @@ def debug_script(game):
 
 def build(game, number, debug=False):
     rel = f'games/{game}'
-    folder = os.path.join(REPO, rel)
-    if not os.path.isdir(folder):
-        raise BuildError(f'no folder {rel}')
-    html = read(os.path.join(folder, 'index.html'))
+    files = used_files(game)
+    html = read(os.path.join(REPO, rel, 'index.html'))
 
-    links = re.findall(r'<link rel="stylesheet" href="([\w-]+\.css)">', html)
+    links = CSS_LINK.findall(html)
     scripts = re.findall(r'<script type="module" src="([\w-]+)\.js"></script>', html)
     if len(scripts) != 1:
         raise BuildError(f'index.html: expected one module script, found {len(scripts)}')
@@ -196,14 +252,14 @@ def build(game, number, debug=False):
         raise BuildError('index.html: other script tags not handled')
 
     mods = {}
-    for n in game_files(folder):
-        if n.endswith('.js'):
-            text = apply_stand_ins(game, n, read(os.path.join(folder, n)))
-            mods[n[:-3]] = parse_module(game, n, text)
+    for key in files:
+        if key.endswith('.js'):
+            k = key[:-3]
+            mods[k] = parse_module(game, k, apply_stand_ins(game, k, read(os.path.join(REPO, key))))
     for file, old, _ in STAND_INS.get(game, []):
-        if not os.path.exists(os.path.join(folder, file)):
-            raise BuildError(f'stand-in names {file}, which is not in {rel}')
-    order = order_modules(scripts[0], mods)
+        if f'games/{file}' not in files:
+            raise BuildError(f'stand-in names games/{file}, which the bundle does not use')
+    order = order_modules(f'{rel}/{scripts[0]}', mods)
 
     parts = []
     for m in order:
@@ -222,13 +278,14 @@ def build(game, number, debug=False):
     if debug:
         script += debug_script(game)
 
-    src = source_hash(folder)
-    commit = commit_of(rel)
+    src = source_hash(game)
+    shared_dirs = sorted({posixpath.dirname(f) for f in files if not f.startswith(rel + '/')})
+    commit = commit_of(rel, *shared_dirs)
     stamp = f'{game} · preview {number} · {commit} · src {src[:8]}'
     stand = (' · home reloads' if STAND_INS.get(game) else '') + (' · test panel' if debug else '')
 
     for href in links:
-        css = read(os.path.join(folder, href))
+        css = read(os.path.join(REPO, posixpath.normpath(posixpath.join(rel, href))))
         if '</style' in css.lower():
             raise BuildError(f'{href}: "</style" would end the inline style')
         html = html.replace(f'<link rel="stylesheet" href="{href}">', f'<style>\n{css}</style>', 1)
@@ -238,8 +295,9 @@ def build(game, number, debug=False):
     html = html.replace('</main>', f'</main>\n  <p class="preview-stamp" aria-hidden="true">{stamp}{stand}</p>', 1)
     if not html.lower().startswith('<!doctype html>'):
         raise BuildError('index.html must begin with <!doctype html>')
-    html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel}: {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.1{" --debug" if debug else ""} -->', 1)
+    html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel} and the shared files it uses '
+                                            f'({", ".join(shared_dirs) or "none"}): {src}; '
+                                            f'built by tools/tests/games/build_preview.py 1.2{" --debug" if debug else ""} -->', 1)
     leftovers = re.findall(r'(?:src|href)="(?!https://fonts\.(?:googleapis|gstatic)\.com)[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')
@@ -264,7 +322,7 @@ def main(argv=None):
         f.write(html)
     print(out)
     print(f'stamp: {stamp}')
-    print(f'sha256 of games/{a.game}: {src}')
+    print(f'sha256 of games/{a.game} and the shared files it uses: {src}')
     print(f'bytes: {len(html.encode())}')
     return 0
 

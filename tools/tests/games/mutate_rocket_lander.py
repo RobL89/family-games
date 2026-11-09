@@ -1,5 +1,7 @@
 """Bench, not part of the close: plants faults in Rocket Lander and counts how many the tests catch.
-Version 1.0.
+Version 1.1.
+
+Changes at v1.1: the shared engine's files are in games/_common/rocket/ (D-027).
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/
 folders (a temporary folder), run against the test meant to catch it. The repo itself is
@@ -15,21 +17,22 @@ from concurrent.futures import ThreadPoolExecutor
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 G = 'games/rocket-lander/'
+C = 'games/_common/rocket/'
 CORE, LABELS, E2E = 'test_rocket_lander_core.py', 'test_rocket_lander_labels.py', 'test_rocket_lander_e2e.py'
 
 FAULTS = [
-    ('stars rule 85% becomes 80%', G + 'numbers.js', 'right * 100 >= 85 * total', 'right * 100 >= 80 * total', CORE),
-    ('ends no longer swapped', G + 'numbers.js', '[from, to] = [to, from];', '', CORE),
-    ('ordinary minus sign', G + 'numbers.js', "const MINUS = '−';", "const MINUS = '-';", CORE),
-    ('settings not kept in range', G + 'settings.js', 'v = Math.min(spec.max, Math.max(spec.min, n));', 'v = n;', CORE),
-    ('any option accepted', G + 'settings.js', 'if (spec.options.includes(raw)) v = raw;', 'v = raw;', CORE),
-    ('a default changed', G + 'settings.js', 'landings_per_round: { default: 8,', 'landings_per_round: { default: 10,', CORE),
-    ('clock in the core', G + 'numbers.js', 'export const tidy = (n) =>', 'export const started = Date.now();\nexport const tidy = (n) =>', CORE),
-    ('a launcher import comes back', G + 'game.js', "from './sound.js';", "from '../../shared/sound.js';", CORE),
-    ('state kept on the device', G + 'kit.js', 'export function saveState(state) { saved = copy(state || {});',
+    ('stars rule 85% becomes 80%', C + 'numbers.js', 'right * 100 >= 85 * total', 'right * 100 >= 80 * total', CORE),
+    ('ends no longer swapped', C + 'numbers.js', '[from, to] = [to, from];', '', CORE),
+    ('ordinary minus sign', C + 'numbers.js', "const MINUS = '−';", "const MINUS = '-';", CORE),
+    ('settings not kept in range', C + 'settings.js', 'v = Math.min(spec.max, Math.max(spec.min, n));', 'v = n;', CORE),
+    ('any option accepted', C + 'settings.js', 'if (spec.options.includes(raw)) v = raw;', 'v = raw;', CORE),
+    ('a default changed', C + 'settings.js', 'landings_per_round: { default: 8,', 'landings_per_round: { default: 10,', CORE),
+    ('clock in the core', C + 'numbers.js', 'export const tidy = (n) =>', 'export const started = Date.now();\nexport const tidy = (n) =>', CORE),
+    ('a launcher import comes back', G + 'game.js', "from '../_common/rocket/sound.js';", "from '../../shared/sound.js';", CORE),
+    ('state kept on the device', C + 'kit.js', 'export function saveState(state) { saved = copy(state || {});',
      "export function saveState(state) { saved = copy(state || {}); localStorage.setItem('rl', '1');", CORE),
-    ('RL-3: labels never fade', G + 'scene.js', 'b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;', 'b.alpha = 1;', LABELS),
-    ('RL-3: overlap tested on half the box', G + 'scene.js', 'b.x < hb.x + hb.w && hb.x < b.x + b.w', 'b.x < hb.x + hb.w / 2 && hb.x + hb.w / 2 < b.x + b.w', LABELS),
+    ('RL-3: labels never fade', C + 'scene.js', 'b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;', 'b.alpha = 1;', LABELS),
+    ('RL-3: overlap tested on half the box', C + 'scene.js', 'b.x < hb.x + hb.w && hb.x < b.x + b.w', 'b.x < hb.x + hb.w / 2 && hb.x + hb.w / 2 < b.x + b.w', LABELS),
     ('begin() drops the saved state', G + 'game.js', "progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : {}) };",
      'progress = { ...DEFAULT_PROGRESS };', E2E),
     ('a good round unlocks nothing', G + 'game.js', 'if (stars >= 2 && progress.unlocked < PLANETS.length) {', 'if (stars >= 3 && progress.unlocked < PLANETS.length) {', E2E),

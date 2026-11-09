@@ -8,7 +8,7 @@
 //
 // homeButton() is copied unchanged from shared/game-kit.js (games-wip, 7ef1ff0).
 
-const LAUNCHER = new URL('../../index.html', import.meta.url);
+const LAUNCHER = new URL('../../../index.html', import.meta.url);
 
 const results = [];
 let saved = null;
@@ -31,7 +31,7 @@ export const reported = () => results.map(copy);
 export function saveState(state) { saved = copy(state || {}); return true; }
 export const savedState = () => (saved ? copy(saved) : null);
 
-// Back to the launcher's page, which sits two folders up on the family site.
+// Back to the launcher's page, three folders up from games/_common/rocket/ on the family site.
 export function goHome() { location.href = LAUNCHER.href; }
 
 // A round "back to games" button in the top-left corner. Returns the button.

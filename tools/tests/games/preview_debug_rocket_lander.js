@@ -1,4 +1,6 @@
-// Rocket Lander's test panel for previews. Version 1.0.
+// Rocket Lander's test panel for previews. Version 1.1.
+//
+// Changes at v1.1: the bundle's names for the shared engine's modules, now in games/_common/rocket/ (D-027).
 //
 // Added only by `build_preview.py rocket-lander --debug`, appended inside the bundle's
 // module script; it is never in the game's own files, so game screens stay child-only
@@ -12,8 +14,8 @@
 // The values are kept in sessionStorage for this tab only, so they survive "home"
 // (which reloads the preview); if storage is refused they are simply not kept.
 (() => {
-  const { SETTINGS, resolveSettings } = __m_settings;
-  const { PLANETS } = __m_planets;
+  const { SETTINGS, resolveSettings } = __m_games__common_rocket_settings;
+  const { PLANETS } = __m_games__common_rocket_planets;
   const T = window.__test;
   const KEY = 'rocket-lander-preview-test-panel';
   const LEVEL_KEYS = ['from', 'to', 'step', 'label_every', 'close_enough', 'speed'];

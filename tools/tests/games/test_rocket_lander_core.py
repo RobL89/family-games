@@ -1,12 +1,18 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.0.
+"""Rocket Lander's pure core and its boundaries. Version 1.1.
 
-Fast checks, no browser. Node runs the game's own modules (numbers.js, settings.js,
-planets.js) and compares them with expected values worked out by hand from the games
+Changes at v1.1: the shared engine moved to games/_common/rocket/ (D-027), so a game may
+import from games/_common/ and from nothing else outside its folder, and the shared files
+may import nothing from outside their own folder (D-036).
+
+Fast checks, no browser. Node runs the core modules (numbers.js, settings.js, planets.js,
+in games/_common/rocket/) and compares them with expected values worked out by hand from the games
 pack's DESIGN.md (RL-1's star rule, the number line rules) and the settings' ranges.
 Then two boundary checks:
   - the core files are pure: no imports, page, network, clock, randomness or eval;
   - the game is on its own: nothing in games/rocket-lander/ imports from outside its
-    folder, fetches, or uses the device's storage (D-004, D-014, data map v1.1).
+    folder except games/_common/ (D-036), nothing in games/_common/rocket/ imports from
+    outside its own folder, and neither fetches or uses the device's storage (D-004,
+    D-014, data map v1.1).
 
 Stand-in: Node 22 runs the ES modules in place of the browser.
 Usage, from the repo root: python3 -B tools/tests/games/test_rocket_lander_core.py
@@ -16,7 +22,8 @@ import json, os, re, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'rocket-lander')
-CORE = ['numbers.js', 'settings.js', 'planets.js']
+COMMON = os.path.join(REPO, 'games', '_common', 'rocket')
+CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js')]
 fails = []
 
 
@@ -28,10 +35,10 @@ def check(ok, what):
 
 # ---------- Values from the core, by Node ----------
 JS = r"""
-const g = process.argv[1];
-const N = await import(g + '/numbers.js');
-const S = await import(g + '/settings.js');
-const P = await import(g + '/planets.js');
+const c = process.argv[1];
+const N = await import(c + '/numbers.js');
+const S = await import(c + '/settings.js');
+const P = await import(c + '/planets.js');
 const line = (o) => { const l = N.makeLine(o); return { from: l.from, to: l.to, step: l.step, count: l.count, notes: l.notes }; };
 const out = {
   line010: line({ from: 0, to: 10, step: 1 }),
@@ -57,7 +64,7 @@ const out = {
 };
 console.log(JSON.stringify(out));
 """
-r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + GAME], capture_output=True, text=True)
+r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + COMMON, 'file://' + GAME], capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stderr)
     check(False, 'node ran the core modules')
@@ -107,24 +114,31 @@ def code_only(text):
 
 IMPURE = re.compile(r'\b(import|document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|'
                     r'performance|Date|eval|Function|setTimeout|setInterval|requestAnimationFrame|navigator|location)\b|Math\.random')
-for f in CORE:
-    hits = sorted({m.group(0) for m in IMPURE.finditer(code_only(open(os.path.join(GAME, f), encoding='utf-8').read()))})
+for folder, f in CORE:
+    hits = sorted({m.group(0) for m in IMPURE.finditer(code_only(open(os.path.join(folder, f), encoding='utf-8').read()))})
     check(not hits, f'{f} is pure' + (f': {hits}' if hits else ''))
 
-OUTSIDE = re.compile(r'''from\s+['"]\.\./|import\(\s*['"]\.\./|\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|'''
-                     r'''sendBeacon|WebSocket|EventSource''')
-for f in sorted(os.listdir(GAME)):
-    if not f.endswith('.js'):
-        continue
-    raw =open(os.path.join(GAME, f), encoding='utf-8').read()
-    body = re.sub(r'(?m)^\s*//.*$', '', raw)
-    hits = sorted({m.group(0) for m in OUTSIDE.finditer(body)})
-    check(not hits, f'{f} stays in its folder and keeps nothing on the device' + (f': {hits}' if hits else ''))
+KEEPS = r'''|\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|indexedDB|sendBeacon|WebSocket|EventSource'''
+# D-036: a game may import from games/_common/ and nothing else outside its folder;
+# a shared folder in games/_common/ may import nothing from outside itself.
+OUTSIDE = {
+    GAME: re.compile(r'''from\s+['"]\.\./(?!_common/[\w-]+/[\w-]+\.js['"])|from\s+['"]\.\./_common/[^'"]*\.\./|import\(\s*['"]\.\./''' + KEEPS),
+    COMMON: re.compile(r'''from\s+['"]\.\./|import\(\s*['"]\.\./''' + KEEPS),
+}
+for folder, rx in OUTSIDE.items():
+    where = os.path.relpath(folder, REPO)
+    for f in sorted(os.listdir(folder)):
+        if not f.endswith('.js'):
+            continue
+        raw = open(os.path.join(folder, f), encoding='utf-8').read()
+        body = re.sub(r'(?m)^\s*//.*$', '', raw)
+        hits = sorted({m.group(0) for m in rx.finditer(body)})
+        check(not hits, f'{where}/{f} stays in bounds and keeps nothing on the device' + (f': {hits}' if hits else ''))
 html = open(os.path.join(GAME, 'index.html'), encoding='utf-8').read()
 urls = sorted(set(re.findall(r'(?:src|href)="([^"]+)"', html)))
 far = [u for u in urls if re.match(r'(https?:)?//', u) and not re.match(r'https://fonts\.(googleapis|gstatic)\.com', u)]
-up = [u for u in urls if u.startswith('../')]
-check(not far and not up, f'index.html loads only its own files (and the web font): {urls}')
+up = [u for u in urls if u.startswith('../') and not re.match(r'\.\./_common/[\w-]+/[\w.-]+$', u)]
+check(not far and not up, f'index.html loads only its own files, games/_common/ and the web font: {urls}')
 
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)

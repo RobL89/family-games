@@ -1,4 +1,8 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.1.
+"""Rocket Lander's preview bundle (D-018). Version 1.2.
+
+Changes at v1.2: the shared engine is in games/_common/rocket/ (D-027): the stamp's sha256
+and commit cover it, the stand-ins are in its kit.js, and the bundle may reach no further
+outside the game's folder than games/_common/ (D-036).
 
 Changes at v1.1: checks the --debug test panel (D-020): only in a --debug build, only on
 the start screen, and Apply reaches the game through begin().
@@ -42,15 +46,18 @@ for out in (a, b, d):
     check(r.returncode == 0, f'build to {os.path.basename(out)}' + ('' if r.returncode == 0 else ': ' + r.stderr.strip()))
 page = open(a, 'rb').read()
 check(page == open(b, 'rb').read(), 'a rebuild gives the same bytes')
-src = bp.source_hash(os.path.join(REPO, 'games', 'rocket-lander'))
-check(f'sha256 of games/rocket-lander: {src}'.encode() in page, 'the stamp carries the game folder\'s sha256')
-check(bp.commit_of('games/rocket-lander').encode() in page, 'the stamp carries the game folder\'s commit')
+src = bp.source_hash('rocket-lander')
+used = bp.used_files('rocket-lander')
+check('games/_common/rocket/scene.js' in used and 'games/_common/rocket/game.css' in used and 'games/rocket-lander/game.js' in used,
+      f'the bundle is made from the game folder and the shared engine ({len(used)} files)')
+check(f'games/_common/rocket): {src}'.encode() in page, 'the stamp carries the sha256 of the game and the shared files')
+check(bp.commit_of('games/rocket-lander', 'games/_common/rocket').encode() in page, 'the stamp carries their last commit')
 check(b'window.__test' in page and b'import.meta' not in page, 'test hook kept; no import.meta left')
 check(b'pv-cog' not in page and b'pv-cog' in open(d, 'rb').read(), 'the test panel is only in the --debug build')
 
 # 2. A stand-in that no longer matches must stop the build.
 saved = bp.STAND_INS['rocket-lander']
-bp.STAND_INS['rocket-lander'] = [('kit.js', 'this text is not in kit.js', 'x')]
+bp.STAND_INS['rocket-lander'] = [('_common/rocket/kit.js', 'this text is not in kit.js', 'x')]
 try:
     bp.build('rocket-lander', 'T')
     check(False, 'a stand-in that does not match stops the build')
@@ -58,6 +65,15 @@ except bp.BuildError as e:
     check('stand-in text found 0 times' in str(e), 'a stand-in that does not match stops the build, saying why: ' + str(e)[:80])
 finally:
     bp.STAND_INS['rocket-lander'] = saved
+
+# 2b. D-036: an import outside the game's folder and games/_common/ must stop the build.
+try:
+    bp.resolve('rocket-lander', 'games/rocket-lander/game', '../word-worm/x')
+    check(False, 'an import from another game\'s folder stops the build')
+except bp.BuildError as e:
+    check('outside games/rocket-lander/ and games/_common/' in str(e), 'an import from another game\'s folder stops the build')
+check(bp.resolve('rocket-lander', 'games/rocket-lander/game', '../_common/rocket/scene') == 'games/_common/rocket/scene',
+      'an import from games/_common/ is allowed')
 
 # 3. Requests, errors and one landing in the bundle.
 from playwright.sync_api import sync_playwright  # noqa: E402
