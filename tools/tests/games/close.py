@@ -1,4 +1,9 @@
-"""Close script for P-034 (Kids Games Development). Version 1.2.
+"""Close script for P-034 (Kids Games Development). Version 1.3.
+
+Changes at v1.3 (step 2c-build, D-058, D-068): one rocket game. The sums tests moved with the code
+(test_rocket_sums_core.py into test_rocket_lander_core.py; test_rocket_sums_e2e.py is now
+test_rocket_lander_sums_e2e.py, run when Rocket Lander's files, the preview builder or its panel
+change), so the map follows: a change of map, not of strictness.
 
 Changes at v1.2 (step 2a-4c, D-056): after a full close has passed in this clone (a stamp in
 .git/p034-close-pass, never committed, so each chat's fresh clone starts with a full run), a
@@ -41,7 +46,7 @@ def run(label, cmd):
 T = 'tools/tests/games/'
 STAMP = os.path.join(REPO, '.git', 'p034-close-pass')
 # Fast checks (no browser): always run.
-FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py', 'test_rocket_sums_core.py'}
+FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py'}
 # Browser tests, and the paths whose change re-runs each. The hangar test has none of its own:
 # it covers the shared engine, and a change there runs everything.
 COVERS = {
@@ -50,7 +55,7 @@ COVERS = {
     'test_rocket_lander_labels.py': ['games/rocket-lander/'],
     'test_rocket_lander_levels.py': ['games/rocket-lander/'],
     'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
-    'test_rocket_sums_e2e.py': ['games/rocket-sums/', T + 'build_preview.py', T + 'preview_debug_rocket_sums.js'],
+    'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).
 FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_']

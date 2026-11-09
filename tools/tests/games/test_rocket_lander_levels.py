@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander's Number mode levels (D-035, D-038). Version 1.0.
+"""Browser test for Rocket Lander's Number mode levels (D-035, D-038). Version 1.1.
+
+Changes at v1.1 (step 2c-build, D-058): one game with a map. Number mode's levels are Moon's, 1 to 8
+along the map as before, and the sums levels follow as 9 to 16, so the address's level out of range
+is now ?level=17 (it was 9): the same check of a level past the end.
 
 Plays the game on its own as a plain page and checks each of the eight levels: the line
 and the numbers written, how they look (plain, even and odd coloured, colours faint, odd
@@ -237,10 +241,10 @@ with sync_playwright() as pw:
     check(s['level'] == 6 and s['labels'] == [str(i) for i in range(0, 11, 2)], f'?level=6: level 6, every other number ({s["labels"]})')
     pg.context.close()
     before = len(infos)
-    pg = page(br, url=BASE + '?level=9')
+    pg = page(br, url=BASE + '?level=17')
     s = state(pg)
     note = [t for t in infos[before:] if 'level' in t]
-    check(s['level'] == 1 and note and '"9"' in note[0], f'?level=9: level 1, with a note ({note})')
+    check(s['level'] == 1 and note and '"17"' in note[0], f'?level=17, past the map\'s 16: level 1, with a note ({note})')
     pg.context.close()
 
     # ---------- The new chips: no sideways scrolling, phone both ways round and PC, light and dark ----------

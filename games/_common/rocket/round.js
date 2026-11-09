@@ -1,5 +1,7 @@
 // The rocket games' round flow, shared by Rocket Lander and Rocket Sums (D-027, D-037).
-// Version 1.3. Changes at v1.3 (step 2a-4c): in play the ship flown is drawn inside the same edge as
+// Version 1.4. Changes at v1.4 (step 2c-build, D-058): one game; each level is played the way its
+// kind says (mode.kinds: number or sums, games/rocket-lander/game.js), and each kind's test hooks
+// work on its own levels. Changes at v1.3 (step 2a-4c): in play the ship flown is drawn inside the same edge as
 // its effects, so no part of it (a flame, a glow) reaches the numbers under the line (D-045, ER-003);
 // the ship is told when the device asks for less motion (S.calm). Test hooks: the sounds played
 // (`heard`), the ship flown's state, and shipPixels(), which draws the ship flown and its effects
@@ -69,6 +71,9 @@ export function runRocket(mode) {
   calm.addEventListener?.('change', () => { scene.calm = calm.matches; });
 
   const SCHEMA = mode.schema;
+  // The level's kind plays it (D-058): a number level or a sums level, each with its own lines,
+  // targets, chip and words (games/rocket-lander/game.js).
+  const K = () => (mode.kinds ? mode.kinds[(level && level.row.kind) || 'number'] : mode);
   let S = resolveSettings(SCHEMA).values;
   let level = mode.levelOf(null);
   let progress = { ...DEFAULT_PROGRESS };
@@ -97,7 +102,7 @@ export function runRocket(mode) {
   // ---------- Settings and the line ----------
 
   function applySettings() {
-    useLine(mode.lineFor(level.row, S));
+    useLine(K().lineFor(level.row, S));
     scene.setLabelLook(level.row.labels || 'plain');
     G.total = Math.round(clamp(Number(S.landings_per_round) || 8, 3, 20));
   }
@@ -287,7 +292,7 @@ export function runRocket(mode) {
     $('hud').hidden = false;
     $('say').hidden = !(S.speak && canSpeak() && !isMuted());
     G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1; G.fin = null;
-    G.plan = mode.planRound(level.row, G.total, Math.random);
+    G.plan = K().planRound(level.row, G.total, Math.random);
     G.started = performance.now();
     $('rocks-n').textContent = progress.rocks;
     renderDots();
@@ -339,16 +344,16 @@ export function runRocket(mode) {
 
   // The spot a target points at: its one right spot or, where several are right (even or
   // odd), the nearest right one to x.
-  function spotFor(T, x = R.x) { return T.value !== undefined ? T.value : mode.goalOf(T, scene.valueAt(x), line); }
+  function spotFor(T, x = R.x) { return T.value !== undefined ? T.value : K().goalOf(T, scene.valueAt(x), line); }
 
   // The mode's own line for this landing, if it has one (Maths mode's stretch of 10 marks).
   function lineForTarget() {
-    const own = mode.landingLine ? mode.landingLine(G.T, level.row, S, Math.random) : null;
+    const own = K().landingLine ? K().landingLine(G.T, level.row, S, Math.random) : null;
     if (own && [own.from, own.to, own.step, own.label_every].join(',') !== lineKey) useLine(own);
   }
 
   function nextLanding() {
-    G.T = mode.pickTarget(G.plan[G.idx], line, G.prev, Math.random, level.row, S);
+    G.T = K().pickTarget(G.plan[G.idx], line, G.prev, Math.random, level.row, S);
     G.prev = G.T;
     lineForTarget();
     G.goal = null;
@@ -373,10 +378,10 @@ export function runRocket(mode) {
 
   function showTarget() {
     const el = $('target'), chip = $('target-n'), T = G.T;
-    const c = mode.chip(T, S);
+    const c = K().chip(T, S);
     chip.className = 'chip' + (c.cls ? ` ${c.cls}` : '');
     chip.innerHTML = c.html;
-    el.setAttribute('aria-label', `Land on ${mode.words(T, S)}`);
+    el.setAttribute('aria-label', `Land on ${K().words(T, S)}`);
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     fitTarget();
     sayTarget();
@@ -392,7 +397,7 @@ export function runRocket(mode) {
 
   function sayTarget() {
     if (!S.speak) return;
-    if (speak(`Land on ${mode.words(G.T, S)}!`)) {
+    if (speak(`Land on ${K().words(G.T, S)}!`)) {
       const b = $('say');
       b.classList.remove('talking'); void b.offsetWidth; b.classList.add('talking');
     }
@@ -408,9 +413,9 @@ export function runRocket(mode) {
     const raw = scene.valueAt(R.x);
     const spot = line.value(line.index(raw));
     const T = G.T;
-    const right = mode.isRight(T, spot, near.allowed);
+    const right = K().isRight(T, spot, near.allowed);
     const perfect = right && Math.abs(raw - (T.value !== undefined ? T.value : spot)) <= near.perfect + 1e-9;
-    G.goal = right ? spot : mode.goalOf(T, raw, line);
+    G.goal = right ? spot : K().goalOf(T, raw, line);
     G.land = { raw, spot, right, perfect, x: scene.xOf(spot), fromX: R.x, dir: R.x < scene.W / 2 ? 1 : -1, impact: 0 };
     G.results[G.idx] = { target: T.value !== undefined ? T.value : null, rule: T.rule, parity: T.parity || null, ...(T.sum ? { sum: T.sum } : {}),
       goal: G.goal, spot, right, perfect };
@@ -469,7 +474,7 @@ export function runRocket(mode) {
       at(0.55, () => {
         V.highlight = { value: G.goal, a: 0 };
         V.arrow = { x: scene.xOf(G.goal), a: 0 };
-        const m = mode.miss(T, spot, G.goal, S);
+        const m = K().miss(T, spot, G.goal, S);
         showBubble(m.html);
         if (S.speak) speak(m.speech);
       });
@@ -749,7 +754,7 @@ export function runRocket(mode) {
       const k = clamp(1 - left / Math.max(1, G.touchY - G.startY), 0, 1);
       const half = near.allowed > 0 ? near.allowed * scene.ppu : 0;
       // with a beam (D-032) it points at the one spot, so no band of leeway is drawn
-      V.shadow = { x: R.x, k, half: mode.beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: !!mode.beam,
+      V.shadow = { x: R.x, k, half: K().beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: !!K().beam,
         snap: line.value(line.index(scene.valueAt(R.x))) };
       if (!flyShip) scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
       scene.offX = lerp(scene.offX, (R.x - scene.W / 2) * 0.6, Math.min(1, dt * 2));
@@ -980,7 +985,7 @@ export function runRocket(mode) {
       let best = null;
       for (let i = 0; i < line.count; i++) {
         const v = line.value(i);
-        if (!mode.isRight(G.T, v, near.allowed) && (best == null || Math.abs(v - aim) < Math.abs(best - aim))) best = v;
+        if (!K().isRight(G.T, v, near.allowed) && (best == null || Math.abs(v - aim) < Math.abs(best - aim))) best = v;
       }
       return best;
     },
@@ -999,8 +1004,11 @@ export function runRocket(mode) {
   };
   // The mode's own hooks, such as making this landing's target a given one (while flying).
   const set = (T) => { G.T = T; G.prev = T; lineForTarget(); showTarget(); };
-  for (const [name, fn] of Object.entries(mode.testHooks || {})) {
-    api[name] = (...args) => (G.phase !== 'fly' || !line ? false : fn(...args, { line, set }));
+  // each kind's hooks work while one of its own levels is played
+  for (const k of Object.values(mode.kinds || { one: mode })) {
+    for (const [name, fn] of Object.entries(k.testHooks || {})) {
+      api[name] = (...args) => (G.phase !== 'fly' || !line || K() !== k ? false : fn(...args, { line, set }));
+    }
   }
   window.__test = api;
   return api;

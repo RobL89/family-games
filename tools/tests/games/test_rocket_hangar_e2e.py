@@ -1,5 +1,10 @@
-"""Browser test for the rocket tiles' hangar: the door, the showroom, buying and flying a ship.
-Version 1.1.
+"""Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
+Version 1.2.
+
+Changes at v1.2 (step 2c-build, D-058): one rocket game. What ran in both tiles now runs twice in
+Rocket Lander, the second time on a sums level (map level 9 for the round after buying, 15 for the
+picture check, a times level with its beam and stretch), so both kinds of level are still flown
+with every check; the progress entry is the one game's.
 
 Changes at v1.1 (step 2a-4c, D-045, D-047, D-051): Crystal Comet, Golden Phoenix and Aurora
 Cruiser are on sale: in both tiles they are bought with real taps (500 - 100 - 140 - 200 = 60
@@ -79,20 +84,26 @@ def ready(pg):
     pg.wait_for_function('window.__test && __test.state().ready')
 
 
-def open_tile(br, tile, w=390, h=844, mobile=True, entry=V1, **kw):
+GAME = 'rocket-lander'  # D-058: one rocket game; the sums levels are its map's Red Dust (9 to 16)
+
+
+def open_tile(br, tile, w=390, h=844, mobile=True, entry=V1, level=None, **kw):
+    """The game, with a progress entry on the device if given, and a level to play if given."""
     pg = new_page(br, w, h, mobile, **kw)
-    pg.goto(f'{LOCAL}games/{tile}/index.html')
+    pg.goto(f'{LOCAL}games/{GAME}/index.html')
     ready(pg)
     if entry is not None:
         pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(tile), entry])
         pg.reload()
         ready(pg)
+    if level is not None:
+        pg.evaluate(f'__test.begin({{ level: {level} }})')
     pg.wait_for_timeout(300)
     return pg
 
 
 def key(tile):
-    return f'family-games:{tile}:progress'
+    return f'family-games:{GAME}:progress'
 
 
 def st(pg):
@@ -132,10 +143,10 @@ PREMIUM = [('crystal', 100), ('phoenix', 140), ('aurora', 200)]
 OTHERS = [('box', 20), ('teapot', 30), ('pod', 50), ('saucer', 70)]
 
 
-def play_round_pixels(pg, sid, tag, full=True):
+def play_round_pixels(pg, sid, tag, full=True, level=None):
     """Fly a round of 3 landings (or one, if not full), all right, with Bip's moment if full,
     drawing the ship flown and its effects alone again and again (__test.shipPixels)."""
-    pg.evaluate('__test.begin({ settings: { landings_per_round: 3 } })')
+    pg.evaluate('(l) => __test.begin({ level: l ?? undefined, settings: { landings_per_round: 3 } })', level)
     pg.click('#play', force=True)
     pg.wait_for_function('__test.state().phase === "fly"')
     out = {'n': 0, 'below': 0, 'drawn': False, 'flown': None, 'finale': False, 'worst': None}
@@ -182,10 +193,10 @@ def play_round_pixels(pg, sid, tag, full=True):
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()
-    for tile in ('rocket-lander', 'rocket-sums'):
+    for tile, lv in (('rocket-lander', None), ('sums level', 9)):
         T = tile
         # ---------- A version 1 entry loads as Classic (D-053) ----------
-        pg = open_tile(br, T)
+        pg = open_tile(br, T, level=lv)
         p = st(pg)['progress']
         check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 37 and p['unlocked'] == 3,
               f'{T}: a version 1 entry still loads, with Classic owned and flown: {p}')
@@ -280,7 +291,7 @@ with sync_playwright() as pw:
         pg.context.close()
 
         # ---------- The Premium and Legendary ships (2a-4c): bought with real taps, then flown ----------
-        pg = open_tile(br, T, entry={**V1, 'rocks': 500})
+        pg = open_tile(br, T, entry={**V1, 'rocks': 500}, level=lv)
         open_hangar(pg)
         left = 500
         for sid, price in PREMIUM:
@@ -316,10 +327,10 @@ with sync_playwright() as pw:
         pg.context.close()
 
     # ---------- Effects never over the numbers (D-045): each ship flown, its effects drawn alone ----------
-    for tile, ships in (('rocket-lander', [s for s, _ in OTHERS + PREMIUM]), ('rocket-sums', [s for s, _ in PREMIUM])):
+    for tile, ships, lv in (('rocket-lander', [s for s, _ in OTHERS + PREMIUM], None), ('sums level', [s for s, _ in PREMIUM], 15)):
         for sid in ships:
             pg = open_tile(br, tile, 844, 390, True, {**V1, 'v': 2, 'ship': sid, 'ships': ['classic', sid]})
-            pix = play_round_pixels(pg, sid, tile, full=tile == 'rocket-lander')
+            pix = play_round_pixels(pg, sid, tile.replace(' ', '-'), full=tile == 'rocket-lander', level=lv)
             check(pix['flown'] == sid and pix['n'] > 10 and pix['drawn'] and pix['below'] == 0,
                   f'{tile} {sid}: flown; in {pix["n"]} looks (flying, landing{", Bip" + chr(39) + "s moment" if pix["finale"] else ""}) '
                   f'nothing of the ship or its effects below the line\'s edge: {pix}')
@@ -356,7 +367,7 @@ with sync_playwright() as pw:
             pg.context.close()
 
     # ---------- Less motion: the showroom still opens and buys ----------
-    pg = open_tile(br, 'rocket-sums', 390, 844, True, {**V1, 'rocks': 25}, motion='reduce')
+    pg = open_tile(br, 'rocket-lander', 390, 844, True, {**V1, 'rocks': 25}, motion='reduce')
     open_hangar(pg)
     show(pg, 'box')
     tap(pg, 'action')

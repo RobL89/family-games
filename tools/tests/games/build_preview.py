@@ -1,4 +1,7 @@
-"""Build a game's private preview page (D-018). Version 1.4.
+"""Build a game's private preview page (D-018). Version 1.5.
+
+Changes at v1.5 (step 2c-build, D-058): Rocket Sums joined Rocket Lander, so its folder and its
+stand-ins are gone; one rocket game is built.
 
 Changes at v1.4: the font ships with the games (D-043): a linked stylesheet's url(...) font
 files (woff2 only, in bounds) are inlined as data: URIs and covered by the stamp's sha256, and
@@ -70,7 +73,6 @@ STAND_INS = {
          "export function goHome() { location.reload(); }"),
     ],
 }
-STAND_INS['rocket-sums'] = STAND_INS['rocket-lander']  # the same shared kit.js
 
 STAMP_CSS = (".preview-stamp{position:fixed;right:max(8px,env(safe-area-inset-right));"
              "bottom:max(6px,env(safe-area-inset-bottom));z-index:5;margin:0;font:600 11px/1.2 system-ui,sans-serif;"
@@ -337,7 +339,7 @@ def build(game, number, debug=False):
         raise BuildError('index.html must begin with <!doctype html>')
     html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel} and the shared files it uses '
                                             f'({", ".join(shared_dirs) or "none"}): {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.4{" --debug" if debug else ""} -->', 1)
+                                            f'built by tools/tests/games/build_preview.py 1.5{" --debug" if debug else ""} -->', 1)
     leftovers = re.findall(r'(?:src|href)="[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')

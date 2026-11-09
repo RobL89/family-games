@@ -1,5 +1,8 @@
-// Rocket Lander's test panel for previews. Version 1.5.
+// Rocket Lander's test panel for previews. Version 1.6.
 //
+// Changes at v1.6 (step 2c-build, D-058): one game. The level picker lists the map's levels in
+// play order (Moon's eight number levels, then Red Dust's eight sums levels: the stand-in map),
+// and the settings are the game's own schema (game.js's SCHEMA), the sums' operations included.
 // Changes at v1.5 (step 2a-4c, ER-004): only the level and settings are kept for the tab; the
 // progress applied is kept on the device, as the game keeps it, so "home" (a reload) no longer
 // puts back the rocks, planets and ships from when Apply was pressed.
@@ -24,16 +27,14 @@
 // The values are kept in sessionStorage for this tab only, so they survive "home"
 // (which reloads the preview); if storage is refused they are simply not kept.
 (() => {
-  const { SETTINGS: SHARED, resolveSettings } = __m_games__common_rocket_settings;
+  const { resolveSettings } = __m_games__common_rocket_settings;
   const { PLANETS } = __m_games__common_rocket_planets;
-  const { LEVELS } = __m_games_rocket_lander_levels;
-  const { followLevel } = __m_games__common_rocket_ladder;
-  const SETTINGS = followLevel(SHARED, ['from', 'to', 'label_every']); // as game.js does
+  const { MAP, SCHEMA: SETTINGS } = __m_games_rocket_lander_game; // the game's own map and settings
+  // the map's levels in play order, numbered as begin({ level }) counts them
+  const ROUTE = MAP.flatMap((sys) => sys.levels.map((lv, n) => ({ sys, lv, n })));
   const T = window.__test;
   const KEY = 'rocket-lander-preview-test-panel';
-  const NAMES = { any: 'any number', parity: 'even or odd', dice: 'dice faces' };
-  const levelName = (r) => `${r.level} · ${r.from} to ${r.to}, ${r.label_every === 1 ? 'every number' : r.label_every === 0 ? 'ends only' : `every ${r.label_every}`}`
-    + `${r.labels === 'plain' ? '' : `, ${r.labels.replace('-', ' ')}`} · ${Object.keys(r.mix).map((k) => NAMES[k]).join(', ')}`;
+  const levelName = ({ sys, lv, n }, i) => `${i + 1} · ${sys.name} ${n + 1} · ${lv.about}`;
 
   const css = `
 .pv-cog{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:1001;
@@ -87,7 +88,8 @@ body:has(#start[hidden]) .pv-cog{display:none}
   for (const [key, spec] of Object.entries(SETTINGS)) {
     let input;
     if (typeof spec.default === 'boolean') input = el('input', { type: 'checkbox' });
-    else if (spec.options) input = el('select', {}, spec.options.map((o) => el('option', { value: o, textContent: o })));
+    else if (spec.options) input = el('select', {}, [...(spec.default === null ? [el('option', { value: '', textContent: 'as the level says' })] : []),
+      ...spec.options.map((o) => el('option', { value: o, textContent: o }))]);
     else input = el('input', { type: 'number', min: spec.min, max: spec.max, step: 'any', inputMode: 'decimal', placeholder: spec.default === null ? 'level' : '' });
     input.id = `pv-${key}`;
     inputs[key] = input;
@@ -97,10 +99,10 @@ body:has(#start[hidden]) .pv-cog{display:none}
     ]));
   }
 
-  const level = el('select', { className: 'pv-level' }, LEVELS.map((r) => el('option', { value: String(r.level), textContent: levelName(r) })));
+  const level = el('select', { className: 'pv-level' }, ROUTE.map((r, i) => el('option', { value: String(i + 1), textContent: levelName(r, i) })));
   level.addEventListener('change', () => { msg.textContent = 'Press Apply to play this level.'; });
   const levelBox = el('fieldset', {}, [el('legend', { textContent: 'Level' }), level,
-    el('small', { textContent: 'Number mode\'s eight levels (D-038), as the launcher will hand them over. Settings below left empty follow the level; a value overrides it for that one thing.' })]);
+    el('small', { textContent: 'The map\'s levels in play order: Moon\'s number levels, then Red Dust\'s sums levels (stand-in until the level plan). Settings below left empty follow the level; a value overrides it for that one thing.' })]);
 
   const unlocked = el('input', { type: 'number', min: 1, max: PLANETS.length, step: 1, id: 'pv-unlocked', inputMode: 'numeric' });
   const rocks = el('input', { type: 'number', min: 0, max: 9999, step: 1, id: 'pv-rocks', inputMode: 'numeric' });

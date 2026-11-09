@@ -1,4 +1,11 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.5.
+"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.6.
+
+Changes at v1.6 (step 2c-build, D-058, D-068): Rocket Sums joined Rocket Lander, so this test
+moved with its code (once test_rocket_sums_e2e.py 1.5) and plays the one game: the sums levels are
+Red Dust's on the map, 9 to 16 along it (sums level n is level 8 + n), handed in with begin({ level })
+or the address as before; the page, the progress entry and the preview are Rocket Lander's. Every
+check is kept; the ones that named the sums tile now name the one game: its title, its settings
+(the operations, and the line's ends left to the level, which only number levels use), its entry.
 
 Changes at v1.5 (step 2a-4c, ER-004): in the preview, "home" (a reload) keeps the rocks applied in
 the test panel and what the game kept since (a ship bought), not the panel's copy from Apply.
@@ -16,10 +23,11 @@ device (D-042); nothing at all is fetched from outside, and the preview carries 
 Changes at v1.1: levels 1 and 2 play in two halves, each on its own line (D-040), and a round
 asks at most one sum answering 0 (proposed, Q-022), checked over whole rounds.
 
-Rocket Sums is the rocket game's maths tile (D-021, D-027, D-037), on the shared engine in
-games/_common/rocket/round.js. Its pure parts (levels, sums, lines) have their own test,
-test_rocket_sums_core.py; this one plays it:
-  - on its own: level 1, a line of 0 to 5, + sums with answers up to 5 (D-039; GC5);
+The sums levels were Rocket Sums, the rocket game's maths tile (D-021, D-027, D-037), and are now
+Red Dust's on Rocket Lander's map (D-058), played by the shared engine in
+games/_common/rocket/round.js. Their pure parts (levels, sums, lines) are checked in
+test_rocket_lander_core.py; this test plays them:
+  - sums level 1: a line of 0 to 5, + sums with answers up to 5 (D-039; GC5);
   - the chip shows the sum and the target is read as words; a beam points at the exact
     spot the rocket would land on (D-032);
   - right and wrong landings: a miss shows the answer and the sum in the bubble;
@@ -33,7 +41,7 @@ Stand-ins: headless Chromium (Playwright) for the phone and PC, a local static s
 the family site.
 
 Needs Python Playwright. From the repo root:
-    python3 -B tools/tests/games/test_rocket_sums_e2e.py [folder for screenshots]
+    python3 -B tools/tests/games/test_rocket_lander_sums_e2e.py [folder for screenshots]
 Fails on any request that leaves the local server, on any
 console error or warning, and on sideways scrolling at phone (both ways round) and PC
 sizes, light and dark. Screenshots show made-up play only and are never committed.
@@ -56,8 +64,9 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-BASE = f'{LOCAL}games/rocket-sums/index.html'
-KEY = 'family-games:rocket-sums:progress'  # D-042: the tile's one entry on the device
+BASE = f'{LOCAL}games/rocket-lander/index.html'
+KEY = 'family-games:rocket-lander:progress'  # D-042, D-058: the one game's entry on the device
+SUMS = 8  # D-058: sums level n is map level 8 + n (Red Dust)
 FONT_LOADED = "document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"
 ANSWER = {'+': lambda a, b: a + b, '−': lambda a, b: a - b, '×': lambda a, b: a * b, '÷': lambda a, b: a // b}
 errors, fails, outside = [], [], []
@@ -129,13 +138,15 @@ def no_sideways(pg, name):
 with sync_playwright() as pw:
     br = pw.chromium.launch()
 
-    # ---------- Phone: on its own, level 1 ----------
+    # ---------- Phone: sums level 1 (Red Dust's first) ----------
     ph = open_game(br, 390, 844, mobile=True)
+    check(ph.evaluate(f'__test.begin({{ level: {SUMS + 1} }})'), 'begin() takes sums level 1, map level 9')
     s = state(ph)
-    check(s['level'] == 1 and s['line'] == {'from': 0, 'to': 5, 'step': 1, 'count': 6}, f'on its own: level 1, a line of 0 to 5 (D-039): {s["line"]}')
-    check(s['settings'].get('operations') is None and 'from' not in s['settings'], f'settings: operations as the level says, no line ends: {sorted(s["settings"])}')
+    check(s['level'] == SUMS + 1 and s['line'] == {'from': 0, 'to': 5, 'step': 1, 'count': 6}, f'sums level 1: a line of 0 to 5 (D-039): {s["line"]}')
+    check(s['settings'].get('operations') is None and s['settings'].get('from') is None and s['settings'].get('to') is None,
+          f'settings: operations as the level says, and the line\'s ends left to the level: {sorted(s["settings"])}')
     ph.screenshot(path=f'{OUT}/ph-start.png')
-    check(ph.locator('#title').get_attribute('aria-label') == 'Rocket Sums', 'the start screen is called Rocket Sums')
+    check(ph.evaluate("document.title") == 'Rocket Lander', 'the one game is called Rocket Lander (D-058)')
     start(ph)
     s = state(ph)
     check(s['rule'] == 'sum' and sum_ok(s, '+', 5), f'level 1 asks + with answers up to 5: {s["sum"]} = {s["target"]}')
@@ -167,6 +178,7 @@ with sync_playwright() as pw:
 
     # ---------- PC: a full round on level 1; reported and saved ----------
     pc = open_game(br, 1280, 800)
+    check(pc.evaluate(f'__test.begin({{ level: {SUMS + 1} }})'), 'begin() takes sums level 1')
     start(pc)
     seen1 = []
     check(pc.evaluate(FONT_LOADED), 'the Fredoka font loads from games/_common/fonts/ (D-043)')
@@ -192,7 +204,7 @@ with sync_playwright() as pw:
     check(sum(a == 0 for _, a, _ in seen1) <= 1, 'level 1: at most one answer of 0 in the round (Q-022)')
     pc.wait_for_function('__test.state().phase === "end"')
     rows = pc.evaluate('__test.reported()')
-    check(len(rows) == 1 and rows[0]['stars'] == 3 and rows[0]['level'] == 1, f'the round is reported: 3 stars, level 1: {rows}')
+    check(len(rows) == 1 and rows[0]['stars'] == 3 and rows[0]['level'] == SUMS + 1, f'the round is reported: 3 stars, level 9 (sums level 1): {rows}')
     saved = pc.evaluate('__test.saved()')
     check(bool(saved) and saved.get('unlocked') == 2, f'the state is saved: {saved}')
     keys = pc.evaluate('Object.keys(localStorage)')
@@ -210,7 +222,7 @@ with sync_playwright() as pw:
 
     # ---------- Levels through begin() ----------
     pc = open_game(br, 1280, 800, dark=True)
-    check(pc.evaluate('__test.begin({ level: 2 })'), 'begin() takes level 2')
+    check(pc.evaluate(f'__test.begin({{ level: {SUMS + 2} }})'), 'begin() takes sums level 2')
     start(pc)
     seen2 = []
     for i in range(8):
@@ -225,7 +237,7 @@ with sync_playwright() as pw:
     pc.context.close()
 
     pc = open_game(br, 1280, 800)
-    check(pc.evaluate('__test.begin({ level: 7 })'), 'begin() takes level 7')
+    check(pc.evaluate(f'__test.begin({{ level: {SUMS + 7} }})'), 'begin() takes sums level 7')
     start(pc)
     seen = []
     for i in range(4):
@@ -251,9 +263,9 @@ with sync_playwright() as pw:
     pc.context.close()
 
     # ---------- The operations setting, and the address's level ----------
-    pc = open_game(br, 1280, 800, query='?level=8')
-    check(state(pc)['level'] == 8, 'the address sets the level (?level=8)')
-    check(pc.evaluate("__test.begin({ level: 8, settings: { operations: '+' } })"), 'begin() takes an operations setting')
+    pc = open_game(br, 1280, 800, query=f'?level={SUMS + 8}')
+    check(state(pc)['level'] == SUMS + 8, 'the address sets the level (?level=16, sums level 8)')
+    check(pc.evaluate(f"__test.begin({{ level: {SUMS + 8}, settings: {{ operations: '+' }} }})"), 'begin() takes an operations setting')
     start(pc)
     plus = []
     for i in range(5):
@@ -266,7 +278,7 @@ with sync_playwright() as pw:
 
     # ---------- Phone sideways and dark: level 5 on a stretch ----------
     ps = open_game(br, 844, 390, mobile=True, dark=True)
-    check(ps.evaluate('__test.begin({ level: 5 })'), 'begin() takes level 5')
+    check(ps.evaluate(f'__test.begin({{ level: {SUMS + 5} }})'), 'begin() takes sums level 5')
     start(ps)
     ps.wait_for_timeout(1200)
     s = state(ps)
@@ -278,9 +290,9 @@ with sync_playwright() as pw:
     # ---------- The preview bundle with its test panel (D-018, D-020) ----------
     sys.path.insert(0, HERE)
     import build_preview as bp
-    page, src, stamp = bp.build('rocket-sums', 'test', debug=True)
-    check('Rocket Sums' in page and 'rocket-sums-preview-test-panel' in page, f'the --debug preview builds: {stamp}')
-    check(page == bp.build('rocket-sums', 'test', debug=True)[0], 'the same files build the same bytes')
+    page, src, stamp = bp.build('rocket-lander', 'test', debug=True)
+    check('Rocket Lander' in page and 'rocket-lander-preview-test-panel' in page, f'the --debug preview builds, one game: {stamp}')
+    check(page == bp.build('rocket-lander', 'test', debug=True)[0], 'the same files build the same bytes')
     tmp = tempfile.mkdtemp(prefix='rs-preview-')
     with open(os.path.join(tmp, 'p.html'), 'w', encoding='utf-8') as f:
         f.write(page)
@@ -298,16 +310,16 @@ with sync_playwright() as pw:
     check(pv.is_visible('.pv-reset'), '1234 opens the test panel, with its Reset (D-055)')
     opts =pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
-    check(opts == 8 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers 8 levels and the operations: {opts}, {ops}')
-    pv.select_option('.pv-level', '7')
+    check(opts == 16 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers the map\'s 16 levels and the operations: {opts}, {ops}')
+    pv.select_option('.pv-level', str(SUMS + 7))
     pv.fill('#pv-rocks', '40')
     pv.click('.pv-apply')
-    check(state(pv)['level'] == 7, 'Apply plays the level picked')
+    check(state(pv)['level'] == SUMS + 7, 'Apply plays the level picked (sums level 7)')
     # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
     pv.reload()
     pv.wait_for_function('window.__test && __test.state().ready')
-    check((state(pv)['level'], state(pv)['progress']['rocks']) == (7, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
-    pv.evaluate('(e) => localStorage.setItem("family-games:rocket-sums:progress", JSON.stringify(e))',
+    check((state(pv)['level'], state(pv)['progress']['rocks']) == (SUMS + 7, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
+    pv.evaluate(f'(e) => localStorage.setItem("{KEY}", JSON.stringify(e))',
                 {'v': 2, 'unlocked': 1, 'planet': 'moon', 'rocks': 10, 'landings': 0, 'ship': 'teapot', 'ships': ['classic', 'teapot']})
     pv.reload()
     pv.wait_for_function('window.__test && __test.state().ready')
