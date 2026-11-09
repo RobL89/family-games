@@ -1,4 +1,8 @@
-"""Build a game's private preview page (D-018). Version 1.0.
+"""Build a game's private preview page (D-018). Version 1.1.
+
+Changes at v1.1: --debug adds the game's test panel (a cog on the start screen) from
+tools/tests/games/preview_debug_<game, with _ for ->.js, for Rob's testing only (D-020); without it
+the page is as before.
 
 Bundles one game folder (its index.html, CSS and ES modules) into one self-contained
 HTML page for a private artifact preview, so Rob can try the game on the phone and PC
@@ -23,7 +27,7 @@ Same inputs give the same bytes: no clock, no randomness, files read in a fixed 
 The bundle is written outside the repo by default; it is a build, not a master.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/build_preview.py rocket-lander --number 1 [--out PATH]
+    python3 -B tools/tests/games/build_preview.py rocket-lander --number 1 [--debug] [--out PATH]
 Prints the output path and the source hash.
 """
 import argparse
@@ -167,7 +171,17 @@ def ident(m):
     return '__m_' + re.sub(r'\W', '_', m)
 
 
-def build(game, number):
+def debug_script(game):
+    path = os.path.join(HERE, f'preview_debug_{game.replace("-", "_")}.js')
+    if not os.path.exists(path):
+        raise BuildError(f'--debug: no test panel for {game} ({os.path.relpath(path, REPO)})')
+    text = read(path)
+    if '</script' in text.lower():
+        raise BuildError(f'{os.path.basename(path)}: "</script" would end the inline script')
+    return f'// ---- {os.path.basename(path)} (preview only) ----\n{text}'
+
+
+def build(game, number, debug=False):
     rel = f'games/{game}'
     folder = os.path.join(REPO, rel)
     if not os.path.isdir(folder):
@@ -205,11 +219,13 @@ def build(game, number):
         tail = f"\nreturn {{ {', '.join(exports)} }};\n" if exports else '\n'
         parts.append(f'// ---- {m}.js ----\nconst {ident(m)} = (() => {{\n{head}{body}{tail}}})();\n')
     script = ''.join(parts)
+    if debug:
+        script += debug_script(game)
 
     src = source_hash(folder)
     commit = commit_of(rel)
     stamp = f'{game} · preview {number} · {commit} · src {src[:8]}'
-    stand = ' · home reloads' if STAND_INS.get(game) else ''
+    stand = (' · home reloads' if STAND_INS.get(game) else '') + (' · test panel' if debug else '')
 
     for href in links:
         css = read(os.path.join(folder, href))
@@ -223,7 +239,7 @@ def build(game, number):
     if not html.lower().startswith('<!doctype html>'):
         raise BuildError('index.html must begin with <!doctype html>')
     html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel}: {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.0 -->', 1)
+                                            f'built by tools/tests/games/build_preview.py 1.1{" --debug" if debug else ""} -->', 1)
     leftovers = re.findall(r'(?:src|href)="(?!https://fonts\.(?:googleapis|gstatic)\.com)[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')
@@ -234,14 +250,15 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     p.add_argument('game')
     p.add_argument('--number', required=True, help='preview number, counted per game (1, 2, …)')
+    p.add_argument('--debug', action='store_true', help="add the game's test panel (Rob's testing only, D-020)")
     p.add_argument('--out', help='output file (default: ../previews/<game>-preview-<n>.html beside the repo)')
     a = p.parse_args(argv)
     try:
-        html, src, stamp = build(a.game, a.number)
+        html, src, stamp = build(a.game, a.number, a.debug)
     except BuildError as e:
         print('BUILD FAILED:', e, file=sys.stderr)
         return 1
-    out = a.out or os.path.join(os.path.dirname(REPO), 'previews', f'{a.game}-preview-{a.number}.html')
+    out = a.out or os.path.join(os.path.dirname(REPO), 'previews', f'{a.game}-preview-{a.number}{"-debug" if a.debug else ""}.html')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, 'w', encoding='utf-8', newline='') as f:
         f.write(html)

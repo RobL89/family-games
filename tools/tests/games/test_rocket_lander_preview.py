@@ -1,4 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.0.
+"""Rocket Lander's preview bundle (D-018). Version 1.1.
+
+Changes at v1.1: checks the --debug test panel (D-020): only in a --debug build, only on
+the start screen, and Apply reaches the game through begin().
 
 Checks that build_preview.py:
 1. gives the same bytes on a rebuild, and stamps the game folder's sha256 and commit;
@@ -6,7 +9,9 @@ Checks that build_preview.py:
    matches the game's files exactly once;
 3. makes a page that asks for nothing but itself and Google Fonts (the only outside
    host the game uses, Q-008), with no page errors, and that plays a landing;
-4. passes the RL-3 labels test (test_rocket_lander_labels.py --page) as the bundle.
+4. passes the RL-3 labels test (test_rocket_lander_labels.py --page) as the bundle;
+5. with --debug: the cog shows on the start screen only, a proposed level and progress
+   applied in the panel reach the game, and a normal build has no cog.
 
 Stand-ins: headless Chromium (Playwright) for phone and PC; a local static server.
 Usage, from the repo root:
@@ -29,10 +34,11 @@ def check(ok, what):
 
 
 tmp = tempfile.mkdtemp(prefix='rl-preview-')
-a, b = os.path.join(tmp, 'a.html'), os.path.join(tmp, 'b.html')
-for out in (a, b):
+a, b, d = os.path.join(tmp, 'a.html'), os.path.join(tmp, 'b.html'), os.path.join(tmp, 'd.html')
+for out in (a, b, d):
     r = subprocess.run([sys.executable, '-B', os.path.join(HERE, 'build_preview.py'), 'rocket-lander',
-                        '--number', 'T', '--out', out], cwd=REPO, capture_output=True, text=True)
+                        '--number', 'T', '--out', out] + (['--debug'] if out == d else []),
+                       cwd=REPO, capture_output=True, text=True)
     check(r.returncode == 0, f'build to {os.path.basename(out)}' + ('' if r.returncode == 0 else ': ' + r.stderr.strip()))
 page = open(a, 'rb').read()
 check(page == open(b, 'rb').read(), 'a rebuild gives the same bytes')
@@ -40,6 +46,7 @@ src = bp.source_hash(os.path.join(REPO, 'games', 'rocket-lander'))
 check(f'sha256 of games/rocket-lander: {src}'.encode() in page, 'the stamp carries the game folder\'s sha256')
 check(bp.commit_of('games/rocket-lander').encode() in page, 'the stamp carries the game folder\'s commit')
 check(b'window.__test' in page and b'import.meta' not in page, 'test hook kept; no import.meta left')
+check(b'pv-cog' not in page and b'pv-cog' in open(d, 'rb').read(), 'the test panel is only in the --debug build')
 
 # 2. A stand-in that no longer matches must stop the build.
 saved = bp.STAND_INS['rocket-lander']
@@ -90,6 +97,31 @@ with sync_playwright() as pw:
         check(not others, f'{tag}: asks for nothing but itself and Google Fonts' + (f': {others[:3]}' if others else ''))
         sideways = pg.evaluate('document.documentElement.scrollWidth > innerWidth')
         check(not sideways, f'{tag}: no sideways scrolling')
+        check(pg.locator('.pv-cog').count() == 0, f'{tag}: no cog in a normal build')
+        # the --debug build
+        pg.goto(LOCAL + 'd.html')
+        pg.wait_for_function('window.__test && __test.state().ready')
+        check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the start screen')
+        pg.click('.pv-cog')
+        check(pg.is_visible('.pv-sheet'), f'{tag}: debug build: the cog opens the panel')
+        pg.select_option('.pv-level', '0')
+        pg.fill('#pv-landings_per_round', '3')
+        pg.fill('#pv-unlocked', '4')
+        pg.fill('#pv-rocks', '12')
+        pg.click('.pv-apply')
+        s = pg.evaluate('__test.state()')
+        got = (s['settings']['from'], s['settings']['to'], s['settings']['speed'], s['settings']['landings_per_round'],
+               s['progress']['unlocked'], s['progress']['rocks'])
+        check(got == (0, 5, 1, 3, 4, 12), f'{tag}: debug build: level 1, 3 landings, 4 planets and 12 rocks reach the game: {got}')
+        check(pg.inner_text('#start-rocks') == '12', f'{tag}: debug build: the start screen shows the rocks set')
+        if tag == 'phone':
+            pg.screenshot(path=os.path.join(tmp, 'panel-phone.png'))
+        else:
+            pg.screenshot(path=os.path.join(tmp, 'panel-pc.png'))
+        pg.click('.pv-btns button:has-text("Close")')
+        pg.click('#play', force=True)
+        pg.wait_for_function('__test.state().phase === "fly"', timeout=20000)
+        check(not pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog hides once a round starts')
         check(not errors, f'{tag}: no page errors' + ('' if not errors else ': ' + ' | '.join(errors[:3])))
         ctx.close()
     br.close()
@@ -101,5 +133,6 @@ r = subprocess.run([sys.executable, '-B', os.path.join(HERE, 'test_rocket_lander
 print('\n'.join('     ' + ln for ln in r.stdout.strip().splitlines()))
 check(r.returncode == 0, 'RL-3 labels test passes on the bundle')
 
+print(f'Screenshots of the panel: {tmp}')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)
