@@ -1,8 +1,13 @@
-// Rocket Lander settings, read from the Sheet's Settings tab (see shared/settings.js).
-import { SHARED_SETTINGS } from '../../shared/settings.js';
+// Rocket Lander's settings: built-in defaults the game plays on (D-014), and what a grown-up
+// could change. Pure: no page, network, clock or randomness here.
+//
+// Salvaged from games-wip (7ef1ff0), where the values came from the old Sheet's Settings tab
+// through shared/settings.js (D-004 leaves that data layer behind). `speak` was the old shared
+// setting, copied here so the game needs nothing outside its folder. At stage 2a the game
+// contract's start message may hand over values; resolveSettings() checks them.
 
 export const SETTINGS = {
-  ...SHARED_SETTINGS.pick('speak'),
+  speak: { default: true, about: "Say the target out loud with the device's own voice." },
   from: { default: 0, min: -1000, max: 1000, about: 'The number at the left end of the line.' },
   to: { default: 10, min: -1000, max: 1000, about: 'The number at the right end of the line.' },
   step: { default: 1, min: 0.01, max: 100, about: 'Gap between landing spots: 1 = whole numbers, 0.5 = halves, 0.25 = quarters, 0.1 = tenths, 10 = tens.' },
@@ -12,3 +17,31 @@ export const SETTINGS = {
   landings_per_round: { default: 8, min: 3, max: 20, about: 'Landings in one round.' },
   speed: { default: 2, min: 1, max: 5, about: 'How fast the rocket falls: 1 (slow) to 5 (fast).' },
 };
+
+// The settings to play with: each given value that makes sense, otherwise the default.
+// Numbers outside their range are kept inside it. Returns { values, notes }.
+export function resolveSettings(schema, given = {}) {
+  const values = {}, notes = [];
+  for (const [name, spec] of Object.entries(schema)) {
+    const raw = given && Object.prototype.hasOwnProperty.call(given, name) ? given[name] : undefined;
+    let v = spec.default;
+    if (raw !== undefined && raw !== null && raw !== '') {
+      if (typeof spec.default === 'number') {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) notes.push(`${name}: "${raw}" isn't a number, so ${spec.default} is used`);
+        else if (n < spec.min || n > spec.max) {
+          v = Math.min(spec.max, Math.max(spec.min, n));
+          notes.push(`${name}: ${n} is outside ${spec.min} to ${spec.max}, so ${v} is used`);
+        } else v = n;
+      } else if (typeof spec.default === 'boolean') {
+        if (typeof raw === 'boolean') v = raw;
+        else notes.push(`${name}: "${raw}" isn't true or false, so ${spec.default} is used`);
+      } else if (spec.options) {
+        if (spec.options.includes(raw)) v = raw;
+        else notes.push(`${name}: "${raw}" isn't one of ${spec.options.join(', ')}, so ${spec.default} is used`);
+      }
+    }
+    values[name] = v;
+  }
+  return { values, notes };
+}

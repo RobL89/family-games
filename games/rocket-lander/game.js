@@ -1,10 +1,14 @@
 // Rocket Lander: steer a falling rocket onto the number asked for on the planet's number line.
 // A round is `landings_per_round` landings; stars for how many were right. Moon rocks for
-// perfect landings and planets unlocked by good rounds are kept with saveProgress().
+// perfect landings and planets unlocked by good rounds are kept with saveState().
+//
+// Runs on its own (D-004, D-014): built-in settings, and its state kept in memory while it
+// runs. begin() takes settings and saved state; at stage 2a the game contract's start
+// message calls it.
 
-import { homeButton, record, goHome, loadSettings, settingsNow, loadProgress, progressNow, saveProgress } from '../../shared/game-kit.js';
-import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from '../../shared/sound.js';
-import { SETTINGS } from './settings.js';
+import { homeButton, report, reported, goHome, saveState, savedState } from './kit.js';
+import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
+import { SETTINGS, resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, say, starsFor, tidy } from './numbers.js';
 import { PLANETS, planetIndex } from './planets.js';
 import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from './scene.js';
@@ -21,8 +25,8 @@ const calm = matchMedia('(prefers-reduced-motion: reduce)');
 scene.calm = calm.matches;
 calm.addEventListener?.('change', () => { scene.calm = calm.matches; });
 
-let S = settingsNow(SETTINGS);
-let progress = progressNow(DEFAULT_PROGRESS);
+let S = resolveSettings(SETTINGS).values;
+let progress = { ...DEFAULT_PROGRESS };
 let ready = false;
 let chosen = 0; // planet picked on the start screen
 let line = null, near = null, loggedNotes = '';
@@ -412,8 +416,8 @@ async function endRound() {
   if (G.unlockedNew >= 0) setTimeout(() => { sfx('unlock'); fx.confetti(90, scene.calm); }, 900);
   if (S.speak) speak(stars === 3 ? 'Super landing!' : stars === 2 ? 'Great flying!' : 'Good try!');
 
-  await record({ score, stars, seconds, level: 1 });
-  saveProgress({ unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings });
+  report({ score, stars, seconds, level: 1 });
+  saveState({ unlocked: progress.unlocked, planet: progress.planet, rocks: progress.rocks, landings: progress.landings });
 }
 
 function playAgain() {
@@ -617,29 +621,30 @@ function boot() {
   drawRockIcons();
   V.rocket = null;
   frame = requestAnimationFrame(loop);
-  const play = $('play');
-  play.disabled = true;
-  play.setAttribute('aria-busy', 'true');
-  Promise.all([
-    loadSettings(SETTINGS).catch(() => settingsNow(SETTINGS)),
-    loadProgress(DEFAULT_PROGRESS).catch(() => progressNow(DEFAULT_PROGRESS)),
-  ]).then(([s, p]) => {
-    S = s;
-    progress = p;
-    renderPicker();
-    scene.setPlanet(chosen);
-    applySettings();
-    resize();
-  }).finally(() => {
-    ready = true;
-    play.disabled = false;
-    play.removeAttribute('aria-busy');
-  });
+  ready = true;
+}
+
+// Settings and saved state handed to the game (by a test now, by the shell at stage 2a).
+// Only on the start screen; anything missing or odd falls back to the built-in defaults.
+function begin({ settings = {}, state = null } = {}) {
+  if (G.phase !== 'start') return false;
+  const r = resolveSettings(SETTINGS, settings);
+  if (r.notes.length) console.info(`Rocket Lander settings: ${r.notes.join('; ')}.`);
+  S = r.values;
+  progress = { ...DEFAULT_PROGRESS, ...(state && typeof state === 'object' ? state : {}) };
+  sanitiseProgress();
+  chosen = planetIndex(progress.planet);
+  renderPicker();
+  scene.setPlanet(chosen);
+  applySettings();
+  resize();
+  drawRockIcons();
+  return true;
 }
 
 boot();
 
-// ---------- Test hook (used by tools/tests/e2e_rocket-lander.py) ----------
+// ---------- Test hook (used by tools/tests/games/test_rocket_lander_e2e.py) ----------
 
 window.__test = {
   state: () => ({
@@ -650,6 +655,9 @@ window.__test = {
     labels: scene.shown.map((s) => s.text), line: line && { from: line.from, to: line.to, step: line.step, count: line.count },
     results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
   }),
+  begin,
+  reported,
+  saved: savedState,
   xOf: (v) => scene.xOf(v),
   // put the rocket over a number (it keeps falling)
   place(v) { R.x = clamp(scene.xOf(v), scene.x0, scene.x1); R.vx = 0; input.active = false; },
