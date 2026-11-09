@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.2 · 2026-11-09 |
+| **Version** | 1.3 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.3:** the preview build script and its test are in the checks table (D-018).
 
 **Changes at v1.2:** Rocket Lander is on `claude/games`, running on its own, with its three tests and a fault bench in the checks table.
 
@@ -41,7 +43,8 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | Script | What it checks |
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
-| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3) and `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes) |
+| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, nothing fetched but Google Fonts, RL-3 on the bundle) |
+| `build_preview.py` | Not a check: bundles a game folder into one page for a private preview (D-018), with a stamp naming the commit and the folder's sha256. Writes outside the repo by default |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
@@ -80,6 +83,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.3 | 2026-11-09 | Preview build script and its test added (step 1b+) |
 | 1.2 | 2026-11-09 | Rocket Lander brought over (step 1b): its tests and bench listed; the games' tests need Node and Playwright |
 | 1.1 | 2026-11-09 | Names check removed from the repo check (D-017) |
 | 1.0 | 2026-11-09 | First version: folder map from D-002, branches, checks, section for other projects |

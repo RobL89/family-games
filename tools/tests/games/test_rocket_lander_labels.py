@@ -1,4 +1,7 @@
-"""RL-3: after a miss, the lit-up number must not sit on top of its neighbours. Version 1.0.
+"""RL-3: after a miss, the lit-up number must not sit on top of its neighbours. Version 1.1.
+
+Changes at v1.1: --page runs the same check on another page, such as a preview bundle
+(test_rocket_lander_preview.py); with no --page it tests the game folder as before.
 
 The bug (games pack, rocket-lander/DESIGN.md, RL-3): on a phone, on -10 to 10 labelled
 every 5, the lit-up number after a wrong landing overlapped the numbers beside it.
@@ -10,14 +13,21 @@ waits until the number is fully lit, and asks the game which labels are still dr
 
 Stand-ins: headless Chromium (Playwright); a local static server; system fonts.
 Usage, from the repo root:
-    python3 -B tools/tests/games/test_rocket_lander_labels.py [folder for screenshots]
+    python3 -B tools/tests/games/test_rocket_lander_labels.py [--page FILE] [folder for screenshots]
 """
 import functools, http.server, os, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-OUT = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix='rl3-shots-')
+ARGS = sys.argv[1:]
+PAGE = None
+if '--page' in ARGS:
+    i = ARGS.index('--page')
+    PAGE = os.path.abspath(ARGS[i + 1])
+    del ARGS[i:i + 2]
+ROOT, PATH = (os.path.dirname(PAGE), os.path.basename(PAGE)) if PAGE else (REPO, 'games/rocket-lander/index.html')
+OUT = ARGS[0] if ARGS else tempfile.mkdtemp(prefix='rl3-shots-')
 os.makedirs(OUT, exist_ok=True)
 TARGETS = [6, -4, 1, 9, -9, -6, 4, -1]
 
@@ -27,7 +37,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=REPO))
+httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=ROOT))
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
@@ -46,7 +56,7 @@ def run(br, w, h, mobile, tag):
     ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith(LOCAL) else r.abort())
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
-    pg.goto(LOCAL + 'games/rocket-lander/index.html')
+    pg.goto(LOCAL + PATH)
     pg.wait_for_function('window.__test && __test.state().ready')
     pg.evaluate("__test.begin({ settings: { from: -10, to: 10, label_every: 5, landings_per_round: 8 } })")
     pg.click('#play', force=True)
