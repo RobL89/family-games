@@ -1,7 +1,10 @@
 // The rocket game's map screens (D-058, D-065, D-066): the map of the system the child is in, with
 // its level markers along a path and the rocket waiting by its place; the galaxy view of every system
 // along a winding path; and the jumps between them, a short warp and, when a system is done,
-// hyperspace. Version 1.0 (step 2c-build, D-068). All original and drawn in code (D-010).
+// hyperspace. Version 1.1 (step 2c-build, D-068). All original and drawn in code (D-010).
+//
+// Changes at v1.1: a tap on the rocket waiting on the map makes it do a happy hop, with a boing and
+// a few sparkles (Rob's pointers for this step: engaging, small touches that add up).
 //
 // Drawn on a canvas of its own over the scene, which draws the system's sky and ground without its
 // number line (Scene.setBare). The taps land on plain buttons laid over the markers and the planets,
@@ -224,20 +227,23 @@ export class StarMap {
 
   buildButtons() {
     const box = this.el.marks;
-    const want = this.lay.marks.map((k) => k.id).concat(['portal']);
+    const want = this.lay.marks.map((k) => k.id).concat(['portal', 'rocket']);
     if (this.btns.map((b) => b.dataset.level).join() !== want.join()) {
       box.innerHTML = '';
       this.btns = want.map((id) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'mk'; b.dataset.level = id;
-        b.addEventListener('click', () => (id === 'portal' ? this.stepSystem(1, true) : this.tapMarker(id)));
+        b.addEventListener('click', () => (id === 'portal' ? this.stepSystem(1, true) : id === 'rocket' ? this.tapRocket() : this.tapMarker(id)));
+        if (id === 'rocket') { b.classList.add('rocket-hit'); b.setAttribute('aria-label', 'The rocket: give it a tap'); }
         box.appendChild(b);
         return b;
       });
     }
     const p = this.P_();
     this.btns.forEach((b) => {
-      const id = b.dataset.level, k = id === 'portal' ? this.lay.portal : this.lay.marks.find((x) => x.id === id);
+      const id = b.dataset.level;
+      if (id === 'rocket') return; // placed each frame, over the rocket
+      const k = id === 'portal' ? this.lay.portal : this.lay.marks.find((x) => x.id === id);
       const size = Math.max(48, k.r * 2 + 14);
       Object.assign(b.style, { left: `${k.x - size / 2}px`, top: `${k.y - size / 2}px`, width: `${size}px`, height: `${size}px` });
       if (id === 'portal') {
@@ -273,6 +279,13 @@ export class StarMap {
     }
     k.press = 1; this.io.sfx('tap');
     this.io.tap(id);
+  }
+
+  // A tap on the waiting rocket: a happy hop, a boing and a few sparkles. Nothing else happens.
+  tapRocket() {
+    if (this.view !== 'map' || this.busy) return;
+    this.io.sfx('boing');
+    this.queue({ kind: 'boing', dur: this.calm ? 0.25 : 0.55 });
   }
 
   playHere() {
@@ -464,6 +477,18 @@ export class StarMap {
       if (k >= 1) { R.flame = 0; R.legs = 1; this.squash = 1; this.puff(R.x, R.y, 14); this.io.sfx('thud'); if (this.SS) landShip(this.ship(), this.SS, this.P); return true; }
       return false;
     }
+    if (st.kind === 'boing') {
+      if (st.base == null) st.base = R.y;
+      const k = clamp(st.t / st.dur, 0, 1);
+      R.y = st.base - Math.sin(k * Math.PI) * this.rh * (this.calm ? 0.08 : 0.3);
+      R.rot = this.calm ? 0 : Math.sin(k * Math.PI * 2) * 0.12;
+      if (k >= 1) {
+        R.y = st.base; R.rot = 0; this.squash = 1;
+        this.burst(R.x, R.y - this.rh * 0.6, 10, [SUN, '#FFFFFF', MINT, CORAL], 120);
+        return true;
+      }
+      return false;
+    }
     if (st.kind === 'launch') {
       const k = st.t;
       if (k < 0.14) { R.sy = 1 - k * 1.3; R.sx = 1 + k * 0.8; R.flame = k * 4; }
@@ -531,6 +556,14 @@ export class StarMap {
     const play = this.el.play, show = this.view === 'map' && !this.busy && this.R.shown;
     play.hidden = !show;
     if (show) this.placePlay();
+    const hit = this.btns.find((b) => b.dataset.level === 'rocket');
+    if (hit) {
+      hit.hidden = !show;
+      if (show) {
+        const w = Math.max(48, this.rh * 0.62), h = Math.max(48, this.rh * 0.9);
+        Object.assign(hit.style, { left: `${this.R.x - w / 2}px`, top: `${this.R.y - this.rh * 0.98}px`, width: `${w}px`, height: `${h}px` });
+      }
+    }
   }
 
   // The Play bubble by the waiting rocket: above it if that covers nothing (the top bar, another

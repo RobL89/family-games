@@ -1,4 +1,6 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.0.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.1.
+
+Changes at v1.1: a tap on the waiting rocket makes it hop with a boing, and starts nothing.
 
 Rocket Lander is one game with a map of solar systems (D-058). This test plays it on its own as a
 plain page, with real taps on the page, and checks:
@@ -164,6 +166,15 @@ with sync_playwright() as pw:
     check(pg.is_visible('#hangar') and pg.inner_text('#map-rocks') == '0', 'the hangar door with the moon rocks is on the top bar (D-052)')
     check(s['bare'] is True, 'the scene shows the sky and ground without the number line')
     pg.screenshot(path=f'{OUT}/map-phone-fresh.png')
+    # a tap on the waiting rocket: a happy hop and a boing, and nothing else (a small delight)
+    n0 = len(st(pg)['heard'])
+    tap(pg, '.rocket-hit')
+    pg.wait_for_timeout(200)
+    hopping = mp(pg)['step']
+    settle(pg)
+    s = st(pg)
+    check(hopping == 'boing' and 'boing' in s['heard'][n0:] and s['screen'] == 'map' and s['card'] is None and s['map']['rocketAt'] == 'moon-1',
+          f'a tap on the rocket makes it hop with a boing, and starts nothing: {hopping}, {s["heard"][n0:]}')
 
     # ---------- A locked level stays shut; an open level's card ----------
     n0 = len(s['heard'])
