@@ -1,4 +1,10 @@
-"""Rocket Sums' pure core and its boundaries. Version 1.0.
+"""Rocket Sums' pure core and its boundaries. Version 1.1.
+
+Changes at v1.1: levels 1 and 2 play in two halves (D-040, Rob, 2026-11-09: "make level 1
+split so that the first half is plus to 5 and the second half is plus to 10. then make level
+2 split with minus to 5 then minus to 10"): the parts, how a round is split between them,
+− to 5 (21 sums), and the line for each half. At most one sum answering 0 a round
+(proposed, Q-022): makeSum leaves them out when asked to.
 
 Fast checks, no browser. Node runs games/rocket-sums/levels.js and sums.js and compares them
 with values worked out by hand from the decisions:
@@ -64,25 +70,31 @@ const out = {
   sources: L.LEVELS.map((r) => r.source),
   facts: {
     plus5: summary(facts('+', { plus_max: 5 })), plus10: summary(facts('+', { plus_max: 10 })), plus20: summary(facts('+', { plus_max: 20 })),
-    minus: summary(facts('−', {})), times: summary(facts('×', {})), divide: summary(facts('÷', {})),
+    minus: summary(facts('−', {})), minus5: summary(facts('−', { minus_max: 5 })), times: summary(facts('×', {})), divide: summary(facts('÷', {})),
   },
   parse: ['+', '+ −', '+ − ×', '+ − × ÷', '× ÷', '', null, 'x'].map((t) => M.parseOps(t)),
   opsFor: [M.opsFor(row(1), { operations: null }), M.opsFor(row(1), { operations: '+ − ×' }), M.opsFor(row(8), {})],
   options: M.OPS_OPTIONS,
   draws: {
-    l1: draw(row(1).ops, row(1), 40, 1), l3: draw(row(3).ops, row(3), 60, 2), l8: draw(row(8).ops, row(8), 200, 3),
+    l1: draw(row(1).ops, M.partsOf(row(1))[0], 40, 1), l3: draw(row(3).ops, row(3), 60, 2), l8: draw(row(8).ops, row(8), 200, 3),
     same: JSON.stringify(draw(row(5).ops, row(5), 20, 9)) === JSON.stringify(draw(row(5).ops, row(5), 20, 9)),
   },
   lines: {
-    l1: M.lineForSum({ answer: 4 }, row(1).ops, row(1), seeded(1)),
-    l2: M.lineForSum({ answer: 7 }, row(2).ops, row(2), seeded(1)),
+    l1: M.lineForSum({ answer: 4 }, row(1).ops, M.partsOf(row(1))[0], seeded(1)),
+    l2: M.lineForSum({ answer: 7 }, row(2).ops, M.partsOf(row(2))[1], seeded(1)),
     l3: M.lineForSum({ answer: 9 }, row(3).ops, row(3), seeded(1)),
-    l1ops: M.lineForSum({ answer: 8 }, ['+', '−'], row(1), seeded(1)),
+    l1ops: M.lineForSum({ answer: 8 }, ['+', '−'], M.partsOf(row(1))[0], seeded(1)),
     l4: windows(15, row(4).ops, row(4), 30, 4), l6: windows(3, row(6).ops, row(6), 30, 5),
     l7: windows(81, row(7).ops, row(7), 30, 6), l7low: windows(2, row(7).ops, row(7), 30, 7), l7top: windows(100, row(7).ops, row(7), 30, 8),
   },
   right: [[{ value: 7 }, 7, 0], [{ value: 7 }, 8, 0], [{ value: 7 }, 8, 1], [{ value: 0 }, 0, 0]].map(([T, s, a]) => M.isRight(T, s, a)),
   goal: M.goalOf({ value: 12 }, 3.4),
+  parts: [M.partsOf(row(1)), M.partsOf(row(2)), M.partsOf(row(4)).length],
+  split: [M.planParts(row(1), 8), M.planParts(row(1), 7), M.planParts(row(2), 3), M.planParts(row(5), 8)],
+  noZero: (() => { const rand = seeded(11); let prev = null, zeros = 0;
+    for (let i = 0; i < 300; i++) { const s = M.makeSum(['−'], { minus_max: 5 }, prev, rand, { zeroOk: false }); prev = s; if (s.answer === 0) zeros++; } return zeros; })(),
+  zeroOnly: M.makeSum(['+'], { plus_max: 0 }, null, seeded(1), { zeroOk: false }).answer,
+  partLines: M.partsOf(row(1)).map((p) => M.lineForSum({ answer: 3 }, p.ops, p, seeded(1))).concat(M.partsOf(row(2)).map((p) => M.lineForSum({ answer: 2 }, p.ops, p, seeded(1)))),
   text: [M.sumText({ a: 3, op: '+', b: 4 }), M.sumText({ a: 20, op: '÷', b: 2 })],
 };
 console.log(JSON.stringify(out));
@@ -99,8 +111,8 @@ o = json.loads(r.stdout)
 # ---------- The level table, against D-039 ----------
 W = {'layout': 'stretch', 'span': 10}
 want = [
-    {'level': 1, 'ops': ['+'], 'plus_max': 5, 'layout': 'line', 'from': 0, 'to': 5, 'label_every': 1},
-    {'level': 2, 'ops': ['−'], 'layout': 'line', 'from': 0, 'to': 10, 'label_every': 1},
+    {'level': 1, 'ops': ['+'], 'layout': 'line', 'from': 0, 'label_every': 1, 'parts': [{'plus_max': 5, 'to': 5}, {'plus_max': 10, 'to': 10}]},
+    {'level': 2, 'ops': ['−'], 'layout': 'line', 'from': 0, 'label_every': 1, 'parts': [{'minus_max': 5, 'to': 5}, {'minus_max': 10, 'to': 10}]},
     {'level': 3, 'ops': ['+', '−'], 'plus_max': 10, 'layout': 'line', 'from': 0, 'to': 10, 'label_every': 1},
     {'level': 4, 'ops': ['+'], 'plus_max': 20, **W, 'label_every': 1},
     {'level': 5, 'ops': ['+', '−'], 'plus_max': 20, **W, 'label_every': 1},
@@ -110,8 +122,9 @@ want = [
 ]
 check(len(o['levels']) == 8, f"8 levels (D-039): {len(o['levels'])}")
 for w, g in zip(want, o['levels']):
-    check(g == w, f"level {w['level']} as D-039: {g}")
+    check(g == w, f"level {w['level']} as D-039{' and D-040' if w['level'] < 3 else ''}: {g}")
 check(all('D-039' in s for s in o['sources']), 'every level names its source, D-039')
+check(all('D-040' in s for s in o['sources'][:2]), 'levels 1 and 2 name D-040')
 
 # ---------- The sums each operation can ask ----------
 f = o['facts']
@@ -120,6 +133,7 @@ exp = {
     'plus10': dict(n=66, minA=0, maxA=10, minB=0, maxB=10, minAns=0, maxAns=10),
     'plus20': dict(n=121, minA=0, maxA=10, minB=0, maxB=10, minAns=0, maxAns=20),
     'minus': dict(n=66, minA=0, maxA=10, minB=0, maxB=10, minAns=0, maxAns=10),
+    'minus5': dict(n=21, minA=0, maxA=5, minB=0, maxB=5, minAns=0, maxAns=5),
     'times': dict(n=100, minA=1, maxA=10, minB=1, maxB=10, minAns=1, maxAns=100),
     'divide': dict(n=33, minA=0, maxA=100, minB=2, maxB=10, minAns=0, maxAns=10),
 }
@@ -139,7 +153,7 @@ check(o['options'] == ['+', '+ −', '+ − ×', '+ − × ÷'], f"the setting's
 
 # ---------- Sums drawn with a seeded random source ----------
 d = o['draws']
-check({s['op'] for s in d['l1']} == {'+'} and all(s['answer'] <= 5 for s in d['l1']), 'level 1: + with answers up to 5 only')
+check({s['op'] for s in d['l1']} == {'+'} and all(s['answer'] <= 5 for s in d['l1']), "level 1's first half: + with answers up to 5 only")
 check({s['op'] for s in d['l3']} == {'+', '−'} and all(0 <= s['answer'] <= 10 for s in d['l3']), 'level 3: + and −, answers 0 to 10')
 check({s['op'] for s in d['l8']} == {'+', '−', '×', '÷'}, f"level 8: all four operations come up in 200 sums: {sorted({s['op'] for s in d['l8']})}")
 check(all(s['text'] == f"{s['a']} {s['op']} {s['b']}" for s in d['l8']), 'each sum carries its text')
@@ -154,11 +168,11 @@ check(not any(twice(v) for v in (d['l1'], d['l3'], d['l8'])), 'never the same su
 
 # ---------- The line for each sum ----------
 ln = o['lines']
-check(ln['l1'] == {'from': 0, 'to': 5, 'step': 1, 'label_every': 1}, f"level 1: the whole line 0 to 5 (D-039): {ln['l1']}")
-check(ln['l2'] == {'from': 0, 'to': 10, 'step': 1, 'label_every': 1}, f"level 2: 0 to 10: {ln['l2']}")
+check(ln['l1'] == {'from': 0, 'to': 5, 'step': 1, 'label_every': 1}, f"level 1's first half: the whole line 0 to 5 (D-039, D-040): {ln['l1']}")
+check(ln['l2'] == {'from': 0, 'to': 10, 'step': 1, 'label_every': 1}, f"level 2's second half: 0 to 10: {ln['l2']}")
 check(ln['l3'] == {'from': 0, 'to': 10, 'step': 1, 'label_every': 1}, f"level 3: 0 to 10: {ln['l3']}")
 check(ln['l1ops'] == {'from': 0, 'to': 10, 'step': 1, 'label_every': 1},
-      f"level 1 with + − set: answers past 5, so the 10-mark stretch 0 to 10: {ln['l1ops']}")
+      f"level 1's first half with + − set: answers past 5, so the 10-mark stretch 0 to 10: {ln['l1ops']}")
 
 
 def windows_ok(ws, ans, top, name, every=1):
@@ -180,6 +194,20 @@ windows_ok(ln['l7top'], 100, 100, 'level 7, answer 100 (the end)')
 check(o['right'] == [True, False, True, True], f"right on the answer, wrong beside it, leeway honoured: {o['right']}")
 check(o['goal'] == 12, 'after a miss the answer is shown')
 check(o['text'] == ['3 + 4', '20 ÷ 2'], f"sum text: {o['text']}")
+
+# ---------- Levels 1 and 2 in two halves (D-040) ----------
+p1, p2, n4 = o['parts']
+check([(p['plus_max'], p['to'], p['ops']) for p in p1] == [(5, 5, ['+']), (10, 10, ['+'])], f"level 1's halves: + to 5 on 0 to 5, then + to 10 on 0 to 10: {p1}")
+check([(p['minus_max'], p['to'], p['ops']) for p in p2] == [(5, 5, ['−']), (10, 10, ['−'])], f"level 2's halves: − to 5 on 0 to 5, then − to 10 on 0 to 10: {p2}")
+check(n4 == 1, 'a level without parts is one part')
+check(o['split'] == [[0, 0, 0, 0, 1, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1], [0, 0, 1], [0] * 8],
+      f"a round's landings split into halves, the first half the bigger when odd: {o['split']}")
+check(o['partLines'] == [{'from': 0, 'to': 5, 'step': 1, 'label_every': 1}, {'from': 0, 'to': 10, 'step': 1, 'label_every': 1}] * 2,
+      f"each half on its own line: {o['partLines']}")
+
+# ---------- At most one 0 a round (proposed, Q-022) ----------
+check(o['noZero'] == 0, f"asked to, makeSum leaves out sums answering 0 (− to 5, 300 draws): {o['noZero']} zeros")
+check(o['zeroOnly'] == 0, 'if every sum answers 0, one is still asked rather than none')
 
 # ---------- Boundaries ----------
 IMPURE = re.compile(r'\b(import|document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|'

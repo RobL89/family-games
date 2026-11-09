@@ -1,5 +1,6 @@
-// Rocket Sums' test panel for previews. Version 1.0.
+// Rocket Sums' test panel for previews. Version 1.1.
 //
+// Changes at v1.1: level names show a level's halves (D-040).
 // Copied from preview_debug_rocket_lander.js 1.3 in step 2a-2 and changed only where Rocket
 // Sums differs: its eight levels (levels.js, D-039), its settings (the shared ones without
 // the line's ends, plus `operations`, built as game.js builds them) and its own storage key.
@@ -21,8 +22,9 @@
     operations: { default: null, options: OPS_OPTIONS, about: 'Which sums to ask: + only, + and −, and so on. Empty: as the level says.' } };
   const T = window.__test;
   const KEY = 'rocket-sums-preview-test-panel';
-  const levelName = (r) => `${r.level} · ${r.ops.join(' ')}${r.plus_max ? ` (+ to ${r.plus_max})` : ''} · `
+  const partName = (r) => `${r.ops.join(' ')}${r.plus_max ? ` (+ to ${r.plus_max})` : ''}${r.minus_max ? ` (− from ${r.minus_max})` : ''} · `
     + `${r.layout === 'line' ? `${r.from} to ${r.to}` : `stretch of ${r.span}`}${r.label_every === 1 ? '' : `, every ${r.label_every} written`}`;
+  const levelName = (r) => `${r.level} · ${(r.parts ? r.parts.map((p) => ({ ...r, ...p })) : [r]).map(partName).join(', then ')}`;
 
   const css = `
 .pv-cog{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:1001;

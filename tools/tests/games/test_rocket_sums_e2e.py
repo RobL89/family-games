@@ -1,4 +1,7 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.0.
+"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.1.
+
+Changes at v1.1: levels 1 and 2 play in two halves, each on its own line (D-040), and a round
+asks at most one sum answering 0 (proposed, Q-022), checked over whole rounds.
 
 Rocket Sums is the rocket game's maths tile (D-021, D-027, D-037), on the shared engine in
 games/_common/rocket/round.js. Its pure parts (levels, sums, lines) have their own test,
@@ -152,9 +155,16 @@ with sync_playwright() as pw:
     # ---------- PC: a full round on level 1; reported and saved ----------
     pc = open_game(br, 1280, 800)
     start(pc)
+    seen1 = []
     for i, good in enumerate([True, True, True, True, True, True, True, False]):
+        s = state(pc)
+        seen1.append((s['sum'], s['target'], s['line']['to']))
         land(pc, good)
         next_fly(pc, i + 1)
+    check(all(to == 5 and ans <= 5 for _, ans, to in seen1[:4]) and all(to == 10 and ans <= 10 for _, ans, to in seen1[4:])
+          and all(sum_ok({'sum': t, 'target': a}, '+') for t, a, _ in seen1),
+          f'level 1: + to 5 on 0 to 5, then + to 10 on 0 to 10 (D-040): {seen1}')
+    check(sum(a == 0 for _, a, _ in seen1) <= 1, 'level 1: at most one answer of 0 in the round (Q-022)')
     pc.wait_for_function('__test.state().phase === "end"')
     rows = pc.evaluate('__test.reported()')
     check(len(rows) == 1 and rows[0]['stars'] == 3 and rows[0]['level'] == 1, f'the round is reported: 3 stars, level 1: {rows}')
@@ -169,13 +179,16 @@ with sync_playwright() as pw:
     pc = open_game(br, 1280, 800, dark=True)
     check(pc.evaluate('__test.begin({ level: 2 })'), 'begin() takes level 2')
     start(pc)
-    ok2 = []
-    for i in range(4):
+    seen2 = []
+    for i in range(8):
         s = state(pc)
-        ok2.append(sum_ok(s, '−', 10) and s['line']['from'] == 0 and s['line']['to'] == 10)
+        top = 5 if i < 4 else 10
+        seen2.append((s['sum'], s['target'], s['line']['to'], sum_ok(s, '−', top) and int(s['sum'].split()[0]) <= top
+                      and s['line']['from'] == 0 and s['line']['to'] == top))
         land(pc, True)
         next_fly(pc, i + 1)
-    check(all(ok2), f'level 2: − sums, nothing below zero, on 0 to 10: {ok2}')
+    check(all(ok for *_, ok in seen2), f'level 2: − from 5 or less on 0 to 5, then from 10 or less on 0 to 10, nothing below zero (D-040): {seen2}')
+    check(sum(a == 0 for _, a, _, _ in seen2) <= 1, f'level 2: at most one answer of 0 in the round (Q-022)')
     pc.context.close()
 
     pc = open_game(br, 1280, 800)

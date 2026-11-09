@@ -1,5 +1,6 @@
 """Bench, not part of the close: plants faults in Rocket Sums and counts how many the tests catch.
-Version 1.0. Copied from mutate_rocket_lander.py 1.3 in step 2a-2, with Rocket Sums' faults.
+Version 1.1. Copied from mutate_rocket_lander.py 1.3 in step 2a-2, with Rocket Sums' faults.
+Changes at v1.1: faults in levels 1 and 2's halves (D-040) and the one-0-a-round limit (Q-022).
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/
 folders (a temporary folder), run against the test meant to catch it. The repo itself is
@@ -27,12 +28,17 @@ FAULTS = [
     ('the answer always mid-stretch', G + 'sums.js', 'const from = lo + Math.min(hi - lo, Math.floor(rand() * (hi - lo + 1)));', 'const from = Math.round((lo + hi) / 2);', CORE),
     ('a stretch past the biggest answer', G + 'sums.js', 'hi = Math.min(sum.answer, top - span);', 'hi = sum.answer;', CORE),
     ('the operations setting ignored', G + 'sums.js', 'return set.length ? set : row.ops.slice();', 'return row.ops.slice();', CORE),
-    ('level 1 on 0 to 10 (D-039)', G + 'levels.js', "plus_max: 5, layout: 'line', from: 0, to: 5,", "plus_max: 5, layout: 'line', from: 0, to: 10,", CORE),
-    ('randomness in the sums', G + 'sums.js', 'export function makeSum(ops, row, prev, rand) {', 'export function makeSum(ops, row, prev, rand = Math.random) {', CORE),
+    ('level 1 starts on 0 to 10 (D-039, D-040)', G + 'levels.js', "parts: [{ plus_max: 5, to: 5 },", "parts: [{ plus_max: 5, to: 10 },", CORE),
+    ('no halves: one part all round', G + 'sums.js', 'Math.min(n - 1, Math.floor((i * n) / total))', '0', CORE),
+    ('− ignores its biggest number', G + 'sums.js', 'upTo(row.minus_max ?? 10)', 'upTo(10)', CORE),
+    ('sums answering 0 never left out', G + 'sums.js', "if (!zeroOk && all.some((f) => f.answer !== 0))", "if (false)", CORE),
+    ('randomness in the sums', G + 'sums.js', 'export function makeSum(ops, row, prev, rand, { zeroOk = true } = {}) {', 'export function makeSum(ops, row, prev, rand = Math.random, { zeroOk = true } = {}) {', CORE),
     # the page (browser test)
     ('the stretch laid out for the wrong value', G + 'game.js', 'lineForSum({ answer: T.value },', 'lineForSum(T,', E2E),
     ('no beam (D-032)', G + 'game.js', '  beam: true,', '  beam: false,', E2E),
     ('the bubble leaves out the sum', G + 'game.js', '. ${esc(T.sum)} = <b>${T.value}</b>', '. = <b>${T.value}</b>', E2E),
+    ('the round ignores its halves', G + 'game.js', 'const p = partOf(row, kind);', 'const p = partOf(row, 1);', E2E),
+    ('the one-0 limit not wired (caught by chance, ≈58% of runs by code, Q-022)', G + 'game.js', '{ zeroOk: !zeroAsked }', '{ zeroOk: true }', E2E),
     ('a sum set by a test keeps the old line', C + 'round.js', 'lineForTarget(); showTarget(); };', 'showTarget(); };', E2E),
 ]
 
