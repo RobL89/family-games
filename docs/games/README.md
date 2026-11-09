@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.0 · 2026-11-09 |
+| **Version** | 1.1 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
 
-**Changes at v1.0:** first version: the folder map (P-034's decision D-002), branches, checks and the section for other projects.
+**Changes at v1.1:** the repo check no longer looks for the children's names (P-034's decision D-017), so the "Private names" note is gone and the privacy line says what stays out.
 
 This repo is shared by two projects. **P-020 (Family Games Launcher)** owns the launcher, the shell, the Sheet's script and the game contract. **P-034 (Kids Games Development)** owns the games. Each project writes only to its own folders, so their work never collides.
 
@@ -42,7 +42,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/) and use only
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
 | `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests as they are added |
-| `repo_check.py` | Nothing outside P-034's folders has changed on this branch, and no private name appears in P-034's files, paths, commit messages or branch name |
+| `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
 | `mutate_checks.py` | A bench, not part of the close: plants faults in the checks and counts how many the tests catch |
@@ -50,8 +50,6 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/) and use only
 ```
 python3 -B tools/tests/games/close.py
 ```
-
-**Private names.** The names check reads the names from the environment variable `FG_PRIVATE_NAMES` (comma-separated). It never reads them from the repo. If the variable is unset, the check reports "NOT RUN" and the close fails. A name it finds is reported by its number, never printed.
 
 **Pins.** [`pins.json`](../../tools/tests/games/pins.json) holds the frozen files and what we rely on from P-020. A pin changes only by a decision in P-034.
 
@@ -72,7 +70,7 @@ python3 -B tools/tests/games/close.py
 
 **Live branch:** `main`. Work in progress is on `claude/games`. Anything there may change without notice until it's published.
 
-**What's private:** the repo and every branch are public, so nothing here names the children or holds their photos, voices or ages. Profiles, stars and settings live in P-020's Sheet, never in this repo.
+**What's private:** the repo and every branch are public, so nothing here holds the children's photos, voices or ages. Profiles, stars and settings live in P-020's Sheet, never in this repo.
 
 **Changes that affect you:** P-034 tells P-020 by a board note before a shared part changes or goes, and keeps the old form until P-020 has moved.
 
@@ -80,4 +78,5 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1 | 2026-11-09 | Names check removed from the repo check (D-017) |
 | 1.0 | 2026-11-09 | First version: folder map from D-002, branches, checks, section for other projects |

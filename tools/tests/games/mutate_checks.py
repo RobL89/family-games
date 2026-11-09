@@ -1,4 +1,6 @@
-"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.0.
+"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.1.
+
+Changes at v1.1: the names mutants are removed with the names check (D-017).
 
 Tests the tests: plants one fault at a time in repo_check.py, doc_check.py and
 pins_check.py, runs test_checks.py and counts the faults caught. Each file is
@@ -22,12 +24,6 @@ MUTANTS = [
     ('repo_check.py', "'--untracked-files=all', '--no-renames'", "'--untracked-files=no', '--no-renames'", 'untracked files ignored'),
     ('repo_check.py', "    outside = sorted(p for p in committed | working if not owned(p))",
      "    outside = sorted(p for p in committed if not owned(p))", 'working tree ignored'),
-    ('repo_check.py', "        return 1 if not paths_ok else 2", "        return 1 if not paths_ok else 0", 'unset names pass'),
-    ('repo_check.py', "re.escape(n) + r'(?![^\\W\\d_])', re.IGNORECASE)", "re.escape(n) + r'(?![^\\W\\d_])')", 'names case-sensitive'),
-    ('repo_check.py', "(?<![^\\W\\d_])' + re.escape(n) + r'(?![^\\W\\d_])'", "' + re.escape(n) + r'", 'names matched inside words'),
-    ('repo_check.py', "            if pat.search(body):", "            if False:", 'commit messages not scanned'),
-    ('repo_check.py', "            if pat.search(path):", "            if False:", 'file names not scanned'),
-    ('repo_check.py', "        print(f'  private name #{i} at {where}')", "        print(f'  private name {names[i-1]} at {where}')", 'name printed'),
     ('doc_check.py', "        elif gid in seen:", "        elif False:", 'duplicate ids allowed'),
     ('doc_check.py', "STATUSES = {'ready', 'testing', 'soon'}", "STATUSES = {'ready', 'testing', 'soon', 'live'}", 'unknown status allowed'),
     ('doc_check.py', "        if status in ('ready', 'testing') and not folder:", "        if status == 'ready' and not folder:", 'testing without folder allowed'),

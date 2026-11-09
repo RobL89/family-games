@@ -1,8 +1,10 @@
 """Tests for P-034 (Kids Games Development)'s checks: repo_check, doc_check and
-pins_check. Version 1.0.
+pins_check. Version 1.1.
+
+Changes at v1.1: the private-names cases are removed with the names check (D-017).
 
 Each case builds a small throwaway git repo, plants one fault (or none) and
-checks the right exit code. The private names used here are made up.
+checks the right exit code.
 Usage: python3 -B tools/tests/games/test_checks.py   (exit 0 if all pass)
 """
 import hashlib
@@ -15,7 +17,6 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PY = [sys.executable, '-B']
-MADE_UP = 'Zebedee,Ottoline'
 
 GOOD_README = """# Games docs
 
@@ -85,11 +86,8 @@ def commit(repo, msg='change'):
     sh(repo, 'git', 'commit', '-q', '-m', msg)
 
 
-def check(repo, script, names=MADE_UP, extra=()):
-    env = {k: v for k, v in os.environ.items() if k != 'FG_PRIVATE_NAMES'}
-    if names is not None:
-        env['FG_PRIVATE_NAMES'] = names
-    r = subprocess.run(PY + [os.path.join(HERE, script), '--repo', repo, *extra], capture_output=True, text=True, env=env)
+def check(repo, script, extra=()):
+    r = subprocess.run(PY + [os.path.join(HERE, script), '--repo', repo, *extra], capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr
 
 
@@ -157,47 +155,6 @@ def case_merge_from_main_ok(repo):
     sh(repo, 'git', 'checkout', '-q', 'claude/games')
     sh(repo, 'git', 'merge', '-q', '--no-edit', 'main')
     return check(repo, 'repo_check.py')[0] == 0
-
-
-def case_name_in_file(repo):
-    write(repo, 'games/a/game.js', 'const who = "zebedee";\n'); commit(repo)
-    code, out = check(repo, 'repo_check.py')
-    return code == 1 and 'zebedee' not in out.lower() and 'private name #1' in out
-
-
-def case_name_untracked(repo):
-    write(repo, 'docs/games/notes.md', 'Ottoline liked it\n')
-    code, out = check(repo, 'repo_check.py')
-    return code == 1 and 'ottoline' not in out.lower() and 'private name #2' in out
-
-
-def case_name_in_message(repo):
-    write(repo, 'games/a/game.js', '// fine\n'); commit(repo, 'Tried by Zebedee')
-    return check(repo, 'repo_check.py')[0] == 1
-
-
-def case_name_in_path(repo):
-    write(repo, 'games/a/ottoline.png.txt', 'x\n'); commit(repo)
-    return check(repo, 'repo_check.py')[0] == 1
-
-
-def case_name_inside_word(repo):
-    # a name inside a longer word is not that name
-    write(repo, 'games/a/game.js', 'const zebedeeland = 1;\n'); commit(repo)
-    return check(repo, 'repo_check.py')[0] == 0
-
-
-def case_names_unset(repo):
-    return check(repo, 'repo_check.py', names=None)[0] == 2
-
-
-def case_names_blank(repo):
-    return check(repo, 'repo_check.py', names=' , ')[0] == 2
-
-
-def case_names_unset_and_outside(repo):
-    write(repo, 'README.md', '# changed\n'); commit(repo)
-    return check(repo, 'repo_check.py', names=None)[0] == 1
 
 
 def case_bad_base(repo):

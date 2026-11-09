@@ -1,10 +1,11 @@
-"""Close script for P-034 (Kids Games Development). Version 1.0.
+"""Close script for P-034 (Kids Games Development). Version 1.1.
+
+Changes at v1.1: the repo check is paths only (D-017), so no names variable is needed.
 
 Run at every working close, before the commit and push. In order:
 1. tests: every tools/tests/games/test_*.py (the checks' own tests first, then
    each game's tests as they are added)
-2. repo check: nothing outside P-034's folders; no private names
-   (FG_PRIVATE_NAMES must be set, see docs/games/README.md)
+2. repo check: nothing outside P-034's folders
 3. doc check: games.json, docs/games/, pins.json
 4. pins: frozen files unchanged; drift of what we rely on from P-020
 It fetches main and the pinned branches from origin first, so the repo check
@@ -45,7 +46,7 @@ def main():
         code = run(os.path.relpath(t, REPO), PY + [t])
         results.append((os.path.relpath(t, REPO), 'PASS' if code == 0 else 'FAIL'))
     code = run('repo check', PY + [os.path.join(HERE, 'repo_check.py')])
-    results.append(('repo check', {0: 'PASS', 2: 'FAIL (names NOT RUN)'}.get(code, 'FAIL')))
+    results.append(('repo check', 'PASS' if code == 0 else 'FAIL'))
     code = run('doc check', PY + [os.path.join(HERE, 'doc_check.py')])
     results.append(('doc check', 'PASS' if code == 0 else 'FAIL'))
     code = run('pins (frozen and drift)', PY + [os.path.join(HERE, 'pins_check.py')] + (['--fetch'] if fetch else []))
