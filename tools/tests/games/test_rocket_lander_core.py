@@ -1,4 +1,8 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.2.
+"""Rocket Lander's pure core and its boundaries. Version 1.3.
+
+Changes at v1.3: levelOf and followLevel moved, word for word, to games/_common/rocket/ladder.js
+(step 2a-2), shared with Rocket Sums; their checks now read them there, and ladder.js is
+held to the same purity rule as the other core files.
 
 Changes at v1.2: Number mode's level table (levels.js, D-038) and target rules (rules.js,
 D-035): the table row by row against D-038, round shares worked out by hand, targets drawn
@@ -27,7 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'rocket-lander')
 COMMON = os.path.join(REPO, 'games', '_common', 'rocket')
-CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js'), (GAME, 'levels.js'), (GAME, 'rules.js')]
+CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js'), (COMMON, 'ladder.js'), (GAME, 'levels.js'), (GAME, 'rules.js')]
 fails = []
 
 
@@ -45,6 +49,7 @@ const S = await import(c + '/settings.js');
 const P = await import(c + '/planets.js');
 const L = await import(process.argv[2] + '/levels.js');
 const RU = await import(process.argv[2] + '/rules.js');
+const LA = await import(c + '/ladder.js');
 // a seeded random source (mulberry32), so every run draws the same targets
 const seeded = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -75,7 +80,7 @@ const out = {
   planets: P.PLANETS.map((p) => p.id),
   planetIndex: [P.planetIndex('ice'), P.planetIndex('nope')],
   levels: L.LEVELS,
-  levelOf: [3, '3', 8, null, undefined, 0, 9, 2.5, 'x'].map((g) => { const r = RU.levelOf(L.LEVELS, g); return [r.level, r.note]; }),
+  levelOf: [3, '3', 8, null, undefined, 0, 9, 2.5, 'x'].map((g) => { const r = LA.levelOf(L.LEVELS, g); return [r.level, r.note]; }),
   counts: [[{ any: 1 }, 8], [{ any: 2, dice: 1 }, 8], [{ parity: 2, dice: 1 }, 8], [{ any: 1, parity: 1, dice: 1 }, 8],
     [{ any: 2, dice: 1 }, 3], [{ any: 2, dice: 1 }, 20]].map(([m, t]) => RU.roundCounts(m, t)),
   plans: [1, 2, 3].map((seed) => RU.planRound({ any: 1, parity: 1, dice: 1 }, 8, seeded(seed))),
@@ -105,7 +110,7 @@ const out = {
     RU.lineFor(L.LEVELS[6], { from: null, to: 20, step: 1, label_every: null }),
     RU.lineFor(L.LEVELS[7], { from: 2, to: null, step: 0.5, label_every: 1 }),
   ],
-  follow: (() => { const sc = RU.followLevel(S.SETTINGS, ['from', 'to', 'label_every']); return {
+  follow: (() => { const sc = LA.followLevel(S.SETTINGS, ['from', 'to', 'label_every']); return {
     defaults: S.resolveSettings(sc).values, notes: S.resolveSettings(sc).notes, given: S.resolveSettings(sc, { from: 3, to: 'x', label_every: 2 }),
     sharedUntouched: S.SETTINGS.from.default === 0 }; })(),
 };

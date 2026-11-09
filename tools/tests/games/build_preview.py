@@ -1,4 +1,7 @@
-"""Build a game's private preview page (D-018). Version 1.2.
+"""Build a game's private preview page (D-018). Version 1.3.
+
+Changes at v1.3: Rocket Sums (games/rocket-sums/, D-037) gets the same stand-ins as Rocket
+Lander, as both use the shared kit.js.
 
 Changes at v1.2: a game may use shared files in games/_common/ (D-027, D-036). The bundle
 follows its imports and stylesheet links there and nowhere else outside the game's folder,
@@ -61,6 +64,7 @@ STAND_INS = {
          "export function goHome() { location.reload(); }"),
     ],
 }
+STAND_INS['rocket-sums'] = STAND_INS['rocket-lander']  # the same shared kit.js
 
 STAMP_CSS = (".preview-stamp{position:fixed;right:max(8px,env(safe-area-inset-right));"
              "bottom:max(6px,env(safe-area-inset-bottom));z-index:5;margin:0;font:600 11px/1.2 system-ui,sans-serif;"
@@ -297,7 +301,7 @@ def build(game, number, debug=False):
         raise BuildError('index.html must begin with <!doctype html>')
     html = html.replace('<!doctype html>', f'<!doctype html>\n<!-- Preview build: {stamp}; sha256 of {rel} and the shared files it uses '
                                             f'({", ".join(shared_dirs) or "none"}): {src}; '
-                                            f'built by tools/tests/games/build_preview.py 1.2{" --debug" if debug else ""} -->', 1)
+                                            f'built by tools/tests/games/build_preview.py 1.3{" --debug" if debug else ""} -->', 1)
     leftovers = re.findall(r'(?:src|href)="(?!https://fonts\.(?:googleapis|gstatic)\.com)[^"#][^"]*"', html)
     if leftovers:
         raise BuildError(f'references left that a one-file page cannot load: {leftovers[:5]}')

@@ -17,7 +17,7 @@
 //   landingLine(T, row, S, rand)  optional: a line for this landing alone (Maths mode's
 //                              window), or null to keep the round's;
 //   planRound(row, total, rand)   the kind of target for each landing;
-//   pickTarget(kind, line, prev, rand)  one landing's target T: { rule, value? , ... },
+//   pickTarget(kind, line, prev, rand, row, S)  one landing's target T: { rule, value?, ... },
 //                              where `value` is the one right spot, if there is one;
 //   isRight(T, spot, allowed), goalOf(T, raw, line)  right or wrong, and the spot shown
 //                              (and hopped to) after a miss;
@@ -242,11 +242,16 @@ export function runRocket(mode) {
   // odd), the nearest right one to x.
   function spotFor(T, x = R.x) { return T.value !== undefined ? T.value : mode.goalOf(T, scene.valueAt(x), line); }
 
-  function nextLanding() {
-    G.T = mode.pickTarget(G.plan[G.idx], line, G.prev, Math.random);
-    G.prev = G.T;
+  // The mode's own line for this landing, if it has one (Maths mode's stretch of 10 marks).
+  function lineForTarget() {
     const own = mode.landingLine ? mode.landingLine(G.T, level.row, S, Math.random) : null;
     if (own && [own.from, own.to, own.step, own.label_every].join(',') !== lineKey) useLine(own);
+  }
+
+  function nextLanding() {
+    G.T = mode.pickTarget(G.plan[G.idx], line, G.prev, Math.random, level.row, S);
+    G.prev = G.T;
+    lineForTarget();
     G.goal = null;
     measureFall();
     const xt = scene.xOf(spotFor(G.T, scene.W / 2));
@@ -533,7 +538,9 @@ export function runRocket(mode) {
       R.sx = R.sy = 1;
       const k = clamp(1 - left / Math.max(1, G.touchY - G.startY), 0, 1);
       const half = near.allowed > 0 ? near.allowed * scene.ppu : 0;
-      V.shadow = { x: R.x, k, half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, snap: line.value(line.index(scene.valueAt(R.x))) };
+      // with a beam (D-032) it points at the one spot, so no band of leeway is drawn
+      V.shadow = { x: R.x, k, half: mode.beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: !!mode.beam,
+        snap: line.value(line.index(scene.valueAt(R.x))) };
       scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
       scene.offX = lerp(scene.offX, (R.x - scene.W / 2) * 0.6, Math.min(1, dt * 2));
       if (R.y >= G.touchY) touchDown();
@@ -701,7 +708,7 @@ export function runRocket(mode) {
   const api = {
     state: () => ({
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
-      sum: G.T && G.T.sum || null,
+      sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,
       goal: G.goal, level: level.level, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
       rocks: progress.rocks, progress: { ...progress }, allowed: near && near.allowed, perfect: near && near.perfect, tight: near && near.tight,
       pps: scene.pps, x0: scene.x0, x1: scene.x1, rocketX: R.x, rocketY: R.y, touchY: G.touchY, startY: G.startY, startX: G.startX,
@@ -745,7 +752,7 @@ export function runRocket(mode) {
     freeze(on) { if (on) { cancelAnimationFrame(frame); } else { last = performance.now(); frame = requestAnimationFrame(loop); } },
   };
   // The mode's own hooks, such as making this landing's target a given one (while flying).
-  const set = (T) => { G.T = T; G.prev = T; showTarget(); };
+  const set = (T) => { G.T = T; G.prev = T; lineForTarget(); showTarget(); };
   for (const [name, fn] of Object.entries(mode.testHooks || {})) {
     api[name] = (...args) => (G.phase !== 'fly' || !line ? false : fn(...args, { line, set }));
   }

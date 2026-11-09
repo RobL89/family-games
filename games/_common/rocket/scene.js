@@ -1057,8 +1057,16 @@ export class Scene {
     }
     ctx.fillStyle = rgba(INK, 0.12 + 0.3 * S.k);
     ctx.beginPath(); ctx.ellipse(S.x, gy - 1, this.rocketH * (0.2 + 0.25 * S.k), 3 + 3 * S.k, 0, 0, TAU); ctx.fill();
+    // a soft beam from the rocket down to the spot it would land on (Rocket Sums, D-032)
+    if (S.beam && S.snap != null && S.fromY < gy - 10) {
+      const px = this.xOf(S.snap), w = clamp(this.pps * 0.4, 8, 26);
+      const cg = ctx.createLinearGradient(0, S.fromY, 0, gy);
+      cg.addColorStop(0, rgba(this.planet.glow, 0)); cg.addColorStop(1, rgba(this.planet.glow, 0.32 * S.a));
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.moveTo(S.x - 5, S.fromY); ctx.lineTo(S.x + 5, S.fromY); ctx.lineTo(px + w, gy - 5); ctx.lineTo(px - w, gy - 5); ctx.closePath(); ctx.fill();
+    }
     // the mark the rocket would land on now, lit softly
-    if (S.snap != null && this.pps >= 8) {
+    if (S.snap != null && (this.pps >= 8 || S.beam)) {
       const px = this.xOf(S.snap);
       ctx.fillStyle = rgba('#FFFFFF', (0.35 + 0.5 * S.k) * S.a);
       rr(ctx, px - 2.5, gy - 14, 5, 28, 2.5); ctx.fill();

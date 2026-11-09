@@ -12,7 +12,8 @@ import { runRocket } from '../_common/rocket/round.js';
 import { SETTINGS } from '../_common/rocket/settings.js';
 import { fmt, say } from '../_common/rocket/numbers.js';
 import { LEVELS } from './levels.js';
-import { levelOf, followLevel, lineFor, planRound, pickTarget, isRight, goalOf } from './rules.js';
+import { levelOf, followLevel } from '../_common/rocket/ladder.js';
+import { lineFor, planRound, pickTarget, isRight, goalOf } from './rules.js';
 
 // A dice face for the chip (D-035's D1): the usual pip patterns for 1 to 6.
 const PIPS = { 1: [[15, 15]], 2: [[8, 8], [22, 22]], 3: [[8, 8], [15, 15], [22, 22]], 4: [[8, 8], [22, 8], [8, 22], [22, 22]],

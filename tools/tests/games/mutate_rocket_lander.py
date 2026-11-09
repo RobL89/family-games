@@ -55,7 +55,7 @@ FAULTS = [
     ('the same number twice running', G + 'rules.js', 'const pool = list.length > 1 ? list.filter((v) => !near(v, prevValue)) : list;', 'const pool = list;', CORE),
     ('a half counts as even or odd', G + 'rules.js', "return whole(spot) && parityOf(spot) === T.parity;", "return parityOf(spot) === T.parity;", CORE),
     ('a miss shows the higher number on a tie', G + 'rules.js', 'Math.abs(v - raw) < Math.abs(best - raw) - 1e-9', 'Math.abs(v - raw) <= Math.abs(best - raw) + 1e-9', CORE),
-    ('level 9 accepted', G + 'rules.js', 'n >= 1 && n <= levels.length)', 'n >= 1 && n <= levels.length + 1)', CORE),
+    ('level 9 accepted', C + 'ladder.js', 'n >= 1 && n <= levels.length)', 'n >= 1 && n <= levels.length + 1)', CORE),
     ('randomness in the rules', G + 'rules.js', 'export function planRound(mix, total, rand) {', 'export function planRound(mix, total, rand = Math.random) {', CORE),
     ('odd numbers not faint', C + 'scene.js', "return { fill: '#FFFFFF', a: 0.3 };", "return { fill: '#FFFFFF', a: 1 };", LEVELS),
     ('even chip in the odd colour', C + 'game.css', '.chip.even, .bubble b.even { background: var(--even); }', '.chip.even, .bubble b.even { background: var(--odd); }', LEVELS),

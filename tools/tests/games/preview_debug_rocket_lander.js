@@ -1,5 +1,6 @@
-// Rocket Lander's test panel for previews. Version 1.2.
+// Rocket Lander's test panel for previews. Version 1.3.
 //
+// Changes at v1.3: followLevel comes from the shared ladder.js (step 2a-2).
 // Changes at v1.2: the level picker plays Number mode's real levels (levels.js, D-038)
 // through begin({ level }), in place of the design notes' proposed table; the line
 // settings left empty follow the level (contract v0.3 GC3).
@@ -20,7 +21,7 @@
   const { SETTINGS: SHARED, resolveSettings } = __m_games__common_rocket_settings;
   const { PLANETS } = __m_games__common_rocket_planets;
   const { LEVELS } = __m_games_rocket_lander_levels;
-  const { followLevel } = __m_games_rocket_lander_rules;
+  const { followLevel } = __m_games__common_rocket_ladder;
   const SETTINGS = followLevel(SHARED, ['from', 'to', 'label_every']); // as game.js does
   const T = window.__test;
   const KEY = 'rocket-lander-preview-test-panel';

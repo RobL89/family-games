@@ -1,5 +1,6 @@
-// Number mode's rules: which level to play, what a round asks for, whether a landing is
-// right, and which number to show after a miss (D-035, D-038). Pure: no page, clock or
+// Number mode's rules: what a round asks for, whether a landing is right, and which
+// number to show after a miss (D-035, D-038). Which level to play is in
+// games/_common/rocket/ladder.js, shared with Rocket Sums (step 2a-2). Pure: no page, clock or
 // randomness of its own. Anything random comes in as `rand`, a function giving numbers
 // from 0 up to (not including) 1, so a test can hand in a seeded one.
 //
@@ -13,25 +14,6 @@ export const RULES = ['any', 'parity', 'dice']; // also the order ties are broke
 const near = (a, b) => Math.abs(a - b) < 1e-6;
 const whole = (v) => near(v, Math.round(v));
 export const parityOf = (v) => (Math.abs(Math.round(v)) % 2 === 0 ? 'even' : 'odd');
-
-// The level to play: a whole number from 1 to the table's length (a string from an address
-// is fine). Anything else plays level 1; given but unusable, with a note saying why.
-export function levelOf(levels, given) {
-  if (given === null || given === undefined || given === '') return { level: 1, row: levels[0], note: '' };
-  const n = Number(given);
-  if (Number.isInteger(n) && n >= 1 && n <= levels.length) return { level: n, row: levels[n - 1], note: '' };
-  return { level: 1, row: levels[0], note: `level "${given}" isn't 1 to ${levels.length}, so level 1 is played` };
-}
-
-// A copy of a settings schema in which the named settings default to null, meaning
-// "follow the level"; a grown-up's value overrides the level for that one thing (GC3).
-export function followLevel(schema, names) {
-  const out = {};
-  for (const [k, spec] of Object.entries(schema)) {
-    out[k] = names.includes(k) ? { ...spec, type: 'number', default: null, about: `${spec.about} Empty: as the level says.` } : spec;
-  }
-  return out;
-}
 
 // The line to play: the level's, with any line setting a grown-up gave in its place.
 export function lineFor(row, S) {
