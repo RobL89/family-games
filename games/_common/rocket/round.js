@@ -298,7 +298,7 @@ export function runRocket(mode) {
   // (D-046); its own moving parts and effects come from ships.js.
   function syncShip(dt, t) {
     if (!flyShip) return;
-    Object.assign(SH, { x: R.x, y: R.y, h: R.h, rot: R.rot, legs: R.legs, pilotIn: R.pilotIn, mood: R.mood || 'happy', look: R.look, gy: scene.groundY });
+    Object.assign(SH, { x: R.x, y: R.y, h: R.h, rot: R.rot, legs: R.legs, pilotIn: R.pilotIn, mood: R.mood || 'happy', look: R.look, gy: scene.groundY, inPlay: true });
     SH.thrust = clamp(R.flame, 0, 1.25);
     SH.air = G.phase === 'fly' || G.phase === 'takeoff' || R.flame > 0.05;
     SH.steer = clamp(R.vx / 300, -1, 1);

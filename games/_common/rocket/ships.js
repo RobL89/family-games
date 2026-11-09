@@ -1,10 +1,12 @@
 // The hangar's ships for the rocket games (D-045, D-046, D-049): how each one looks and what it
-// does when it comes down, lands and shows off. Version 1.1. All original and drawn in code (D-010).
+// does when it comes down, lands and shows off. Version 1.2. All original and drawn in code (D-010).
 //
-// Changes at v1.1 (step 2a-4b, D-053): moved here unchanged from
+// Changes at v1.2 (step 2a-4b): S.inPlay, below. Changes at v1.1 (step 2a-4b, D-053): moved here unchanged from
 // tools/tests/games/sketch_rocket_ships.js 1.0, the step 2a-4a mock-ups' drawings, which Rob
 // accepted (D-049). The names, tiers, prices and touchdown sounds now come from the one table in
-// fleet.js, merged into each ship below; the drawings, moving parts and effects are as they were.
+// fleet.js, merged into each ship below; the drawings, moving parts and effects are as they were,
+// but for one thing in play (S.inPlay): the Saucer's beam of light stops short of the ground, so it
+// never covers the game's own beam or the numbers (D-045); in the hangar it still reaches the floor.
 //
 // Every ship keeps the classic rocket's envelope, so play is the same whichever is flown
 // (D-045, D-046): drawn round its middle (x, y), h tall, feet on the ground at y + h/2 once
@@ -672,7 +674,8 @@ const saucer = {
     // the beam, down to the ground
     const beam = clamp(S.air ? 0.4 + 0.6 * S.thrust : (S.idle ? 0.35 : 0), 0, 1);
     if (beam > 0.02) {
-      const top = 0.2 * h, bot = Math.max(top + 4, ((S.gy - S.y) / (S.sy || 1)));
+      const top = 0.2 * h, ground = Math.max(top + 4, ((S.gy - S.y) / (S.sy || 1)));
+      const bot = S.inPlay ? Math.min(ground, top + 0.55 * h) : ground; // D-045: in play, short of the ground
       ctx.save(); ctx.globalCompositeOperation = 'lighter';
       const bg = ctx.createLinearGradient(0, top, 0, bot);
       bg.addColorStop(0, rgba(SKY, 0.5 * beam)); bg.addColorStop(1, rgba(SKY, 0.1 * beam));
@@ -728,7 +731,8 @@ const saucer = {
   },
   thrust(S, P, dt) {
     const h = S.h;
-    every(S, 'mo', 14 * P.k, dt, () => { const y = S.y + h * 0.2 + Math.random() * Math.max(0, S.gy - S.y - h * 0.2); P.add({ kind: 'glow', x: S.x + rnd(-0.18, 0.18) * h * (0.5 + (y - S.y) / Math.max(1, S.gy - S.y)), y, vy: rnd(-70, -30), life: rnd(0.5, 0.9), size: h * rnd(0.012, 0.025), col: pick(['#FFFFFF', SKY]), layer: 'back' }); });
+    const reach = S.inPlay ? Math.min(h * 0.55, S.gy - S.y - h * 0.2) : S.gy - S.y - h * 0.2; // D-045
+    every(S, 'mo', 14 * P.k, dt, () => { const y = S.y + h * 0.2 + Math.random() * Math.max(0, reach); P.add({ kind: 'glow', x: S.x + rnd(-0.18, 0.18) * h * (0.5 + (y - S.y) / Math.max(1, S.gy - S.y)), y, vy: rnd(-70, -30), life: rnd(0.5, 0.9), size: h * rnd(0.012, 0.025), col: pick(['#FFFFFF', SKY]), layer: 'back' }); });
   },
   land(S, P) {
     for (let i = 0; i < 3; i++) P.add({ kind: 'ring', x: S.x, y: S.gy, life: 1.0, size: S.h * 0.25, grow: S.h * 1.5, flat: 0.16, col: i === 1 ? LILAC : SKY, lw: 7, delay: i * 0.17 });
