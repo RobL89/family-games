@@ -93,6 +93,7 @@ const out = {
     [{ rule: 'parity', parity: 'odd' }, 7, 0], [{ rule: 'parity', parity: 'odd' }, 8, 2],
     [{ rule: 'any', value: 7 }, 7, 0], [{ rule: 'any', value: 7 }, 6, 0], [{ rule: 'any', value: 7 }, 5, 2], [{ rule: 'any', value: 7 }, 4, 2],
     [{ rule: 'dice', value: 3 }, 3, 0], [{ rule: 'dice', value: 3 }, 4, 0],
+    [{ rule: 'parity', parity: 'odd' }, 4.5, 0], [{ rule: 'parity', parity: 'even' }, 3.5, 0],
   ].map(([T, spot, allowed]) => RU.isRight(T, spot, allowed)),
   goals: [
     [{ rule: 'parity', parity: 'even' }, 5], [{ rule: 'parity', parity: 'even' }, 5.2], [{ rule: 'parity', parity: 'even' }, 0.3],
@@ -196,8 +197,9 @@ check(all(t['rule'] == 'any' and 20 <= t['value'] <= 30 for t in o['dice2030']),
 pp = [t['parity'] for t in o['parity010']]
 check(all(t['rule'] == 'parity' for t in o['parity010']) and set(pp) == {'even', 'odd'}, 'even or odd: both come up')
 check(all(t['rule'] == 'any' for t in o['parity0']), 'a line without both an even and an odd whole number: any number instead')
-check(o['right'] == [True, False, False, True, True, True, True, False, True, False, True, False, True, False],
-      f'right or wrong: 4, 0 and −2 are even, 4.5 is neither, −3 and 7 odd; 7 is right for 7, 5 only within 2; leeway never stretches even or odd ({o["right"]})')
+# 4.5 and 3.5 round to 5 and 4, so each is checked against the kind it would round to (mutation bench, v1.2)
+check(o['right'] == [True, False, False, True, True, True, True, False, True, False, True, False, True, False, False, False],
+      f'right or wrong: 4, 0 and −2 are even, 4.5 and 3.5 are neither, −3 and 7 odd; 7 is right for 7, 5 only within 2; leeway never stretches even or odd ({o["right"]})')
 # After a miss: the target itself, or for even or odd the nearest whole number of that kind to
 # where the rocket came down, the lower on a tie: 5 -> 4 (4 and 6 tie), 5.2 -> 6, 0.3 -> 0,
 # odd from 0.2 -> 1, odd from 9.9 -> 9 (11 is off the line), even from 9.6 -> 10.
