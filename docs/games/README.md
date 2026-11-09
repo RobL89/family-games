@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.14 · 2026-11-09 |
+| **Version** | 1.15 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.15:** the rocket games are to become one game, Rocket Lander, with a map of solar systems in place of the two tiles and the planet picker (D-058 to D-060); the files change when it's built (steps 2c-4 and 2c-5), so until then the folders are as below. Two scripts for the step 2c-1 sketches: `sketch_rocket_map.py` and `count_rocket_map_rocks.py`.
 
 **Changes at v1.14:** the close runs everything the first time in a clone; after that full pass, it runs the fast checks and only the browser tests whose files changed (D-056; `--full` runs everything). The test panels keep the progress on the device, so "home" in a preview keeps rocks and ships (ER-004).
 
@@ -71,6 +73,8 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `sketch_rocket_lander_number_mode.py`, `sketch_rocket_bip_moment.py` | Not checks: draw options for Rob to choose from, by playing a copy of the game with small drawing changes (Number mode's targets; Bip's end-of-round moment), and write one page of pictures for a private artifact. The game's own files are never changed |
 | `sketch_rocket_ships.py`, with `sketch_rocket_hangar.js` | Not a check: builds one page of moving mock-ups of the hangar's ships and two hangar layouts (step 2a-4a, D-046), bundling the page with `games/_common/rocket/` (the ships now among it, in `ships.js`, D-053) as `build_preview.py` does, for a private artifact; then checks the page at phone and PC sizes and plays both hangars by mouse |
 | `sketch_rocket_door.py` | Not a check: draws places for the hangar door on copies of the real start screens (step 2a-4b, D-052), for a private artifact. The game's own files are never changed |
+| `sketch_rocket_map.py` | Not a check: draws crude SVG screens of the one game with a map (step 2c-1, D-058 to D-060), taking the systems' colours from `planets.js`, for a private artifact. The game's own files are never changed |
+| `count_rocket_map_rocks.py` | A count, not a check: how many moon rocks a map can pay out against the ships' prices, and the room a die has on a line of 0 to 10 (Q-026, D-060) |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
@@ -112,6 +116,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.15 | 2026-11-09 | One game with a map is planned (D-058); the map sketch and rock-count scripts |
 | 1.14 | 2026-11-09 | The close's choice of tests after a full pass (D-056); the test panels keep progress on the device (ER-004) |
 | 1.13 | 2026-11-09 | All eight ships fly (step 2a-4c); the ship flown is kept off the numbers (ER-003); the hangar test's picture check |
 | 1.12 | 2026-11-09 | The hangar: `fleet.js`, `ships.js`, `hangar.js`, two tests, the door mock-up script; progress format 2 (D-050 to D-053) |
