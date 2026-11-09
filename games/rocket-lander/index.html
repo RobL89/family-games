@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rocket Lander</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+  <main id="stage" class="stage">
+    <canvas id="scene" class="layer" aria-hidden="true"></canvas>
+    <canvas id="fx" class="layer fx" aria-hidden="true"></canvas>
+
+    <header id="hud" class="hud" hidden>
+      <div class="ask">
+        <div id="target" class="target" role="status" aria-live="polite">
+          <span class="target-lbl">Land on</span>
+          <b id="target-n" class="chip">7</b>
+        </div>
+        <button id="say" class="round say" type="button" aria-label="Hear it again" hidden>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 12.5h4.5L16 7v18l-6.5-5.5H5z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M20.5 11.5c1.6 1.2 2.5 2.8 2.5 4.5s-.9 3.3-2.5 4.5M23.8 8c2.7 2 4.2 4.9 4.2 8s-1.5 6-4.2 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="trail">
+        <ol id="dots" class="dots" aria-label="Landings"></ol>
+        <div id="rocks" class="rocks" aria-label="Moon rocks">
+          <canvas class="rock-icon" width="56" height="56" aria-hidden="true"></canvas><span id="rocks-n">0</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="bubble" class="bubble" hidden></div>
+
+    <section id="start" class="card start" aria-labelledby="title">
+      <div class="brand">
+        <canvas id="hero" class="hero" width="200" height="260" aria-hidden="true"></canvas>
+        <h1 id="title" class="title" aria-label="Rocket Lander"><span class="w1">Rocket</span><span class="w2">Lander</span></h1>
+      </div>
+      <div class="pick">
+        <ul id="planets" class="planets" aria-label="Planets"></ul>
+        <div class="start-foot">
+          <div class="rocks big-rocks" aria-label="Moon rocks">
+            <canvas class="rock-icon" width="72" height="72" aria-hidden="true"></canvas><span id="start-rocks">0</span>
+          </div>
+          <button id="play" class="big go" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            Play
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="end" class="card end" hidden aria-labelledby="end-h">
+      <div class="end-main">
+        <h2 id="end-h" class="cheer">Super landing!</h2>
+        <div id="end-stars" class="stars"></div>
+        <p id="end-p" class="did"></p>
+      </div>
+      <div id="unlock" class="unlock" hidden>
+        <canvas id="unlock-ball" width="200" height="200" aria-hidden="true"></canvas>
+        <p><span>New planet!</span> <b id="unlock-name">Red Dust</b></p>
+      </div>
+      <div class="row">
+        <button id="again" class="big go" type="button">Play again</button>
+        <button id="done" class="big alt" type="button">Done</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
