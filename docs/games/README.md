@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.10 · 2026-11-09 |
+| **Version** | 1.11 · 2026-11-09 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.11:** the hangar's mock-up script and its two drawing files are listed (step 2a-4a, D-046); the preview test's row now says it lets nothing be fetched, as D-043 made it.
 
 **Changes at v1.10:** the rocket games end each round with Bip's moment (D-044), keep a tile's progress on the device until the shell does (D-042), and ship their font in `games/_common/fonts/`, so they fetch nothing from outside (D-043).
 
@@ -57,10 +59,11 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | Script | What it checks |
 |---|---|
 | `close.py` | Runs everything below, in order. Run at every working close, before committing |
-| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, nothing fetched but Google Fonts, RL-3 on the bundle); for Rocket Sums, `test_rocket_sums_core.py` (its levels, sums and lines, by Node) and `test_rocket_sums_e2e.py` (rounds, levels and its preview in a headless browser, about 2 minutes) |
+| `test_*.py` | The checks' own tests (`test_checks.py`), then each game's tests: for Rocket Lander, `test_rocket_lander_core.py` (its pure core and boundaries, by Node), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, the font inside the page and nothing fetched, RL-3 on the bundle); for Rocket Sums, `test_rocket_sums_core.py` (its levels, sums and lines, by Node) and `test_rocket_sums_e2e.py` (rounds, levels and its preview in a headless browser, about 2 minutes) |
 | `build_preview.py` | Not a check: bundles a game folder into one page for a private preview (D-018), with a stamp naming the commit and the folder's sha256. Writes outside the repo by default. `--debug` adds the game's test panel (`preview_debug_<game>.js`: a cog on the start screen, for Rob's testing only, never in a trial preview; D-020) |
 | `measure_rocket_lander_line.py` | A measurement, not a check: how many numbers fit on the line, exactly aimable, at phone and PC sizes |
 | `sketch_rocket_lander_number_mode.py`, `sketch_rocket_bip_moment.py` | Not checks: draw options for Rob to choose from, by playing a copy of the game with small drawing changes (Number mode's targets; Bip's end-of-round moment), and write one page of pictures for a private artifact. The game's own files are never changed |
+| `sketch_rocket_ships.py`, with `sketch_rocket_ships.js` and `sketch_rocket_hangar.js` | Not a check: builds one page of moving mock-ups of the hangar's ships and two hangar layouts (step 2a-4a, D-046), bundling the two drawing files with `games/_common/rocket/` as `build_preview.py` does, for a private artifact; then checks the page at phone and PC sizes and plays both hangars by mouse. The ship drawings live here until Rob has chosen, then move into `games/_common/rocket/` |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
@@ -102,6 +105,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.11 | 2026-11-09 | Hangar mock-up script listed (step 2a-4a); preview test row says nothing is fetched |
 | 1.10 | 2026-11-09 | Bip's moment, progress kept on the device, the font shipped (D-042 to D-044) |
 | 1.9 | 2026-11-09 | Bip's moment mock-up script listed (step 2a-3) |
 | 1.8 | 2026-11-09 | Rocket Sums and its tests and bench listed (D-037, D-039) |
