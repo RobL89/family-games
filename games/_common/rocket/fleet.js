@@ -1,11 +1,14 @@
 // The rocket games' ships: the one table of names, tiers, prices and touchdown sounds, and the
-// rules for buying and picking a ship. Version 1.0 (step 2a-4b, D-053). Pure: no page, storage,
-// clock or randomness, so test_rocket_fleet_core.py can run it in Node.
+// rules for buying and picking a ship. Version 1.1. Pure: no page, storage, clock or randomness, so
+// test_rocket_fleet_core.py can run it in Node.
+//
+// Changes at v1.1 (step 2a-4c, D-047, D-051): Crystal Comet, Golden Phoenix and Aurora Cruiser fly,
+// so all eight ships are on sale. Version 1.0 was step 2a-4b's (D-053).
 //
 // Prices are D-046's starting values, to tune after the trial week (Q-025). The touchdown sounds
 // are the ones played on the accepted mock-up page (D-049), made in code in sound.js. `flies`
-// is false for the three ships drawn in the showroom but not yet brought into play: they show
-// locked, with their prices, and can't be bought until step 2a-4c (D-051).
+// is false for a ship drawn in the showroom but not yet brought into play: it shows locked, with
+// its price, and can't be bought (D-051). Since step 2a-4c every ship flies.
 //
 // A tile's progress (D-042, D-053) holds `ship`, the ship flown, and `ships`, the ships owned.
 // Each tile has its own (D-046). Everything here takes a progress object and, where it changes
@@ -17,9 +20,9 @@ export const FLEET = [
   { id: 'teapot', name: 'Teapot', tier: 'fun', price: 30, sound: 'toot', flies: true },
   { id: 'pod', name: 'Bubble Pod', tier: 'cool', price: 50, sound: 'clunkLock', flies: true },
   { id: 'saucer', name: 'Saucer', tier: 'cool', price: 70, sound: 'hum', flies: true },
-  { id: 'crystal', name: 'Crystal Comet', tier: 'premium', price: 100, sound: 'chime', flies: false },
-  { id: 'phoenix', name: 'Golden Phoenix', tier: 'premium', price: 140, sound: 'harp', flies: false },
-  { id: 'aurora', name: 'Aurora Cruiser', tier: 'legendary', price: 200, sound: 'aurora', flies: false },
+  { id: 'crystal', name: 'Crystal Comet', tier: 'premium', price: 100, sound: 'chime', flies: true },
+  { id: 'phoenix', name: 'Golden Phoenix', tier: 'premium', price: 140, sound: 'harp', flies: true },
+  { id: 'aurora', name: 'Aurora Cruiser', tier: 'legendary', price: 200, sound: 'aurora', flies: true },
 ];
 export const FLEET_BY_ID = Object.fromEntries(FLEET.map((s) => [s.id, s]));
 export const STARTER = 'classic';

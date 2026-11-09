@@ -1,5 +1,14 @@
 """Browser test for the rocket tiles' hangar: the door, the showroom, buying and flying a ship.
-Version 1.0.
+Version 1.1.
+
+Changes at v1.1 (step 2a-4c, D-045, D-047, D-051): Crystal Comet, Golden Phoenix and Aurora
+Cruiser are on sale: in both tiles they are bought with real taps (500 - 100 - 140 - 200 = 60
+rocks left) and the Aurora Cruiser flies and lands with its own touchdown sound. A picture check:
+every ship but Classic is flown through a round of 3 landings and Bip's moment in Rocket Lander
+(phone sideways), and in Rocket Sums for the three new ones, drawing the ship and its effects
+alone (__test.shipPixels) again and again; nothing may show below the line's edge, where the
+numbers are written. With less motion the ship flown is told to be calm and makes fewer effects,
+and the Golden Phoenix's wings hold still (the Aurora Cruiser's still ribbons are checked by reading only).
 
 Step 2a-4b (D-046, D-050 to D-053). Played on its own as a plain page, in both tiles (Rocket
 Lander and Rocket Sums share the engine in games/_common/rocket/). With real taps on the page:
@@ -119,6 +128,58 @@ def show(pg, ship):
     return ok
 
 
+PREMIUM = [('crystal', 100), ('phoenix', 140), ('aurora', 200)]
+OTHERS = [('box', 20), ('teapot', 30), ('pod', 50), ('saucer', 70)]
+
+
+def play_round_pixels(pg, sid, tag, full=True):
+    """Fly a round of 3 landings (or one, if not full), all right, with Bip's moment if full,
+    drawing the ship flown and its effects alone again and again (__test.shipPixels)."""
+    pg.evaluate('__test.begin({ settings: { landings_per_round: 3 } })')
+    pg.click('#play', force=True)
+    pg.wait_for_function('__test.state().phase === "fly"')
+    out = {'n': 0, 'below': 0, 'drawn': False, 'flown': None, 'finale': False, 'worst': None}
+
+    def look():
+        p = pg.evaluate('__test.shipPixels()')
+        if p:
+            out['n'] += 1
+            out['drawn'] = out['drawn'] or p['above'] > 0
+            if p['below'] > out['below']:
+                out['below'], out['worst'] = p['below'], st(pg)['phase']
+    for i in range(3 if full else 1):
+        pg.wait_for_function(f'__test.state().phase === "fly" && __test.state().idx === {i}', timeout=20000)
+        for _ in range(3):
+            pg.wait_for_timeout(150)
+            look()
+        out['flown'] = st(pg)['flown']
+        pg.evaluate('__test.place(__test.state().target ?? 0)')
+        if i == 0:
+            pg.wait_for_timeout(250)
+            pg.screenshot(path=f'{OUT}/pix-{tag}-{sid}-fly.png')
+        pg.evaluate('__test.right()')
+        for _ in range(12):  # coming down, touchdown and its show
+            pg.wait_for_timeout(110)
+            look()
+        if i == 0:
+            pg.screenshot(path=f'{OUT}/pix-{tag}-{sid}-land.png')
+        if full and i < 2:
+            pg.evaluate('__test.speed(4)')
+            pg.wait_for_function(f'__test.state().phase === "fly" && __test.state().idx === {i + 1}', timeout=20000)
+            pg.evaluate('__test.speed(1)')
+    if full:
+        pg.wait_for_function('__test.state().phase === "finale"', timeout=20000)
+        out['finale'] = True
+        shot = False
+        while st(pg)['phase'] == 'finale':
+            look()
+            if not shot and (st(pg)['finale'] or {}).get('t', 0) > 2.2:
+                pg.screenshot(path=f'{OUT}/pix-{tag}-{sid}-finale.png')
+                shot = True
+            pg.wait_for_timeout(200)
+    return out
+
+
 with sync_playwright() as pw:
     br = pw.chromium.launch()
     for tile in ('rocket-lander', 'rocket-sums'):
@@ -169,7 +230,7 @@ with sync_playwright() as pw:
         check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: the Bubble Pod is refused with 7 rocks: {p}')
         pg.screenshot(path=f'{OUT}/{T}-showroom-need.png')
         show(pg, 'crystal')
-        check(hangar(pg)['verdict'] == 'soon', f'{T}: Crystal Comet shows, locked, not on sale yet (D-051)')
+        check(hangar(pg)['verdict'] == 'need', f'{T}: Crystal Comet is on sale now (2a-4c), 100 - 7 = 93 rocks short')
         pg.screenshot(path=f'{OUT}/{T}-showroom-crystal.png')
         # a swipe to the left shows the next ship
         box = pg.locator('#hangar-room').bounding_box()
@@ -205,7 +266,7 @@ with sync_playwright() as pw:
         p = st(pg)['progress']
         check(p['ship'] == 'teapot' and p['ships'] == ['classic', 'teapot'] and p['rocks'] == 7, f'{T}: a reload keeps the ships: {p}')
         for bad, want, why in (
-            ({**V1, 'v': 2, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('classic', ['classic', 'box'], 37), 'odd ships are tidied'),
+            ({**V1, 'v': 2, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 37), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
             ({**V1, 'v': 3, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version starts afresh'),
         ):
             pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(T), bad])
@@ -216,6 +277,64 @@ with sync_playwright() as pw:
         ok = pg.evaluate('(s) => __test.begin({ state: s })', {'unlocked': 1, 'planet': 'moon', 'rocks': 3, 'landings': 0, 'ship': 'box', 'ships': ['classic', 'box']})
         pg.wait_for_timeout(200)
         check(ok and st(pg)['progress']['ship'] == 'box' and st(pg)['doorShip'] == 'box', f'{T}: begin() takes the ships handed in')
+        pg.context.close()
+
+        # ---------- The Premium and Legendary ships (2a-4c): bought with real taps, then flown ----------
+        pg = open_tile(br, T, entry={**V1, 'rocks': 500})
+        open_hangar(pg)
+        left = 500
+        for sid, price in PREMIUM:
+            show(pg, sid)
+            on_sale = hangar(pg)['verdict'] == 'buy'
+            check(on_sale, f'{T}: {sid} is on sale, and {left} rocks cover its {price}')
+            if on_sale:
+                tap(pg, 'action')
+                pg.wait_for_function(f'__test.state().progress.ship === "{sid}" && !__test.state().hangar.bip', timeout=15000)
+            p = st(pg)['progress']
+            check(p['rocks'] == left - price and sid in p['ships'], f'{T}: {sid} bought at its price, {left} - {price} = {left - price} left, and flown: {p}')
+            left -= price
+        pg.wait_for_timeout(600)
+        pg.screenshot(path=f'{OUT}/{T}-showroom-aurora.png')
+        e = entry_of(pg, T)
+        check(e and e.get('rocks') == 60 and e.get('ships') == ['classic', 'crystal', 'phoenix', 'aurora'] and e.get('ship') == 'aurora',
+              f'{T}: kept on the device: 500 - 100 - 140 - 200 = 60 rocks, all three owned, the Aurora Cruiser flown: {e}')
+        tap(pg, 'back')
+        pg.wait_for_function('!__test.state().hangar.open', timeout=8000)
+        pg.wait_for_timeout(300)
+        check(st(pg)['doorShip'] == 'aurora', f'{T}: the doorway shows the Aurora Cruiser')
+        pg.click('#play', force=True)
+        pg.wait_for_function('__test.state().phase === "fly"')
+        pg.wait_for_timeout(900)
+        check(st(pg)['flown'] == 'aurora', f'{T}: the Aurora Cruiser flies in play')
+        n0 = len(st(pg)['heard'])
+        pg.evaluate('__test.right()')
+        pg.wait_for_function('__test.state().phase === "landed"')
+        pg.wait_for_timeout(500)
+        s = st(pg)
+        check(s['results'][0]['right'] and 'aurora' in s['heard'][n0:], f'{T}: it lands like any rocket, with its own touchdown sound: {s["heard"][n0:]}')
+        pg.screenshot(path=f'{OUT}/{T}-land-aurora.png')
+        pg.context.close()
+
+    # ---------- Effects never over the numbers (D-045): each ship flown, its effects drawn alone ----------
+    for tile, ships in (('rocket-lander', [s for s, _ in OTHERS + PREMIUM]), ('rocket-sums', [s for s, _ in PREMIUM])):
+        for sid in ships:
+            pg = open_tile(br, tile, 844, 390, True, {**V1, 'v': 2, 'ship': sid, 'ships': ['classic', sid]})
+            pix = play_round_pixels(pg, sid, tile, full=tile == 'rocket-lander')
+            check(pix['flown'] == sid and pix['n'] > 10 and pix['drawn'] and pix['below'] == 0,
+                  f'{tile} {sid}: flown; in {pix["n"]} looks (flying, landing{", Bip" + chr(39) + "s moment" if pix["finale"] else ""}) '
+                  f'nothing of the ship or its effects below the line\'s edge: {pix}')
+            pg.context.close()
+    # less motion: the ship flown is calm, makes about a third of the effects, and stays off the numbers
+    pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'v': 2, 'ship': 'aurora', 'ships': ['classic', 'aurora']}, motion='reduce')
+    pix = play_round_pixels(pg, 'aurora', 'calm', full=False)
+    sh = st(pg)['ship']
+    check(sh and sh['calm'] and sh['k'] == 0.35 and pix['below'] == 0, f'less motion: the Aurora Cruiser flies calmly, with fewer effects, off the numbers: {sh} {pix}')
+    pg.context.close()
+    for motion, still in (('reduce', True), ('no-preference', False)):
+        pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'v': 2, 'ship': 'phoenix', 'ships': ['classic', 'phoenix']}, motion=motion)
+        play_round_pixels(pg, 'phoenix', 'calm' if still else 'beat', full=False)
+        sh = st(pg)['ship']
+        check(sh and (sh['flap'] == 0) == still, f'{motion}: the Golden Phoenix\'s wings {"hold still" if still else "beat"} (wing beat clock {sh and sh["flap"]})')
         pg.context.close()
 
     # ---------- Sizes and looks (Rocket Lander): phone, sideways, PC; light and dark ----------

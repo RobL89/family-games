@@ -1,5 +1,9 @@
 // The rocket games' round flow, shared by Rocket Lander and Rocket Sums (D-027, D-037).
-// Version 1.2. Changes at v1.2 (step 2a-4b): the hangar (D-050 to D-053). The moon-rocks counter
+// Version 1.3. Changes at v1.3 (step 2a-4c): in play the ship flown is drawn inside the same edge as
+// its effects, so no part of it (a flame, a glow) reaches the numbers under the line (D-045, ER-003);
+// the ship is told when the device asks for less motion (S.calm). Test hooks: the sounds played
+// (`heard`), the ship flown's state, and shipPixels(), which draws the ship flown and its effects
+// alone to count what shows below the line's edge. Changes at v1.2 (step 2a-4b): the hangar (D-050 to D-053). The moon-rocks counter
 // on the start card is the hangar door, its doorway showing the ship flown (the title's rocket
 // stays today's, as the logo); it opens the showroom (hangar.js), where ships are bought and
 // picked through fleet.js. The ship flown is drawn in play (ships.js) with its own effects,
@@ -40,7 +44,7 @@
 //                              as fn(...args, { line, set(T) }).
 
 import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevice, keptOnDevice } from './kit.js';
-import { play as sfx, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
+import { play as playSound, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
 import { resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
 import { PLANETS, planetIndex } from './planets.js';
@@ -50,6 +54,8 @@ import { SHIP_BY_ID, Parts, newState, tickShip, landShip, drawShip, drawTrail } 
 import { Hangar } from './hangar.js';
 
 export function runRocket(mode) {
+  const heard = []; // the last sounds played, by name, for the tests
+  const sfx = (name) => { heard.push(name); if (heard.length > 200) heard.shift(); playSound(name); };
   const $ = (id) => document.getElementById(id);
   const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0, ship: STARTER, ships: [STARTER] };
   const FALL_SECONDS = [12, 8, 6, 5, 4]; // speed 1 to 5: seconds from the top to the ground
@@ -238,7 +244,7 @@ export function runRocket(mode) {
     if (DS.id !== ship.id) { DS.id = ship.id; DS.S = newState(150); DS.P.clear(); }
     const S = DS.S;
     DS.P.k = scene.calm ? 0.35 : 1;
-    Object.assign(S, { x: 70, y: 86 + (scene.calm ? 0 : Math.sin(t * 2.2) * 6), rot: scene.calm ? 0 : Math.sin(t * 1.3) * 0.06, legs: 0, thrust: 0.75, air: true, gy: 190 });
+    Object.assign(S, { x: 70, y: 86 + (scene.calm ? 0 : Math.sin(t * 2.2) * 6), rot: scene.calm ? 0 : Math.sin(t * 1.3) * 0.06, legs: 0, thrust: 0.75, air: true, gy: 190, calm: scene.calm });
     tickShip(ship, S, DS.P, dt, t);
     DS.P.update(dt);
     const x = c.getContext('2d');
@@ -298,7 +304,7 @@ export function runRocket(mode) {
   // (D-046); its own moving parts and effects come from ships.js.
   function syncShip(dt, t) {
     if (!flyShip) return;
-    Object.assign(SH, { x: R.x, y: R.y, h: R.h, rot: R.rot, legs: R.legs, pilotIn: R.pilotIn, mood: R.mood || 'happy', look: R.look, gy: scene.groundY, inPlay: true });
+    Object.assign(SH, { x: R.x, y: R.y, h: R.h, rot: R.rot, legs: R.legs, pilotIn: R.pilotIn, mood: R.mood || 'happy', look: R.look, gy: scene.groundY, inPlay: true, calm: scene.calm });
     SH.thrust = clamp(R.flame, 0, 1.25);
     SH.air = G.phase === 'fly' || G.phase === 'takeoff' || R.flame > 0.05;
     SH.steer = clamp(R.vx / 300, -1, 1);
@@ -307,13 +313,15 @@ export function runRocket(mode) {
     PP.update(dt);
   }
 
-  // Effects stay above the ground, so they never cover the numbers under the line (D-045).
+  // The ship and its effects stay above the ground, so they never cover the numbers under the
+  // line (D-045); a flame or glow reaching lower is cut off at the ground (ER-003).
   function drawFlyShip(ctx, t) {
-    const clip = () => { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, scene.W, scene.groundY + 6); ctx.clip(); };
-    clip(); drawTrail(ctx, flyShip, SH, t); PP.draw(ctx, 'back'); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, scene.W, scene.groundY + 6); ctx.clip();
+    drawTrail(ctx, flyShip, SH, t); PP.draw(ctx, 'back');
     drawShip(ctx, flyShip, SH, t);
     flownId = flyShip.id;
-    clip(); PP.draw(ctx, 'front'); ctx.restore();
+    PP.draw(ctx, 'front');
+    ctx.restore();
   }
 
   function renderDots() {
@@ -936,7 +944,22 @@ export function runRocket(mode) {
       finale: G.fin && { t: G.fin.t, stars: G.fin.stars, pad: !!V.pad && V.pad.k > 0, ladder: !!V.ladder && V.ladder.k > 0,
         flag: !!V.bigFlag && V.bigFlag.grow > 0, shown: V.bigFlag ? V.bigFlag.shown : 0, fireworks: (V.fireworks || []).length, pilotIn: R.pilotIn },
       hangar: hangar ? hangar.state() : null, doorShip: DS.id, heroShip: STARTER, flown: G.phase === 'start' ? null : flownId,
+      ship: flyShip ? { id: flyShip.id, calm: !!SH.calm, k: PP.k, effects: PP.list.length, flap: SH.flapT } : null, heard: heard.slice(),
     }),
+    // The ship flown and its effects alone, drawn as in play onto a clear canvas: how many pixels
+    // show below the line's edge, where the numbers are written (D-045), and above it.
+    shipPixels() {
+      if (!V.drawShip || !V.rocket) return null;
+      const k = 2, c = document.createElement('canvas');
+      c.width = Math.ceil(scene.W * k); c.height = Math.ceil(scene.H * k);
+      const x = c.getContext('2d');
+      x.setTransform(k, 0, 0, k, 0, 0);
+      V.drawShip(x, clock);
+      const d = x.getImageData(0, 0, c.width, c.height).data, edge = Math.ceil((scene.groundY + 6) * k) + 1;
+      let below = 0, above = 0;
+      for (let i = 3; i < d.length; i += 4) if (d[i] > 2) { if (Math.floor((i >> 2) / c.width) >= edge) below++; else above++; }
+      return { below, above, edge: edge / k, ground: scene.groundY };
+    },
     // the middle of one of the showroom's buttons, in page pixels, for a real tap
     hangarHit: (id) => (hangar ? hangar.hitPoint(id) : null),
     begin,

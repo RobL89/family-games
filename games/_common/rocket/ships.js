@@ -1,7 +1,9 @@
 // The hangar's ships for the rocket games (D-045, D-046, D-049): how each one looks and what it
-// does when it comes down, lands and shows off. Version 1.2. All original and drawn in code (D-010).
+// does when it comes down, lands and shows off. Version 1.3. All original and drawn in code (D-010).
 //
-// Changes at v1.2 (step 2a-4b): S.inPlay, below. Changes at v1.1 (step 2a-4b, D-053): moved here unchanged from
+// Changes at v1.3 (step 2a-4c): S.calm, below: when the device asks for less motion (D-045), the
+// Golden Phoenix's wings stop beating and the Aurora Cruiser's ribbons stop rippling; with fewer
+// effects (the game's P.k), that is each ship's calm version. Changes at v1.2 (step 2a-4b): S.inPlay, below. Changes at v1.1 (step 2a-4b, D-053): moved here unchanged from
 // tools/tests/games/sketch_rocket_ships.js 1.0, the step 2a-4a mock-ups' drawings, which Rob
 // accepted (D-049). The names, tiers, prices and touchdown sounds now come from the one table in
 // fleet.js, merged into each ship below; the drawings, moving parts and effects are as they were,
@@ -13,7 +15,7 @@
 // its legs are out, Bip's window near y.
 //
 // A ship's state S (newState): x, y, h, rot, sx, sy, legs (0 to 1), thrust (0 to 1), pilotIn,
-// blink, mood, look, gy (the ground's y), air (flying), idle (showing off in the hangar),
+// blink, mood, look, gy (the ground's y), air (flying), idle (showing off in the hangar), calm (less motion),
 // open and openT (wings and sails, now and wanted), spin, lock, flap, hop, steer (-1 to 1),
 // trail (world points, for ribbons), sqT (time since touchdown, for the squash).
 
@@ -984,7 +986,7 @@ const aurora = {
         const hue = r * 75 + t * 70;
         for (let i = 1; i < tr.length; i++) {
           const u = i / tr.length, a = tr[i - 1], b = tr[i];
-          const off = (u0) => Math.sin(u0 * 6 - t * 4 + r * 1.6) * h * 0.22 * u0 + (r - 1.5) * h * 0.11 * u0;
+          const off = (u0) => (S.calm ? 0 : Math.sin(u0 * 6 - t * 4 + r * 1.6) * h * 0.22 * u0) + (r - 1.5) * h * 0.11 * u0; // calm: no ripple
           ctx.strokeStyle = hsl(hue + u * 120, 100, pass ? 72 : 60, (pass ? 0.85 : 0.25) * (1 - u));
           ctx.lineWidth = Math.max(1, h * (pass ? 0.09 : 0.22) * (1 - u * 0.5));
           ctx.beginPath(); ctx.moveTo(a.x + off((i - 1) / tr.length), a.y); ctx.lineTo(b.x + off(u), b.y); ctx.stroke();
@@ -1111,7 +1113,7 @@ export function tickShip(ship, S, P, dt, t) {
   S.flap = Math.max(0, S.flap - dt * 1.6);
   S.hop = Math.max(0, S.hop - dt * 2.2);
   S.lock = Math.max(0, S.lock - dt * 1.1);
-  S.flapT += dt * (2.4 + 2.2 * S.thrust);
+  if (!S.calm) S.flapT += dt * (2.4 + 2.2 * S.thrust); // wings hold still when calm
   S.spin += dt * (S.air || S.idle ? 2.2 : 0.15) * (1 - S.lock);
   if (ship.tick) ship.tick(S, dt, t);
   S.open += (S.openT - S.open) * Math.min(1, dt * 4);

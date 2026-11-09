@@ -1,6 +1,10 @@
 // The rocket games' hangar (D-026, D-029, D-045, D-046, D-050 to D-053): the showroom behind the
 // hangar door on the start card, where a child looks round the ships, buys one with moon rocks
-// and picks the one to fly. Version 1.0 (step 2a-4b). All original and drawn in code (D-010).
+// and picks the one to fly. Version 1.1. All original and drawn in code (D-010).
+//
+// Changes at v1.1 (step 2a-4c): the ship on the turntable is told when the device asks for less
+// motion (S.calm), so the Golden Phoenix's wings and the Aurora Cruiser's ribbons keep still.
+// Version 1.0 was step 2a-4b's.
 //
 // Moved from the accepted mock-up page (tools/tests/games/sketch_rocket_hangar.js 1.0, D-050):
 // its drawing helpers are copied unchanged (all but the hall's lamp), and its Demo and Showroom
@@ -643,6 +647,7 @@ export class Hangar {
     const bipAt = this.stepBip(dt);
     Sx.pilotIn = this.io.progress().ship === sh.id && !this.bip;
     if (this.bip && this.bip.toId === sh.id) Sx.pilotIn = false;
+    Sx.calm = this.calm;
     tickShip(sh, Sx, this.Pship, dt, t);
     this.Pship.update(dt);
     // dust glinting in the spotlights
