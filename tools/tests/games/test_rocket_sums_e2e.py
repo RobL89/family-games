@@ -1,4 +1,6 @@
-"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.3.
+"""Browser test for Rocket Sums, played on its own as a plain page. Version 1.4.
+
+Changes at v1.4 (step 2a-4b+): the preview's test panel opens only with the code 1234 (D-055).
 
 Changes at v1.3 (step 2a-4b): the progress entry is at format version 2, with the ships owned
 and flown (D-053), so the agreed shape gains `ship` and `ships`. The hangar has its own test,
@@ -287,7 +289,11 @@ with sync_playwright() as pw:
     pv.wait_for_function('window.__test && __test.state().ready')
     check(pv.evaluate(FONT_LOADED), 'the preview carries its font inside the page (D-043)')
     pv.click('.pv-cog')
-    opts = pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
+    check(not pv.is_visible('.pv-level'), 'the test panel stays locked until the code (D-055)')
+    pv.fill('#pv-code', '1234')
+    pv.click('.pv-open')
+    check(pv.is_visible('.pv-reset'), '1234 opens the test panel, with its Reset (D-055)')
+    opts =pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
     check(opts == 8 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers 8 levels and the operations: {opts}, {ops}')
     pv.select_option('.pv-level', '7')

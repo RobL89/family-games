@@ -1,5 +1,6 @@
-// Rocket Sums' test panel for previews. Version 1.1.
+// Rocket Sums' test panel for previews. Version 1.2.
 //
+// Changes at v1.2 (step 2a-4b+): the lock (code 1234) and Reset, as Rocket Lander's panel 1.4 (D-055).
 // Changes at v1.1: level names show a level's halves (D-040).
 // Copied from preview_debug_rocket_lander.js 1.3 in step 2a-2 and changed only where Rocket
 // Sums differs: its eight levels (levels.js, D-039), its settings (the shared ones without
@@ -50,7 +51,15 @@ body:has(#start[hidden]) .pv-cog{display:none}
 .pv-btns{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;background:#fff;padding-top:8px}
 .pv-btns button{font:700 16px system-ui,sans-serif;padding:11px 16px;border-radius:10px;border:2px solid #1B1446;background:#fff;color:#1B1446;cursor:pointer}
 .pv-btns .pv-apply{background:#1B1446;color:#fff;flex:1}
-.pv-msg{flex-basis:100%;font-size:13.5px;min-height:1.3em;margin:2px 0 0}`;
+.pv-msg{flex-basis:100%;font-size:13.5px;min-height:1.3em;margin:2px 0 0}
+.pv-sheet [hidden]{display:none!important}
+.pv-lock{display:flex;gap:8px;flex-wrap:wrap;align-items:center;border:2px solid #E3E0F2;border-radius:12px;padding:12px}
+.pv-lock label{flex-basis:100%;font-weight:700}
+.pv-lock input{font:700 22px system-ui,sans-serif;width:7em;padding:8px 10px;border:2px solid #C9C4E6;border-radius:8px;letter-spacing:.2em}
+.pv-lock button,.pv-reset{font:700 16px system-ui,sans-serif;padding:11px 16px;border-radius:10px;border:2px solid #1B1446;background:#fff;color:#1B1446;cursor:pointer}
+.pv-lock .pv-open{background:#1B1446;color:#fff}
+.pv-reset{width:100%;margin-top:8px;border-color:#C0283F;color:#C0283F}
+.pv-reset.armed{background:#C0283F;color:#fff}`;
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
@@ -92,20 +101,34 @@ body:has(#start[hidden]) .pv-cog{display:none}
       el('small', { textContent: `1 to ${PLANETS.length}: ${PLANETS.map((p) => p.name).join(', ')}` })]),
     el('div', { className: 'pv-row' }, [el('label', { htmlFor: 'pv-rocks', textContent: 'moon rocks' }), rocks])]);
 
+  // Reset (D-055): clears both rocket tiles' progress on this device, on a second tap.
+  const TILES = ['rocket-lander', 'rocket-sums'];
+  const reset = el('button', { type: 'button', className: 'pv-reset', textContent: 'Reset both games' });
+  progressBox.append(reset, el('small', { textContent: 'Planets, moon rocks, landings and ships, in Rocket Lander and Rocket Sums on this device.' }));
+
   const msg = el('p', { className: 'pv-msg', role: 'status' });
   const apply = el('button', { type: 'button', className: 'pv-apply', textContent: 'Apply' });
   const defaults = el('button', { type: 'button', textContent: 'Defaults' });
   const close = el('button', { type: 'button', textContent: 'Close' });
+  // The lock (D-055): the panel opens only with the code 1234, asked each time.
+  const code = el('input', { type: 'password', id: 'pv-code', inputMode: 'numeric', autocomplete: 'off', maxLength: 8 });
+  const open = el('button', { type: 'button', className: 'pv-open', textContent: 'Open' });
+  const lockClose = el('button', { type: 'button', textContent: 'Close' });
+  const lockMsg = el('p', { className: 'pv-msg', role: 'status' });
+  const lock = el('div', { className: 'pv-lock' }, [el('label', { htmlFor: 'pv-code', textContent: 'Grown-ups: type the code' }), code, open, lockClose, lockMsg]);
+  const body = el('div', { className: 'pv-body', hidden: true }, [levelBox, settingsBox, progressBox, el('div', { className: 'pv-btns' }, [apply, defaults, close, msg])]);
   const sheet = el('div', { className: 'pv-sheet', role: 'dialog' }, [
     el('h2', { textContent: 'Test settings' }),
     el('p', { className: 'pv-sub', textContent: 'Preview only, for testing: never on the real site or the children\'s preview. Kept for this tab until it closes.' }),
-    levelBox, settingsBox, progressBox, el('div', { className: 'pv-btns' }, [apply, defaults, close, msg])]);
+    lock, body]);
   sheet.setAttribute('aria-label', 'Test settings');
   const back = el('div', { className: 'pv-back', hidden: true }, [sheet]);
   back.addEventListener('click', (e) => { if (e.target === back) back.hidden = true; });
   document.body.append(cog, back);
 
+  function disarm() { reset.classList.remove('armed'); reset.textContent = 'Reset both games'; }
   function show() {
+    disarm();
     const s = T.state();
     for (const [key, spec] of Object.entries(SETTINGS)) {
       if (typeof spec.default === 'boolean') inputs[key].checked = !!s.settings[key];
@@ -131,7 +154,28 @@ body:has(#start[hidden]) .pv-cog{display:none}
     return ok;
   }
 
-  cog.addEventListener('click', () => { show(); msg.textContent = ''; back.hidden = false; });
+  cog.addEventListener('click', () => {
+    show(); msg.textContent = ''; lockMsg.textContent = ''; code.value = '';
+    lock.hidden = false; body.hidden = true; back.hidden = false; code.focus();
+  });
+  const tryCode = () => {
+    if (code.value === '1234') { lock.hidden = true; body.hidden = false; return; }
+    code.value = ''; lockMsg.textContent = 'That isn\'t the code.';
+  };
+  open.addEventListener('click', tryCode);
+  code.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryCode(); });
+  lockClose.addEventListener('click', () => { back.hidden = true; });
+  reset.addEventListener('click', () => {
+    if (!reset.classList.contains('armed')) {
+      reset.classList.add('armed'); reset.textContent = 'Tap again to reset both games';
+      return;
+    }
+    disarm();
+    for (const t of TILES) { try { localStorage.removeItem(`family-games:${t}:progress`); } catch (e) { /* nothing kept */ } }
+    // state null: the game reads the device again, now empty, so it starts afresh
+    if (use({ ...read(), state: null }, true)) { show(); msg.textContent = 'Both games reset: Classic, 0 moon rocks, one planet.'; }
+    else msg.textContent = 'Go back to the start screen first.';
+  });
   close.addEventListener('click', () => { back.hidden = true; });
   apply.addEventListener('click', () => { if (use(read())) { show(); } });
   defaults.addEventListener('click', () => {

@@ -1,4 +1,8 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.4.
+"""Rocket Lander's preview bundle (D-018). Version 1.5.
+
+Changes at v1.5 (step 2a-4b+): the test panel opens only with the code 1234, asks again each
+time, and its Reset clears both rocket tiles' progress on a second tap, staying reset after a
+reload (D-055).
 
 Changes at v1.4 (step 2a-3): the font ships with the games (D-043): the bundle carries it inside
 the page, its files are covered by the stamp, and the page asks for nothing but itself.
@@ -129,7 +133,13 @@ with sync_playwright() as pw:
         pg.wait_for_function('window.__test && __test.state().ready')
         check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the start screen')
         pg.click('.pv-cog')
-        check(pg.is_visible('.pv-sheet'), f'{tag}: debug build: the cog opens the panel')
+        check(pg.is_visible('.pv-lock') and not pg.is_visible('.pv-level'), f'{tag}: debug build: the cog opens the lock, not the panel (D-055)')
+        pg.fill('#pv-code', '1111')
+        pg.click('.pv-open')
+        check(pg.is_visible('.pv-lock') and not pg.is_visible('.pv-level'), f'{tag}: debug build: a wrong code opens nothing')
+        pg.fill('#pv-code', '1234')
+        pg.click('.pv-open')
+        check(pg.is_visible('.pv-level') and not pg.is_visible('.pv-lock'), f'{tag}: debug build: 1234 opens the panel')
         pg.select_option('.pv-level', '6')
         pg.fill('#pv-landings_per_round', '3')
         pg.fill('#pv-unlocked', '4')
@@ -145,6 +155,34 @@ with sync_playwright() as pw:
             pg.screenshot(path=os.path.join(tmp, 'panel-phone.png'))
         else:
             pg.screenshot(path=os.path.join(tmp, 'panel-pc.png'))
+        # Reset (D-055): clears both rocket tiles' progress on this device, on a second tap.
+        made_up = {'v': 2, 'unlocked': 5, 'planet': 'ice', 'rocks': 90, 'landings': 70, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+        pg.evaluate('(e) => { for (const t of ["rocket-lander", "rocket-sums"]) localStorage.setItem(`family-games:${t}:progress`, JSON.stringify(e)); }', made_up)
+        pg.click('.pv-reset')
+        kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
+        check(all(kept), f'{tag}: debug build: one tap on Reset clears nothing yet')
+        pg.click('.pv-reset')
+        kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
+        check(kept == [None, None], f'{tag}: debug build: a second tap clears both tiles\' entries: {kept}')
+        p = pg.evaluate('__test.state().progress')
+        got = (p['unlocked'], p['rocks'], p['landings'], p['ship'], p['ships'], pg.inner_text('#start-rocks'), pg.input_value('#pv-rocks'))
+        check(got == (1, 0, 0, 'classic', ['classic'], '0', '0'), f'{tag}: debug build: the game starts afresh: {got}')
+        pg.evaluate('__test.begin({ level: 6, settings: {}, state: { ships: ["classic", "teapot"], ship: "teapot", rocks: 5 } })')
+        pg.wait_for_function('__test.state().doorShip === "teapot"', timeout=5000)
+        pg.click('.pv-reset')
+        pg.click('.pv-reset')
+        pg.wait_for_function('__test.state().doorShip === "classic"', timeout=5000)
+        check(True, f'{tag}: debug build: after a reset the hangar door shows Classic again')
+        pg.reload()
+        pg.wait_for_function('window.__test && __test.state().ready')
+        p = pg.evaluate('__test.state().progress')
+        lvl = pg.evaluate('__test.state().level')
+        check((p['rocks'], p['unlocked'], lvl) == (0, 1, 6),
+              f'{tag}: debug build: after a reload it stays reset, the level kept for the tab: {p["rocks"]} rocks, {p["unlocked"]} planet, level {lvl}')
+        pg.click('.pv-cog')
+        check(pg.is_visible('.pv-lock'), f'{tag}: debug build: the lock asks again each time')
+        pg.fill('#pv-code', '1234')
+        pg.click('.pv-open')
         pg.click('.pv-btns button:has-text("Close")')
         pg.click('#play', force=True)
         pg.wait_for_function('__test.state().phase === "fly"', timeout=20000)
