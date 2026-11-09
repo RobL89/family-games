@@ -49,24 +49,29 @@ export function windowFor(answer, top, span, rnd) {
   return { from, to: from + span };
 }
 
-// The "pads" layout: n values on 0 to top, the answer among them, all at least `gap` apart
+// The "pads" layout: n values on lo to top, the answer among them, all at least `gap` apart
 // so they can be told apart on screen. Wrong answers that teach come first: one off, the
-// wrong operation, a neighbouring times-table fact; then any that fit. Sorted.
-export function padsFor(sum, top, n, gap, rnd) {
+// wrong operation, a neighbouring times-table fact; then near misses, the nearest free value
+// above or below the answer, the side picked at random so the answer isn't always in the
+// middle (Rob, step 1b+: "I like the near miss pads"). Sorted.
+export function padsFor(sum, top, n, gap, rnd, lo = 0) {
   const { a, b, op, answer } = sum;
   const tempting = op === '+' ? [answer + 1, answer - 1, a * b, Math.abs(a - b), answer + 2, answer - 2]
     : op === '−' ? [answer + 1, answer - 1, a + b, answer + 2, answer - 2]
     : op === '×' ? [a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, a + b, answer + 1, answer - 1]
     : [answer + 1, answer - 1, a - b, answer + 2, answer - 2];
   const pads = [answer];
-  const fits = (v) => Number.isInteger(v) && v >= 0 && v <= top && pads.every((p) => Math.abs(p - v) >= gap);
+  const fits = (v) => Number.isInteger(v) && v >= lo && v <= top && pads.every((p) => Math.abs(p - v) >= gap);
   for (const v of tempting) {
     if (pads.length >= n) break;
     if (fits(v)) pads.push(v);
   }
-  for (let tries = 0; pads.length < n && tries < 500; tries++) {
-    const v = upTo(rnd, top);
-    if (fits(v)) pads.push(v);
+  while (pads.length < n) {
+    let up = null, down = null;
+    for (let v = answer + 1; v <= top && up == null; v++) if (fits(v)) up = v;
+    for (let v = answer - 1; v >= lo && down == null; v--) if (fits(v)) down = v;
+    if (up == null && down == null) break;
+    pads.push(up == null ? down : down == null ? up : rnd() < 0.5 ? up : down);
   }
   return pads.sort((x, y) => x - y);
 }

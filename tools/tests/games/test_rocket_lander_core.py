@@ -90,7 +90,7 @@ check(o['nearClose']['allowed'] == 2, 'close_enough 2: within 2 counts')
 
 want = {'speak': True, 'from': 0, 'to': 10, 'step': 1, 'label_every': 1, 'show_as': 'fraction',
         'close_enough': 0, 'landings_per_round': 8, 'speed': 2,
-        'mode': 'numbers', 'ops': '+ −', 'layout': 'whole', 'pads': 4}
+        'mode': 'numbers', 'ops': '+ −', 'layout': 'window', 'pads': 4}
 check(o['defaults'] == want and o['defaultNotes'] == [], f'built-in defaults as in the games pack\'s table ({o["defaults"]})')
 g = o['given']['values']
 check(g['from'] == -20 and g['to'] == 1000 and g['step'] == 1 and g['show_as'] == 'decimal' and g['speak'] is False and g['speed'] == 1

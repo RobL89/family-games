@@ -1,4 +1,7 @@
-"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.1.
+"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.2.
+
+Changes at v1.2: near-miss pads (a fixed case, and pads inside a window); the
+'window + pads' layout in the browser; the landing beam points at the snapped spot.
 
 Changes at v1.1: with pads, a landing between pads but nearer the answer must count as
 the answer (a planted fault, pads ignored on landing, got past v1.0).
@@ -10,7 +13,8 @@ the answer (a planted fault, pads ignored on landing, got past v1.0).
    - every fact can come up: + 121, − 66, × 121, ÷ 33 (counted in claude/rocket-lander-ideas.md);
    - windows are 10 wide, inside 0 to the top, with the answer in them;
    - pads hold the answer, are unique, sorted, inside the line and at least `gap` apart.
-2. In a headless browser, sideways phone (844x390) and PC (1280x800), for each layout:
+2. In a headless browser, phone sideways (844x390) and upright (390x844) and PC
+   (1280x800), for each layout:
    the sum shows at the top, the line suits it (window: 10 wide round the answer; pads:
    only the pads labelled), a right landing counts, a wrong one doesn't, no page errors
    and no sideways scrolling. One screenshot of each layout on the phone, for the eye.
@@ -67,6 +71,10 @@ for (let i = 0; i < 2000; i++) {
   out.pads.push([s, top, gap, n, M.padsFor(s, top, n, gap, rnd)]);
 }
 out.near = [M.nearestPad([3, 7, 12], 4.9), M.nearestPad([3, 7, 12], 5.1), M.nearestPad([3, 7, 12], 40)];
+out.zeroTimes = M.padsFor({ a: 0, op: '×', b: 9, answer: 0, text: '0 × 9' }, 100, 4, 9, rnd);
+out.inWindow = [];
+for (let i = 0; i < 1000; i++) { const s = M.makeSum(['+', '−', '×', '÷'], rnd); const w = M.windowFor(s.answer, M.lineTop(['+', '−', '×', '÷']), 10, rnd);
+  out.inWindow.push([s.answer, w.from, w.to, M.padsFor(s, w.to, 4, 1, rnd, w.from)]); }
 console.log(JSON.stringify(out));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + GAME], capture_output=True, text=True)
@@ -92,6 +100,11 @@ for s, top, gap, n, pads in o['pads']:
 check(not badp, 'pads: hold the answer, unique, sorted, on the line, at least gap apart' + (f': {badp[:3]}' if badp else ''))
 short = [p for p in o['pads'] if len(p[4]) < p[3]]
 check(len(short) == 0, f'pads: always as many as asked for on these lines ({len(short)} short)')
+check(o['zeroTimes'] == [0, 9, 18, 27], f'near misses, not random: 0 × 9 with pads 9 apart gives 0, 9, 18, 27 ({o["zeroTimes"]})')
+badw2 = [x for x in o['inWindow'] if not (len(x[3]) == 4 and x[0] in x[3] and all(x[1] <= p <= x[2] for p in x[3]))]
+check(not badw2, 'near-miss pads always fit in a window: 4 pads, the answer among them, all inside it' + (f': {badw2[:3]}' if badw2 else ''))
+edge = sum(1 for x in o['inWindow'] if x[3].index(x[0]) in (0, 3))
+check(edge > 100, f'the answer isn\'t always a middle pad (first or last in {edge} of 1000)')
 check(o['near'] == [3, 7, 12], f'nearest pad: 4.9 -> 3, 5.1 -> 7, 40 -> 12 ({o["near"]})')
 
 # ---------- In the browser ----------
@@ -107,11 +120,11 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-CASES = [('whole', '+ −'), ('window', '+ − × ÷'), ('pads', '×')]
+CASES = [('whole', '+ −'), ('window', '+ − × ÷'), ('window + pads', '×'), ('pads', '×')]
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()
-    for w, h, mobile, tag in ((844, 390, True, 'phone sideways'), (1280, 800, False, 'pc')):
+    for w, h, mobile, tag in ((844, 390, True, 'phone sideways'), (390, 844, True, 'phone upright'), (1280, 800, False, 'pc')):
         for layout, ops in CASES:
             ctx = br.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile)
             ctx.route('**/*', lambda rt: rt.continue_() if rt.request.url.startswith(LOCAL) else rt.abort())
@@ -129,16 +142,18 @@ with sync_playwright() as pw:
             chip = pg.inner_text('#target-n')
             check(sm is not None and chip == sm['text'] and s['target'] == sm['answer'], f'{name}: the sum shows ({chip}) and its answer is the target ({s["target"]})')
             ln = s['line']
-            if layout == 'window':
+            if layout.startswith('window'):
                 check(ln['to'] - ln['from'] == min(10, ln['to']) and ln['from'] <= s['target'] <= ln['to'], f'{name}: a stretch of 10 round the answer ({ln["from"]} to {ln["to"]})')
+                if layout == 'window + pads':
+                    check(s['labels'] == [str(p) for p in s['pads']] and all(ln['from'] <= p <= ln['to'] for p in s['pads']), f'{name}: only near-miss pads inside the window are labelled ({s["labels"]})')
             elif layout == 'pads':
                 want = [str(p) for p in s['pads']]
                 check(s['target'] in s['pads'] and s['labels'] == want, f'{name}: only the pads are labelled ({s["labels"]})')
             else:
                 check(ln['from'] == 0 and ln['to'] == 20, f'{name}: the whole line, 0 to 20 for + and − ({ln["from"]} to {ln["to"]})')
-            if tag.startswith('phone'):
+            if tag == 'phone sideways':
                 pg.wait_for_timeout(900)
-                pg.screenshot(path=os.path.join(OUT, f'maths-{layout}.png'))
+                pg.screenshot(path=os.path.join(OUT, f'maths-{layout.replace(" + ", "-")}.png'))
             pg.evaluate('__test.speed(4)')
             pg.evaluate('__test.right()')
             pg.wait_for_function('__test.state().results.length === 1', timeout=20000)
@@ -149,14 +164,18 @@ with sync_playwright() as pw:
             pg.wait_for_function('__test.state().results.length === 2', timeout=20000)
             r2 = pg.evaluate('__test.state().results[1]')
             check(got is not False and not r2['right'], f'{name}: landing on {got} for {r2["target"]} doesn\'t count')
-            if tag.startswith('phone') and layout == 'pads':
+            if tag == 'phone sideways' and layout.endswith('pads'):
                 pg.wait_for_timeout(700)
                 pg.screenshot(path=os.path.join(OUT, 'maths-pads-miss.png'))
-            if layout == 'pads':
+            if layout.endswith('pads'):
                 pg.wait_for_function('__test.state().phase === "fly" && __test.state().idx === 2', timeout=20000)
                 v = pg.evaluate('''(() => { const s = __test.state(), t = s.target, top = s.line.to;
-                    const d = Math.max(1, Math.floor(Math.min(...s.pads.filter((p) => p !== t).map((p) => Math.abs(p - t))) / 3));
-                    const v = t + d <= top ? t + d : t - d; __test.place(v); __test.drop(); return v; })()''')
+                    const d = Math.min(...s.pads.filter((p) => p !== t).map((p) => Math.abs(p - t))) / 3;
+                    const v = t + d <= top ? t + d : t - d; __test.place(v); return v; })()''')
+                pg.wait_for_timeout(150)
+                sb = pg.evaluate('[__test.state().snap, __test.state().beam, __test.state().target]')
+                check(sb[1] and sb[0] == sb[2], f'{name}: over {v}, the beam points at the answer pad it will land on ({sb})')
+                pg.evaluate('__test.drop()')
                 pg.wait_for_function('__test.state().results.length === 3', timeout=20000)
                 r3 = pg.evaluate('__test.state().results[2]')
                 check(r3['right'] and r3['spot'] == r3['target'], f'{name}: landing on {v}, nearest the answer pad {r3["target"]}, counts as the answer ({r3})')

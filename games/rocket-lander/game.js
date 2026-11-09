@@ -228,15 +228,21 @@ function prepareSum() {
   let s, tries = 0;
   do { s = makeSum(ops, Math.random); tries++; } while (sameSum(s, G.sum) && tries < 20);
   G.sum = s; G.pads = null;
-  if (S.layout === 'window') {
+  const nPads = Math.round(clamp(Number(S.pads) || 4, 2, 6));
+  if (S.layout === 'window' || S.layout === 'window + pads') {
     const w = windowFor(s.answer, top, 10, Math.random);
     line = makeLine({ from: w.from, to: w.to, step: 1 });
-    scene.setLine(line, 1, S.show_as);
+    if (S.layout === 'window') scene.setLine(line, 1, S.show_as);
+    else {
+      scene.setLine(line, 0, S.show_as);
+      G.pads = padsFor(s, w.to, nPads, Math.max(1, Math.ceil(64 / scene.ppu)), Math.random, w.from);
+      scene.setLine(line, 0, S.show_as, G.pads);
+    }
   } else if (S.layout === 'pads') {
     line = makeLine({ from: 0, to: top, step: 1 });
     scene.setLine(line, 0, S.show_as);
     const gap = Math.max(1, Math.ceil(64 / scene.ppu)); // pads at least 64px apart
-    G.pads = padsFor(s, top, Math.round(clamp(Number(S.pads) || 4, 2, 6)), gap, Math.random);
+    G.pads = padsFor(s, top, nPads, gap, Math.random);
     scene.setLine(line, 0, S.show_as, G.pads);
   } else {
     line = makeLine({ from: 0, to: top, step: 1 });
@@ -534,7 +540,10 @@ function update(dt, t) {
     R.sx = R.sy = 1;
     const k = clamp(1 - left / Math.max(1, G.touchY - G.startY), 0, 1);
     const half = near.allowed > 0 ? near.allowed * scene.ppu : 0;
-    V.shadow = { x: R.x, k, half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, snap: line.value(line.index(scene.valueAt(R.x))) };
+    const raw = scene.valueAt(R.x);
+    // maths spike: a beam to the exact spot it would land on (the nearest pad, with pads)
+    V.shadow = { x: R.x, k, half: maths() ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: maths(),
+      snap: G.pads ? nearestPad(G.pads, raw) : line.value(line.index(raw)) };
     scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
     scene.offX = lerp(scene.offX, (R.x - scene.W / 2) * 0.6, Math.min(1, dt * 2));
     if (R.y >= G.touchY) touchDown();
@@ -694,7 +703,7 @@ window.__test = {
     rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,
     labels: scene.shown.map((s) => s.text), line: line && { from: line.from, to: line.to, step: line.step, count: line.count },
     results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
-    sum: G.sum && { ...G.sum }, pads: G.pads && G.pads.slice(),
+    sum: G.sum && { ...G.sum }, pads: G.pads && G.pads.slice(), snap: V.shadow ? V.shadow.snap : null, beam: !!(V.shadow && V.shadow.beam),
   }),
   begin,
   reported,

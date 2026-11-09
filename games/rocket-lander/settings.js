@@ -19,7 +19,7 @@ export const SETTINGS = {
   // Maths spike (D-030, claude/games-spike-maths): tried in a preview, not agreed.
   mode: { default: 'numbers', options: ['numbers', 'maths'], about: 'Spike: land on numbers, or on the answer to a sum. In maths, from, to, step and label_every are set by the sum.' },
   ops: { default: '+ −', options: ['+', '−', '+ −', '÷', '+ − ÷', '×', '+ − × ÷'], about: 'Maths: which sums. Each number up to 10, nothing below zero, ÷ by 2, 5 or 10 with the answer up to 10.' },
-  layout: { default: 'whole', options: ['whole', 'window', 'pads'], about: 'Maths: the whole line (0 to the biggest answer), a stretch of 10 round the answer, or landing pads to choose from.' },
+  layout: { default: 'window', options: ['window', 'window + pads', 'whole', 'pads'], about: 'Maths: a stretch of 10 round the answer (default, Rob step 1b+), the same with only near-miss pads labelled, the whole line (0 to the biggest answer), or pads on the whole line.' },
   pads: { default: 4, min: 2, max: 6, about: 'Maths with pads: how many pads to choose from.' },
 };
 
