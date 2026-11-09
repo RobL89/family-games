@@ -5,7 +5,8 @@
 // The rules, from Rob's decisions:
 //   - each number in a sum is at most 10 (D-021);
 //   - nothing below zero (D-024);
-//   - divide only by 2, 5 or 10, with the answer up to 10, so up to 100 ÷ 10 (D-023, D-028).
+//   - divide only by 2, 5 or 10, with the answer up to 10, so up to 100 ÷ 10 (D-023, D-028);
+//   - no times sums with a 0 in them, such as 0 × 9 (D-033).
 // The child lands on the answer, so − and ÷ fit a line of 0 to 10, + needs 0 to 20 and
 // × 0 to 100 (claude/rocket-lander-ideas.md, F5).
 
@@ -29,7 +30,7 @@ export function makeSum(ops, rnd) {
   let a, b, answer;
   if (op === '+') { a = upTo(rnd, 10); b = upTo(rnd, 10); answer = a + b; }
   else if (op === '−') { a = upTo(rnd, 10); b = upTo(rnd, a); answer = a - b; }
-  else if (op === '×') { a = upTo(rnd, 10); b = upTo(rnd, 10); answer = a * b; }
+  else if (op === '×') { a = 1 + upTo(rnd, 9); b = 1 + upTo(rnd, 9); answer = a * b; }
   else { b = pick(rnd, DIVISORS); answer = upTo(rnd, 10); a = b * answer; }
   return { a, op, b, answer, text: `${a} ${op} ${b}` };
 }

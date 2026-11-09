@@ -1,4 +1,6 @@
-"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.2.
+"""Rocket Lander's maths spike (D-030, branch claude/games-spike-maths). Version 1.3.
+
+Changes at v1.3: no times sums with a 0 (D-033), so × has 100 facts, not 121.
 
 Changes at v1.2: near-miss pads (a fixed case, and pads inside a window); the
 'window + pads' layout in the browser; the landing beam points at the snapped spot.
@@ -10,7 +12,7 @@ the answer (a planted fault, pads ignored on landing, got past v1.0).
    per set of operations:
    - each number at most 10 (D-021); nothing below zero (D-024); ÷ only by 2, 5 or 10,
      answer up to 10 (D-023, D-028); every answer right;
-   - every fact can come up: + 121, − 66, × 121, ÷ 33 (counted in claude/rocket-lander-ideas.md);
+   - every fact can come up: + 121, − 66, × 100 (no 0, D-033), ÷ 33 (counted in claude/rocket-lander-ideas.md);
    - windows are 10 wide, inside 0 to the top, with the answer in them;
    - pads hold the answer, are unique, sorted, inside the line and at least `gap` apart.
 2. In a headless browser, phone sideways (844x390) and upright (390x844) and PC
@@ -57,6 +59,7 @@ for (const op of M.OPS) {
     if (s.answer < 0 || s.a < 0 || s.b < 0) why.push('below zero');
     if (op === '÷') { if (![2, 5, 10].includes(s.b) || s.answer > 10 || !Number.isInteger(s.answer)) why.push('division rule'); }
     else if (s.a > 10 || s.b > 10) why.push('number over 10');
+    if (op === '×' && (s.a === 0 || s.b === 0)) why.push('times by 0');
     if (s.text !== `${s.a} ${op} ${s.b}`) why.push('text');
     if (why.length) out.bad.push([s, why]);
   }
@@ -71,7 +74,7 @@ for (let i = 0; i < 2000; i++) {
   out.pads.push([s, top, gap, n, M.padsFor(s, top, n, gap, rnd)]);
 }
 out.near = [M.nearestPad([3, 7, 12], 4.9), M.nearestPad([3, 7, 12], 5.1), M.nearestPad([3, 7, 12], 40)];
-out.zeroTimes = M.padsFor({ a: 0, op: '×', b: 9, answer: 0, text: '0 × 9' }, 100, 4, 9, rnd);
+out.zeroTimes = M.padsFor({ a: 0, op: '×', b: 9, answer: 0, text: '0 × 9' }, 100, 4, 9, rnd); // pads alone, as before D-033
 out.inWindow = [];
 for (let i = 0; i < 1000; i++) { const s = M.makeSum(['+', '−', '×', '÷'], rnd); const w = M.windowFor(s.answer, M.lineTop(['+', '−', '×', '÷']), 10, rnd);
   out.inWindow.push([s.answer, w.from, w.to, M.padsFor(s, w.to, 4, 1, rnd, w.from)]); }
@@ -84,7 +87,7 @@ if r.returncode != 0:
     sys.exit(1)
 o = json.loads(r.stdout)
 check(not o['bad'], f'20000 sums keep the rules (numbers up to 10, nothing below zero, ÷ by 2, 5, 10 up to 10)' + (f': {o["bad"][:3]}' if o['bad'] else ''))
-check(o['facts'] == {'+': 121, '−': 66, '×': 121, '÷': 33}, f'every fact comes up: + 121, − 66, × 121, ÷ 33 ({o["facts"]})')
+check(o['facts'] == {'+': 121, '−': 66, '×': 100, '÷': 33}, f'every fact comes up: + 121, − 66, × 100 (no 0, D-033), ÷ 33 ({o["facts"]})')
 check(o['parse'] == [['+', '−'], ['÷'], ['+'], ['+', '−', '×', '÷']], f'operations read from the setting ({o["parse"]})')
 check(o['tops'] == [20, 10, 100], f'line tops: + − 20, − ÷ 10, + × 100 ({o["tops"]})')
 badw = [w for w in o['windows'] if not (w[2] <= w[0] <= w[3] and w[2] >= 0 and w[3] <= w[1] and (w[3] - w[2] == min(10, w[1])))]
