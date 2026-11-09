@@ -1,4 +1,7 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.2.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.3.
+
+Changes at v1.3: the close_enough check lands 2 away on the side that stays on the line, and
+always aims at 4, near the end of level 1's 0 to 5, where it used to fail by chance (ER-002).
 
 Changes at v1.2 (step 2a-3): the round ends with Bip's moment (D-044), checked to play before
 the round is reported; progress is kept on the device under the tile's one entry (D-042), and a
@@ -346,8 +349,9 @@ with sync_playwright() as pw:
     # close_enough: within 2 counts on a short line
     pg = open_game(br, 1280, 800, False, {'close_enough': 2})
     start(pg)
+    pg.evaluate('__test.aim(4)')  # ER-002: a target near the line's end, every run
     s = state(pg)
-    off = 2 if s['target'] <= 8 else -2
+    off = 2 if s['target'] + 2 <= s['line']['to'] else -2  # ER-002: stay on the line
     pg.wait_for_timeout(1300)
     pg.screenshot(path=f'{OUT}/close2-pc-fly.png')
     pg.evaluate(f'__test.right({off})')
