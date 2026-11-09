@@ -1,4 +1,8 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.1.
+"""Rocket Lander's pure core and its boundaries. Version 1.2.
+
+Changes at v1.2: Number mode's level table (levels.js, D-038) and target rules (rules.js,
+D-035): the table row by row against D-038, round shares worked out by hand, targets drawn
+with a seeded random source, right or wrong landings, and the spot shown after a miss.
 
 Changes at v1.1: the shared engine moved to games/_common/rocket/ (D-027), so a game may
 import from games/_common/ and from nothing else outside its folder, and the shared files
@@ -23,7 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'rocket-lander')
 COMMON = os.path.join(REPO, 'games', '_common', 'rocket')
-CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js')]
+CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js'), (GAME, 'levels.js'), (GAME, 'rules.js')]
 fails = []
 
 
@@ -39,6 +43,15 @@ const c = process.argv[1];
 const N = await import(c + '/numbers.js');
 const S = await import(c + '/settings.js');
 const P = await import(c + '/planets.js');
+const L = await import(process.argv[2] + '/levels.js');
+const RU = await import(process.argv[2] + '/rules.js');
+// a seeded random source (mulberry32), so every run draws the same targets
+const seeded = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const draws = (rule, lineOpts, n, seed) => { const r = seeded(seed), l = N.makeLine(lineOpts); let prev = null; const out = [];
+  for (let i = 0; i < n; i++) { const T = RU.pickTarget(rule, l, prev, r); out.push(T); prev = T; } return out; };
+const tally = (plan) => plan.reduce((a, k) => ({ ...a, [k]: (a[k] || 0) + 1 }), {});
+const l010 = N.makeLine({ from: 0, to: 10, step: 1 });
 const line = (o) => { const l = N.makeLine(o); return { from: l.from, to: l.to, step: l.step, count: l.count, notes: l.notes }; };
 const out = {
   line010: line({ from: 0, to: 10, step: 1 }),
@@ -61,6 +74,39 @@ const out = {
   badOpt: S.resolveSettings(S.SETTINGS, { show_as: 'roman', speak: 'yes' }),
   planets: P.PLANETS.map((p) => p.id),
   planetIndex: [P.planetIndex('ice'), P.planetIndex('nope')],
+  levels: L.LEVELS,
+  levelOf: [3, '3', 8, null, undefined, 0, 9, 2.5, 'x'].map((g) => { const r = RU.levelOf(L.LEVELS, g); return [r.level, r.note]; }),
+  counts: [[{ any: 1 }, 8], [{ any: 2, dice: 1 }, 8], [{ parity: 2, dice: 1 }, 8], [{ any: 1, parity: 1, dice: 1 }, 8],
+    [{ any: 2, dice: 1 }, 3], [{ any: 2, dice: 1 }, 20]].map(([m, t]) => RU.roundCounts(m, t)),
+  plans: [1, 2, 3].map((seed) => RU.planRound({ any: 1, parity: 1, dice: 1 }, 8, seeded(seed))),
+  planSame: JSON.stringify(RU.planRound({ any: 2, dice: 1 }, 8, seeded(7))) === JSON.stringify(RU.planRound({ any: 2, dice: 1 }, 8, seeded(7))),
+  planTallies: [1, 2, 3].map((seed) => tally(RU.planRound({ any: 1, parity: 1, dice: 1 }, 8, seeded(seed)))),
+  any05: draws('any', { from: 0, to: 5, step: 1 }, 300, 11),
+  dice010: draws('dice', { from: 0, to: 10, step: 1 }, 300, 12),
+  dice05: draws('dice', { from: 0, to: 5, step: 1 }, 300, 13),
+  dice2030: draws('dice', { from: 20, to: 30, step: 1 }, 5, 14),
+  parity010: draws('parity', { from: 0, to: 10, step: 1 }, 300, 15),
+  parity0: draws('parity', { from: 0, to: 0.5, step: 0.5 }, 3, 16),
+  right: [
+    [{ rule: 'parity', parity: 'even' }, 4, 0], [{ rule: 'parity', parity: 'even' }, 5, 0], [{ rule: 'parity', parity: 'even' }, 4.5, 0],
+    [{ rule: 'parity', parity: 'even' }, 0, 0], [{ rule: 'parity', parity: 'even' }, -2, 0], [{ rule: 'parity', parity: 'odd' }, -3, 0],
+    [{ rule: 'parity', parity: 'odd' }, 7, 0], [{ rule: 'parity', parity: 'odd' }, 8, 2],
+    [{ rule: 'any', value: 7 }, 7, 0], [{ rule: 'any', value: 7 }, 6, 0], [{ rule: 'any', value: 7 }, 5, 2], [{ rule: 'any', value: 7 }, 4, 2],
+    [{ rule: 'dice', value: 3 }, 3, 0], [{ rule: 'dice', value: 3 }, 4, 0],
+  ].map(([T, spot, allowed]) => RU.isRight(T, spot, allowed)),
+  goals: [
+    [{ rule: 'parity', parity: 'even' }, 5], [{ rule: 'parity', parity: 'even' }, 5.2], [{ rule: 'parity', parity: 'even' }, 0.3],
+    [{ rule: 'parity', parity: 'odd' }, 0.2], [{ rule: 'parity', parity: 'odd' }, 9.9], [{ rule: 'parity', parity: 'even' }, 9.6],
+    [{ rule: 'any', value: 7 }, 2], [{ rule: 'dice', value: 3 }, 9],
+  ].map(([T, raw]) => RU.goalOf(T, raw, l010)),
+  lineFor: [
+    RU.lineFor(L.LEVELS[0], { from: null, to: null, step: 1, label_every: null }),
+    RU.lineFor(L.LEVELS[6], { from: null, to: 20, step: 1, label_every: null }),
+    RU.lineFor(L.LEVELS[7], { from: 2, to: null, step: 0.5, label_every: 1 }),
+  ],
+  follow: (() => { const sc = RU.followLevel(S.SETTINGS, ['from', 'to', 'label_every']); return {
+    defaults: S.resolveSettings(sc).values, notes: S.resolveSettings(sc).notes, given: S.resolveSettings(sc, { from: 3, to: 'x', label_every: 2 }),
+    sharedUntouched: S.SETTINGS.from.default === 0 }; })(),
 };
 console.log(JSON.stringify(out));
 """
@@ -103,6 +149,69 @@ check(o['badOpt']['values']['show_as'] == 'fraction' and o['badOpt']['values']['
       'an option not in the list, or a word for true or false, falls back to the default')
 check(o['planets'] == ['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed'], 'six planets, in order')
 check(o['planetIndex'] == [3, 0], 'planetIndex: ice is 3; an unknown planet is the Moon')
+
+# ---------- Number mode: the level table (D-038) and the target rules (D-035) ----------
+# D-038, row by row: line, numbers written, how they look, and the target rules' weights.
+# "Some dice faces" is about one landing in three: weight 1 against 2 for the rest.
+want_levels = [
+    {'level': 1, 'from': 0, 'to': 5, 'label_every': 1, 'labels': 'plain', 'mix': {'any': 1}},
+    {'level': 2, 'from': 0, 'to': 10, 'label_every': 1, 'labels': 'plain', 'mix': {'any': 2, 'dice': 1}},
+    {'level': 3, 'from': 0, 'to': 10, 'label_every': 1, 'labels': 'parity', 'mix': {'parity': 2, 'dice': 1}},
+    {'level': 4, 'from': 0, 'to': 10, 'label_every': 1, 'labels': 'parity-faint', 'mix': {'any': 1, 'parity': 1, 'dice': 1}},
+    {'level': 5, 'from': 0, 'to': 10, 'label_every': 1, 'labels': 'odd-faint', 'mix': {'any': 2, 'dice': 1}},
+    {'level': 6, 'from': 0, 'to': 10, 'label_every': 2, 'labels': 'plain', 'mix': {'any': 2, 'dice': 1}},
+    {'level': 7, 'from': 0, 'to': 10, 'label_every': 5, 'labels': 'plain', 'mix': {'any': 2, 'dice': 1}},
+    {'level': 8, 'from': 0, 'to': 10, 'label_every': 0, 'labels': 'plain', 'mix': {'any': 1}},
+]
+got_levels = [{k: row[k] for k in ('level', 'from', 'to', 'label_every', 'labels', 'mix')} for row in o['levels']]
+for w, g in zip(want_levels, got_levels):
+    check(w == g, f'level {w["level"]} as D-038 says' + ('' if w == g else f': {g}'))
+check(len(got_levels) == 8, f'eight levels ({len(got_levels)})')
+check(all(row.get('source', '').startswith('D-038') for row in o['levels']), 'every level row names its source, D-038')
+lv = o['levelOf']
+check(lv[0] == [3, ''] and lv[1] == [3, ''] and lv[2] == [8, ''], f'levels 3, "3" (from an address) and 8 are taken as given ({lv[:3]})')
+check(lv[3] == [1, ''] and lv[4] == [1, ''], 'no level given: level 1, as the contract says for a game on its own (GC5)')
+check(all(l[0] == 1 and l[1] for l in lv[5:]), f'0, 9, 2.5 and "x": level 1, with a note saying why ({lv[5:]})')
+# Shares by largest remainder, ties to the rule listed first (any, parity, dice):
+# 2:1 of 8 is 5.33 and 2.67: floors 5 + 2 = 7, the one left goes to the bigger remainder (.67, dice): 5 and 3.
+# 1:1:1 of 8 is 2.67 each: floors 6, two left, remainders tie: any, then parity: 3, 3, 2.
+# 2:1 of 3 is 2 and 1 exactly. 2:1 of 20 is 13.33 and 6.67: 13 + 6 = 19, one left to dice: 13 and 7.
+c = o['counts']
+check(c[0] == {'any': 8}, f'level 1 or 8: all 8 landings any number ({c[0]})')
+check(c[1] == {'any': 5, 'dice': 3}, f'2 to 1 of 8: 5 any, 3 dice ({c[1]})')
+check(c[2] == {'parity': 5, 'dice': 3}, f'level 3, 2 to 1 of 8: 5 even-or-odd, 3 dice ({c[2]})')
+check(c[3] == {'any': 3, 'parity': 3, 'dice': 2}, f'level 4, 1:1:1 of 8: 3, 3 and 2 ({c[3]})')
+check(c[4] == {'any': 2, 'dice': 1} and c[5] == {'any': 13, 'dice': 7}, f'2 to 1 of 3 and of 20: 2+1, 13+7 ({c[4]}, {c[5]})')
+check(all(t == {'any': 3, 'parity': 3, 'dice': 2} for t in o['planTallies']) and all(len(p) == 8 for p in o['plans']),
+      'a round\'s plan holds exactly those shares, in some order')
+check(o['planSame'] and len({json.dumps(p) for p in o['plans']}) > 1, 'the same random source gives the same plan; others differ')
+a = [t['value'] for t in o['any05']]
+check(all(t['rule'] == 'any' for t in o['any05']) and set(a) == {0, 1, 2, 3, 4, 5}, f'any number on 0 to 5: all six spots come up ({sorted(set(a))})')
+check(all(x != y for x, y in zip(a, a[1:])), 'never the same number twice running')
+d = [t['value'] for t in o['dice010']]
+check(all(t['rule'] == 'dice' for t in o['dice010']) and set(d) == {1, 2, 3, 4, 5, 6}, f'dice faces on 0 to 10: 1 to 6 only, never 0 ({sorted(set(d))})')
+check(all(x != y for x, y in zip(d, d[1:])), 'never the same dice face twice running')
+check(set(t['value'] for t in o['dice05']) == {1, 2, 3, 4, 5}, 'dice faces on 0 to 5: 1 to 5 (6 is off the line)')
+check(all(t['rule'] == 'any' and 20 <= t['value'] <= 30 for t in o['dice2030']), 'a line with no 1 to 6 on it: any number instead of a dice face')
+pp = [t['parity'] for t in o['parity010']]
+check(all(t['rule'] == 'parity' for t in o['parity010']) and set(pp) == {'even', 'odd'}, 'even or odd: both come up')
+check(all(t['rule'] == 'any' for t in o['parity0']), 'a line without both an even and an odd whole number: any number instead')
+check(o['right'] == [True, False, False, True, True, True, True, False, True, False, True, False, True, False],
+      f'right or wrong: 4, 0 and −2 are even, 4.5 is neither, −3 and 7 odd; 7 is right for 7, 5 only within 2; leeway never stretches even or odd ({o["right"]})')
+# After a miss: the target itself, or for even or odd the nearest whole number of that kind to
+# where the rocket came down, the lower on a tie: 5 -> 4 (4 and 6 tie), 5.2 -> 6, 0.3 -> 0,
+# odd from 0.2 -> 1, odd from 9.9 -> 9 (11 is off the line), even from 9.6 -> 10.
+check(o['goals'] == [4, 6, 0, 1, 9, 10, 7, 3], f'the spot shown after a miss ({o["goals"]})')
+lf = o['lineFor']
+check(lf[0] == {'from': 0, 'to': 5, 'step': 1, 'label_every': 1}, f'settings left to the level: level 1\'s line ({lf[0]})')
+check(lf[1] == {'from': 0, 'to': 20, 'step': 1, 'label_every': 5}, f'a grown-up\'s "to" overrides that one thing (GC3) ({lf[1]})')
+check(lf[2] == {'from': 2, 'to': 10, 'step': 0.5, 'label_every': 1}, f'and so do "from", "step" and "label_every" ({lf[2]})')
+fo = o['follow']
+check(fo['defaults']['from'] is None and fo['defaults']['to'] is None and fo['defaults']['label_every'] is None and fo['notes'] == [],
+      'Number mode\'s line settings default to "follow the level"')
+check(fo['given']['values']['from'] == 3 and fo['given']['values']['to'] is None and fo['given']['values']['label_every'] == 2
+      and len(fo['given']['notes']) == 1, f'a given value is used; a bad one falls back to the level, with a note ({fo["given"]})')
+check(fo['sharedUntouched'], 'the shared settings are not changed by it')
 
 # ---------- Boundaries ----------
 def code_only(text):

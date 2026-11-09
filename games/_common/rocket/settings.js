@@ -1,6 +1,9 @@
 // Rocket Lander's settings: built-in defaults the game plays on (D-014), and what a grown-up
 // could change. Pure: no page, network, clock or randomness here.
 //
+// A number setting may say `type: 'number'` with `default: null`, meaning "as the level
+// says" (contract v0.3 GC3); Number mode makes its line settings so (rules.js, followLevel).
+//
 // Salvaged from games-wip (7ef1ff0), where the values came from the old Sheet's Settings tab
 // through shared/settings.js (D-004 leaves that data layer behind). `speak` was the old shared
 // setting, copied here so the game needs nothing outside its folder. At stage 2a the game
@@ -18,17 +21,17 @@ export const SETTINGS = {
   speed: { default: 2, min: 1, max: 5, about: 'How fast the rocket falls: 1 (slow) to 5 (fast).' },
 };
 
-// The settings to play with: each given value that makes sense, otherwise the default.
-// Numbers outside their range are kept inside it. Returns { values, notes }.
+// The settings to play with: each given value that makes sense, otherwise the default
+// (null: the level's). Numbers outside their range are kept inside it. Returns { values, notes }.
 export function resolveSettings(schema, given = {}) {
   const values = {}, notes = [];
   for (const [name, spec] of Object.entries(schema)) {
     const raw = given && Object.prototype.hasOwnProperty.call(given, name) ? given[name] : undefined;
     let v = spec.default;
     if (raw !== undefined && raw !== null && raw !== '') {
-      if (typeof spec.default === 'number') {
+      if (spec.type === 'number' || typeof spec.default === 'number') {
         const n = Number(raw);
-        if (!Number.isFinite(n)) notes.push(`${name}: "${raw}" isn't a number, so ${spec.default} is used`);
+        if (!Number.isFinite(n)) notes.push(`${name}: "${raw}" isn't a number, so ${spec.default === null ? "the level's" : spec.default} is used`);
         else if (n < spec.min || n > spec.max) {
           v = Math.min(spec.max, Math.max(spec.min, n));
           notes.push(`${name}: ${n} is outside ${spec.min} to ${spec.max}, so ${v} is used`);
