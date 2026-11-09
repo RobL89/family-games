@@ -12,6 +12,7 @@ import { SETTINGS, resolveSettings } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, say, starsFor, tidy } from './numbers.js';
 import { PLANETS, planetIndex } from './planets.js';
 import { Scene, Fx, drawRocket, drawRock, drawPlanetBall, clamp, lerp, ease, mix } from './scene.js';
+import { parseOps, makeSum, sameSum, lineTop, windowFor, padsFor, nearestPad, OP_WORDS } from './sums.js';
 
 const $ = (id) => document.getElementById(id);
 const DEFAULT_PROGRESS = { unlocked: 1, planet: 'moon', rocks: 0, landings: 0 };
@@ -37,6 +38,7 @@ const V = { rocket: null, pilot: null, flag: null, shadow: null, highlight: null
 const G = {
   phase: 'start', t: 0, idx: 0, total: 8, target: null, prev: null, results: [], right: 0, perfects: 0, roundRocks: 0,
   startX: 0, startY: 0, touchY: 0, fallV: 0, started: 0, events: [], land: null, unlockedNew: -1,
+  sum: null, pads: null, // maths spike (D-030)
 };
 const input = { active: false, id: null, x: 0, left: false, right: false };
 let timeScale = 1;
@@ -45,9 +47,17 @@ homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: 
 
 // ---------- Settings and the line ----------
 
+const maths = () => S.mode === 'maths';
+
 function applySettings() {
-  line = makeLine(S);
-  scene.setLine(line, Math.max(0, Number(S.label_every) || 0), S.show_as);
+  if (maths()) {
+    const top = lineTop(parseOps(S.ops));
+    line = makeLine({ from: 0, to: top, step: 1 });
+    scene.setLine(line, top <= 20 ? 1 : 10, S.show_as);
+  } else {
+    line = makeLine(S);
+    scene.setLine(line, Math.max(0, Number(S.label_every) || 0), S.show_as);
+  }
   sizeNearness();
   const notes = [...line.notes, ...scene.notes];
   const key = notes.join('; ');
@@ -185,7 +195,7 @@ function startRound() {
   $('end').hidden = true;
   $('hud').hidden = false;
   $('say').hidden = !(S.speak && canSpeak() && !isMuted());
-  G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1;
+  G.idx = 0; G.results = []; G.right = 0; G.perfects = 0; G.roundRocks = 0; G.prev = null; G.unlockedNew = -1; G.sum = null; G.pads = null;
   G.started = performance.now();
   $('rocks-n').textContent = progress.rocks;
   renderDots();
@@ -212,8 +222,35 @@ function pickTarget() {
   return line.value(i);
 }
 
+// Maths spike: a new sum, and the line laid out for it as the `layout` setting says.
+function prepareSum() {
+  const ops = parseOps(S.ops), top = lineTop(ops);
+  let s, tries = 0;
+  do { s = makeSum(ops, Math.random); tries++; } while (sameSum(s, G.sum) && tries < 20);
+  G.sum = s; G.pads = null;
+  if (S.layout === 'window') {
+    const w = windowFor(s.answer, top, 10, Math.random);
+    line = makeLine({ from: w.from, to: w.to, step: 1 });
+    scene.setLine(line, 1, S.show_as);
+  } else if (S.layout === 'pads') {
+    line = makeLine({ from: 0, to: top, step: 1 });
+    scene.setLine(line, 0, S.show_as);
+    const gap = Math.max(1, Math.ceil(64 / scene.ppu)); // pads at least 64px apart
+    G.pads = padsFor(s, top, Math.round(clamp(Number(S.pads) || 4, 2, 6)), gap, Math.random);
+    scene.setLine(line, 0, S.show_as, G.pads);
+  } else {
+    line = makeLine({ from: 0, to: top, step: 1 });
+    scene.setLine(line, top <= 20 ? 1 : 10, S.show_as);
+  }
+  sizeNearness();
+  return s.answer;
+}
+
+const sumText = () => G.sum.text;
+const sumWords = () => `${say(G.sum.a)} ${OP_WORDS[G.sum.op]} ${say(G.sum.b)}`;
+
 function nextLanding() {
-  G.target = pickTarget();
+  G.target = maths() ? prepareSum() : pickTarget();
   G.prev = G.target;
   measureFall();
   const xt = scene.xOf(G.target);
@@ -235,8 +272,8 @@ function nextLanding() {
 
 function showTarget() {
   const el = $('target');
-  $('target-n').textContent = fmt(G.target, S.show_as);
-  el.setAttribute('aria-label', `Land on ${say(G.target, S.show_as)}`);
+  $('target-n').textContent = maths() ? sumText() : fmt(G.target, S.show_as);
+  el.setAttribute('aria-label', `Land on ${maths() ? sumWords() : say(G.target, S.show_as)}`);
   el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
   fitTarget();
   sayTarget();
@@ -252,7 +289,7 @@ function fitTarget() {
 
 function sayTarget() {
   if (!S.speak) return;
-  if (speak(`Land on ${say(G.target, S.show_as)}!`)) {
+  if (speak(`Land on ${maths() ? sumWords() : say(G.target, S.show_as)}!`)) {
     const b = $('say');
     b.classList.remove('talking'); void b.offsetWidth; b.classList.add('talking');
   }
@@ -266,8 +303,9 @@ function at(time, fn) { G.events.push({ at: time, fn }); }
 
 function touchDown() {
   const raw = scene.valueAt(R.x);
-  const spot = line.value(line.index(raw));
-  const right = Math.abs(spot - G.target) <= near.allowed + 1e-9;
+  // with pads (maths spike), a landing counts on the nearest pad
+  const spot = G.pads ? nearestPad(G.pads, raw) : line.value(line.index(raw));
+  const right = G.pads ? spot === G.target : Math.abs(spot - G.target) <= near.allowed + 1e-9;
   const perfect = right && Math.abs(raw - G.target) <= near.perfect + 1e-9;
   G.land = { raw, spot, right, perfect, x: scene.xOf(spot), fromX: R.x, dir: R.x < scene.W / 2 ? 1 : -1, impact: 0 };
   G.results[G.idx] = { target: G.target, spot, right, perfect };
@@ -306,7 +344,8 @@ function touchDown() {
       V.highlight = { value: G.target, a: 0 };
       V.arrow = { x: scene.xOf(G.target), a: 0 };
       showBubble(spot);
-      if (S.speak) speak(`That's ${say(spot, S.show_as)}. ${say(G.target, S.show_as)} is over here!`);
+      if (S.speak) speak(maths() ? `That's ${say(spot)}. ${sumWords()} is ${say(G.target)}. Over here!`
+        : `That's ${say(spot, S.show_as)}. ${say(G.target, S.show_as)} is over here!`);
     });
     at(2.6, () => { hideBubble(); sfx('whoosh'); });
     at(3.55, () => {
@@ -353,7 +392,8 @@ function afterTakeOff() {
 
 function showBubble(spot) {
   const b = $('bubble');
-  b.innerHTML = `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b>${fmt(G.target, S.show_as)}</b> is over here!`;
+  b.innerHTML = maths() ? `That's <b class="no-n">${fmt(spot)}</b>. ${sumText()} = <b>${fmt(G.target)}</b>, over here!`
+    : `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b>${fmt(G.target, S.show_as)}</b> is over here!`;
   b.hidden = false;
   b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
   placeBubble();
@@ -654,6 +694,7 @@ window.__test = {
     rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,
     labels: scene.shown.map((s) => s.text), line: line && { from: line.from, to: line.to, step: line.step, count: line.count },
     results: G.results.slice(), settings: { ...S }, labelSize: scene.fs, unlockedNew: G.unlockedNew,
+    sum: G.sum && { ...G.sum }, pads: G.pads && G.pads.slice(),
   }),
   begin,
   reported,
@@ -666,6 +707,7 @@ window.__test = {
   right(offset = 0) { this.place(G.target + offset); this.drop(); },
   wrongSpot() {
     if (!line) return null;
+    if (G.pads) return G.pads.find((p) => p !== G.target) ?? null;
     let best = null;
     for (let i = 0; i < line.count; i++) {
       const v = line.value(i), d = Math.abs(v - G.target);

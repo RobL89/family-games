@@ -16,6 +16,11 @@ export const SETTINGS = {
   close_enough: { default: 0, min: 0, max: 500, about: 'How near counts as a good landing: 0 = on the mark itself (long lines get a little leeway automatically); 5 = within 5.' },
   landings_per_round: { default: 8, min: 3, max: 20, about: 'Landings in one round.' },
   speed: { default: 2, min: 1, max: 5, about: 'How fast the rocket falls: 1 (slow) to 5 (fast).' },
+  // Maths spike (D-030, claude/games-spike-maths): tried in a preview, not agreed.
+  mode: { default: 'numbers', options: ['numbers', 'maths'], about: 'Spike: land on numbers, or on the answer to a sum. In maths, from, to, step and label_every are set by the sum.' },
+  ops: { default: '+ −', options: ['+', '−', '+ −', '÷', '+ − ÷', '×', '+ − × ÷'], about: 'Maths: which sums. Each number up to 10, nothing below zero, ÷ by 2, 5 or 10 with the answer up to 10.' },
+  layout: { default: 'whole', options: ['whole', 'window', 'pads'], about: 'Maths: the whole line (0 to the biggest answer), a stretch of 10 round the answer, or landing pads to choose from.' },
+  pads: { default: 4, min: 2, max: 6, about: 'Maths with pads: how many pads to choose from.' },
 };
 
 // The settings to play with: each given value that makes sense, otherwise the default.

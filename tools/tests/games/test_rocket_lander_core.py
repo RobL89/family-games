@@ -1,4 +1,7 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.0.
+"""Rocket Lander's pure core and its boundaries. Version 1.1 (spike branch).
+
+Changes at v1.1, on claude/games-spike-maths only (D-030): sums.js joins the pure core,
+and the defaults include the spike's four maths settings (mode, ops, layout, pads).
 
 Fast checks, no browser. Node runs the game's own modules (numbers.js, settings.js,
 planets.js) and compares them with expected values worked out by hand from the games
@@ -16,7 +19,7 @@ import json, os, re, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'rocket-lander')
-CORE = ['numbers.js', 'settings.js', 'planets.js']
+CORE = ['numbers.js', 'settings.js', 'planets.js', 'sums.js']
 fails = []
 
 
@@ -86,7 +89,8 @@ check(o['nearTight']['allowed'] == 5 and o['nearTight']['tight'], 'marks 3px apa
 check(o['nearClose']['allowed'] == 2, 'close_enough 2: within 2 counts')
 
 want = {'speak': True, 'from': 0, 'to': 10, 'step': 1, 'label_every': 1, 'show_as': 'fraction',
-        'close_enough': 0, 'landings_per_round': 8, 'speed': 2}
+        'close_enough': 0, 'landings_per_round': 8, 'speed': 2,
+        'mode': 'numbers', 'ops': '+ −', 'layout': 'whole', 'pads': 4}
 check(o['defaults'] == want and o['defaultNotes'] == [], f'built-in defaults as in the games pack\'s table ({o["defaults"]})')
 g = o['given']['values']
 check(g['from'] == -20 and g['to'] == 1000 and g['step'] == 1 and g['show_as'] == 'decimal' and g['speak'] is False and g['speed'] == 1

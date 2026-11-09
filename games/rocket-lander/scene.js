@@ -577,9 +577,11 @@ export class Scene {
     if (this.W) this.build();
   }
 
-  setLine(line, labelEvery, showAs) {
+  // `only` (maths spike, pads): label just these values, as landing pads, and nothing else.
+  setLine(line, labelEvery, showAs, only = null) {
     this.line = line; this.labelEvery = labelEvery; this.showAs = showAs;
     this.labelIdx = labelSpots(line, labelEvery);
+    this.onlyIdx = only ? only.map((v) => line.index(v)) : null;
     if (this.W) this.layout();
   }
 
@@ -634,7 +636,7 @@ export class Scene {
     const xOf = (i) => margin + i * pps;
     const ends = [0, last];
     // inner labels that would bump into an end label are left out
-    const shownIdx = pick.idx.filter((i) => ends.includes(i)
+    const shownIdx = this.onlyIdx ? [...this.onlyIdx] : pick.idx.filter((i) => ends.includes(i)
       || (xOf(i) - (wid(i) * k) / 2 - 5 >= xOf(0) + (wid(0) * k) / 2 && xOf(i) + (wid(i) * k) / 2 + 5 <= xOf(last) - (wid(last) * k) / 2));
     this.notes = pick.f > 1 ? [`numbers every ${every} are too crowded to write at this size, so every ${tidy(every * pick.f)} is written`] : [];
     this.fs = fs;
@@ -855,9 +857,10 @@ export class Scene {
     for (let i = 0; i <= line.gaps; i++) {
       const px = x0 + i * pps;
       if (labelled.has(i)) {
+        if (this.onlyIdx) { rr(x, px - 24, gy - 7, 48, 18, 7); x.fillStyle = P.strip; x.fill(); x.lineWidth = 3; x.strokeStyle = P.glow; x.stroke(); }
         rr(x, px - 2.5, gy - 15, 5, 30, 2.5); x.fillStyle = INK; x.fill();
         rr(x, px - 1.5, gy - 14, 3, 28, 1.5); x.fillStyle = P.glow; x.fill();
-      } else if (i % every === 0) {
+      } else if (!this.onlyIdx && i % every === 0) { // pads (maths spike): no small marks
         x.fillStyle = rgba(P.glow, thin ? 0.75 : 0.95);
         const tw = thin ? 1.2 : 2.4;
         x.fillRect(px - tw / 2, gy - (thin ? 5 : 8), tw, thin ? 15 : 19);
