@@ -1,4 +1,9 @@
-"""Close script for P-034 (Kids Games Development). Version 1.4.
+"""Close script for P-034 (Kids Games Development). Version 1.5.
+
+Changes at v1.5 (step 2d-1, D-081): a full pass is also recorded in the repo, in
+tools/tests/games/close_pass.txt, committed with the close, so a new chat's clone starts from the
+last full pass instead of running everything (about 13 minutes). The clone's own record still
+comes first; that file changing runs the fast checks only. Everything else is as v1.4.
 
 Changes at v1.4 (step 2c-build, D-066): the map screens' new test, test_rocket_lander_map_e2e.py, runs
 when Rocket Lander's own files change (and with everything when the shared engine does).
@@ -48,6 +53,7 @@ def run(label, cmd):
 
 T = 'tools/tests/games/'
 STAMP = os.path.join(REPO, '.git', 'p034-close-pass')
+PASS_FILE = os.path.join(HERE, 'close_pass.txt')  # the last full pass, committed (D-081)
 # Fast checks (no browser): always run.
 FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py'}
 # Browser tests, and the paths whose change re-runs each. The hangar test has none of its own:
@@ -62,7 +68,7 @@ COVERS = {
     'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).
-FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_']
+FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_', T + 'close_pass.txt']
 
 
 def pick_tests(changed, tests):
@@ -86,12 +92,23 @@ def pick_tests(changed, tests):
     return 'some', [t for t in tests if t in pick]
 
 
+def pass_commit(paths=None):
+    """The commit of the last full pass: this clone's own record first, then the repo's."""
+    for path in paths or [STAMP, PASS_FILE]:
+        try:
+            base = open(path).read().split()[0]
+        except (OSError, IndexError):
+            continue
+        if base:
+            return base
+    return None
+
+
 def changed_since_pass():
-    """Paths changed since the last full pass in this clone (committed, staged, unstaged or new),
-    or None if there is no pass on record or its commit can't be found."""
-    try:
-        base = open(STAMP).read().split()[0]
-    except (OSError, IndexError):
+    """Paths changed since the last full pass (committed, staged, unstaged or new), or None if
+    there is no pass on record or its commit can't be found."""
+    base = pass_commit()
+    if not base:
         return None
     r = subprocess.run(['git', 'diff', '--name-only', base], cwd=REPO, capture_output=True, text=True)
     if r.returncode != 0:
@@ -113,7 +130,7 @@ def main():
     changed = None if '--full' in sys.argv[1:] else changed_since_pass()
     mode, names = pick_tests(changed, [os.path.basename(p) for p in found])
     tests = [p for p in found if os.path.basename(p) in names]
-    print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {open(STAMP).read().split()[0][:7]}; '
+    print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {(pass_commit() or "?")[:7]}; '
                                  f'changed: {", ".join(changed) or "nothing"})'))
     results.append((f'tests chosen: {mode}, {len(tests)} of {len(found)}', 'PASS'))
     for t in tests:
@@ -132,8 +149,10 @@ def main():
     ok = all(res == 'PASS' for _, res in results)
     if ok and mode == 'full':
         full = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO, capture_output=True, text=True).stdout.strip()
-        with open(STAMP, 'w') as f:
-            f.write(full + '\n')
+        for path in (STAMP, PASS_FILE):
+            with open(path, 'w') as f:
+                f.write(full + '\n')
+        print(f'recorded the full pass at {full[:7]} in {os.path.relpath(PASS_FILE, REPO)}: commit it with the close')
     print('CLOSE:', 'PASS' if ok else 'FAIL')
     return 0 if ok else 1
 

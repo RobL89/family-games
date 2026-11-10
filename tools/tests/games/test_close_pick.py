@@ -1,4 +1,8 @@
-"""Tests for the close script's choice of tests (close.py pick_tests). Version 1.2.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.3.
+
+Changes at v1.3 (step 2d-1, D-081): the last full pass is also kept in the repo, in
+tools/tests/games/close_pass.txt, so a new chat's clone starts from it; that file changing runs
+the fast checks only, and pass_commit reads the clone's own record first, then the repo's.
 
 Changes at v1.2 (step 2c-build): the map screens' test runs with Rocket Lander's own files.
 
@@ -54,5 +58,24 @@ check(['games/word-worm/index.html'], 'full', ALL, 'a file the map does not know
 check([T + 'repo_check.py'], 'full', ALL, 'a check script the map does not know: everything')
 check([T + 'preview_debug_rocket_lander.js'], 'some', FAST + ['test_rocket_lander_preview.py', 'test_rocket_lander_sums_e2e.py', 'test_new_e2e.py'],
       'a test the map does not know always runs', tests=ALL + ['test_new_e2e.py'])
+check([T + 'close_pass.txt'], 'some', FAST, 'the full pass kept in the repo: the fast checks only')
+check([T + 'close_pass.txt', T + 'sketch_rocket_new_ships.js'], 'some', FAST, 'the pass record and a sketch: the fast checks only')
+
+import tempfile  # noqa: E402
+with tempfile.TemporaryDirectory() as d:
+    clone, repo, missing = os.path.join(d, 'clone'), os.path.join(d, 'repo'), os.path.join(d, 'none')
+    with open(repo, 'w') as f:
+        f.write('aaaa111\n')
+    for got, want, what in ((close.pass_commit([missing, missing]), None, 'no pass on record: none'),
+                            (close.pass_commit([missing, repo]), 'aaaa111', "a new clone starts from the repo's record")):
+        print(('ok   ' if got == want else 'FAIL ') + f'{what}: {got}')
+        if got != want:
+            fails.append(what)
+    with open(clone, 'w') as f:
+        f.write('bbbb222\n')
+    got = close.pass_commit([clone, repo])
+    print(('ok   ' if got == 'bbbb222' else 'FAIL ') + f"the clone's own record comes first: {got}")
+    if got != 'bbbb222':
+        fails.append('clone first')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)
