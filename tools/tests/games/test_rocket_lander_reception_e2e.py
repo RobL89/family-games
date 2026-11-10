@@ -1,5 +1,5 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.1. Changes at v1.1: the fall times (D-096, D-097).
+Version 1.2. Changes at v1.2: a miss is played at real speed, so its bubble is read before it goes (it showed for 0.34 s at 6 times speed, and on a PC page the test read the next landing's bubble); the checks are unchanged. Changes at v1.1: the fall times (D-096, D-097).
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
@@ -150,10 +150,14 @@ with sync_playwright() as pw:
             pg.wait_for_function('__test.state().right === 1', timeout=20000)
             check(True, f'{tag} {lid}: a right landing counts')
             next_fly(pg, 0)
+            # real time for the miss, so its bubble shows its full 2 s (at 6 times speed it showed for
+            # 0.34 s, and on a slower page the test could miss it and read the next landing's bubble)
+            pg.evaluate('__test.speed(1)')
             pg.evaluate(f'__test.aimAsk({json.dumps(T)})')
             spot = pg.evaluate('__test.wrong()')
             pg.wait_for_selector('#bubble:not([hidden])', timeout=20000)
             bub = pg.inner_text('#bubble')
+            pg.evaluate('__test.speed(6)')
             r = st(pg)['results'][1]
             check(not r['right'] and MISS_WORDS[lid] in bub, f'{tag} {lid}: a wrong landing ({spot}) is wrong, and the bubble says so in its words: {bub!r}')
             if lid == 'moon-6':
@@ -180,6 +184,7 @@ with sync_playwright() as pw:
             s = st(pg)
             check(s['labelLook'] == 'dice' and len(s['labels']) == n and s['line']['from'] == 0 and s['line']['to'] == n - 1 and s['rule'] == 'any',
                   f'{tag} {lid}: a dice line, 0 to {n - 1}, a face under all {n} marks, a written number to land on: {s["labelLook"]}, {len(s["labels"])}')
+            pg.evaluate('__test.speed(1)')  # real time for the miss, as above
             pg.evaluate('__test.aim(5)' if n == 7 else '__test.aim(9)')
             pg.evaluate('__test.wrong()')
             pg.wait_for_selector('#bubble:not([hidden])', timeout=20000)

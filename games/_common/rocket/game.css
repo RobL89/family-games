@@ -237,6 +237,7 @@ button { font: inherit; color: inherit; }
    about 1.5 times the phone sizes on a screen 1000 px high (Rob, 10 Nov; scene.js's `big` does the rest). */
 @media (min-width: 900px) and (min-height: 560px) {
   .target { font-size: clamp(36px, 7.4vh, 84px); }
+  .chip.face { font-size: 1.04em; } /* pictures a little smaller than numbers, so two rows stay under a fifth of the screen */
   .round { width: clamp(60px, 7.6vh, 86px); height: clamp(60px, 7.6vh, 86px); }
   .dots li { width: clamp(15px, 2vh, 22px); height: clamp(15px, 2vh, 22px); }
   .rocks { font-size: clamp(24px, 3.2vh, 34px); }
