@@ -347,6 +347,12 @@ def check(path, out):
             fails.append(f'sounds: {mine}, missing {missing}')
         notes.append(f'sounds: {dict(zip(NEW, mine))}, each its own and made in code')
         pg.evaluate('__mock.playAll()'); pg.wait_for_timeout(1500)
+        pg.locator('#card-tub button[data-m="again"]').click(); pg.wait_for_timeout(300)
+        on = pg.evaluate('document.querySelector(\'#bar button[data-k="sound"]\').getAttribute("aria-pressed")')
+        notes.append(f'"Again, with sound" turns sound on: {on == "true"}')
+        if on != 'true':
+            fails.append('"Again, with sound" left the sound off')
+        pg.locator('#bar button[data-k="sound"]').click()
         # the showroom, played by mouse
         state = lambda: pg.evaluate('({ rocks: __mock.wallet.rocks, ships: [...__mock.wallet.ships].sort(), ship: __mock.wallet.ship })')
 

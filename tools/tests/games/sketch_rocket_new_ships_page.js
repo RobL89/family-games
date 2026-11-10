@@ -29,6 +29,11 @@ const reduce = (() => { try { return matchMedia('(prefers-reduced-motion: reduce
 opts.calm = reduce;
 setMuted(true);
 const sfx = (name) => { if (opts.sound) play(name); };
+// Sound on, from a tap (browsers start sound only from one), and the bar's button to match.
+function soundOn() {
+  opts.sound = true; setMuted(false); play('tap');
+  const b = document.querySelector('#bar button[data-k="sound"]'); if (b) b.setAttribute('aria-pressed', 'true');
+}
 const say = (text) => { if (opts.sound && canSpeak()) speak(text); };
 const allParts = [];
 function parts() { const p = new Parts(); p.k = opts.calm ? 0.35 : 1; allParts.push(p); return p; }
@@ -59,10 +64,10 @@ class Card {
     cap.querySelector('.look').textContent = ship.look;
     cap.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
       const m = b.dataset.m;
-      if (m === 'again') { this.loud = true; this.restart(); return; }
+      if (m === 'again') { soundOn(); this.loud = true; this.restart(); return; }
       this.setMode(m);
     }));
-    this.canvas.addEventListener('click', () => { this.loud = true; this.restart(); });
+    this.canvas.addEventListener('click', () => { soundOn(); this.loud = true; this.restart(); });
     fig.append(this.canvas, cap); root.appendChild(fig);
     this.fig = fig; this.cap = cap;
     this.ctx = this.canvas.getContext('2d');
@@ -387,7 +392,8 @@ function paintRocks() { const el = document.getElementById('rocksnow'); if (el) 
 function bar(root) {
   const mk = (label, fn, pressed) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (pressed != null) b.setAttribute('aria-pressed', String(pressed)); b.addEventListener('click', () => fn(b)); return b; };
   const g1 = document.createElement('div'); g1.className = 'grp';
-  g1.append(mk('Sound', (b) => { opts.sound = !opts.sound; setMuted(!opts.sound); b.setAttribute('aria-pressed', String(opts.sound)); if (opts.sound) play('tap'); }, false));
+  const snd = mk('Sound', (b) => { opts.sound = !opts.sound; setMuted(!opts.sound); b.setAttribute('aria-pressed', String(opts.sound)); if (opts.sound) play('tap'); }, false);
+  snd.dataset.k = 'sound'; g1.append(snd);
   g1.append(mk('Less motion', (b) => { opts.calm = !opts.calm; b.setAttribute('aria-pressed', String(opts.calm)); allParts.forEach((p) => { p.k = opts.calm ? 0.35 : 1; }); cards.forEach((c) => { c.scene.calm = opts.calm; c.restart(); }); if (strip) strip.scene.calm = opts.calm; }, opts.calm));
   const g2 = document.createElement('div'); g2.className = 'grp';
   const lbl = document.createElement('span'); lbl.className = 'rocksnow'; lbl.id = 'rocksnow';
