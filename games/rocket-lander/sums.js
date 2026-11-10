@@ -1,5 +1,7 @@
 // Rocket Sums' sums: which sums a level can ask, and the line laid out for each one.
-// Version 1.1. Changes at v1.1: a level may play in parts, such as two halves (D-040);
+// Version 1.2. Changes at v1.2 (step 2c-3a): − may have a smallest number taken from (`minus_from`),
+// for Reception's "taking away within 5", which starts from 1 to 5 (syllabus notes, R10).
+// Changes at v1.1: a level may play in parts, such as two halves (D-040);
 // − may have a biggest number (`minus_max`); makeSum can leave out sums answering 0, so a
 // round asks at most one (proposed, Q-022). Version 1.0 was rebuilt in step 2a-2 from the maths spike's sums.js (claude/games-spike-maths,
 // reference only, D-030). Pure: no page, clock or randomness of its own. Anything random
@@ -24,12 +26,12 @@ export const OPS_OPTIONS = ['+', '+ −', '+ − ×', '+ − × ÷'];
 const upTo = (n) => Array.from({ length: n + 1 }, (_, i) => i);
 
 // Every sum an operation can ask on a level (+ by `plus_max`, − by `minus_max`, the
-// biggest number taken from).
+// biggest number taken from, and `minus_from`, the smallest, 0 if not given).
 export function facts(op, row) {
   const out = [];
   const add = (a, b, answer) => out.push({ a, op, b, answer });
   if (op === '+') { const max = row.plus_max ?? 20; for (const a of upTo(10)) for (const b of upTo(10)) if (a + b <= max) add(a, b, a + b); }
-  if (op === '−') for (const a of upTo(row.minus_max ?? 10)) for (const b of upTo(a)) add(a, b, a - b);
+  if (op === '−') for (const a of upTo(row.minus_max ?? 10)) if (a >= (row.minus_from ?? 0)) for (const b of upTo(a)) add(a, b, a - b);
   if (op === '×') for (let a = 1; a <= 10; a++) for (let b = 1; b <= 10; b++) add(a, b, a * b);
   if (op === '÷') for (const b of DIVISORS) for (const c of upTo(10)) add(b * c, b, c);
   return out;

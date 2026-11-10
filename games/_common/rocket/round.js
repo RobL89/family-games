@@ -1,5 +1,14 @@
-// The rocket game's round flow (D-027, D-058). Version 2.5.
+// The rocket game's round flow (D-027, D-058). Version 2.6.
 //
+// Changes at v2.6 (step 2c-3a, D-089 to D-092): tracks, and what Reception's levels and the challenge
+// rounds ask of the engine. A game may give mode.tracks ({ [id]: { name, map, edition } }) and
+// mode.track (the first): the track played is the address's (?track=), else this device's, else the
+// first, and its map is the game's map for the whole visit. Progress is format 4 (tracks.js): changing
+// the track (begin({ track }), the test panel) keeps the rocks and ships, puts this track's map by and
+// takes up the other's, and reloads the page on it. A landing's own line (landingLine) may bring its
+// own label look (`labels`: a challenge round's levels each keep theirs), laid out afresh when it
+// changes; a kind's `beam` may be a function of the target; a kind may say its whole spoken ask
+// (sayAll), in place of "Land on" and its words. Test hooks: the track played and the tracks.
 // Changes at v2.5 (step 2d-2, D-080): three hooks a ship may give (ships.js 1.4), read here; ships
 // without them play exactly as before. seat(S): where Bip sits aboard, so his hop out to the small
 // flag and back starts and ends there, and Bip's moment starts there with a short hop to the rope
@@ -75,9 +84,11 @@
 //                              where `value` is the one right spot, if there is one;
 //   isRight(T, spot, allowed), goalOf(T, raw, line)  right or wrong, and the spot shown
 //                              (and hopped to) after a miss;
-//   chip(T, S)                 { cls, html } for the target chip; words(T, S) for speech;
+//   chip(T, S, row)            { cls, html } for the target chip (a 'face' class hides "Land on");
+//                              words(T, S) for speech; sayAll(T, S) optional: the whole ask said;
 //   miss(T, spot, goal, S)     { speech, html } said and shown after a miss;
-//   beam                       true to show a beam to the exact landing spot (D-032);
+//   beam                       true to show a beam to the exact landing spot (D-032), or a
+//                              function of the target;
 //   testHooks                  optional extra __test functions, each called while flying
 //                              as fn(...args, { line, set(T) }).
 
@@ -92,12 +103,19 @@ import { SHIP_BY_ID, Parts, newState, tickShip, landShip, drawShip, drawTrail } 
 import { Hangar } from './hangar.js';
 import { StarMap } from './starmap.js';
 import { route, placeOf, fresh, tidy as tidyProgress, finish, rockLeft, goTo, levelGiven, bestOf, foundOf, systemStars, placeIn, ROCKS_PER_LEVEL, PASS_STARS } from './progress.js';
+import { unpack, pack, switchTrack, trackGiven } from './tracks.js';
 
 export function runRocket(mode) {
   const heard = []; // the last sounds played, by name, for the tests
   const sfx = (name) => { heard.push(name); if (heard.length > 200) heard.shift(); playSound(name); };
   const $ = (id) => document.getElementById(id);
-  const MAP = mode.map;
+  // The tracks (D-089): the one played is the address's, else this device's, else the game's first;
+  // its map is the map for this visit. The other tracks' maps are kept as they were left (others).
+  const TRACKS = mode.tracks || { one: { name: '', map: mode.map, edition: '' } };
+  const opening = unpack(TRACKS, keptOnDevice(mode.id), fromAddress('track'), mode.track);
+  const TRACK = opening.track;
+  const MAP = TRACKS[TRACK].map;
+  let others = opening.others;
   const ROUTE = route(MAP);
   // A level of the map: { id, i (its place along the route), s, n, last, kind, row, about, sample }.
   const levelById = (id) => { const at = placeOf(MAP, id) || { ...ROUTE[0], i: 0 }; return { ...at, ...MAP[at.s].levels[at.n] }; };
@@ -153,8 +171,8 @@ export function runRocket(mode) {
   // ---------- Settings and the line ----------
 
   function applySettings() {
-    useLine(K().lineFor(level.row, S));
     scene.setLabelLook(level.row.labels || 'plain');
+    useLine(K().lineFor(level.row, S));
     G.total = Math.round(clamp(Number(S.landings_per_round) || 8, 3, 20));
   }
 
@@ -263,7 +281,7 @@ export function runRocket(mode) {
     $('lc-sys').textContent = MAP[lv.s].name;
     $('lc-h').textContent = `Level ${lv.n + 1}`;
     $('lc-about').textContent = lv.about || '';
-    const c = mode.kinds[lv.kind].chip(lv.sample, S);
+    const c = mode.kinds[lv.kind].chip(lv.sample, S, lv.row);
     const chip = $('lc-chip');
     chip.className = 'chip' + (c.cls ? ` ${c.cls}` : '');
     chip.innerHTML = c.html;
@@ -338,10 +356,15 @@ export function runRocket(mode) {
     DS.P.draw(x, 'back'); drawShip(x, ship, S, t); DS.P.draw(x, 'front');
   }
 
-  // What's kept: in memory for the shell (GC8) and on this device until the shell keeps it (D-042).
-  function keep() {
-    const kept = { at: progress.at, open: progress.open, levels: JSON.parse(JSON.stringify(progress.levels)), rocks: progress.rocks,
+  // What's kept: in memory for the shell (GC8) and on this device until the shell keeps it (D-042), in
+  // format 4 (tracks.js): this track's map with the rocks and ships, and the other tracks' maps.
+  function whole() {
+    const mine = { at: progress.at, open: progress.open, levels: JSON.parse(JSON.stringify(progress.levels)), rocks: progress.rocks,
       landings: progress.landings, ship: progress.ship, ships: progress.ships.slice() };
+    return pack(TRACKS, TRACK, mine, JSON.parse(JSON.stringify(others)));
+  }
+  function keep() {
+    const kept = whole();
     saveState(kept);
     keepOnDevice(mode.id, kept);
   }
@@ -429,10 +452,14 @@ export function runRocket(mode) {
   // odd), the nearest right one to x.
   function spotFor(T, x = R.x) { return T.value !== undefined ? T.value : K().goalOf(T, scene.valueAt(x), line); }
 
-  // The mode's own line for this landing, if it has one (Maths mode's stretch of 10 marks).
+  // The mode's own line for this landing, if it has one (Maths mode's stretch of 10 marks; a
+  // challenge round's level's line, with its own label look).
   function lineForTarget() {
     const own = K().landingLine ? K().landingLine(G.T, level.row, S, Math.random) : null;
-    if (own && [own.from, own.to, own.step, own.label_every].join(',') !== lineKey) useLine(own);
+    if (!own) return;
+    const look = own.labels || null;
+    if (look && look !== scene.labelLook) { scene.setLabelLook(look); lineKey = ''; }
+    if ([own.from, own.to, own.step, own.label_every].join(',') !== lineKey) useLine(own);
   }
 
   function nextLanding() {
@@ -462,10 +489,11 @@ export function runRocket(mode) {
 
   function showTarget() {
     const el = $('target'), chip = $('target-n'), T = G.T;
-    const c = K().chip(T, S);
+    const c = K().chip(T, S, level.row);
     chip.className = 'chip' + (c.cls ? ` ${c.cls}` : '');
+    el.classList.toggle('is-face', /\bface\b/.test(c.cls || '')); // a face asks by itself; "Land on" is said
     chip.innerHTML = c.html;
-    el.setAttribute('aria-label', `Land on ${K().words(T, S)}`);
+    el.setAttribute('aria-label', askOf(T).replace(/!$/, ''));
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     fitTarget();
     sayTarget();
@@ -479,9 +507,12 @@ export function runRocket(mode) {
     while (el.scrollWidth > room && fs > 18) { fs -= 2; el.style.fontSize = fs + 'px'; }
   }
 
+  // What's said for a target: the kind's own whole ask, or "Land on" and its words.
+  function askOf(T) { return K().sayAll ? K().sayAll(T, S) : `Land on ${K().words(T, S)}!`; }
+
   function sayTarget() {
     if (!S.speak) return;
-    if (speak(`Land on ${K().words(G.T, S)}!`)) {
+    if (speak(askOf(G.T))) {
       const b = $('say');
       b.classList.remove('talking'); void b.offsetWidth; b.classList.add('talking');
     }
@@ -917,7 +948,8 @@ export function runRocket(mode) {
       const k = clamp(1 - left / Math.max(1, G.touchY - G.startY), 0, 1);
       const half = near.allowed > 0 ? near.allowed * scene.ppu : 0;
       // with a beam (D-032) it points at the one spot, so no band of leeway is drawn
-      V.shadow = { x: R.x, k, half: K().beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam: !!K().beam,
+      const beam = typeof K().beam === 'function' ? !!K().beam(G.T) : !!K().beam;
+      V.shadow = { x: R.x, k, half: beam ? 0 : half, a: clamp(G.t / 0.6, 0, 1), fromY: R.y + R.h * 0.5, beam,
         snap: line.value(line.index(scene.valueAt(R.x))) };
       if (!flyShip) scene.exhaust(R.x - Math.sin(R.rot) * R.h * 0.4, R.y, R.h, R.flame, dt);
       scene.offX = lerp(scene.offX, (R.x - scene.W / 2) * 0.6, Math.min(1, dt * 2));
@@ -1071,8 +1103,34 @@ export function runRocket(mode) {
 
   // GC5: on its own, the game plays the map's place, or the level in the address (?level=3),
   // counted along the map (progress.js, levelGiven); the rocket goes there and the map opens up to it.
-  function levelFromAddress() {
-    try { return new URLSearchParams(location.search).get('level'); } catch { return null; }
+  // The track may be in the address too (?track=year2, D-089).
+  function fromAddress(name) {
+    try { return new URLSearchParams(location.search).get(name); } catch { return null; }
+  }
+  function levelFromAddress() { return fromAddress('level'); }
+
+  // Progress handed in or kept, read for this track: format 4 (with a track or maps) through
+  // tracks.js, putting the other tracks' maps by; anything else is this track's own (format 3).
+  function readProgress(raw) {
+    if (!raw || typeof raw !== 'object') others = {}; // nothing kept: the other tracks' maps go too
+    if (raw && typeof raw === 'object' && (raw.track !== undefined || raw.maps !== undefined || raw.edition !== undefined)) {
+      const u = unpack(TRACKS, raw, TRACK, TRACK);
+      others = u.others;
+      return tidyAll(u.p);
+    }
+    return tidyAll(raw);
+  }
+
+  // Another track (D-089): this progress kept with that track to play, and the page loaded afresh on
+  // it, its map and all, without any track or level in the address that would undo it.
+  function changeTrack(to) {
+    keepOnDevice(mode.id, switchTrack(TRACKS, whole(), to));
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('track'); u.searchParams.delete('level');
+      history.replaceState(null, '', u.href);
+    } catch { /* the address stays as it is */ }
+    location.reload();
   }
 
   function useLevel(given) {
@@ -1110,7 +1168,7 @@ export function runRocket(mode) {
       calm: () => scene.calm,
       covered: (on) => { home.hidden = !!on; },
     });
-    progress = tidyAll(keptOnDevice(mode.id)); // D-042, D-058: format 3 on this device, or afresh
+    progress = tidyAll(opening.p); // D-042, D-058, D-089: this track's progress on this device, or afresh
     useLevel(levelFromAddress());
     scene.setPlanet(MAP[level.s].planet);
     applySettings();
@@ -1125,14 +1183,17 @@ export function runRocket(mode) {
   // The level, settings and saved state handed to the game (by a test or the preview's test
   // panel now, by the shell at stage 3). Only on the map, with the hangar shut; anything missing
   // or odd falls back to the map's own place and the built-in defaults. A level given (a number
-  // along the map, or a level's id) takes the rocket there and opens the map up to it.
-  function begin({ level: givenLevel = undefined, settings = {}, state = null } = {}) {
+  // along the map, or a level's id) takes the rocket there and opens the map up to it. Another track
+  // given (D-089) is changed to, the page reloading on it ('reload'); the rest is then not used.
+  function begin({ track = undefined, level: givenLevel = undefined, settings = {}, state = null } = {}) {
     if (G.phase !== 'map' || (hangar && hangar.isOpen)) return false;
+    const to = trackGiven(TRACKS, track);
+    if (to && to !== TRACK) { changeTrack(to); return 'reload'; }
     const r = resolveSettings(SCHEMA, settings);
     if (r.notes.length) console.info(`${mode.name} settings: ${r.notes.join('; ')}.`);
     S = r.values;
     // the state handed in (by the shell, a test or the test panel), or else what this device kept
-    progress = tidyAll(state && typeof state === 'object' ? state : keptOnDevice(mode.id));
+    progress = readProgress(state && typeof state === 'object' ? state : keptOnDevice(mode.id));
     useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
     scene.setPlanet(MAP[level.s].planet);
     applySettings();
@@ -1147,6 +1208,7 @@ export function runRocket(mode) {
 
   const api = {
     state: () => ({
+      track: TRACK, tracks: Object.keys(TRACKS), kept: whole(), ask: G.T && G.T.ask || null, sub: G.T && G.T.sub !== undefined ? G.T.sub : null,
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
       sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,
       goal: G.goal, level: level.i + 1, levelId: level.id, kind: level.kind, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,

@@ -1,5 +1,10 @@
-// Rocket Lander's test panel for previews. Version 1.9.
+// Rocket Lander's test panel for previews. Version 1.10.
 //
+// Changes at v1.10 (step 2c-3a, D-089): the track. A Track box at the top picks the lower track
+// (Reception, then Year 1) or the higher (Year 2, then Year 3; the stand-in levels until step 2c-3b);
+// Apply with another track changes to it, keeping the moon rocks and ships, and the page reloads on
+// that track's map. The level list is the track's own map. What Apply and Reset keep on the device is
+// the game's own format 4 (state().kept), so the other track's map is kept too.
 // Changes at v1.9 (Rob, 10 Nov): "3 stars on this system" gives every level of the picked level's
 // system 3 stars (rocks found stay) and sends the rocket to its last level, so hyperspace can be
 // tried without playing the whole system; applied at once and kept on the device.
@@ -39,10 +44,12 @@
 // (which reloads the preview); if storage is refused they are simply not kept.
 (() => {
   const { resolveSettings } = __m_games__common_rocket_settings;
-  const { MAP, SCHEMA: SETTINGS } = __m_games_rocket_lander_game; // the game's own map and settings
+  const { TRACKS, SCHEMA: SETTINGS } = __m_games_rocket_lander_game; // the game's own tracks and settings
+  const T = window.__test;
+  const TRACK = T.state().track; // the track this visit plays (D-089)
+  const MAP = TRACKS[TRACK].map;
   // the map's levels in play order, numbered as begin({ level }) counts them
   const ROUTE = MAP.flatMap((sys) => sys.levels.map((lv, n) => ({ sys, lv, n })));
-  const T = window.__test;
   const KEY = 'rocket-lander-preview-test-panel';
   const levelName = ({ sys, lv, n }, i) => `${i + 1} · ${sys.name} ${n + 1} · ${lv.about}`;
 
@@ -110,10 +117,15 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     ]));
   }
 
+  const track = el('select', { className: 'pv-level', id: 'pv-track' }, Object.entries(TRACKS).map(([id, t]) => el('option', { value: id, textContent: t.name })));
+  track.addEventListener('change', () => { msg.textContent = track.value === TRACK ? '' : 'Press Apply to change track: the rocks and ships stay; each track keeps its own map.'; });
+  const trackBox = el('fieldset', {}, [el('legend', { textContent: 'Track' }), track,
+    el('small', { textContent: 'Which school years this device plays (D-089). Changing it keeps the moon rocks and ships; each track keeps its own map, and the game reloads on it.' })]);
+
   const level = el('select', { className: 'pv-level' }, ROUTE.map((r, i) => el('option', { value: String(i + 1), textContent: levelName(r, i) })));
   level.addEventListener('change', () => { showLevel(); msg.textContent = 'Press Apply to send the rocket to this level.'; });
   const levelBox = el('fieldset', {}, [el('legend', { textContent: 'Level' }), level,
-    el('small', { textContent: 'The map\'s levels in play order: Moon\'s number levels, then Red Dust\'s sums levels (stand-in until the level plan). Settings below left empty follow the level; a value overrides it for that one thing.' })]);
+    el('small', { textContent: 'This track\'s levels in play order, system by system; level 8 of each is its challenge round. Settings below left empty follow the level; a value overrides it for that one thing.' })]);
 
   const rocks = el('input', { type: 'number', min: 0, max: 9999, step: 1, id: 'pv-rocks', inputMode: 'numeric' });
   const stars = el('input', { type: 'number', min: 0, max: 3, step: 1, id: 'pv-stars', inputMode: 'numeric' });
@@ -140,7 +152,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
   // Rocket Lander's own before the map, and the old Rocket Sums one.
   const TILES = ['rocket-lander', 'rocket-sums'];
   const reset = el('button', { type: 'button', className: 'pv-reset', textContent: 'Reset the game' });
-  progressBox.append(reset, el('small', { textContent: 'The map, moon rocks, landings and ships on this device, and the old Rocket Sums entry.' }));
+  progressBox.append(reset, el('small', { textContent: 'Both tracks\' maps, the moon rocks, landings and ships on this device, and the old Rocket Sums entry. The track stays.' }));
 
   const msg = el('p', { className: 'pv-msg', role: 'status' });
   const apply = el('button', { type: 'button', className: 'pv-apply', textContent: 'Apply' });
@@ -152,7 +164,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
   const lockClose = el('button', { type: 'button', textContent: 'Close' });
   const lockMsg = el('p', { className: 'pv-msg', role: 'status' });
   const lock = el('div', { className: 'pv-lock' }, [el('label', { htmlFor: 'pv-code', textContent: 'Grown-ups: type the code' }), code, open, lockClose, lockMsg]);
-  const body = el('div', { className: 'pv-body', hidden: true }, [levelBox, settingsBox, progressBox, el('div', { className: 'pv-btns' }, [apply, defaults, close, msg])]);
+  const body = el('div', { className: 'pv-body', hidden: true }, [trackBox, levelBox, settingsBox, progressBox, el('div', { className: 'pv-btns' }, [apply, defaults, close, msg])]);
   const sheet = el('div', { className: 'pv-sheet', role: 'dialog' }, [
     el('h2', { textContent: 'Test settings' }),
     el('p', { className: 'pv-sub', textContent: 'Preview only, for testing: never on the real site or the children\'s preview. Kept for this tab until it closes.' }),
@@ -171,6 +183,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
       else inputs[key].value = s.settings[key] === null ? '' : String(s.settings[key]);
     }
     rocks.value = String(s.progress.rocks);
+    track.value = TRACK;
     level.value = String(s.level);
     showLevel();
   }
@@ -190,7 +203,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     if (ok) {
       // the settings for this tab; the place and progress on the device, as the game keeps them (ER-004)
       try { sessionStorage.setItem(KEY, JSON.stringify({ settings: given.settings })); } catch (e) { /* not kept */ }
-      if (given.state) __m_games__common_rocket_kit.keepOnDevice('rocket-lander', T.state().progress);
+      __m_games__common_rocket_kit.keepOnDevice('rocket-lander', T.state().kept); // format 4: both tracks' maps
     }
     if (!quiet) msg.textContent = ok ? `Applied.${notes.length ? ' ' + notes.join('; ') + '.' : ''}` : 'Go back to the map first.';
     return ok;
@@ -229,7 +242,14 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     if (use(given, true)) { show(); msg.textContent = `${r.sys.name}: 3 stars on all ${r.sys.levels.length} levels; the rocket waits at level ${r.sys.levels.length}. Pass it for hyperspace.`; }
     else msg.textContent = 'Go back to the map first.';
   });
-  apply.addEventListener('click', () => { if (use(read())) { show(); } });
+  apply.addEventListener('click', () => {
+    if (track.value !== TRACK) { // another track: the game keeps everything and reloads on it
+      msg.textContent = 'Changing track…';
+      if (T.begin({ track: track.value }) !== 'reload') msg.textContent = 'Go back to the map first.';
+      return;
+    }
+    if (use(read())) { show(); }
+  });
   defaults.addEventListener('click', () => {
     for (const [key, spec] of Object.entries(SETTINGS)) {
       if (typeof spec.default === 'boolean') inputs[key].checked = spec.default;

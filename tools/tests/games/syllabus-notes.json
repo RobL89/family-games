@@ -1,0 +1,1225 @@
+{
+  "meta": {
+    "title": "Maths game syllabus: Reception to Year 3 (England)",
+    "sources": [
+      "EYFS statutory framework, Early Learning Goals: Number and Numerical Patterns (Reception)",
+      "National Curriculum in England: Mathematics programmes of study, Years 1-3 (2014, statutory)"
+    ],
+    "valid_until": "2028-08-31",
+    "mode": "mental maths only: no written or column methods; every question should be answerable in the head",
+    "note": "The national curriculum is being revised (published spring 2027, taught from Sept 2028). The current expectations below cover both children until then. Recheck this file in summer 2027.",
+    "suggested_unlock_rule": {
+      "questions_per_round": 10,
+      "pass_mark": 8,
+      "rounds_to_pass": 2
+    },
+    "copy_note": "Copy of Rob's syllabus notes (uploaded to P-034 on 2026-11-10, sha256 4d8f8341...8a70), with meta.players removed: it held the children's ages (D-011). Otherwise as uploaded."
+  },
+  "stages": {
+    "reception": {
+      "label": "Reception (end of year goal, age 5)",
+      "recognise_numerals": [
+        0,
+        20
+      ],
+      "secure_number_range": [
+        0,
+        10
+      ],
+      "count_aloud_to": 30,
+      "count_objects_to": 20,
+      "subitise_up_to": 5,
+      "skip_counting": [],
+      "addition": {
+        "answer_max": 10,
+        "facts_by_heart": "bonds to 5, some bonds to 10, doubles to 5+5"
+      },
+      "subtraction": {
+        "start_max": 10,
+        "facts_by_heart": "subtraction facts within 5"
+      },
+      "multiplication": {
+        "times_tables": [],
+        "form": "none (doubling only, e.g. double 3)"
+      },
+      "division": {
+        "form": "sharing objects equally, e.g. 6 sweets between 2 teddies"
+      },
+      "fractions": [],
+      "symbols": [
+        "+",
+        "-",
+        "="
+      ],
+      "other": [
+        "more / fewer / same up to 10",
+        "one more / one less within 10",
+        "odd and even up to 10",
+        "composition: e.g. 7 is 5 and 2"
+      ]
+    },
+    "year1": {
+      "label": "Year 1 (age 5-6)",
+      "recognise_numerals": [
+        0,
+        100
+      ],
+      "number_words": [
+        1,
+        20
+      ],
+      "secure_number_range": [
+        0,
+        100
+      ],
+      "count_aloud_to": 100,
+      "count_forwards_and_backwards_from_any_number": true,
+      "skip_counting": [
+        2,
+        5,
+        10
+      ],
+      "addition": {
+        "operands": "1-digit and 2-digit",
+        "answer_max": 20,
+        "include_zero": true,
+        "facts_by_heart": "number bonds within 20"
+      },
+      "subtraction": {
+        "operands": "1-digit and 2-digit",
+        "start_max": 20,
+        "include_zero": true,
+        "facts_by_heart": "related subtraction facts within 20"
+      },
+      "missing_number": {
+        "example": "7 = ? - 9",
+        "answer_max": 20
+      },
+      "multiplication": {
+        "times_tables": [],
+        "form": "groups/arrays with pictures: e.g. 3 groups of 2",
+        "group_sizes": [
+          2,
+          5,
+          10
+        ],
+        "max_groups": 5
+      },
+      "division": {
+        "form": "sharing/grouping with pictures",
+        "divisors": [
+          2,
+          5,
+          10
+        ],
+        "start_max": 20
+      },
+      "fractions": [
+        "1/2",
+        "1/4"
+      ],
+      "symbols": [
+        "+",
+        "-",
+        "="
+      ],
+      "other": [
+        "one more / one less than any number to 100",
+        "doubles and halves to 20"
+      ]
+    },
+    "year2": {
+      "label": "Year 2 (age 6-7)",
+      "recognise_numerals": [
+        0,
+        100
+      ],
+      "number_words": [
+        1,
+        100
+      ],
+      "secure_number_range": [
+        0,
+        100
+      ],
+      "count_aloud_to": 100,
+      "skip_counting": [
+        2,
+        3,
+        5,
+        10
+      ],
+      "count_in_tens_from_any_number": true,
+      "place_value": "tens and ones",
+      "compare": {
+        "range": [
+          0,
+          100
+        ],
+        "symbols": [
+          "<",
+          ">",
+          "="
+        ]
+      },
+      "addition": {
+        "facts_by_heart": "all facts to 20 (fluent); derived facts to 100, e.g. 3+7=10 so 30+70=100",
+        "forms": [
+          "TO + O (e.g. 34 + 5)",
+          "TO + tens (e.g. 34 + 20)",
+          "TO + TO (e.g. 34 + 28)",
+          "O + O + O (e.g. 4 + 7 + 6)"
+        ],
+        "answer_max": 100
+      },
+      "subtraction": {
+        "forms": [
+          "TO - O",
+          "TO - tens",
+          "TO - TO"
+        ],
+        "start_max": 100,
+        "no_negative_answers": true
+      },
+      "missing_number": {
+        "uses_inverse": true,
+        "example": "? + 25 = 60"
+      },
+      "multiplication": {
+        "times_tables": [
+          2,
+          5,
+          10
+        ],
+        "max_multiplier": 12,
+        "commutative": true
+      },
+      "division": {
+        "times_tables": [
+          2,
+          5,
+          10
+        ],
+        "exact_only": true
+      },
+      "fractions": [
+        "1/2",
+        "1/3",
+        "1/4",
+        "2/4",
+        "3/4"
+      ],
+      "fraction_forms": [
+        "fraction of a shape",
+        "fraction of a set, e.g. 1/2 of 6 = 3",
+        "2/4 equals 1/2"
+      ],
+      "symbols": [
+        "+",
+        "-",
+        "x",
+        "÷",
+        "=",
+        "<",
+        ">"
+      ],
+      "other": [
+        "odd and even to 100",
+        "word problems with money (£ and p) and measures"
+      ]
+    },
+    "year3": {
+      "label": "Year 3 (age 7-8)",
+      "recognise_numerals": [
+        0,
+        1000
+      ],
+      "number_words": [
+        1,
+        1000
+      ],
+      "secure_number_range": [
+        0,
+        1000
+      ],
+      "count_aloud_to": 1000,
+      "skip_counting": [
+        2,
+        3,
+        4,
+        5,
+        8,
+        10,
+        50,
+        100
+      ],
+      "place_value": "hundreds, tens and ones",
+      "compare": {
+        "range": [
+          0,
+          1000
+        ],
+        "symbols": [
+          "<",
+          ">",
+          "="
+        ]
+      },
+      "ten_or_hundred_more_or_less": true,
+      "addition": {
+        "mental_forms": [
+          "HTO + O (e.g. 245 + 7)",
+          "HTO + tens (e.g. 245 + 30)",
+          "HTO + hundreds (e.g. 245 + 400)"
+        ],
+        "also_mental": [
+          "TO + TO, answers may go over 100 (e.g. 68 + 47)",
+          "pairs to 100 in 5s and 10s (e.g. 65 + 35)"
+        ],
+        "answer_max": 1000,
+        "estimate_first": true
+      },
+      "subtraction": {
+        "mental_forms": [
+          "HTO - O",
+          "HTO - tens",
+          "HTO - hundreds"
+        ],
+        "also_mental": [
+          "100 - multiples of 5 (e.g. 100 - 45)"
+        ],
+        "no_negative_answers": true
+      },
+      "excluded_written_only": "Column addition/subtraction of two 3-digit numbers is a written method in the curriculum, so it is left out of this mental-maths game.",
+      "multiplication": {
+        "times_tables": [
+          2,
+          3,
+          4,
+          5,
+          8,
+          10
+        ],
+        "new_this_year": [
+          3,
+          4,
+          8
+        ],
+        "max_multiplier": 12,
+        "extended": "TO x O done mentally by partitioning, e.g. 23 x 4 = 20x4 + 3x4"
+      },
+      "division": {
+        "times_tables": [
+          2,
+          3,
+          4,
+          5,
+          8,
+          10
+        ],
+        "exact_only": true,
+        "extended": "TO ÷ O with no remainder, e.g. 48 ÷ 4"
+      },
+      "fractions": [
+        "unit and non-unit fractions with denominators 2-10",
+        "tenths"
+      ],
+      "fraction_forms": [
+        "fraction of a set, e.g. 3/4 of 12",
+        "count up and down in tenths",
+        "equivalent fractions with small denominators",
+        "add/subtract same denominator within one whole, e.g. 5/7 + 1/7",
+        "compare and order unit fractions, e.g. 1/3 > 1/5"
+      ],
+      "symbols": [
+        "+",
+        "-",
+        "x",
+        "÷",
+        "=",
+        "<",
+        ">"
+      ]
+    }
+  },
+  "levels": [
+    {
+      "id": "R01",
+      "stage": "reception",
+      "title": "Find the number",
+      "type": "identify_numeral",
+      "params": {
+        "min": 1,
+        "max": 5
+      }
+    },
+    {
+      "id": "R02",
+      "stage": "reception",
+      "title": "Find the number",
+      "type": "identify_numeral",
+      "params": {
+        "min": 0,
+        "max": 10
+      }
+    },
+    {
+      "id": "R03",
+      "stage": "reception",
+      "title": "How many dots?",
+      "type": "count_objects",
+      "params": {
+        "min": 1,
+        "max": 10
+      }
+    },
+    {
+      "id": "R04",
+      "stage": "reception",
+      "title": "Quick look",
+      "type": "subitise",
+      "params": {
+        "min": 1,
+        "max": 5,
+        "show_ms": 1500
+      }
+    },
+    {
+      "id": "R05",
+      "stage": "reception",
+      "title": "Which has more?",
+      "type": "compare_quantities",
+      "params": {
+        "min": 0,
+        "max": 10,
+        "include_same": true
+      }
+    },
+    {
+      "id": "R06",
+      "stage": "reception",
+      "title": "One more, one less",
+      "type": "one_more_less",
+      "params": {
+        "min": 0,
+        "max": 10
+      }
+    },
+    {
+      "id": "R07",
+      "stage": "reception",
+      "title": "Bigger numbers",
+      "type": "identify_numeral",
+      "params": {
+        "min": 11,
+        "max": 20
+      }
+    },
+    {
+      "id": "R08",
+      "stage": "reception",
+      "title": "Make 5",
+      "type": "number_bond",
+      "params": {
+        "target": 5,
+        "show_objects": true
+      }
+    },
+    {
+      "id": "R09",
+      "stage": "reception",
+      "title": "Adding to 5",
+      "type": "addition",
+      "params": {
+        "a": [
+          0,
+          5
+        ],
+        "b": [
+          0,
+          5
+        ],
+        "answer_max": 5,
+        "show_objects": true
+      }
+    },
+    {
+      "id": "R10",
+      "stage": "reception",
+      "title": "Taking away within 5",
+      "type": "subtraction",
+      "params": {
+        "start": [
+          1,
+          5
+        ],
+        "answer_min": 0,
+        "show_objects": true
+      }
+    },
+    {
+      "id": "R11",
+      "stage": "reception",
+      "title": "Doubles",
+      "type": "doubles",
+      "params": {
+        "max_base": 5
+      }
+    },
+    {
+      "id": "R12",
+      "stage": "reception",
+      "title": "Make 10",
+      "type": "number_bond",
+      "params": {
+        "target": 10,
+        "show_objects": true
+      }
+    },
+    {
+      "id": "R13",
+      "stage": "reception",
+      "title": "Adding to 10",
+      "type": "addition",
+      "params": {
+        "a": [
+          0,
+          10
+        ],
+        "b": [
+          0,
+          10
+        ],
+        "answer_max": 10
+      }
+    },
+    {
+      "id": "R14",
+      "stage": "reception",
+      "title": "Taking away within 10",
+      "type": "subtraction",
+      "params": {
+        "start": [
+          1,
+          10
+        ],
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "R15",
+      "stage": "reception",
+      "title": "Odd or even?",
+      "type": "odd_even",
+      "params": {
+        "min": 1,
+        "max": 10,
+        "show_pairs": true
+      }
+    },
+    {
+      "id": "R16",
+      "stage": "reception",
+      "title": "Share it out",
+      "type": "share_equally",
+      "params": {
+        "total_max": 10,
+        "groups": [
+          2
+        ]
+      }
+    },
+    {
+      "id": "Y1-01",
+      "stage": "year1",
+      "title": "Numbers to 50",
+      "type": "identify_numeral",
+      "params": {
+        "min": 0,
+        "max": 50
+      }
+    },
+    {
+      "id": "Y1-02",
+      "stage": "year1",
+      "title": "Numbers to 100",
+      "type": "identify_numeral",
+      "params": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    {
+      "id": "Y1-03",
+      "stage": "year1",
+      "title": "What comes next?",
+      "type": "sequence",
+      "params": {
+        "step": 1,
+        "min": 0,
+        "max": 100,
+        "directions": [
+          "forward",
+          "backward"
+        ]
+      }
+    },
+    {
+      "id": "Y1-04",
+      "stage": "year1",
+      "title": "Count in 2s, 5s, 10s",
+      "type": "sequence",
+      "params": {
+        "steps": [
+          2,
+          5,
+          10
+        ],
+        "start": 0,
+        "max": 100
+      }
+    },
+    {
+      "id": "Y1-05",
+      "stage": "year1",
+      "title": "Number words",
+      "type": "match_word",
+      "params": {
+        "min": 1,
+        "max": 20
+      }
+    },
+    {
+      "id": "Y1-06",
+      "stage": "year1",
+      "title": "One more, one less",
+      "type": "one_more_less",
+      "params": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    {
+      "id": "Y1-07",
+      "stage": "year1",
+      "title": "Bonds to 10",
+      "type": "number_bond",
+      "params": {
+        "target": 10,
+        "show_objects": false
+      }
+    },
+    {
+      "id": "Y1-08",
+      "stage": "year1",
+      "title": "Adding to 20",
+      "type": "addition",
+      "params": {
+        "a": [
+          0,
+          20
+        ],
+        "b": [
+          0,
+          9
+        ],
+        "answer_max": 20
+      }
+    },
+    {
+      "id": "Y1-09",
+      "stage": "year1",
+      "title": "Subtracting within 20",
+      "type": "subtraction",
+      "params": {
+        "start": [
+          0,
+          20
+        ],
+        "b": [
+          0,
+          9
+        ],
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "Y1-10",
+      "stage": "year1",
+      "title": "Bonds to 20",
+      "type": "number_bond",
+      "params": {
+        "target": 20
+      }
+    },
+    {
+      "id": "Y1-11",
+      "stage": "year1",
+      "title": "Missing number",
+      "type": "missing_number",
+      "params": {
+        "ops": [
+          "+",
+          "-"
+        ],
+        "max": 20,
+        "blank_positions": [
+          "a",
+          "b",
+          "answer"
+        ]
+      }
+    },
+    {
+      "id": "Y1-12",
+      "stage": "year1",
+      "title": "Groups of",
+      "type": "groups_of",
+      "params": {
+        "group_sizes": [
+          2,
+          5,
+          10
+        ],
+        "max_groups": 5,
+        "show_array": true
+      }
+    },
+    {
+      "id": "Y1-13",
+      "stage": "year1",
+      "title": "Sharing",
+      "type": "share_equally",
+      "params": {
+        "total_max": 20,
+        "groups": [
+          2,
+          5,
+          10
+        ]
+      }
+    },
+    {
+      "id": "Y1-14",
+      "stage": "year1",
+      "title": "Halves and quarters",
+      "type": "fraction_of_shape",
+      "params": {
+        "fractions": [
+          "1/2",
+          "1/4"
+        ]
+      }
+    },
+    {
+      "id": "Y1-15",
+      "stage": "year1",
+      "title": "Half of a number",
+      "type": "fraction_of_set",
+      "params": {
+        "fractions": [
+          "1/2"
+        ],
+        "total_max": 20
+      }
+    },
+    {
+      "id": "Y2-01",
+      "stage": "year2",
+      "title": "Tens and ones",
+      "type": "place_value",
+      "params": {
+        "digits": 2
+      }
+    },
+    {
+      "id": "Y2-02",
+      "stage": "year2",
+      "title": "Bigger or smaller?",
+      "type": "compare_numbers",
+      "params": {
+        "min": 0,
+        "max": 100,
+        "symbols": [
+          "<",
+          ">",
+          "="
+        ]
+      }
+    },
+    {
+      "id": "Y2-03",
+      "stage": "year2",
+      "title": "Count in 2s, 3s, 5s",
+      "type": "sequence",
+      "params": {
+        "steps": [
+          2,
+          3,
+          5
+        ],
+        "start": 0,
+        "max": 60,
+        "directions": [
+          "forward",
+          "backward"
+        ]
+      }
+    },
+    {
+      "id": "Y2-04",
+      "stage": "year2",
+      "title": "Tens from anywhere",
+      "type": "sequence",
+      "params": {
+        "steps": [
+          10
+        ],
+        "start_any": true,
+        "max": 100
+      }
+    },
+    {
+      "id": "Y2-05",
+      "stage": "year2",
+      "title": "Fast facts to 20",
+      "type": "addition_subtraction_mixed",
+      "params": {
+        "max": 20,
+        "timed_seconds": 6
+      }
+    },
+    {
+      "id": "Y2-06",
+      "stage": "year2",
+      "title": "Tens bonds to 100",
+      "type": "number_bond",
+      "params": {
+        "target": 100,
+        "multiples_of": 10
+      }
+    },
+    {
+      "id": "Y2-07",
+      "stage": "year2",
+      "title": "Add ones",
+      "type": "addition",
+      "params": {
+        "form": "TO+O",
+        "answer_max": 100
+      }
+    },
+    {
+      "id": "Y2-08",
+      "stage": "year2",
+      "title": "Add tens",
+      "type": "addition",
+      "params": {
+        "form": "TO+T",
+        "answer_max": 100
+      }
+    },
+    {
+      "id": "Y2-09",
+      "stage": "year2",
+      "title": "Take away ones and tens",
+      "type": "subtraction",
+      "params": {
+        "forms": [
+          "TO-O",
+          "TO-T"
+        ],
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "Y2-10",
+      "stage": "year2",
+      "title": "Three small numbers",
+      "type": "addition",
+      "params": {
+        "form": "O+O+O"
+      }
+    },
+    {
+      "id": "Y2-11",
+      "stage": "year2",
+      "title": "Two 2-digit numbers",
+      "type": "addition",
+      "params": {
+        "form": "TO+TO",
+        "answer_max": 100
+      }
+    },
+    {
+      "id": "Y2-12",
+      "stage": "year2",
+      "title": "Two 2-digit take away",
+      "type": "subtraction",
+      "params": {
+        "form": "TO-TO",
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "Y2-13",
+      "stage": "year2",
+      "title": "Missing number to 100",
+      "type": "missing_number",
+      "params": {
+        "ops": [
+          "+",
+          "-"
+        ],
+        "max": 100
+      }
+    },
+    {
+      "id": "Y2-14",
+      "stage": "year2",
+      "title": "10 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          10
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y2-15",
+      "stage": "year2",
+      "title": "2 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          2
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y2-16",
+      "stage": "year2",
+      "title": "5 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          5
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y2-17",
+      "stage": "year2",
+      "title": "Dividing by 2, 5, 10",
+      "type": "division",
+      "params": {
+        "tables": [
+          2,
+          5,
+          10
+        ],
+        "max_multiplier": 12,
+        "exact_only": true
+      }
+    },
+    {
+      "id": "Y2-18",
+      "stage": "year2",
+      "title": "Odd or even to 100",
+      "type": "odd_even",
+      "params": {
+        "min": 1,
+        "max": 100
+      }
+    },
+    {
+      "id": "Y2-19",
+      "stage": "year2",
+      "title": "Fractions of shapes",
+      "type": "fraction_of_shape",
+      "params": {
+        "fractions": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "2/4",
+          "3/4"
+        ]
+      }
+    },
+    {
+      "id": "Y2-20",
+      "stage": "year2",
+      "title": "Fractions of numbers",
+      "type": "fraction_of_set",
+      "params": {
+        "fractions": [
+          "1/2",
+          "1/3",
+          "1/4",
+          "3/4"
+        ],
+        "total_max": 24,
+        "exact_only": true
+      }
+    },
+    {
+      "id": "Y3-01",
+      "stage": "year3",
+      "title": "Numbers to 1000",
+      "type": "identify_numeral",
+      "params": {
+        "min": 100,
+        "max": 1000
+      }
+    },
+    {
+      "id": "Y3-02",
+      "stage": "year3",
+      "title": "Hundreds, tens, ones",
+      "type": "place_value",
+      "params": {
+        "digits": 3
+      }
+    },
+    {
+      "id": "Y3-03",
+      "stage": "year3",
+      "title": "Compare to 1000",
+      "type": "compare_numbers",
+      "params": {
+        "min": 0,
+        "max": 1000,
+        "symbols": [
+          "<",
+          ">",
+          "="
+        ]
+      }
+    },
+    {
+      "id": "Y3-04",
+      "stage": "year3",
+      "title": "10 or 100 more/less",
+      "type": "ten_hundred_more_less",
+      "params": {
+        "min": 0,
+        "max": 1000
+      }
+    },
+    {
+      "id": "Y3-05",
+      "stage": "year3",
+      "title": "Count in 4s, 8s, 50s, 100s",
+      "type": "sequence",
+      "params": {
+        "steps": [
+          4,
+          8,
+          50,
+          100
+        ],
+        "start": 0,
+        "max": 1000
+      }
+    },
+    {
+      "id": "Y3-06",
+      "stage": "year3",
+      "title": "Mental adding",
+      "type": "addition",
+      "params": {
+        "forms": [
+          "HTO+O",
+          "HTO+T",
+          "HTO+H"
+        ],
+        "answer_max": 1000
+      }
+    },
+    {
+      "id": "Y3-07",
+      "stage": "year3",
+      "title": "Mental take away",
+      "type": "subtraction",
+      "params": {
+        "forms": [
+          "HTO-O",
+          "HTO-T",
+          "HTO-H"
+        ],
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "Y3-08",
+      "stage": "year3",
+      "title": "Pairs to 100",
+      "type": "number_bond",
+      "params": {
+        "target": 100,
+        "multiples_of": 5
+      }
+    },
+    {
+      "id": "Y3-09",
+      "stage": "year3",
+      "title": "Big 2-digit sums",
+      "type": "addition_subtraction_mixed",
+      "params": {
+        "form": "TO+TO / TO-TO",
+        "answer_max": 200,
+        "answer_min": 0
+      }
+    },
+    {
+      "id": "Y3-10",
+      "stage": "year3",
+      "title": "Estimate it",
+      "type": "estimate",
+      "params": {
+        "ops": [
+          "+",
+          "-"
+        ],
+        "max": 1000,
+        "round_to": [
+          10,
+          100
+        ]
+      }
+    },
+    {
+      "id": "Y3-11",
+      "stage": "year3",
+      "title": "4 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          4
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y3-12",
+      "stage": "year3",
+      "title": "8 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          8
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y3-13",
+      "stage": "year3",
+      "title": "3 times table",
+      "type": "multiplication",
+      "params": {
+        "tables": [
+          3
+        ],
+        "max_multiplier": 12
+      }
+    },
+    {
+      "id": "Y3-14",
+      "stage": "year3",
+      "title": "Mixed tables",
+      "type": "multiplication_division_mixed",
+      "params": {
+        "tables": [
+          2,
+          3,
+          4,
+          5,
+          8,
+          10
+        ],
+        "max_multiplier": 12,
+        "timed_seconds": 6
+      }
+    },
+    {
+      "id": "Y3-15",
+      "stage": "year3",
+      "title": "2-digit times 1-digit",
+      "type": "multiplication",
+      "params": {
+        "form": "TO*O",
+        "a": [
+          11,
+          30
+        ],
+        "b": [
+          2,
+          5
+        ],
+        "mental_partitioning": true
+      }
+    },
+    {
+      "id": "Y3-16",
+      "stage": "year3",
+      "title": "Fractions of amounts",
+      "type": "fraction_of_set",
+      "params": {
+        "denominators": [
+          2,
+          3,
+          4,
+          5,
+          8,
+          10
+        ],
+        "non_unit": true,
+        "total_max": 40,
+        "exact_only": true
+      }
+    },
+    {
+      "id": "Y3-17",
+      "stage": "year3",
+      "title": "Counting in tenths",
+      "type": "sequence",
+      "params": {
+        "fraction_step": "1/10",
+        "max": 2
+      }
+    },
+    {
+      "id": "Y3-18",
+      "stage": "year3",
+      "title": "Which fraction is bigger?",
+      "type": "compare_fractions",
+      "params": {
+        "unit_only": true,
+        "denominators": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      }
+    },
+    {
+      "id": "Y3-19",
+      "stage": "year3",
+      "title": "Adding fractions",
+      "type": "fraction_add_subtract",
+      "params": {
+        "same_denominator": true,
+        "max_total": 1
+      }
+    }
+  ]
+}

@@ -1,6 +1,12 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.1.
+// One game with a map of solar systems (D-058). Version 3.2.
 //
+// Changes at v3.2 (step 2c-3a, D-089 to D-094): two tracks, each with its own map (map.js 2.0: the lower
+// track's Reception systems, the higher track's stand-in levels until step 2c-3b), handed to the engine
+// as mode.tracks. Two new kinds of level: 'ask', Reception's questions asked by a picture or a phrase
+// (asks.js, faces.js), and 'challenge', a round mixing its system's seven levels, each landing played
+// the way its own level plays it (asks.js, planChallenge; D-091). Sums levels may show dots under each
+// number (`pictures`, Q-033); number levels may keep their targets to part of the line (`pick`).
 // Changes at v3.1 (step 2c-build, D-066): the map sets the level (round.js and progress.js), so the
 // flat list of levels for levelOf goes.
 //
@@ -18,25 +24,33 @@
 
 import { runRocket } from '../_common/rocket/round.js';
 import { SETTINGS } from '../_common/rocket/settings.js';
-import { fmt, say } from '../_common/rocket/numbers.js';
+import { fmt, say, makeLine } from '../_common/rocket/numbers.js';
 import { followLevel } from '../_common/rocket/ladder.js';
 import { PLANETS, planetIndex } from '../_common/rocket/planets.js';
 import { LEVELS } from './levels.js';
 import { LEVELS as SUMS_LEVELS } from './sums-levels.js';
-import { SYSTEMS } from './map.js';
+import { TRACKS as MAP_TRACKS, FIRST_TRACK } from './map.js';
 import { lineFor, planRound, pickTarget, isRight, goalOf } from './rules.js';
+import { planAsks, askTarget, isRight as askRight, goalOf as askGoal, planChallenge } from './asks.js';
+import { faceChip, picturedSum } from './faces.js';
 import { OP_WORDS, OPS_OPTIONS, opsFor, makeSum, lineForSum, roundLine, partsOf, planParts, isRight as sumRight, goalOf as sumGoal } from './sums.js';
 
 // ---------- The map: each system's look and name from planets.js, each level's row by its kind ----------
 
+// A level's row: its own (map.js) or its table's; a challenge's row is its system's other levels.
 const ROWS = { number: LEVELS, sums: SUMS_LEVELS };
-export const MAP = SYSTEMS.map((sys) => {
+const rowOf = (lv) => ({ ...(lv.row || ROWS[lv.kind][lv.level - 1]), kind: lv.kind });
+const buildMap = (systems) => systems.map((sys) => {
   const p = planetIndex(sys.id);
+  const mix = sys.levels.filter((lv) => lv.kind !== 'challenge').map((lv) => ({ kind: lv.kind, row: rowOf(lv) }));
   return {
     id: sys.id, name: PLANETS[p].name, planet: p, soon: !!sys.soon,
-    levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}`, kind: lv.kind, row: { ...ROWS[lv.kind][lv.level - 1], kind: lv.kind }, about: lv.about, sample: lv.sample })),
+    levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}`, kind: lv.kind, plan: lv.plan || null,
+      row: lv.kind === 'challenge' ? { kind: 'challenge', mix } : rowOf(lv), about: lv.about, sample: lv.sample })),
   };
 });
+// Each track's map, as the engine and the test panel read them (D-089).
+export const TRACKS = Object.fromEntries(Object.entries(MAP_TRACKS).map(([id, t]) => [id, { name: t.name, edition: t.edition, map: buildMap(t.systems) }]));
 
 // ---------- Number levels (Number mode, D-035, D-038) ----------
 
@@ -49,7 +63,7 @@ const dieSvg = (n) => `<svg class="die" viewBox="0 0 30 30" aria-hidden="true"><
 const NUMBER = {
   lineFor: (row, S) => lineFor(row, S),
   planRound: (row, total, rand) => planRound(row.mix, total, rand),
-  pickTarget: (kind, line, prev, rand) => pickTarget(kind || 'any', line, prev, rand),
+  pickTarget: (kind, line, prev, rand, row) => pickTarget(kind || 'any', line, prev, rand, row && row.pick),
   isRight,
   goalOf,
   chip: (T, S) => T.rule === 'dice' ? { cls: 'dice', html: dieSvg(T.value) }
@@ -103,7 +117,8 @@ const SUMS = {
   },
   isRight: sumRight,
   goalOf: sumGoal,
-  chip: (T) => ({ cls: 'sum', html: esc(T.sum) }),
+  // Reception's sums show dots under each number (Q-033)
+  chip: (T, S, row) => (row && row.pictures && T.a !== undefined ? picturedSum(T) : { cls: 'sum', html: esc(T.sum) }),
   words: sumWords,
   miss: (T, spot) => ({
     speech: `That's ${say(spot)}. ${sumWords(T)} is ${say(T.value)}. Over here!`,
@@ -121,6 +136,88 @@ const SUMS = {
   },
 };
 
+// ---------- Reception's questions (asks.js, faces.js; level plan section 5) ----------
+// The answer is a number on the level's own line; the question is a picture or a phrase, said out loud.
+// A face asks by itself, so "Land on" is left to the voice (sayAll).
+
+const n$ = (v) => say(v);
+const ASK_SAY = {
+  dots: () => 'How many dots? Land on that number!',
+  flash: () => 'Quick look! How many dots?',
+  compare: (T) => (T.rel === 'same' ? 'Land on the same number as the dots!' : `Land on a number ${T.rel === 'more' ? 'more' : 'fewer'} than the dots!`),
+  'more-less': (T) => `Land on one ${T.dir === 'more' ? 'more' : 'less'} than ${n$(T.n)}!`,
+  bond: (T) => `${n$(T.part)} and how many more make ${n$(T.whole)}?`,
+  double: (T) => `Land on double ${n$(T.n)}!`,
+  share: (T) => `Share ${n$(T.total)} sweets between ${n$(T.groups)} plates. How many on each?`,
+};
+// After a miss: { speech, html }, the right number (or the nearest that fits) as `goal`.
+function askMiss(T, spot, goal) {
+  const was = { speech: `That's ${n$(spot)}.`, html: `That's <b class="no-n">${spot}</b>.` };
+  const say2 = (speech, html) => ({ speech: `${was.speech} ${speech}`, html: `${was.html} ${html}` });
+  switch (T.ask) {
+    case 'dots': return say2(`There are ${n$(T.n)} dots. ${n$(goal)} is over here!`, `There are <b>${goal}</b> dots!`);
+    case 'flash': return say2(`There were ${n$(T.n)} dots. Over here!`, `There were <b>${goal}</b> dots!`);
+    case 'compare':
+      return T.rel === 'same' ? say2(`${n$(goal)} dots, so ${n$(goal)}!`, `The same as the dots is <b>${goal}</b>!`)
+        : say2(`${n$(goal)} is ${T.rel} than ${n$(T.n)}!`, `<b>${goal}</b> is ${T.rel} than ${T.n}!`);
+    case 'more-less': return say2(`One ${T.dir} than ${n$(T.n)} is ${n$(goal)}!`, `1 ${T.dir} than ${T.n} is <b>${goal}</b>!`);
+    case 'bond': return say2(`${n$(T.part)} and ${n$(goal)} make ${n$(T.whole)}!`, `${T.part} and <b>${goal}</b> make ${T.whole}!`);
+    case 'double': return say2(`Double ${n$(T.n)} is ${n$(goal)}!`, `Double ${T.n} is <b>${goal}</b>!`);
+    case 'share': return say2(`${n$(goal)} on each plate!`, `<b>${goal}</b> on each plate!`);
+    default: return say2(`${n$(goal)} is over here!`, `<b>${goal}</b> is over here!`);
+  }
+}
+const ASK = {
+  // the level's own line: its answers are made for it, so a grown-up's line settings don't move it
+  lineFor: (row, S) => ({ from: row.from, to: row.to, step: 1, label_every: S.label_every ?? row.label_every ?? 1 }),
+  planRound: (row, total, rand) => planAsks(row, total, rand),
+  pickTarget: (kind, line, prev, rand, row) => askTarget(row, kind, prev && prev.ask ? prev : null, rand),
+  isRight: askRight,
+  goalOf: askGoal,
+  chip: (T) => faceChip(T),
+  words: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'the number').replace(/^Land on /, '').replace(/[!?]$/, ''),
+  sayAll: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'Land on the number!'),
+  miss: (T, spot, goal) => askMiss(T, spot, goal),
+  beam: false,
+  testHooks: {
+    // make this landing's question a given one, such as aimAsk({ ask: 'dots', n: 4, value: 4 })
+    aimAsk(T, { set }) { set({ rule: T.value === undefined ? 'range' : 'ask', ...T }); return true; },
+  },
+};
+
+// ---------- Challenge rounds (D-091): the system's seven levels mixed ----------
+// Each landing comes from one of the levels (planChallenge: each once and one more at random), and is
+// asked, laid out and judged the way that level plays it, on its own line with its own label look.
+
+const KINDS = { number: NUMBER, sums: SUMS, ask: ASK };
+const subOf = (T) => KINDS[T.subKind];
+const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6 6.5.8-4.8 4.5 1.2 6.5L12 16.9 6.2 20l1.2-6.5L2.6 9l6.5-.8z" fill="#FFC93C" stroke="#1B1446" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const CHALLENGE = {
+  lineFor: (row, S) => KINDS[row.mix[0].kind].lineFor(row.mix[0].row, S),
+  landingLine: (T, row, S, rand) => {
+    const m = row.mix[T.sub], k = KINDS[m.kind];
+    const own = k.landingLine ? k.landingLine(T, m.row, S, rand) : null;
+    return { ...(own || k.lineFor(m.row, S)), labels: m.row.labels || 'plain' };
+  },
+  planRound: (row, total, rand) => {
+    const plans = row.mix.map((m) => KINDS[m.kind].planRound(m.row, total, rand));
+    return planChallenge(row.mix.length, total, rand).map((j) => ({ sub: j, kind: plans[j][Math.floor(rand() * plans[j].length)] }));
+  },
+  pickTarget: (P, line, prev, rand, row, S) => {
+    const m = row.mix[P.sub], k = KINDS[m.kind];
+    const own = makeLine(k.lineFor(m.row, S));
+    const T = k.pickTarget(P.kind, own, prev && prev.sub === P.sub ? prev : null, rand, m.row, S);
+    return { ...T, sub: P.sub, subKind: m.kind };
+  },
+  isRight: (T, spot, allowed) => subOf(T).isRight(T, spot, allowed),
+  goalOf: (T, raw, line) => subOf(T).goalOf(T, raw, line),
+  chip: (T, S, row) => (T.rule === 'challenge' ? { cls: 'challenge', html: `${STAR_SVG}mix!` } : subOf(T).chip(T, S, row && row.mix ? row.mix[T.sub].row : row)),
+  words: (T, S) => (T.rule === 'challenge' ? 'a mix of levels' : subOf(T).words(T, S)),
+  sayAll: (T, S) => (subOf(T).sayAll ? subOf(T).sayAll(T, S) : `Land on ${subOf(T).words(T, S)}!`),
+  miss: (T, spot, goal, S) => subOf(T).miss(T, spot, goal, S),
+  beam: (T) => !!(T && T.subKind && KINDS[T.subKind].beam),
+};
+
 // ---------- Settings: the shared ones, the line's left to the level (GC3), and the operations ----------
 // The line settings play on number levels; the operations on sums levels (empty: as the level says; F4).
 export const SCHEMA = {
@@ -132,6 +229,7 @@ runRocket({
   id: 'rocket-lander',
   name: 'Rocket Lander',
   schema: SCHEMA,
-  map: MAP,
-  kinds: { number: NUMBER, sums: SUMS },
+  tracks: TRACKS,
+  track: FIRST_TRACK,
+  kinds: { number: NUMBER, sums: SUMS, ask: ASK, challenge: CHALLENGE },
 });

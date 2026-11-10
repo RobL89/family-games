@@ -1,5 +1,7 @@
 // Number mode's rules: what a round asks for, whether a landing is right, and which
-// number to show after a miss (D-035, D-038). Which level to play is in
+// number to show after a miss (D-035, D-038). Version 1.1. Changes at v1.1 (step 2c-3a): a level
+// may keep its "any number" targets to part of its line (`pick`, such as 11 to 20 on a line of 10
+// to 20: Reception's bigger numbers, R07). Which level to play is in
 // games/_common/rocket/ladder.js, shared with Rocket Sums (step 2a-2). Pure: no page, clock or
 // randomness of its own. Anything random comes in as `rand`, a function giving numbers
 // from 0 up to (not including) 1, so a test can hand in a seeded one.
@@ -57,8 +59,9 @@ const pickFrom = (list, prevValue, rand) => {
 
 // One landing's target. `prev` is the last target, so the same number isn't asked twice
 // running. A rule the line can't ask for (no 1 to 6 for a dice face; not both an even and
-// an odd whole number) asks for any number instead.
-export function pickTarget(rule, line, prev, rand) {
+// an odd whole number) asks for any number instead. `pick` ([lo, hi]), if given, keeps any-number
+// targets inside lo to hi (unless none of the line is).
+export function pickTarget(rule, line, prev, rand, pick = null) {
   const prevValue = prev && prev.value !== undefined ? prev.value : NaN;
   if (rule === 'dice') {
     const faces = spots(line).filter((v) => whole(v) && v >= 1 && v <= 6);
@@ -68,7 +71,8 @@ export function pickTarget(rule, line, prev, rand) {
     const kinds = new Set(spots(line).filter(whole).map(parityOf));
     if (kinds.size === 2) return { rule: 'parity', parity: rand() < 0.5 ? 'even' : 'odd' };
   }
-  return { rule: 'any', value: pickFrom(spots(line), prevValue, rand) };
+  const all = spots(line), kept = pick ? all.filter((v) => v >= pick[0] - 1e-9 && v <= pick[1] + 1e-9) : all;
+  return { rule: 'any', value: pickFrom(kept.length ? kept : all, prevValue, rand) };
 }
 
 // Whether landing on `spot` is right. `allowed` is how far from a number still counts (long

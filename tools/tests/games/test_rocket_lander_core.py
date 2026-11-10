@@ -1,4 +1,17 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.6.
+"""Rocket Lander's pure core and its boundaries. Version 1.7.
+
+Changes at v1.7 (step 2c-3a, D-089 to D-094): two tracks. The tracks' progress (games/_common/rocket/
+tracks.js, format 4): a new device, a track given, a format 3 entry going to the stand-in track,
+switching and switching back, a map of an older edition started afresh, and junk. The maps (map.js
+2.0): the higher track is version 1.0's stand-in map, checked as before; the lower track holds
+Reception's three systems as the level plan says (its ids against plan_rocket_levels.py, which must
+pass on Rob's notes, now in the repo as syllabus-notes.json by Q-033), each 7 levels and a challenge,
+the new rows' numbers against the notes' params, and every sample a target its level can ask.
+Reception's questions (asks.js): what each can ask, the round's shares of more, fewer and the same,
+right and wrong for "more than" and "fewer than" and the number shown after a miss, and the
+challenge round's plan. Their faces (faces.js): the dots each picture draws. Sums may start taking
+away from 1 (sums.js 1.2, `minus_from`); Number mode may keep its targets to part of the line
+(rules.js 1.1, `pick`). The new files are held to the purity rule, strings included.
 
 Changes at v1.6 (step 2c-build, D-058, D-064): the progress on the map (games/_common/rocket/
 progress.js, format 3): the route, a new player, tidying odd progress, what a round changes (best
@@ -50,7 +63,8 @@ GAME = os.path.join(REPO, 'games', 'rocket-lander')
 COMMON = os.path.join(REPO, 'games', '_common', 'rocket')
 CORE = [(COMMON, 'numbers.js'), (COMMON, 'settings.js'), (COMMON, 'planets.js'), (COMMON, 'ladder.js'), (GAME, 'levels.js'), (GAME, 'rules.js')]
 # Held to the purity rule with strings included, as test_rocket_sums_core.py 1.2 held the sums files.
-STRICT = [(GAME, 'sums-levels.js'), (GAME, 'sums.js'), (GAME, 'map.js'), (COMMON, 'progress.js')]
+STRICT = [(GAME, 'sums-levels.js'), (GAME, 'sums.js'), (GAME, 'map.js'), (COMMON, 'progress.js'),
+          (COMMON, 'tracks.js'), (GAME, 'asks.js'), (GAME, 'faces.js')]
 fails = []
 
 
@@ -87,12 +101,16 @@ const windows = (ans, ops, r, n, seed) => { const rand = seeded(seed); const out
   for (let i = 0; i < n; i++) out.push(M.lineForSum({ answer: ans }, ops, r, rand)); return out; };
 // The map (map.js, D-058): each level's row, and whether its sample is a target the level can ask
 const ROWS = { number: L.LEVELS, sums: SL.LEVELS };
+const AK = await import(process.argv[2] + '/asks.js');
+const rowOf = (lv) => lv.row || (ROWS[lv.kind] || [])[lv.level - 1];
 const sampleOk = (lv) => {
-  const r = (ROWS[lv.kind] || [])[lv.level - 1], sm = lv.sample || {};
+  const r = rowOf(lv), sm = lv.sample || {};
+  if (lv.kind === 'challenge') return sm.rule === 'challenge' && !lv.row && !lv.level ? 'ok' : 'a challenge has no row of its own';
   if (!r) return 'no row';
+  if (lv.kind === 'ask') return AK.choices(r).some((T) => AK.keyOf(T) === AK.keyOf(sm) && JSON.stringify(T) === JSON.stringify(sm)) ? 'ok' : 'a question the level never asks';
   if (lv.kind === 'number') {
     const ln = N.makeLine({ from: r.from, to: r.to, step: 1 }), on = (v) => Number.isInteger(v) && v >= ln.from && v <= ln.to;
-    if (sm.rule === 'any') return r.mix.any > 0 && on(sm.value) ? 'ok' : 'any not asked or off the line';
+    if (sm.rule === 'any') return r.mix.any > 0 && on(sm.value) && (!r.pick || (sm.value >= r.pick[0] && sm.value <= r.pick[1])) ? 'ok' : 'any not asked or off the line';
     if (sm.rule === 'dice') return r.mix.dice > 0 && on(sm.value) && sm.value >= 1 && sm.value <= 6 ? 'ok' : 'dice not asked or not 1 to 6';
     if (sm.rule === 'parity') return r.mix.parity > 0 && ['even', 'odd'].includes(sm.parity) ? 'ok' : 'even or odd not asked';
     return 'unknown rule';
@@ -100,8 +118,12 @@ const sampleOk = (lv) => {
   const m = /^(\d+) (.) (\d+)$/.exec(sm.sum || '');
   if (sm.rule !== 'sum' || !m || !r.ops.includes(m[2])) return 'not a sum of the level\'s operations';
   const [a, op, b] = [Number(m[1]), m[2], Number(m[3])];
+  if (r.pictures && !(sm.a === a && sm.op === op && sm.b === b && sm.value === ({ '+': a + b, '−': a - b })[op])) return 'a pictured sum needs its numbers and answer';
   return M.partsOf(r).some((p) => M.facts(op, p).some((f) => f.a === a && f.b === b)) ? 'ok' : 'a sum the level never asks';
 };
+const sysOut = (systems) => systems.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv) => [lv.kind, lv.level ?? null]),
+  plan: sys.levels.map((lv) => lv.plan ?? null), rows: sys.levels.map((lv) => lv.row ?? null),
+  about: sys.levels.map((lv) => lv.about), samples: sys.levels.map(sampleOk) }));
 // a seeded random source (mulberry32), so every run draws the same targets
 const seeded = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -198,14 +220,13 @@ const out = {
     text: [M.sumText({ a: 3, op: '+', b: 4 }), M.sumText({ a: 20, op: '÷', b: 2 })],
   },
   map: {
-    standIn: MP.STAND_IN,
-    systems: MP.SYSTEMS.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv) => [lv.kind, lv.level]),
-      about: sys.levels.map((lv) => lv.about), samples: sys.levels.map(sampleOk) })),
+    first: MP.FIRST_TRACK,
+    tracks: Object.fromEntries(Object.entries(MP.TRACKS).map(([id, t]) => [id, { name: t.name, edition: t.edition, systems: sysOut(t.systems) }])),
   },
 };
 // The progress on the map (progress.js, D-058, D-064), on the stand-in map with the game's level ids
 const PG = await import(c + '/progress.js');
-const MAPX = MP.SYSTEMS.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}` })) }));
+const MAPX = MP.TRACKS.year2.systems.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}` })) }));
 const lv = (pairs) => Object.fromEntries(pairs.map(([id, stars, rocks]) => [id, { stars, rocks }]));
 const allMoon = (stars, rocks) => lv([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`moon-${n}`, stars, rocks]));
 const fin = (p, id, r) => { const before = JSON.stringify(p); const x = PG.finish(MAPX, p, id, r); return x && { ...x, untouched: JSON.stringify(p) === before }; };
@@ -252,6 +273,79 @@ out.progress = {
     return [[a.at, a.open], [b.at, b.open], c2 === b, JSON.stringify(P0) === JSON.stringify(PG.fresh(MAPX))]; })(),
   given: [1, '9', 16, 17, 'dust-2', 0, 2.5, 'x', null, undefined, ''].map((g) => PG.levelGiven(MAPX, g)),
 };
+// Tracks (tracks.js, D-089): the two maps' ids, as the game builds them
+const TK = await import(c + '/tracks.js');
+const idsOf = (t) => MP.TRACKS[t].systems.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((l, n) => ({ id: `${sys.id}-${n + 1}` })) }));
+const TR = Object.fromEntries(Object.keys(MP.TRACKS).map((t) => [t, { map: idsOf(t), edition: MP.TRACKS[t].edition }]));
+const F3 = { at: 'dust-2', open: 'dust-3', levels: { 'moon-1': { stars: 3, rocks: 8 } }, rocks: 40, landings: 50, ship: 'teapot', ships: ['classic', 'teapot'] };
+const u3 = TK.unpack(TR, F3, null, 'reception');
+const packed = TK.pack(TR, u3.track, u3.p, u3.others);
+const sw = TK.switchTrack(TR, packed, 'reception');
+const sw2 = { ...sw, at: 'moon-3', open: 'moon-4', levels: { 'moon-1': { stars: 2, rocks: 1 } }, rocks: 44 };
+out.tracks = {
+  STAND_IN: TK.STAND_IN,
+  fresh: TK.unpack(TR, null, null, 'reception'), freshGiven: TK.unpack(TR, null, 'year2', 'reception'), badGiven: TK.unpack(TR, {}, 'year9', 'reception'),
+  f3: u3, f3Reception: TK.unpack(TR, F3, 'reception', 'reception'), packed, switched: sw,
+  back: TK.switchTrack(TR, sw2, 'year2'), again: TK.switchTrack(TR, TK.switchTrack(TR, sw2, 'year2'), 'reception'),
+  stale: TK.unpack(TR, { track: 'reception', edition: 'lower-0', at: 'moon-3', open: 'moon-3', levels: { 'moon-1': { stars: 3, rocks: 2 } }, rocks: 9, maps: {} }, null, 'reception'),
+  junk: [null, 7, 'x', [], { track: 'nope', maps: 'x' }].map((j) => TK.unpack(TR, j, null, 'reception')),
+  noStandIn: TK.unpack({ reception: TR.reception }, F3, null, 'reception'),
+  given: ['reception', 'year2', 'year9', '', null, 'constructor'].map((g) => TK.trackGiven(TR, g)),
+};
+// Reception's questions (asks.js)
+const lowerRow = (s, n) => MP.TRACKS.reception.systems[s].levels[n - 1].row;
+const dotsOn = (html) => (html.match(/class="d-on"/g) || []).length;
+const count = (row, kind) => AK.choices(row, kind).length;
+const answers = (row) => AK.choices(row).filter((T) => T.value !== undefined).map((T) => T.value);
+out.asks = {
+  ASKS: AK.ASKS,
+  counts: { dots: count(lowerRow(0, 3)), flash: count(lowerRow(0, 5)), more: count(lowerRow(0, 6), 'more'), fewer: count(lowerRow(0, 6), 'fewer'),
+    same: count(lowerRow(0, 6), 'same'), oneMore: count(lowerRow(0, 7), 'more'), oneLess: count(lowerRow(0, 7), 'less'), bond5: count(lowerRow(1, 2)),
+    bond10: count(lowerRow(1, 7)), double: count(lowerRow(1, 5)), share: count(lowerRow(2, 6)) },
+  ranges: [[0, 3], [0, 5], [0, 6], [0, 7], [1, 2], [1, 5], [1, 7], [2, 6]].map(([s2, n]) => { const r = lowerRow(s2, n), a = answers(r);
+    return [r.ask, Math.min(...a), Math.max(...a), r.from, r.to]; }),
+  rangeFits: AK.choices(lowerRow(0, 6)).filter((T) => T.rule === 'range').every((T) => { for (let v = 0; v <= 10; v++) if (AK.relHolds(T.rel, v, T.n)) return true; return false; }),
+  shares: [AK.shares({ more: 2, fewer: 2, same: 1 }, 8), AK.shares({ more: 2, fewer: 2, same: 1 }, 5), AK.shares({ more: 2, fewer: 2, same: 1 }, 3), AK.shares({}, 8)],
+  planCompare: AK.planAsks(lowerRow(0, 6), 8, seeded(3)),
+  planMoreLess: [AK.planAsks(lowerRow(0, 7), 8, seeded(1)), AK.planAsks(lowerRow(0, 7), 5, seeded(2))],
+  planDots: AK.planAsks(lowerRow(0, 3), 4, seeded(1)),
+  repeats: [[0, 3], [0, 5], [0, 6], [0, 7], [1, 2], [1, 5], [1, 7], [2, 6]].map(([s2, n]) => { const r = lowerRow(s2, n), plan = AK.planAsks(r, 300, seeded(5));
+    const rand = seeded(9); let prev = null, same = 0, bad = 0; const seen = new Set();
+    for (const k of plan) { const T = AK.askTarget(r, k, prev, rand); if (prev && AK.keyOf(T) === AK.keyOf(prev)) same++; if ((k && T.rel !== k && T.dir !== k)) bad++; seen.add(AK.keyOf(T)); prev = T; }
+    return [r.ask, same, bad, seen.size, new Set(AK.choices(r).map(AK.keyOf)).size]; }),
+  right: [
+    [{ rule: 'range', rel: 'more', n: 3 }, [4, 3, 3.5, 10, 0]], [{ rule: 'range', rel: 'fewer', n: 3 }, [2, 0, 3, 2.5, 9]],
+    [{ rule: 'ask', ask: 'compare', rel: 'same', n: 3, value: 3 }, [3, 4]], [{ rule: 'ask', value: 7 }, [7, 8]],
+  ].map(([T, spots]) => spots.map((v) => AK.isRight(T, v))),
+  near: AK.isRight({ rule: 'ask', value: 7 }, 8, 1),
+  goal: (() => { const ln = N.makeLine({ from: 0, to: 10, step: 1 }); return [
+    AK.goalOf({ rule: 'range', rel: 'more', n: 3 }, 1.2, ln), AK.goalOf({ rule: 'range', rel: 'more', n: 3 }, 8.6, ln),
+    AK.goalOf({ rule: 'range', rel: 'fewer', n: 4 }, 7.2, ln), AK.goalOf({ rule: 'range', rel: 'more', n: 2 }, 4.5, ln),
+    AK.goalOf({ rule: 'range', rel: 'fewer', n: 1 }, 6, ln), AK.goalOf({ rule: 'ask', value: 6 }, 2, ln)]; })(),
+  challenge: [AK.planChallenge(7, 8, seeded(1)), AK.planChallenge(7, 8, seeded(2)), AK.planChallenge(7, 3, seeded(3)), AK.planChallenge(7, 20, seeded(4))],
+};
+// Their faces (faces.js): the dots drawn
+const FC = await import(process.argv[2] + '/faces.js');
+const chip = (T) => FC.faceChip(T).html;
+const n = (html, cls) => (html.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
+out.faces = {
+  dots: [1, 5, 6, 10].map((k) => [dotsOn(chip({ ask: 'dots', n: k })), n(chip({ ask: 'dots', n: k }), 'dots r' + (k > 5 ? 2 : 1))]),
+  flash: [0, 1, 2].map((look) => [1, 3, 5].map((k) => dotsOn(chip({ ask: 'flash', n: k, look, ms: 1500 })))),
+  flashMs: chip({ ask: 'flash', n: 3, look: 0, ms: 1500 }).includes('--show:1500ms'),
+  compare: ['more', 'fewer', 'same'].map((rel) => { const h = chip({ ask: 'compare', rel, n: 4 }); return [dotsOn(h), /more than|fewer than|the same as/.exec(h)[0]]; }),
+  moreLess: [chip({ ask: 'more-less', dir: 'more', n: 6 }), chip({ ask: 'more-less', dir: 'less', n: 6 })].map((h) => [/1 (more|less) than/.exec(h)[0], />6</.test(h), dotsOn(h)]),
+  bond: [[5, 3], [10, 6], [10, 1]].map(([w, p]) => { const h = chip({ ask: 'bond', whole: w, part: p }); return [dotsOn(h), n(h, 'd-empty'), n(h, 'f-cell')]; }),
+  double: [1, 3, 5].map((k) => dotsOn(chip({ ask: 'double', n: k }))),
+  share: [[6, 2], [10, 2]].map(([t, g]) => { const h = chip({ ask: 'share', total: t, groups: g }); return [n(h, 'sw'), n(h, 'plate')]; }),
+  sums: [FC.picturedSum({ a: 2, op: '+', b: 3 }), FC.picturedSum({ a: 5, op: '−', b: 2 }), FC.picturedSum({ a: 0, op: '+', b: 4 })].map((c2) => [dotsOn(c2.html), n(c2.html, 'd-gone'), c2.cls]),
+};
+// Sums taking away from 1 (sums.js 1.2) and Number mode's kept targets (rules.js 1.1)
+out.minusFrom = summary(M.facts('−', { minus_max: 5, minus_from: 1 }));
+out.minusPlain = summary(M.facts('−', { minus_max: 5 }));
+out.pick = (() => { const ln = N.makeLine({ from: 10, to: 20, step: 1 }), rand = seeded(6); let prev = null; const vs = [];
+  for (let i = 0; i < 300; i++) { const T = RU.pickTarget('any', ln, prev, rand, [11, 20]); vs.push(T.value); prev = T; }
+  const none = RU.pickTarget('any', ln, null, seeded(1), [30, 40]).value;
+  return { min: Math.min(...vs), max: Math.max(...vs), kinds: new Set(vs).size, none }; })();
 console.log(JSON.stringify(out));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + COMMON, 'file://' + GAME], capture_output=True, text=True)
@@ -462,20 +556,153 @@ check(so['partLines'] == [{'from': 0, 'to': 5, 'step': 1, 'label_every': 1}, {'f
 check(so['noZero'] == 0, f"asked to, makeSum leaves out sums answering 0 (− to 5, 300 draws): {so['noZero']} zeros")
 check(so['zeroOnly'] == 0, 'if every sum answers 0, one is still asked rather than none')
 
-# ---------- The map of solar systems (map.js, D-058, D-068): stand-in levels ----------
+# ---------- The maps of solar systems (map.js 2.0, D-058, D-089): a map for each track ----------
 mp = o['map']
-check(bool(mp['standIn']) and 'stand-in' in mp['standIn'].lower(), f"map.js is marked stand-in until the level plan: {mp['standIn']!r}")
-check([x['id'] for x in mp['systems']] == ['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed'],
-      f"six systems, in the planets' order: {[x['id'] for x in mp['systems']]}")
-moon, dust = mp['systems'][0], mp['systems'][1]
-check(moon['levels'] == [['number', n] for n in range(1, 9)] and not moon['soon'], f"Moon holds Number mode's eight levels, 1 to 8 (D-068): {moon['levels']}")
-check(dust['levels'] == [['sums', n] for n in range(1, 9)] and not dust['soon'], f"Red Dust holds the eight sums levels, 1 to 8 (D-068): {dust['levels']}")
-check(all(x['soon'] and x['levels'] == [] for x in mp['systems'][2:]), 'Candy, Ice, Jungle and Ringed are coming soon, with no levels yet')
-check(all(isinstance(t, str) and 0 < len(t) <= 32 for x in mp['systems'] for t in x['about']),
-      f"every level says what it asks, in a few words (32 letters at most): {[t for x in mp['systems'] for t in x['about'] if not (isinstance(t, str) and 0 < len(t) <= 32)]}")
-bad = [(x['id'], i + 1, r) for x in mp['systems'] for i, r in enumerate(x['samples']) if r != 'ok']
+TRK = mp['tracks']
+check(list(TRK) == ['reception', 'year2'] and mp['first'] == 'reception',
+      f"two tracks, lower (reception) and higher (year2); a new device starts on the lower (D-089): {list(TRK)}, first {mp['first']}")
+check(all([x['id'] for x in t['systems']] == ['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed'] for t in TRK.values()),
+      "each track has the same six systems, in the planets' order")
+# The higher track: version 1.0's stand-in levels until step 2c-3b, checked as map.js 1.0 was
+hi = TRK['year2']
+check(hi['edition'] == 'stand-in' and 'stand-in' in hi['name'], f"the higher track is the stand-in map until step 2c-3b: {hi['edition']!r}, {hi['name']!r}")
+moon, dust = hi['systems'][0], hi['systems'][1]
+check(moon['levels'] == [['number', n] for n in range(1, 9)] and not moon['soon'], f"its Moon holds Number mode's eight levels, 1 to 8 (D-068): {moon['levels']}")
+check(dust['levels'] == [['sums', n] for n in range(1, 9)] and not dust['soon'], f"its Red Dust holds the eight sums levels, 1 to 8 (D-068): {dust['levels']}")
+check(all(x['soon'] and x['levels'] == [] for x in hi['systems'][2:]), 'its Candy, Ice, Jungle and Ringed are coming soon, with no levels yet')
+# The lower track: Reception's three systems, as the level plan says (D-091)
+lo = TRK['reception']
+check(lo['edition'] not in ('', 'stand-in'), f"the lower track has an edition of its own: {lo['edition']!r}")
+check(all(len(x['levels']) == 8 and not x['soon'] for x in lo['systems'][:3]) and all(x['soon'] and x['levels'] == [] for x in lo['systems'][3:]),
+      'lower track: Moon, Red Dust and Candy hold 8 levels each; Ice, Jungle and Ringed (Year 1, step 2c-3c) are coming soon')
+check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in lo['systems'][:3]) and
+      all(k != 'challenge' for x in lo['systems'][:3] for k, _ in x['levels'][:7]),
+      'each of them ends in a challenge round, and only there (D-091)')
+sys.path.insert(0, HERE)
+import plan_rocket_levels as PLANS  # noqa: E402
+want_plan = PLANS.PLAN['reception']['systems'][:3]
+got_plan = [x['plan'][:7] for x in lo['systems'][:3]]
+check(got_plan == want_plan, f'lower track levels 1 to 7 are the level plan\'s, in its order (plan_rocket_levels.py): {got_plan}')
+NOTES = os.path.join(HERE, 'syllabus-notes.json')
+pr_run = subprocess.run([sys.executable, '-B', os.path.join(HERE, 'plan_rocket_levels.py'), NOTES], capture_output=True, text=True)
+check(pr_run.returncode == 0 and 'plan checks pass' in pr_run.stdout, "the level plan passes its checks against Rob's notes in the repo (Q-033)")
+notes = {lv['id']: lv['params'] for lv in json.load(open(NOTES, encoding='utf-8'))['levels']}
+check('players' not in json.load(open(NOTES, encoding='utf-8'))['meta'], "the notes in the repo hold no ages (meta.players removed, D-011)")
+byplan = {pl: (k, r) for x in lo['systems'][:3] for pl, (k, _), r in zip(x['plan'], x['levels'], x['rows'])}
+P = lambda i: notes[i]  # noqa: E731
+row = lambda i: byplan[i][1]  # noqa: E731
+want_rows = [
+    ('R03', row('R03')['ask'] == 'dots' and [row('R03')['min'], row('R03')['max']] == [P('R03')['min'], P('R03')['max']]),
+    ('R04', row('R04')['ask'] == 'flash' and [row('R04')['min'], row('R04')['max'], row('R04')['show_ms']] == [P('R04')['min'], P('R04')['max'], P('R04')['show_ms']]),
+    ('R05', row('R05')['ask'] == 'compare' and [row('R05')['min'], row('R05')['max']] == [P('R05')['min'], P('R05')['max']] and row('R05')['rels']['same'] > 0 and P('R05')['include_same']),
+    ('R06', row('R06')['ask'] == 'more-less' and [row('R06')['min'], row('R06')['max']] == [P('R06')['min'], P('R06')['max']]),
+    ('R07', row('R07')['pick'] == [P('R07')['min'], P('R07')['max']] and row('R07')['from'] <= P('R07')['min'] and row('R07')['to'] == P('R07')['max']),
+    ('R08', row('R08')['ask'] == 'bond' and row('R08')['whole'] == P('R08')['target'] and P('R08')['show_objects']),
+    ('R09', row('R09')['plus_max'] == P('R09')['answer_max'] and row('R09')['pictures'] == P('R09')['show_objects'] and row('R09')['ops'] == ['+']),
+    ('R10', [row('R10')['minus_from'], row('R10')['minus_max']] == P('R10')['start'] and row('R10')['pictures'] == P('R10')['show_objects'] and row('R10')['ops'] == ['−']),
+    ('R11', row('R11')['ask'] == 'double' and row('R11')['max'] == P('R11')['max_base']),
+    ('R12', row('R12')['ask'] == 'bond' and row('R12')['whole'] == P('R12')['target'] and P('R12')['show_objects']),
+    ('R16', row('R16')['ask'] == 'share' and row('R16')['total_max'] == P('R16')['total_max'] and [row('R16')['groups']] == P('R16')['groups']),
+    ('X-dice6', row('X-dice6')['labels'] == 'dice' and [row('X-dice6')['from'], row('X-dice6')['to']] == [0, 6] and row('X-dice6')['mix'] == {'any': 1}),
+    ('X-dice12', row('X-dice12')['labels'] == 'dice' and [row('X-dice12')['from'], row('X-dice12')['to']] == [0, 12] and row('X-dice12')['mix'] == {'any': 1}),
+]
+check(all(ok for _, ok in want_rows), f"the new rows' numbers are the notes' params (dice lines: D-060, D-067, 0 to 6 and 0 to 12, written-number targets): {[i for i, ok in want_rows if not ok]}")
+reused = {pl: lvl for x in lo['systems'][:3] for pl, (k, lvl) in zip(x['plan'], x['levels']) if lvl is not None}
+check(reused == {'R01': 1, 'R02': 2, 'X-odd-faint': 5, 'R13': 1, 'R14': 2, 'X-mix10': 3, 'R15': 3, 'X-parity-faint': 4},
+      f"levels that play today reuse today's rows: Number mode 1, 2, 5, 3, 4 and sums 1, 2, 3 (level plan section 2): {reused}")
+check(all(isinstance(t, str) and 0 < len(t) <= 32 for tr in TRK.values() for x in tr['systems'] for t in x['about']),
+      f"every level says what it asks, in a few words (32 letters at most): {[t for tr in TRK.values() for x in tr['systems'] for t in x['about'] if not (isinstance(t, str) and 0 < len(t) <= 32)]}")
+bad = [(k, x['id'], i + 1, r) for k, tr in TRK.items() for x in tr['systems'] for i, r in enumerate(x['samples']) if r != 'ok']
 check(not bad, f'every level\'s sample chip is a target the level can ask: {bad}')
 check(not os.path.exists(os.path.join(REPO, 'games', 'rocket-sums')), 'games/rocket-sums/ is retired: the sums tile is part of Rocket Lander now (D-058)')
+
+# ---------- The tracks' progress (tracks.js, D-089): format 4 ----------
+tk = o['tracks']
+check(tk['STAND_IN'] == 'stand-in', f"the stand-in edition's name: {tk['STAND_IN']!r}")
+check(tk['fresh'] == {'track': 'reception', 'p': {}, 'others': {}} and tk['freshGiven']['track'] == 'year2' and tk['badGiven']['track'] == 'reception',
+      f"a new device: the first track, nothing kept; a track given is played; an unknown one isn't: {tk['fresh']}, {tk['freshGiven']['track']}, {tk['badGiven']['track']}")
+f3 = tk['f3']
+check(f3['track'] == 'year2' and f3['p'] == {'at': 'dust-2', 'open': 'dust-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}}, 'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+      and f3['others'] == {}, f"a format 3 entry (made on the stand-in levels) plays on the stand-in track, all of it kept: {f3}")
+f3r = tk['f3Reception']
+check(f3r['track'] == 'reception' and f3r['p'] == {'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+      and f3r['others'] == {'year2': {'edition': 'stand-in', 'at': 'dust-2', 'open': 'dust-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}}}},
+      f"the same entry with the lower track asked for: a new map there, the rocks and ships kept, the stand-in map put by: {f3r}")
+pk = tk['packed']
+check(pk == {'track': 'year2', 'edition': 'stand-in', 'at': 'dust-2', 'open': 'dust-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}}, 'rocks': 40, 'landings': 50,
+             'ship': 'teapot', 'ships': ['classic', 'teapot'], 'maps': {}}, f"format 4 kept: the track, its edition and map at the top, as format 3 had it; no other maps yet: {pk}")
+sw = tk['switched']
+check(sw == {'track': 'reception', 'edition': lo['edition'], 'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot'],
+             'maps': {'year2': {'edition': 'stand-in', 'at': 'dust-2', 'open': 'dust-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}}}}},
+      f"switching to the lower track: its map starts afresh, rocks and ships stay, the higher's map is put by: {sw}")
+bk = tk['back']
+check(bk['track'] == 'year2' and bk['at'] == 'dust-2' and bk['open'] == 'dust-3' and bk['rocks'] == 44
+      and bk['maps'] == {'reception': {'edition': lo['edition'], 'at': 'moon-3', 'open': 'moon-4', 'levels': {'moon-1': {'stars': 2, 'rocks': 1}}}},
+      f"and back: the higher map as it was left, the rocks earned meanwhile kept (44), the lower map put by: {bk}")
+check(tk['again'] == {**sw, 'at': 'moon-3', 'open': 'moon-4', 'levels': {'moon-1': {'stars': 2, 'rocks': 1}}, 'rocks': 44},
+      'switching there and back again gives the same progress: nothing lost or doubled')
+st = tk['stale']
+check(st['track'] == 'reception' and st['p'] == {'rocks': 9} and st['others'] == {},
+      f"a map kept from an older edition of the track's map starts afresh; the rocks stay: {st}")
+check(all(j == {'track': 'reception', 'p': {}, 'others': {}} for j in tk['junk']), f"junk kept (null, a number, a word, a list, odd fields): a new device: {tk['junk']}")
+check(tk['noStandIn'] == {'track': 'reception', 'p': {'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot']}, 'others': {}},
+      f"a format 3 entry when no track is the stand-in any more: only its rocks, landings and ships are kept: {tk['noStandIn']}")
+check(tk['given'] == ['reception', 'year2', None, None, None, None], f"only the game's own tracks are taken as given ('constructor' isn't one): {tk['given']}")
+
+# ---------- Reception's questions (asks.js, level plan section 5) ----------
+ak = o['asks']
+check(ak['ASKS'] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share'], f"seven kinds of question: {ak['ASKS']}")
+# dots 1 to 10: 10; a quick look 1 to 5, three ways each: 15; more than 1 to 9: 9; fewer than 1 to 10: 10; the same as 1 to 10: 10;
+# one more than 0 to 9: 10; one less than 1 to 10: 10; make 5 from 1 to 4: 4; make 10 from 1 to 9: 9; double 1 to 5: 5; 2 to 10 shared by 2: 5
+check(ak['counts'] == {'dots': 10, 'flash': 15, 'more': 9, 'fewer': 10, 'same': 10, 'oneMore': 10, 'oneLess': 10, 'bond5': 4, 'bond10': 9, 'double': 5, 'share': 5},
+      f"what each can ask (worked out by hand): {ak['counts']}")
+want_rng = [['dots', 1, 10, 0, 10], ['flash', 1, 5, 0, 5], ['compare', 1, 10, 0, 10], ['more-less', 0, 10, 0, 10],
+            ['bond', 1, 4, 0, 5], ['double', 2, 10, 0, 10], ['bond', 1, 9, 0, 10], ['share', 1, 5, 0, 5]]
+check(ak['ranges'] == want_rng, f"every answer is on its level's line: dots 1 to 10; a quick look 1 to 5; one more or less 0 to 10; make 5: 1 to 4; doubles 2 to 10; shares 1 to 5: {ak['ranges']}")
+check(ak['rangeFits'], 'every "more than" and "fewer than" has a number on the line that fits')
+# 2:2:1 of 8 is 3.2, 3.2, 1.6: floors 3 + 3 + 1 = 7, the one left to the biggest remainder (.6, same): 3, 3, 2.
+# Of 5: 2, 2, 1 exactly. Of 3: 1.2, 1.2, .6: floors 1 + 1 + 0, one left to .6: 1, 1, 1.
+check(ak['shares'] == [{'more': 3, 'fewer': 3, 'same': 2}, {'more': 2, 'fewer': 2, 'same': 1}, {'more': 1, 'fewer': 1, 'same': 1}, {}],
+      f"a round's shares of more, fewer and the same (2, 2, 1), by largest remainder: {ak['shares']}")
+pc = ak['planCompare']
+check(len(pc) == 8 and pc.count('more') == 3 and pc.count('fewer') == 3 and pc.count('same') == 2, f"a compare round of 8: 3 more, 3 fewer, 2 the same, shuffled: {pc}")
+pm = ak['planMoreLess']
+check(all(len(x) == k and all(x[i] != x[i + 1] for i in range(k - 1)) and set(x) == {'more', 'less'} for x, k in zip(pm, [8, 5])),
+      f"one more and one less take turns: {pm}")
+check(ak['planDots'] == [None] * 4, 'other questions have one kind of landing')
+check(all(same == 0 and bad == 0 and seen == total for _, same, bad, seen, total in ak['repeats']),
+      f"300 questions each (seeded): never the same twice running, always the landing's kind, every question asked at some point (a quick look's three layouts count as one question): {ak['repeats']}")
+check(ak['right'] == [[True, False, False, True, False], [True, True, False, False, False], [True, False], [True, False]],
+      f"right or wrong: more than 3: 4 and 10 yes, 3, 3.5 and 0 no; fewer than 3: 2 and 0 yes, 3, 2.5 and 9 no; the same as 3: 3; an answer of 7: 7: {ak['right']}")
+check(ak['near'], 'a long line\'s leeway counts for an answer, as Number mode does')
+check(ak['goal'] == [4, 9, 3, 4, 0, 6],
+      f"after a miss: more than 3 from 1.2: 4; from 8.6: 9; fewer than 4 from 7.2: 3; more than 2 from 4.5: 4 (4 and 5 tie, the lower); fewer than 1: 0; an answer: itself: {ak['goal']}")
+ch = ak['challenge']
+check(all(len(x) == 8 and sorted(set(x)) == list(range(7)) and len(x) - len(set(x)) == 1 for x in ch[:2]) and ch[0] != ch[1],
+      f"a challenge round of 8 from 7 levels: each level once and one more, shuffled: {ch[:2]}")
+check(len(ch[2]) == 3 and len(set(ch[2])) == 3 and len(ch[3]) == 20 and min(ch[3].count(i) for i in range(7)) == 2,
+      f"with 3 landings, three different levels; with 20, every level at least twice: {ch[2]}, {ch[3]}")
+
+# ---------- Their faces (faces.js): the dots drawn ----------
+fc = o['faces']
+check(fc['dots'] == [[1, 1], [5, 1], [6, 1], [10, 1]], f"dots to count: 1, 5, 6 and 10 dots, 6 and 10 in two rows of 5 (a ten frame's order): {fc['dots']}")
+check(fc['flash'] == [[1, 3, 5]] * 3 and fc['flashMs'], f"a quick look shows its dots every way (dice, row, scatter) and hides them after 1500 ms: {fc['flash']}")
+check(fc['compare'] == [[4, 'more than'], [4, 'fewer than'], [4, 'the same as']], f"more, fewer or the same as 4 dots: {fc['compare']}")
+check(fc['moreLess'] == [['1 more than', True, 0], ['1 less than', True, 0]], f"one more or less than 6, in words and the number: {fc['moreLess']}")
+check(fc['bond'] == [[3, 2, 5], [6, 4, 10], [1, 9, 10]], f"make 5 from 3: 3 dots and 2 empty places in a frame of 5; make 10 from 6 and from 1: {fc['bond']}")
+check(fc['double'] == [2, 6, 10], f"double 1, 3 and 5: the dots twice over: {fc['double']}")
+check(fc['share'] == [[6, 2], [10, 2]], f"6 and 10 sweets shared by 2 plates: {fc['share']}")
+check(fc['sums'] == [[5, 0, 'face face-sum'], [3, 2, 'face face-sum'], [4, 0, 'face face-sum']],
+      f"pictured sums (Q-033): 2 + 3 shows 2 and 3 dots; 5 − 2 shows five, the last two crossed out; 0 + 4 shows none and 4: {fc['sums']}")
+
+# ---------- Taking away from 1 (sums.js 1.2) and kept targets (rules.js 1.1) ----------
+mf, mpl = o['minusFrom'], o['minusPlain']
+# from 1 to 5, each b from 0 to a: 2 + 3 + 4 + 5 + 6 = 20 sums; from 0, one more (0 − 0): 21
+check(mf['n'] == 20 and mf['minA'] == 1 and mf['maxA'] == 5 and mf['minAns'] == 0 and mpl['n'] == 21 and mpl['minA'] == 0,
+      f"taking away within 5, from 1 to 5 (R10): 20 sums, the smallest from 1; without it, 21 from 0: {mf}, {mpl['n']}")
+pk2 = o['pick']
+check(pk2['min'] == 11 and pk2['max'] == 20 and pk2['kinds'] == 10 and 10 <= pk2['none'] <= 20,
+      f"on a line of 10 to 20, targets kept to 11 to 20 (R07): 300 draws give 11 to 20, all 10 of them; a range off the line keeps the whole line: {pk2}")
 
 # ---------- The progress on the map (progress.js, D-058, D-064): format 3's rules ----------
 pr = o['progress']

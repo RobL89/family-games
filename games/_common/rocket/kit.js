@@ -1,5 +1,8 @@
 // The rocket games' own small kit, in place of the old launcher's shared/game-kit.js, so a
-// game runs on its own as a plain page (D-004, D-014). Version 1.3. Changes at v1.3 (step
+// game runs on its own as a plain page (D-004, D-014). Version 1.4. Changes at v1.4 (step 2c-3a,
+// D-089): the entry is at format version 4 (tracks.js: the track played and each track's map, with the
+// rocks, landings and ships shared), and a format 3 entry is still read: tracks.js puts its map on the
+// stand-in track. Changes at v1.3 (step
 // 2c-build, D-058): one game with a map: its entry is at format version 3 (progress.js: the rocket's
 // place, how far the map is open, each level's best stars and rocks found, rocks, landings, ships),
 // and formats 1 and 2 are no longer read, so test progress starts afresh. Changes at v1.2 (step
@@ -39,13 +42,15 @@ export const reported = () => results.map(copy);
 export function saveState(state) { saved = copy(state || {}); return true; }
 export const savedState = () => (saved ? copy(saved) : null);
 
-// The game's progress on this device (D-042, D-058): one entry, "family-games:<game>:progress",
-// holding { v: 3, ...state }, the map's progress in format 3 (progress.js) with the ships (D-053).
-// Formats 1 and 2 (the two tiles' planets) are not read: the map starts afresh. If storage is
-// blocked or full, or the entry is broken or of another format version, nothing is kept or read
-// back, and the game plays on from the start. One child per device until the shell keeps it (D-058).
-const FORMAT = 3;
-const READS = [3];
+// The game's progress on this device (D-042, D-058, D-089): one entry, "family-games:<game>:progress",
+// holding { v: 4, ...state }, the progress in format 4 (tracks.js: the track's map in format 3, as
+// progress.js has it, the other tracks' maps, and the ships, D-053). A format 3 entry is read as it
+// is (tracks.js tells the two apart). Formats 1 and 2 (the two tiles' planets) are not read: the map
+// starts afresh. If storage is blocked or full, or the entry is broken or of another format version,
+// nothing is kept or read back, and the game plays on from the start. One child per device until the
+// shell keeps it (D-058).
+const FORMAT = 4;
+const READS = [3, 4];
 const entryOf = (tile) => `family-games:${tile}:progress`;
 export function keepOnDevice(tile, state) {
   try {

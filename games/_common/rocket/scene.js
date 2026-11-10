@@ -1,5 +1,8 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
+// Version 1.4. Changes at v1.4 (step 2c-3a, D-060, D-067): dice lines: the label look 'dice' shows
+// every mark's number as dice faces (0 an empty face; 7 to 12 a 6 with the rest stacked under it),
+// as big as the gaps and the ground allow, and the right number lit up after a miss shows its dice.
 // Version 1.3. Changes at v1.3 (step 2c-build, D-066): setBare(true) draws the planet's sky and ground
 // without the number line, its numbers and lights, as the map's backdrop. Changes at v1.2 (step 2a-4b): the round may hand in its own drawing for the ship
 // flown (v.drawShip, D-053); without one, today's rocket is drawn as before.
@@ -458,6 +461,20 @@ export function drawRock(ctx, x, y, r, rot = 0) {
 
 // ---------- Bip's moment at the end of a round (D-025, D-044) ----------
 
+// A dice face (D-060), its top-left corner at (x, y), `d` wide: n pips (0 is an empty face).
+const DIE_PIPS = { 0: [], 1: [[0.5, 0.5]], 2: [[0.27, 0.27], [0.73, 0.73]], 3: [[0.27, 0.27], [0.5, 0.5], [0.73, 0.73]],
+  4: [[0.27, 0.27], [0.73, 0.27], [0.27, 0.73], [0.73, 0.73]], 5: [[0.27, 0.27], [0.73, 0.27], [0.5, 0.5], [0.27, 0.73], [0.73, 0.73]],
+  6: [[0.27, 0.25], [0.73, 0.25], [0.27, 0.5], [0.73, 0.5], [0.27, 0.75], [0.73, 0.75]] };
+export function drawDie(ctx, x, y, d, n, { fill = '#FFFFFF', pip = INK } = {}) {
+  rr(ctx, x, y, d, d, d * 0.22);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = Math.max(1.5, d * 0.09); ctx.strokeStyle = INK; ctx.stroke();
+  ctx.fillStyle = pip;
+  for (const [px, py] of DIE_PIPS[Math.max(0, Math.min(6, Math.round(n)))]) { ctx.beginPath(); ctx.arc(x + px * d, y + py * d, d * 0.095, 0, TAU); ctx.fill(); }
+}
+// The dice for a number on a dice line: up to 6 one die; 7 to 12 a 6 with the rest stacked under it.
+export const diceFor = (v) => { const n = Math.max(0, Math.round(v)); return n <= 6 ? [n] : [6, Math.min(6, n - 6)]; };
+
 function starPath(ctx, x, y, r) {
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
@@ -723,9 +740,12 @@ export class Scene {
 
   // How the written numbers look (Number mode's levels, D-035, D-038): 'plain' (white),
   // 'parity' (even and odd in the stylesheet's --even and --odd colours), 'parity-faint'
-  // (those colours faded towards white) or 'odd-faint' (odd numbers faint).
+  // (those colours faded towards white) or 'odd-faint' (odd numbers faint); or 'dice' (D-060,
+  // D-067): every mark's number shown as dice faces, laid out to fit (step 2c-3a).
   setLabelLook(look = 'plain') {
+    const relay = (look === 'dice') !== (this.labelLook === 'dice');
     this.labelLook = look;
+    if (relay && this.W && this.line) this.layout();
     const cs = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
     const v = (name) => (cs && cs.getPropertyValue(name).trim()) || '#FFFFFF';
     this.parityColours = { even: v('--even'), odd: v('--odd') };
@@ -760,6 +780,7 @@ export class Scene {
   fitLabels() {
     const { line, ctx, W } = this;
     if (!line) { this.x0 = 40; this.x1 = W - 40; this.ppu = 1; this.pps = 1; this.shown = []; this.shownIdx = []; this.fs = 20; return; }
+    if (this.labelLook === 'dice') { this.fitDice(); return; }
     const base = clamp(this.groundH * 0.25, 17, 36);
     const MIN = 15;
     ctx.font = `600 ${base}px ${FONT}`;
@@ -803,6 +824,26 @@ export class Scene {
     this.shown = shownIdx.map((i) => ({ i, text: text(i) }));
     this.x0 = margin; this.x1 = W - margin;
     this.pps = pps; this.ppu = pps / line.step;
+  }
+
+  // A dice line (D-060): a face under every mark, as big as the gaps and the ground allow; numbers
+  // past 6 are two dice stacked, so the ground must hold two.
+  fitDice() {
+    const { line, W } = this;
+    const last = line.gaps, two = line.value(last) > 6;
+    const room = this.groundH - 23; // under the strip, above the screen's edge
+    const dMax = Math.min(34, two ? room / 2.14 : room);
+    const margin0 = Math.max(30, W * 0.045);
+    const pps = (W - margin0 * 2) / last;
+    const d = clamp(Math.min(pps * 0.8, dMax), 12, 34);
+    const margin = Math.max(margin0, d / 2 + 14);
+    this.notes = [];
+    this.dieSize = d;
+    this.fs = Math.round(clamp(d * 0.9, 15, 36));
+    this.shownIdx = Array.from({ length: last + 1 }, (_, i) => i);
+    this.shown = this.shownIdx.map((i) => ({ i, text: fmt(line.value(i), this.showAs) }));
+    this.x0 = margin; this.x1 = W - margin;
+    this.pps = (W - margin * 2) / last; this.ppu = this.pps / line.step;
   }
 
   xOf(v) { return this.x0 + (v - this.line.from) * this.ppu; }
@@ -1032,6 +1073,16 @@ export class Scene {
     // The numbers themselves are drawn each frame by drawLabels() (RL-3); here only where they go.
     const lw = Math.max(3, fs * 0.28);
     this.labelStyle = { fs, lw, ly };
+    if (this.labelLook === 'dice') {
+      const d = this.dieSize, top = gy + 17;
+      this.labelStyle = { fs, lw, ly, dice: true, d, top };
+      this.labelBoxes = this.shown.map(({ i, text }) => {
+        const px = x0 + i * pps, k = diceFor(line.value(i)).length;
+        return { i, text, px, x: px - d / 2 - 1, y: top - 1, w: d + 2, h: k * d + (k - 1) * d * 0.14 + 2, alpha: 1 };
+      });
+      this.labelY = ly;
+      return;
+    }
     this.labelBoxes = this.shown.map(({ i, text }) => {
       const px = x0 + i * pps;
       const w = x.measureText(text).width + lw;
@@ -1223,6 +1274,15 @@ export class Scene {
     ctx.globalAlpha = a;
     rr(ctx, px - 3.5, gy - 18, 7, 36, 3.5); ctx.fillStyle = INK; ctx.fill();
     rr(ctx, px - 2, gy - 16.5, 4, 33, 2); ctx.fillStyle = SUN; ctx.fill();
+    if (this.labelLook === 'dice' && this.labelStyle && this.labelStyle.dice) {
+      // a dice line: the right number's dice, bigger, in the sun's box
+      const H2 = this.highlightBox(Hl);
+      rr(ctx, H2.x + 1.5, H2.y + 1.5, H2.w - 3, H2.h - 3, H2.dd * 0.35);
+      ctx.fillStyle = SUN; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+      H2.dice.forEach((n, j) => drawDie(ctx, H2.bx - H2.dd / 2, H2.y + 7 + j * H2.dd * 1.14, H2.dd, n));
+      ctx.globalAlpha = 1;
+      return;
+    }
     const { fs, text, bx, cy, tw } = this.highlightBox(Hl);
     ctx.font = `600 ${fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     rr(ctx, bx - tw / 2 - 9, cy - fs * 0.68, tw + 18, fs * 1.36, fs * 0.5);
@@ -1233,6 +1293,13 @@ export class Scene {
 
   // Where the lit-up number's box sits, outline included (x, y, w, h), and what's in it.
   highlightBox(Hl) {
+    if (this.labelLook === 'dice' && this.labelStyle && this.labelStyle.dice) {
+      const dice = diceFor(Hl.value), k = dice.length;
+      const dd = Math.min(this.dieSize * 1.15, (this.H - (this.groundY + 9) - 18) / (k + (k - 1) * 0.14)); // fits above the screen's edge
+      const w = dd + 14, h = k * dd + (k - 1) * dd * 0.14 + 14;
+      const bx = clamp(this.xOf(Hl.value), w / 2 + 6, this.W - w / 2 - 6), y = this.groundY + 17 - 8;
+      return { dice, dd, bx, text: fmt(Hl.value, this.showAs), x: bx - w / 2, y, w, h, a: Hl.a };
+    }
     const fs = Math.round(this.fs * 1.2);
     this.ctx.font = `600 ${fs}px ${FONT}`;
     const text = fmt(Hl.value, this.showAs), tw = this.ctx.measureText(text).width;
@@ -1247,6 +1314,16 @@ export class Scene {
     const S = this.labelStyle;
     if (!S || !this.labelBoxes) return;
     const crosses = (b) => hb && b.x < hb.x + hb.w && hb.x < b.x + b.w && b.y < hb.y + hb.h && hb.y < b.y + b.h;
+    if (S.dice) {
+      for (const b of this.labelBoxes) {
+        b.alpha = crosses(b) ? clamp(1 - hb.a * 1.5, 0, 1) : 1;
+        if (b.alpha <= 0) continue;
+        ctx.globalAlpha = b.alpha;
+        diceFor(this.line.value(b.i)).forEach((n, j) => drawDie(ctx, b.px - S.d / 2, S.top + j * S.d * 1.14, S.d, n));
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     ctx.font = `600 ${S.fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
     ctx.lineWidth = S.lw;
     for (const b of this.labelBoxes) {
