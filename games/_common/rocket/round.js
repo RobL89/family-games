@@ -1,5 +1,7 @@
-// The rocket game's round flow (D-027, D-058). Version 2.3.
+// The rocket game's round flow (D-027, D-058). Version 2.4.
 //
+// Changes at v2.4 (D-072, Rob, 10 Nov): the calm versions are back on: the game follows the device's
+// less-motion setting again (D-045), as before v2.2.
 // Changes at v2.3 (Rob, 10 Nov): the map's portal goes on to the next system through the full
 // hyperspace, landing at that system's level as the arrows would (placeIn), with a welcome.
 // Changes at v2.2 (D-071, Rob, 10 Nov): the calm versions are off for now: the game plays its full
@@ -98,7 +100,7 @@ export function runRocket(mode) {
   const stage = $('stage');
   const scene = new Scene($('scene'));
   const fx = new Fx($('fx'));
-  const FOLLOW_CALM = false; // D-071: off for now; true follows the device's less-motion setting again (D-045)
+  const FOLLOW_CALM = true; // D-072: follows the device's less-motion setting (D-045); false plays full motion always (as D-071 did)
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
   scene.calm = FOLLOW_CALM && calm.matches;
   calm.addEventListener?.('change', () => { scene.calm = FOLLOW_CALM && calm.matches; });
