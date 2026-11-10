@@ -1,4 +1,6 @@
-"""Rocket Lander's level plan, draft (step 2c-2). Version 0.1.
+"""Rocket Lander's level plan (step 2c-2). Version 0.2.
+
+Changes at v0.2: the plan is decided (D-089 to D-092); its table and checks are unchanged.
 
 Not a check of the game: it holds the draft plan proposed in step 2c-2 and works out every
 number quoted in claude/level-plan.md, so none is typed by hand. It reads Rob's syllabus notes
@@ -10,8 +12,9 @@ D-010, D-011) and checks the plan against them:
 Then it counts what each track holds, what each system needs from the engine, the pass rules
 and the moon rocks, and with --md writes the tables for the plan.
 
-The plan is Claude's proposal (step 2c-2), not agreed: two tracks on the same six systems, as
-Rob floated on 10 Nov ("options will be 'reception' and 'year two'"). Which engine work a level
+The plan was Claude's proposal in step 2c-2, decided by Rob the same day: two tracks on the same
+six systems (D-089), the pass rule kept (D-090), 7 levels and a challenge a system (D-091), built
+without a sketches step (D-092). Which engine work a level
 needs (FIT) is Claude's judgement from the game's code at 07b1dff (map.js 1.0, levels.js,
 sums-levels.js, sums.js 1.1, rules.js).
 
