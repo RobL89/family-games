@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.6.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.7.
+
+Changes at v1.7 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
+test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
+checked by its sha256) in place of the game's map.js; its checks are unchanged.
 
 Changes at v1.6 (D-072): the calm versions are back on, so less motion gets the calm hyperspace again.
 Changes at v1.5 (Rob, 10 Nov): the portal by level 8 goes on through the full hyperspace; the
@@ -39,6 +43,7 @@ Usage, from the repo root:
 """
 import functools, http.server, json, os, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
+import stand_in  # the stand-in map these checks were written for (step 2c-3b)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -77,6 +82,7 @@ def new_page(br, w=390, h=844, mobile=True, scheme='dark', motion='no-preference
         outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
+    stand_in.serve(ctx)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')

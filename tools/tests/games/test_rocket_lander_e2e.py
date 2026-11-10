@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.5.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.6.
+
+Changes at v1.6 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
+test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
+checked by its sha256) in place of the game's map.js; its checks are unchanged.
 
 Changes at v1.5 (step 2c-build, D-058, D-064, D-066): one game with a map. The game opens on the
 map, so a round starts from the Play bubble by the waiting rocket, and what the start card and its
@@ -42,6 +46,7 @@ light and dark. RL-3 has its own test, test_rocket_lander_labels.py.
 """
 import functools, http.server, os, re, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
+import stand_in  # the stand-in map these checks were written for (step 2c-3b)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -77,6 +82,7 @@ def new_page(browser, w, h, mobile=False):
         outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
+    stand_in.serve(ctx)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')

@@ -1,4 +1,9 @@
-"""Close script for P-034 (Kids Games Development). Version 1.8.
+"""Close script for P-034 (Kids Games Development). Version 1.9.
+
+Changes at v1.9 (step 2c-3b): the new browser test of Year 2's levels, test_rocket_lander_year2_e2e.py,
+runs when Rocket Lander's own files change (as the Reception test does); the older browser tests that play
+the stand-in map (stand_in.py and its fixture, fixture_map_stand_in.js) run when either changes. The fast
+checks are as before.
 
 Changes at v1.8 (step 2c-3a): the new browser test of tracks, Reception's levels and the challenge
 rounds, test_rocket_lander_reception_e2e.py, runs when Rocket Lander's own files, the preview builder
@@ -71,15 +76,17 @@ PASS_FILE = os.path.join(HERE, 'close_pass.txt')  # the last full pass, committe
 FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py'}
 # Browser tests, and the paths whose change re-runs each. The hangar test has none of its own:
 # it covers the shared engine, and a change there runs everything.
+STAND = [T + 'stand_in.py', T + 'fixture_map_stand_in.js']  # the stand-in map the older browser tests play (step 2c-3b)
 COVERS = {
-    'test_rocket_hangar_e2e.py': [],
-    'test_rocket_lander_e2e.py': ['games/rocket-lander/'],
+    'test_rocket_hangar_e2e.py': STAND,
+    'test_rocket_lander_e2e.py': ['games/rocket-lander/'] + STAND,
     'test_rocket_lander_labels.py': ['games/rocket-lander/'],
-    'test_rocket_lander_levels.py': ['games/rocket-lander/'],
-    'test_rocket_lander_map_e2e.py': ['games/rocket-lander/'],
+    'test_rocket_lander_levels.py': ['games/rocket-lander/'] + STAND,
+    'test_rocket_lander_map_e2e.py': ['games/rocket-lander/'] + STAND,
     'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_lander_reception_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
-    'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
+    'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'] + STAND,
+    'test_rocket_lander_year2_e2e.py': ['games/rocket-lander/'],
     'test_rocket_ship_hooks_e2e.py': [],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).

@@ -1,5 +1,7 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.2. Changes at v1.2: a miss is played at real speed, so its bubble is read before it goes (it showed for 0.34 s at 6 times speed, and on a PC page the test read the next landing's bubble); the checks are unchanged. Changes at v1.1: the fall times (D-096, D-097).
+Version 1.3. Changes at v1.3 (step 2c-3b, D-100): Year 2 replaced the stand-in levels, so no track is the
+stand-in any more: a format 3 entry (made on the stand-ins) now plays the lower track from Moon 1 with its
+rocks and ships kept (tracks.js, as the core test checks); the rest is unchanged. Changes at v1.2: a miss is played at real speed, so its bubble is read before it goes (it showed for 0.34 s at 6 times speed, and on a PC page the test read the next landing's bubble); the checks are unchanged. Changes at v1.1: the fall times (D-096, D-097).
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
@@ -14,8 +16,8 @@ phone held upright (390x844) and a PC (1280x800):
   - a challenge round (D-091) plays its system's seven levels, each once and one more, each on its own
     line and label look, to the end card;
   - the track changes (begin({ track })), the page reloading on the other map, the moon rocks and ships
-    kept and each track's map as left (format 4 on the device); a format 3 entry plays on the stand-in
-    track with all of it kept;
+    kept and each track's map as left (format 4 on the device); a format 3 entry plays the lower track
+    from the start, its rocks and ships kept (no stand-in track since step 2c-3b);
   - nothing is fetched from outside, and no page errors.
 And in the --debug preview, the 1234 panel's Track box changes the track.
 
@@ -237,13 +239,13 @@ with sync_playwright() as pw:
         e = pg.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
         check(s['track'] == 'reception' and s['progress']['open'] == 'dust-1' and s['progress']['rocks'] == 130 and list(e['maps']) == ['year2'],
               f'{tag}: and back: the lower map as left (Red Dust open), the rocks earned meanwhile kept, the higher map put by: {s["progress"]["open"]}, {s["progress"]["rocks"]}')
-        # A format 3 entry (from before tracks) plays on the stand-in track, all of it kept
+        # A format 3 entry (from before tracks): its stand-in levels are gone (step 2c-3b), so the lower track from the start, rocks and ships kept
         pg.evaluate("localStorage.setItem('%s', JSON.stringify({ v: 3, at: 'dust-2', open: 'dust-2', levels: { 'moon-1': { stars: 3, rocks: 8 } }, rocks: 50, landings: 60, ship: 'classic', ships: ['classic'] }))" % KEY)
         pg.reload()
         ready(pg)
         s = st(pg)
-        check(s['track'] == 'year2' and s['levelId'] == 'dust-2' and s['kind'] == 'sums' and s['progress']['rocks'] == 50,
-              f'{tag}: a format 3 entry plays on the stand-in track, where its levels mean what they did: {s["track"]}, {s["levelId"]}, {s["kind"]}')
+        check(s['track'] == 'reception' and s['levelId'] == 'moon-1' and s['progress']['open'] == 'moon-1' and s['progress']['levels'] == {} and s['progress']['rocks'] == 50,
+              f'{tag}: a format 3 entry (its stand-in levels gone) plays the lower track from Moon 1, its 50 rocks kept: {s["track"]}, {s["levelId"]}, {s["progress"]["rocks"]}')
         pg.goto(BASE + '?track=reception')
         ready(pg)
         check(st(pg)['track'] == 'reception', f'{tag}: ?track= in the address picks the track (as ?level= picks the level)')

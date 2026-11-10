@@ -132,16 +132,19 @@ export function shapeSvg(num, den, look = 0) {
   return `<svg class="fd shape pie" viewBox="${-r - 1.5} ${-r - 1.5} ${2 * r + 3} ${2 * r + 3}" aria-hidden="true">${body}<circle class="fs-edge" cx="0" cy="0" r="${r}"/></svg>`;
 }
 
-// `total` dots in `den` equal groups, each group in a box, side by side: 12 in 4 groups of 3.
+// `total` dots in `den` equal groups, each group in a box: 12 in 4 groups of 3. Two or three groups side by
+// side; four (and more) in rows of two (or the square root), as a quartered square, so the picture stays narrow.
 export function groupsSvg(total, den) {
   const k = total / den, cols = Math.max(1, Math.ceil(Math.sqrt(k))), rows = Math.ceil(k / cols);
+  const per = den <= 3 ? den : Math.ceil(Math.sqrt(den)), lines = Math.ceil(den / per);
   const bw = cols * 10 + 2, bh = rows * 10 + 2, gap = 3;
   const body = Array.from({ length: den }, (_, g) => {
-    const gx = g * (bw + gap);
-    const dots = Array.from({ length: k }, (_, i) => dot(gx + 1 + (i % cols) * 10 + 5, 1 + Math.floor(i / cols) * 10 + 5)).join('');
-    return `<rect class="fo-group" x="${gx}" y="0" width="${bw}" height="${bh}" rx="2.5"/>${dots}`;
+    const gx = (g % per) * (bw + gap), gy = Math.floor(g / per) * (bh + gap);
+    const dots = Array.from({ length: k }, (_, i) => dot(gx + 1 + (i % cols) * 10 + 5, gy + 1 + Math.floor(i / cols) * 10 + 5)).join('');
+    return `<rect class="fo-group" x="${gx}" y="${gy}" width="${bw}" height="${bh}" rx="2.5"/>${dots}`;
   }).join('');
-  return `<svg class="fd groups r${Math.min(3, rows)}" viewBox="-1 -1 ${den * (bw + gap) - gap + 2} ${bh + 2}" aria-hidden="true">${body}</svg>`;
+  const W = per * (bw + gap) - gap, H = lines * (bh + gap) - gap;
+  return `<svg class="fd groups r${H <= 14 ? 1 : H <= 26 ? 2 : 3}" viewBox="-1 -1 ${W + 2} ${H + 2}" aria-hidden="true">${body}</svg>`;
 }
 
 // A Reception sum with dots under each number (R09, R10): 2 + 3 with 2 and 3 dots; 5 − 2 with five

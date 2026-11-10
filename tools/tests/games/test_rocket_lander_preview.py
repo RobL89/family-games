@@ -1,5 +1,9 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.9.
+"""Rocket Lander's preview bundle (D-018). Version 1.10.
 
+Changes at v1.10 (step 2c-3b, D-100): a bundle carries the game's own map, and Year 2 now holds the
+higher track, so the panel's level check picks Year 2's Moon 7, tens that make 100 (0 to 100 in tens,
+every ten written), in place of the stand-in Moon 6 (0 to 10, every other number written): as
+distinctive a line, checked the same way; the rest is unchanged.
 Changes at v1.9 (Rob, 10 Nov): the test panel's "3 stars on this system" fills the picked level's
 system and puts the rocket at its last level, ready for hyperspace, kept through home.
 Changes at v1.8 (step 2c-build): the test panel's cog covers none of the map's buttons, the
@@ -162,7 +166,7 @@ with sync_playwright() as pw:
         pg.fill('#pv-code', '1234')
         pg.click('.pv-open')
         check(pg.is_visible('.pv-level') and not pg.is_visible('.pv-lock'), f'{tag}: debug build: 1234 opens the panel')
-        pg.select_option('.pv-level', '6')
+        pg.select_option('.pv-level', '7')
         pg.fill('#pv-landings_per_round', '3')
         pg.fill('#pv-stars', '2')
         pg.fill('#pv-found', '5')
@@ -170,16 +174,16 @@ with sync_playwright() as pw:
         pg.click('.pv-apply')
         s = pg.evaluate('__test.state()')
         got = (s['level'], s['line']['from'], s['line']['to'], s['labels'], s['settings']['from'], s['settings']['landings_per_round'],
-               s['progress']['at'], s['progress']['open'], s['progress']['rocks'], s['progress']['levels'].get('moon-6'))
-        check(got == (6, 0, 10, ['0', '2', '4', '6', '8', '10'], None, 3, 'moon-6', 'moon-7', 12, {'stars': 2, 'rocks': 5}),
-              f'{tag}: debug build: level 6 (0 to 10, every other number), 3 landings, its 2 stars (so level 7 opens) and 5 rocks, and 12 rocks reach the game: {got}')
-        check(pg.inner_text('#map-rocks') == '12' and pg.evaluate('__test.state().map.rocketAt') == 'moon-6', f'{tag}: debug build: the map shows the rocks set, the rocket at level 6')
+               s['progress']['at'], s['progress']['open'], s['progress']['rocks'], s['progress']['levels'].get('moon-7'))
+        check(got == (7, 0, 100, ['0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100'], None, 3, 'moon-7', 'moon-8', 12, {'stars': 2, 'rocks': 5}),
+              f'{tag}: debug build: level 7 (0 to 100 in tens, every ten written), 3 landings, its 2 stars (so level 8 opens) and 5 rocks, and 12 rocks reach the game: {got}')
+        check(pg.inner_text('#map-rocks') == '12' and pg.evaluate('__test.state().map.rocketAt') == 'moon-7', f'{tag}: debug build: the map shows the rocks set, the rocket at level 7')
         # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
         pg.reload()
         pg.wait_for_function('window.__test && __test.state().ready')
         s = pg.evaluate('__test.state()')
         got = (s['progress']['rocks'], s['progress']['open'], s['level'], s['settings']['landings_per_round'])
-        check(got == (12, 'moon-7', 6, 3), f'{tag}: debug build: after Apply, home keeps the rocks, the map, the place and the settings set: {got}')
+        check(got == (12, 'moon-8', 7, 3), f'{tag}: debug build: after Apply, home keeps the rocks, the map, the place and the settings set: {got}')
         bought = {'v': 3, 'at': 'moon-6', 'open': 'moon-7', 'levels': {'moon-6': {'stars': 2, 'rocks': 5}}, 'rocks': 2, 'landings': 1, 'ship': 'box', 'ships': ['classic', 'box']}
         pg.evaluate('(e) => localStorage.setItem("family-games:rocket-lander:progress", JSON.stringify(e))', bought)
         pg.reload()

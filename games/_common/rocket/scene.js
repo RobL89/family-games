@@ -1,6 +1,10 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
-// Version 1.4. Changes at v1.4 (step 2c-3a, D-060, D-067; Rob): on a big screen the ground, the rocket,
+// Version 1.5. Changes at v1.5 (step 2c-3b, D-100): fraction lines: the label look 'frac<d>' (frac4, frac3)
+// writes a line counted in parts as fractions in their simplest form (numbers.js fracText: 0, 1/4, 1/2,
+// 3/4, 1), each drawn one number over the other, as at school, under the line, in the lit-up box after a
+// miss and on the flag after a right landing (textOf). Other lines are written exactly as before.
+// Changes at v1.4 (step 2c-3a, D-060, D-067; Rob): on a big screen the ground, the rocket,
 // the numbers and the dice grow to about 1.5 times the phone sizes (`big`, from 0 on phones to 1 on a
 // screen 1000 px high). Dice lines: dice lines: the label look 'dice' shows
 // every mark's number as dice faces (0 an empty face; 7 to 12 a 6 with the rest stacked under it),
@@ -12,10 +16,51 @@
 // gold pad, the ladder, the big flag with the round's stars, and fireworks.
 
 import { PLANETS } from './planets.js';
-import { fmt, labelSpots, tidy } from './numbers.js';
+import { fmt, fracText, labelSpots, tidy } from './numbers.js';
 
 export const INK = '#1B1446';
 export const FONT = '"Fredoka", "Baloo 2", "Nunito", "Arial Rounded MT Bold", "Segoe UI Rounded", system-ui, sans-serif';
+
+// A number's text as a fraction ('3/4', or '1 1/2' with a whole number), or null for any other text.
+const FRAC = /^(?:(\d+) )?(\d+)\/(\d+)$/;
+export function numParts(text) { const m = FRAC.exec(String(text)); return m ? { whole: m[1] || '', num: m[2], den: m[3] } : null; }
+// How wide a number's text is drawn at size fs: as text, or as a fraction one number over the other.
+export function numWidth(ctx, text, fs) {
+  const p = numParts(text), keep = ctx.font;
+  ctx.font = `600 ${fs}px ${FONT}`;
+  if (!p) { const w = ctx.measureText(text).width; ctx.font = keep; return w; }
+  const ww = p.whole ? ctx.measureText(p.whole).width + fs * 0.12 : 0;
+  ctx.font = `600 ${fs * 0.62}px ${FONT}`;
+  const fw = Math.max(ctx.measureText(p.num).width, ctx.measureText(p.den).width) + fs * 0.12;
+  ctx.font = keep;
+  return ww + fw;
+}
+// A fraction (numParts) drawn centred on x, its bar at ym (where a number's middle would be), filled
+// with `fill` over an ink outline `lw` wide (none if 0): the top number, a bar, the bottom number.
+export function drawFrac(ctx, p, x, ym, fs, fill, lw = 0) {
+  const w = numWidth(ctx, `${p.whole ? `${p.whole} ` : ''}${p.num}/${p.den}`, fs);
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+  let left = x - w / 2;
+  if (p.whole) {
+    ctx.font = `600 ${fs}px ${FONT}`;
+    const ww = ctx.measureText(p.whole).width, wy = ym + fs * 0.36;
+    if (lw) { ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.strokeText(p.whole, left + ww / 2, wy); }
+    ctx.fillStyle = fill; ctx.fillText(p.whole, left + ww / 2, wy);
+    left += ww + fs * 0.12;
+  }
+  const f2 = fs * 0.62;
+  ctx.font = `600 ${f2}px ${FONT}`;
+  const fw = Math.max(ctx.measureText(p.num).width, ctx.measureText(p.den).width) + fs * 0.12, fx = left + fw / 2;
+  const ny = ym - fs * 0.09, dy = ym + fs * 0.54, bh = Math.max(2, fs * 0.08);
+  if (lw) {
+    ctx.lineWidth = lw * 0.75; ctx.strokeStyle = INK; ctx.strokeText(p.num, fx, ny); ctx.strokeText(p.den, fx, dy);
+    ctx.fillStyle = INK; ctx.fillRect(fx - fw / 2 - lw * 0.35, ym - bh / 2 - lw * 0.35, fw + lw * 0.7, bh + lw * 0.7);
+  }
+  ctx.fillStyle = fill; ctx.fillText(p.num, fx, ny); ctx.fillText(p.den, fx, dy);
+  ctx.fillRect(fx - fw / 2, ym - bh / 2, fw, bh);
+  ctx.restore();
+}
 const TAU = Math.PI * 2;
 const CORAL = '#FF5D73';
 const SUN = '#FFC93C';
@@ -420,8 +465,9 @@ export function drawFlag(ctx, F, t, font) {
   ctx.beginPath(); ctx.arc(F.x, top - 3, 5, 0, TAU); ctx.fill(); ctx.stroke();
   const fs = Math.round(F.h * 0.3);
   ctx.font = `600 ${fs}px ${font}`;
-  const tw = ctx.measureText(F.text).width;
-  const pw = (tw + fs * 0.9) * clamp(F.grow * 1.4 - 0.4, 0.05, 1), phh = fs * 1.35;
+  const frac = numParts(F.text); // a fraction line's number, one over the other (v1.5)
+  const tw = frac ? numWidth(ctx, F.text, fs) : ctx.measureText(F.text).width;
+  const pw = (tw + fs * 0.9) * clamp(F.grow * 1.4 - 0.4, 0.05, 1), phh = fs * (frac ? 1.6 : 1.35);
   const d = F.dir || 1, y0 = top + 2;
   const wav = (u) => Math.sin(t * 6 - u * 4) * fs * 0.08 * u;
   ctx.beginPath();
@@ -433,9 +479,12 @@ export function drawFlag(ctx, F, t, font) {
   if (F.grow > 0.8) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const cx = F.x + d * pw / 2, cy = y0 + phh / 2 + wav(0.5) + fs * 0.04;
-    ctx.lineWidth = fs * 0.22; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
-    ctx.strokeText(F.text, cx, cy);
-    ctx.fillStyle = '#FFFFFF'; ctx.fillText(F.text, cx, cy);
+    if (frac) drawFrac(ctx, frac, cx, cy - fs * 0.04, fs, '#FFFFFF', fs * 0.22);
+    else {
+      ctx.lineWidth = fs * 0.22; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+      ctx.strokeText(F.text, cx, cy);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillText(F.text, cx, cy);
+    }
   }
   ctx.restore();
 }
@@ -743,15 +792,21 @@ export class Scene {
   // How the written numbers look (Number mode's levels, D-035, D-038): 'plain' (white),
   // 'parity' (even and odd in the stylesheet's --even and --odd colours), 'parity-faint'
   // (those colours faded towards white) or 'odd-faint' (odd numbers faint); or 'dice' (D-060,
-  // D-067): every mark's number shown as dice faces, laid out to fit (step 2c-3a).
+  // D-067): every mark's number shown as dice faces, laid out to fit (step 2c-3a); or 'frac<d>' (step
+  // 2c-3b): a line counted in parts of d, written as fractions (white, like 'plain').
   setLabelLook(look = 'plain') {
     const relay = (look === 'dice') !== (this.labelLook === 'dice');
     this.labelLook = look;
+    const fr = /^frac(\d+)$/.exec(look || '');
+    this.parts = fr ? Number(fr[1]) : 0;
     if (relay && this.W && this.line) this.layout();
     const cs = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
     const v = (name) => (cs && cs.getPropertyValue(name).trim()) || '#FFFFFF';
     this.parityColours = { even: v('--even'), odd: v('--odd') };
   }
+
+  // A spot's number as it's written: a fraction on a fraction line, otherwise as numbers.js writes it.
+  textOf(v) { return this.parts ? fracText(v, this.parts) : fmt(v, this.showAs); }
 
   // A written number's fill and how strongly it shows, by the label look.
   labelFill(i) {
@@ -790,8 +845,8 @@ export class Scene {
     const base = clamp(this.groundH * 0.25, 17, lerp(36, 54, this.big || 0));
     const MIN = 15;
     ctx.font = `600 ${base}px ${FONT}`;
-    const text = (i) => fmt(line.value(i), this.showAs);
-    const wid = (i) => ctx.measureText(text(i)).width;
+    const text = (i) => this.textOf(line.value(i));
+    const wid = (i) => numWidth(ctx, text(i), base);
     const last = line.gaps;
     const every = this.labelEvery > 0 ? this.labelEvery : 0;
     const asked = this.labelIdx;
@@ -1092,6 +1147,10 @@ export class Scene {
     }
     this.labelBoxes = this.shown.map(({ i, text }) => {
       const px = x0 + i * pps;
+      if (numParts(text)) { // a fraction, one number over the other: taller, from its top number to its bottom one
+        const w = numWidth(x, text, fs) + lw;
+        return { i, text, px, x: px - w / 2, y: ly - fs * 0.9 - lw / 2, w, h: fs * 1.08 + lw, alpha: 1 };
+      }
       const w = x.measureText(text).width + lw;
       return { i, text, px, x: px - w / 2, y: ly - fs * 0.8 - lw / 2, w, h: fs * 0.8 + lw, alpha: 1 };
     });
@@ -1290,11 +1349,13 @@ export class Scene {
       ctx.globalAlpha = 1;
       return;
     }
-    const { fs, text, bx, cy, tw } = this.highlightBox(Hl);
+    const { fs, text, bx, cy, tw, half } = this.highlightBox(Hl);
     ctx.font = `600 ${fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    rr(ctx, bx - tw / 2 - 9, cy - fs * 0.68, tw + 18, fs * 1.36, fs * 0.5);
+    rr(ctx, bx - tw / 2 - 9, cy - fs * half, tw + 18, fs * half * 2, fs * 0.5);
     ctx.fillStyle = SUN; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
-    ctx.fillStyle = INK; ctx.fillText(text, bx, cy + fs * 0.04);
+    const p = numParts(text);
+    if (p) drawFrac(ctx, p, bx, cy, fs, INK);
+    else { ctx.fillStyle = INK; ctx.fillText(text, bx, cy + fs * 0.04); }
     ctx.globalAlpha = 1;
   }
 
@@ -1309,10 +1370,11 @@ export class Scene {
     }
     const fs = Math.round(this.fs * 1.2);
     this.ctx.font = `600 ${fs}px ${FONT}`;
-    const text = fmt(Hl.value, this.showAs), tw = this.ctx.measureText(text).width;
+    const text = this.textOf(Hl.value), tw = numWidth(this.ctx, text, fs);
+    const half = numParts(text) ? 0.82 : 0.68; // a fraction's box is taller, to hold its two numbers
     const cy = this.groundY + 17 + this.fs * 0.55;
     const bx = clamp(this.xOf(Hl.value), tw / 2 + 12, this.W - tw / 2 - 12);
-    return { fs, text, bx, cy, tw, x: bx - tw / 2 - 10.5, y: cy - fs * 0.68 - 1.5, w: tw + 21, h: fs * 1.36 + 3, a: Hl.a };
+    return { fs, text, bx, cy, tw, half, x: bx - tw / 2 - 10.5, y: cy - fs * half - 1.5, w: tw + 21, h: fs * half * 2 + 3, a: Hl.a };
   }
 
   // The numbers under the line, drawn each frame. RL-3: a number the lit-up box would
@@ -1338,6 +1400,8 @@ export class Scene {
       if (b.alpha <= 0) continue;
       const look = this.labelFill(b.i);
       ctx.globalAlpha = b.alpha * look.a;
+      const p = numParts(b.text);
+      if (p) { drawFrac(ctx, p, b.px, S.ly - S.fs * 0.36, S.fs, look.fill, S.lw); continue; }
       ctx.strokeStyle = INK; ctx.strokeText(b.text, b.px, S.ly);
       ctx.fillStyle = look.fill; ctx.fillText(b.text, b.px, S.ly);
     }

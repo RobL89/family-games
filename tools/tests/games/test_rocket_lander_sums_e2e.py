@@ -1,4 +1,11 @@
-"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.7.
+"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.8.
+
+Changes at v1.8 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
+test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
+checked by its sha256) in place of the game's map.js; its checks are unchanged. The preview bundle carries
+the game's own map inside the page, where the stand-in can't be served, so its part plays Year 2's 10 times
+table (Candy 1, level 17 on the higher track) in place of sums level 7, and offers that track's 24 levels: the
+same checks on a real times-tables level. (Since step 2c-3a it opened the lower track, which has none.)
 
 Changes at v1.7 (step 2c-build, D-058, D-064): progress is format 3, so a good round on sums level 1
 opens the next level (Red Dust 2, in place of a planet), the agreed shape is the map's, and the
@@ -52,6 +59,7 @@ sizes, light and dark. Screenshots show made-up play only and are never committe
 """
 import functools, http.server, os, re, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
+import stand_in  # the stand-in map these checks were written for (step 2c-3b)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -71,6 +79,7 @@ LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
 BASE = f'{LOCAL}games/rocket-lander/index.html?track=year2'  # the stand-in levels these checks were written for (D-089)
 KEY = 'family-games:rocket-lander:progress'  # D-042, D-058: the one game's entry on the device
 SUMS = 8  # D-058: sums level n is map level 8 + n (Red Dust)
+TIMES = 17  # step 2c-3b: in a preview bundle, the higher track's Candy 1 (Year 2's 10 times table) is level 17
 FONT_LOADED = "document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"
 ANSWER = {'+': lambda a, b: a + b, '−': lambda a, b: a - b, '×': lambda a, b: a * b, '÷': lambda a, b: a // b}
 errors, fails, outside = [], [], []
@@ -93,6 +102,7 @@ def open_game(br, w, h, mobile=False, dark=False, query=''):
         outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
+    stand_in.serve(ctx)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
@@ -304,7 +314,7 @@ with sync_playwright() as pw:
     ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith('file:') or r.request.url.startswith('data:') else (r.abort(), outside.append(r.request.url)))
     pv = ctx.new_page()
     pv.on('pageerror', lambda e: errors.append(f'preview pageerror: {e}'))
-    pv.goto('file://' + os.path.join(tmp, 'p.html'))
+    pv.goto('file://' + os.path.join(tmp, 'p.html') + '?track=year2')  # the bundle's own map: Year 2's (stand_in.py can't reach a bundle)
     pv.wait_for_function('window.__test && __test.state().ready')
     check(pv.evaluate(FONT_LOADED), 'the preview carries its font inside the page (D-043)')
     pv.click('.pv-cog')
@@ -314,17 +324,18 @@ with sync_playwright() as pw:
     check(pv.is_visible('.pv-reset'), '1234 opens the test panel, with its Reset (D-055)')
     opts =pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
-    check(opts == 16 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers the map\'s 16 levels and the operations: {opts}, {ops}')
-    pv.select_option('.pv-level', str(SUMS + 7))
+    check(opts == 24 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers the higher track\'s 24 levels (Year 2: three systems of 8) and the operations: {opts}, {ops}')
+    pv.select_option('.pv-level', str(TIMES))
     pv.fill('#pv-rocks', '40')
     pv.click('.pv-apply')
-    check(state(pv)['level'] == SUMS + 7, 'Apply plays the level picked (sums level 7)')
+    check(state(pv)['level'] == TIMES, 'Apply plays the level picked (Year 2\'s 10 times table)')
     # Home reloads the preview: progress comes from the device, not the panel's copy (ER-004)
     pv.reload()
     pv.wait_for_function('window.__test && __test.state().ready')
-    check((state(pv)['level'], state(pv)['progress']['rocks']) == (SUMS + 7, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
+    check((state(pv)['level'], state(pv)['progress']['rocks']) == (TIMES, 40), f'after Apply, home keeps the level and the rocks set: {state(pv)["level"]}, {state(pv)["progress"]["rocks"]}')
     pv.evaluate(f'(e) => localStorage.setItem("{KEY}", JSON.stringify(e))',
-                {'v': 3, 'at': 'dust-7', 'open': 'dust-7', 'levels': {}, 'rocks': 10, 'landings': 0, 'ship': 'teapot', 'ships': ['classic', 'teapot']})
+                {'v': 4, 'track': 'year2', 'edition': 'higher-1', 'at': 'candy-1', 'open': 'candy-1', 'levels': {}, 'rocks': 10, 'landings': 0,
+                 'ship': 'teapot', 'ships': ['classic', 'teapot'], 'maps': {}})
     pv.reload()
     pv.wait_for_function('window.__test && __test.state().ready')
     p = state(pv)['progress']
@@ -335,7 +346,7 @@ with sync_playwright() as pw:
     pv.screenshot(path=f'{OUT}/preview-panel.png')
     pv.click('.pv-btns button:nth-child(3)')
     start(pv)
-    check(state(pv)['sum'] and '×' in state(pv)['sum'], f'the preview plays level 7: {state(pv)["sum"]}')
+    check(state(pv)['sum'] and '×' in state(pv)['sum'], f'the preview plays the 10 times table: {state(pv)["sum"]}')
     ctx.close()
     br.close()
 

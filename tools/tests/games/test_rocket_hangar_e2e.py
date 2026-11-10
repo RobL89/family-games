@@ -1,5 +1,9 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.7.
+Version 1.8.
+
+Changes at v1.8 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
+test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
+checked by its sha256) in place of the game's map.js; its checks are unchanged.
 
 Changes at v1.7 (step 2d-2, D-077 to D-080): thirteen ships, cheapest first in each tier (D-079),
 so the right arrow from the Teapot shows the Jack-in-the-Box (35 - 7 = 28 rocks short), refused
@@ -54,6 +58,7 @@ Usage, from the repo root:
 """
 import functools, http.server, json, os, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
+import stand_in  # the stand-in map these checks were written for (step 2c-3b)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -91,6 +96,7 @@ def new_page(br, w, h, mobile, scheme='light', motion='no-preference'):
         outside.append(url)
         return r.abort()
     ctx.route('**/*', route)
+    stand_in.serve(ctx)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')

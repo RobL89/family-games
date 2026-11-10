@@ -1,4 +1,8 @@
-// The rocket game's round flow (D-027, D-058). Version 2.6.
+// The rocket game's round flow (D-027, D-058). Version 2.7.
+//
+// Changes at v2.7 (step 2c-3b, D-100): a kind may give a level's own fall time (fallTime(T, row): Year
+// 2's fast facts fall in 6 s, whatever the speed), and the flag after a right landing writes its number
+// the way the line does (scene.textOf: a fraction on a fraction line).
 //
 // Changes at v2.6 (step 2c-3a, D-089 to D-092): tracks, and what Reception's levels and the challenge
 // rounds ask of the engine. A game may give mode.tracks ({ [id]: { name, map, edition } }) and
@@ -96,7 +100,7 @@
 import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevice, keptOnDevice } from './kit.js';
 import { play as playSound, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
 import { resolveSettings, fallSecondsFor } from './settings.js';
-import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
+import { makeLine, labelGap, nearness, starsFor, tidy } from './numbers.js';
 import { PLANETS } from './planets.js';
 import { Scene, Fx, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix, INK, FONT } from './scene.js';
 import { FLEET_BY_ID, STARTER, hangarOf, buy as buyShip, pick as pickShip } from './fleet.js';
@@ -195,10 +199,11 @@ export function runRocket(mode) {
   }
 
   // The fall for this landing (settings.js, D-096): 25% more when the kind says its question takes
-  // longer to read (a picture, a dice face, a sum: D-097).
+  // longer to read (a picture, a dice face, a sum: D-097); or the level's own time (fallTime).
   function fallSeconds() {
     const more = !!(K().moreTime && G.T && K().moreTime(G.T, level.row));
-    return fallSecondsFor(S.speed, more);
+    const own = K().fallTime && G.T ? K().fallTime(G.T, level.row) : null;
+    return fallSecondsFor(S.speed, more, own);
   }
 
   // ---------- Layout ----------
@@ -571,7 +576,7 @@ export function runRocket(mode) {
       V.glow = { value: spot, a: 0 };
       at(0.12, () => sfx(touch));
       at(0.45, () => { V.pilot = { x: R.x, y: R.y, s: R.h * 0.5, mood: 'happy', wave: false, squash: 0, flip: G.land.dir < 0 }; R.pilotIn = false; });
-      at(0.95, () => { V.flag = { x: 0, grow: 0, text: fmt(spot, S.show_as), dir: G.land.dir }; });
+      at(0.95, () => { V.flag = { x: 0, grow: 0, text: scene.textOf(spot), dir: G.land.dir }; });
       at(1.15, () => sfx('ding'));
       if (perfect) {
         at(0.3, () => {

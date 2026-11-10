@@ -1,5 +1,14 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.2.
+// One game with a map of solar systems (D-058). Version 3.3.
+//
+// Changes at v3.3 (step 2c-3b, D-100): Year 2 on the higher track (map.js 2.1). Year 2's questions
+// (asks.js 1.1, faces.js 1.1) land on a stretch of 10 marks with the answer in it (windowFor), or a
+// shape's fraction on a line of quarters or thirds written as fractions (shapeLine, scene.js 'frac'
+// looks); the voice doesn't say a number the child is to read (tens and ones, words). Year 2's sums
+// (sums.js 1.3) in forms: three numbers, missing numbers ("? + 25 = 60", the box to find), tables on
+// their own lines; a grown-up's operations setting leaves them as the level says. A level may set its
+// own fall time (the timed level, 6 s: fallTime). A challenge's landing keeps its own level's label look
+// (a fraction line) and fall time.
 //
 // Changes at v3.2 (step 2c-3a, D-089 to D-094): two tracks, each with its own map (map.js 2.0: the lower
 // track's Reception systems, the higher track's stand-in levels until step 2c-3b), handed to the engine
@@ -25,16 +34,16 @@
 
 import { runRocket } from '../_common/rocket/round.js';
 import { SETTINGS } from '../_common/rocket/settings.js';
-import { fmt, say, makeLine } from '../_common/rocket/numbers.js';
+import { fmt, say, makeLine, fracText, fracSay } from '../_common/rocket/numbers.js';
 import { followLevel } from '../_common/rocket/ladder.js';
 import { PLANETS, planetIndex } from '../_common/rocket/planets.js';
 import { LEVELS } from './levels.js';
 import { LEVELS as SUMS_LEVELS } from './sums-levels.js';
 import { TRACKS as MAP_TRACKS, FIRST_TRACK } from './map.js';
 import { lineFor, planRound, pickTarget, isRight, goalOf } from './rules.js';
-import { planAsks, askTarget, isRight as askRight, goalOf as askGoal, planChallenge } from './asks.js';
-import { faceChip, picturedSum } from './faces.js';
-import { OP_WORDS, OPS_OPTIONS, opsFor, makeSum, lineForSum, roundLine, partsOf, planParts, isRight as sumRight, goalOf as sumGoal } from './sums.js';
+import { planAsks, askTarget, isRight as askRight, goalOf as askGoal, planChallenge, windowFor, shapeLine } from './asks.js';
+import { faceChip, picturedSum, fracHtml, numberWords } from './faces.js';
+import { OP_WORDS, OPS_OPTIONS, opsFor, makeSum, lineForSum, roundLine, partsOf, planParts, sumText, isRight as sumRight, goalOf as sumGoal } from './sums.js';
 
 // ---------- The map: each system's look and name from planets.js, each level's row by its kind ----------
 
@@ -93,12 +102,26 @@ const NUMBER = {
 // (D-032). Levels may play in parts, such as levels 1 and 2's two halves (D-040), each landing
 // asking from its part, on its part's line; at most one sum answering 0 a round (D-041).
 
-const sumWords = (T) => `${say(T.a)} ${OP_WORDS[T.op]} ${say(T.b)}`;
+// A sum said out loud: "four plus seven plus six"; a missing number as "what": "what plus twenty-five
+// makes sixty"; anything else "seven take away two".
+const sumWords = (T) => {
+  const w = (k) => (T.missing === k ? 'what' : say(T[k]));
+  if (T.missing) return `${w('a')} ${OP_WORDS[T.op]} ${w('b')} makes ${say(T.result)}`;
+  return `${say(T.a)} ${OP_WORDS[T.op]} ${say(T.b)}${T.c !== undefined ? ` ${OP_WORDS[T.op2]} ${say(T.c)}` : ''}`;
+};
+// The whole sum with its answer, said: "thirty-five plus twenty-five makes sixty", "four plus seven plus six is seventeen".
+const fullWords = (T) => (T.missing ? `${say(T.a)} ${OP_WORDS[T.op]} ${say(T.b)} makes ${say(T.result)}` : `${sumWords(T)} is ${say(T.value)}`);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 // a grown-up's written-number setting, if given, over the level's
 const withLabels = (row, S) => (S.label_every === null || S.label_every === undefined ? row : { ...row, label_every: S.label_every });
-const target = (s, part = 0) => ({ rule: 'sum', value: s.answer, sum: `${s.a} ${s.op} ${s.b}`, a: s.a, op: s.op, b: s.b, part });
+const target = (s, part = 0) => {
+  const T = { rule: 'sum', value: s.answer, sum: sumText(s), a: s.a, op: s.op, b: s.b, part };
+  for (const k of ['op2', 'c', 'result', 'missing']) if (s[k] !== undefined) T[k] = s[k];
+  return T;
+};
 const partOf = (row, k) => { const parts = partsOf(row); return parts[Math.min(parts.length - 1, k || 0)]; };
+// Year 2's sums are as the level says; a grown-up's operations setting plays on the earlier sums levels
+const opsOf = (p, S) => (p.forms ? p.ops.slice() : opsFor(p, S));
 
 // This round's state: whether a sum answering 0 has been asked (at most one a round, D-041),
 // and the part the latest landing played (for a sum a test sets).
@@ -107,33 +130,45 @@ const ANSWER = { '+': (a, b) => a + b, '−': (a, b) => a - b, '×': (a, b) => a
 
 const SUMS = {
   lineFor: (row, S) => roundLine(withLabels(partOf(row, 0), S)),
-  landingLine: (T, row, S, rand) => { const p = partOf(row, T.part); return lineForSum({ answer: T.value }, opsFor(p, S), withLabels(p, S), rand); },
+  landingLine: (T, row, S, rand) => { const p = partOf(row, T.part); return lineForSum({ answer: T.value }, opsOf(p, S), withLabels(p, S), rand); },
   // each landing's kind is the part it plays (D-040)
   planRound: (row, total) => { zeroAsked = false; return planParts(row, total); },
   pickTarget: (kind, line, prev, rand, row, S) => {
     const p = partOf(row, kind);
-    const s = makeSum(opsFor(p, S), p, prev, rand, { zeroOk: !zeroAsked });
+    const s = makeSum(opsOf(p, S), p, prev, rand, { zeroOk: !zeroAsked });
     if (s.answer === 0) zeroAsked = true;
     lastPart = kind || 0;
     return target(s, lastPart);
   },
   isRight: sumRight,
   goalOf: sumGoal,
-  // Reception's sums show dots under each number (Q-033)
-  chip: (T, S, row) => (row && row.pictures && T.a !== undefined ? picturedSum(T) : { cls: 'sum', html: esc(T.sum) }),
+  // Reception's sums show dots under each number (Q-033); a missing number shows a box to find
+  chip: (T, S, row) => (row && row.pictures && T.a !== undefined ? picturedSum(T)
+    : { cls: 'sum', html: T.missing || /\?/.test(T.sum) ? `<span class="sm">${esc(T.sum).replace('?', '<b class="q">?</b>')}</span>` : esc(T.sum) }),
   words: sumWords,
+  sayAll: (T) => (T.missing ? `${sumWords(T).replace(/^what/, 'What')}?` : `Land on ${sumWords(T)}!`),
   miss: (T, spot) => ({
-    speech: `That's ${say(spot)}. ${sumWords(T)} is ${say(T.value)}. Over here!`,
-    html: `That's <b class="no-n">${spot}</b>. ${esc(T.sum)} = <b>${T.value}</b>, over here!`,
+    speech: `That's ${say(spot)}. ${fullWords(T)}. Over here!`,
+    html: T.missing ? `That's <b class="no-n">${spot}</b>. ${T.missing === 'a' ? `<b>${T.a}</b>` : T.a} ${T.op} ${T.missing === 'b' ? `<b>${T.b}</b>` : T.b} = ${T.result}, over here!`
+      : `That's <b class="no-n">${spot}</b>. ${esc(T.sum)} = <b>${T.value}</b>, over here!`,
   }),
   beam: true,
   moreTime: () => true, // a sum to work out (D-097)
+  fallTime: (T, row) => (row && row.fall_s) || null, // the timed level's own fall (Year 2's fast facts: 6 s)
   testHooks: {
     // make this landing's sum a given one, such as aimSum(7, '×', 8); its line is laid out anew
     aimSum(a, op, b, { set }) {
       const answer = ANSWER[op] ? ANSWER[op](a, b) : NaN;
       if (!Number.isInteger(answer) || answer < 0) return false;
       set(target({ a, op, b, answer }, lastPart));
+      return answer;
+    },
+    // make this landing's sum a given fact of Year 2's: { a, op, b, op2?, c?, result?, missing? }
+    aimFact(f, { set }) {
+      const whole = f.c !== undefined ? ANSWER[f.op2](ANSWER[f.op](f.a, f.b), f.c) : ANSWER[f.op](f.a, f.b);
+      const answer = f.missing ? f[f.missing] : whole;
+      if (!Number.isInteger(answer) || answer < 0 || (f.missing && whole !== f.result)) return false;
+      set(target({ ...f, answer }, lastPart));
       return answer;
     },
   },
@@ -152,7 +187,16 @@ const ASK_SAY = {
   bond: (T) => `${n$(T.part)} and how many more make ${n$(T.whole)}?`,
   double: (T) => `Land on double ${n$(T.n)}!`,
   share: (T) => `Share ${n$(T.total)} sweets between ${n$(T.groups)} plates. How many on each?`,
+  // Year 2's: a number the child is to read (blocks, words) isn't said
+  place: () => 'Count the tens and ones. Land on that number!',
+  words: () => 'Read the number. Land on it!',
+  sign: (T) => (T.rel === 'same' ? `Land on a number equal to ${n$(T.n)}!` : `Land on a number ${T.rel === 'more' ? 'bigger' : 'smaller'} than ${n$(T.n)}!`),
+  seq: (T) => `Count ${T.dir === 'backward' ? 'back ' : ''}in ${n$(T.step)}s: ${T.terms.map(n$).join(', ')}. What comes next?`,
+  parity: (T) => `Land on an ${T.rel} number!`,
+  'frac-shape': () => 'What fraction is shaded? Land on it!',
+  'frac-of': (T) => `What is ${fracSay(T.num, T.den)} of ${n$(T.total)}?`,
 };
+const PLACE = (n) => { const t = Math.floor(n / 10), o = n % 10; return [`${t} ten${t === 1 ? '' : 's'} and ${o} one${o === 1 ? '' : 's'}`, `${n$(t)} ten${t === 1 ? '' : 's'} and ${n$(o)} one${o === 1 ? '' : 's'}`]; };
 // After a miss: { speech, html }, the right number (or the nearest that fits) as `goal`.
 function askMiss(T, spot, goal) {
   const was = { speech: `That's ${n$(spot)}.`, html: `That's <b class="no-n">${spot}</b>.` };
@@ -167,17 +211,39 @@ function askMiss(T, spot, goal) {
     case 'bond': return say2(`${n$(T.part)} and ${n$(goal)} make ${n$(T.whole)}!`, `${T.part} and <b>${goal}</b> make ${T.whole}!`);
     case 'double': return say2(`Double ${n$(T.n)} is ${n$(goal)}!`, `Double ${T.n} is <b>${goal}</b>!`);
     case 'share': return say2(`${n$(goal)} on each plate!`, `<b>${goal}</b> on each plate!`);
+    case 'place': { const [w, s] = PLACE(T.n); return say2(`${s} make ${n$(T.n)}!`, `${w} make <b>${T.n}</b>!`); }
+    case 'words': return say2(`The words say ${n$(T.n)}. Over here!`, `${numberWords(T.n)} is <b>${T.n}</b>!`);
+    case 'sign':
+      return T.rel === 'same' ? say2(`${n$(T.n)} equals ${n$(T.n)}!`, `<b>${T.n}</b> = ${T.n}!`)
+        : say2(`${n$(goal)} is ${T.rel === 'more' ? 'bigger' : 'smaller'} than ${n$(T.n)}!`, `${T.n} ${T.rel === 'more' ? '&lt;' : '&gt;'} <b>${goal}</b>!`);
+    case 'seq': return say2(`${[...T.terms, goal].map(n$).join(', ')}. ${n$(goal)} comes next!`, `${T.terms.join(', ')}, <b>${goal}</b>!`);
+    case 'parity': return say2(`${n$(goal)} is ${T.rel}!`, `<b>${goal}</b> is ${T.rel}!`);
+    case 'frac-shape': {
+      const same = T.den === 4 && T.num === 2; // two quarters is a half (the notes: 2/4 equals 1/2)
+      return { speech: `That's ${fracSay(...simple(spot, T.parts))}. ${fracSay(T.num, T.den)} ${same ? 'is the same as one half' : 'is shaded'}. Over here!`,
+        html: `That's ${fracHtml(...simple(spot, T.parts))}. ${fracHtml(T.num, T.den)} ${same ? `= ${fracHtml(1, 2)}` : 'is shaded'}, <b>over here!</b>` };
+    }
+    case 'frac-of': return say2(`${fracSay(T.num, T.den)} of ${n$(T.total)} is ${n$(goal)}!`, `${fracHtml(T.num, T.den)} of ${T.total} is <b>${goal}</b>!`);
     default: return say2(`${n$(goal)} is over here!`, `<b>${goal}</b> is over here!`);
   }
 }
+// A spot on a fraction line (in parts) as [numerator, denominator] in its simplest form: 2 of 4 is [1, 2].
+const simple = (v, parts) => { const t = fracText(v, parts); const m = /^(\d+)\/(\d+)$/.exec(t); return m ? [Number(m[1]), Number(m[2])] : [Number(t) * parts, parts]; };
 const ASK = {
-  // the level's own line: its answers are made for it, so a grown-up's line settings don't move it
-  lineFor: (row, S) => ({ from: row.from, to: row.to, step: 1, label_every: S.label_every ?? row.label_every ?? 1 }),
+  // the level's own line: its answers are made for it, so a grown-up's line settings don't move it; a
+  // level on a stretch (`span`) starts on its first stretch, and a shape's on a line of quarters
+  lineFor: (row, S) => (row.span ? { from: row.min ?? 0, to: (row.min ?? 0) + row.span, step: 1, label_every: S.label_every ?? row.label_every ?? 1 }
+    : row.ask === 'frac-shape' ? { from: 0, to: 4, step: 1, label_every: 1 }
+      : { from: row.from, to: row.to, step: 1, label_every: S.label_every ?? row.label_every ?? 1 }),
+  // Year 2's: each landing on a stretch of the line with its answer in it, or a shape's fraction line
+  landingLine: (T, row, S, rand) => (T.ask === 'frac-shape' ? shapeLine(T)
+    : row.span ? { ...windowFor(row, T, rand), label_every: S.label_every ?? row.label_every ?? 1 } : null),
   planRound: (row, total, rand) => planAsks(row, total, rand),
   pickTarget: (kind, line, prev, rand, row) => askTarget(row, kind, prev && prev.ask ? prev : null, rand),
   isRight: askRight,
   goalOf: askGoal,
-  chip: (T) => faceChip(T),
+  // odd or even to 100 takes Number mode's word chip ("Land on [even]"); the rest are faces
+  chip: (T) => (T.ask === 'parity' ? { cls: `word ${T.rel}`, html: T.rel } : faceChip(T)),
   words: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'the number').replace(/^Land on /, '').replace(/[!?]$/, ''),
   sayAll: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'Land on the number!'),
   miss: (T, spot, goal) => askMiss(T, spot, goal),
@@ -201,7 +267,7 @@ const CHALLENGE = {
   landingLine: (T, row, S, rand) => {
     const m = row.mix[T.sub], k = KINDS[m.kind];
     const own = k.landingLine ? k.landingLine(T, m.row, S, rand) : null;
-    return { ...(own || k.lineFor(m.row, S)), labels: m.row.labels || 'plain' };
+    return { ...(own || k.lineFor(m.row, S)), labels: (own && own.labels) || m.row.labels || 'plain' };
   },
   planRound: (row, total, rand) => {
     const plans = row.mix.map((m) => KINDS[m.kind].planRound(m.row, total, rand));
@@ -221,6 +287,7 @@ const CHALLENGE = {
   miss: (T, spot, goal, S) => subOf(T).miss(T, spot, goal, S),
   beam: (T) => !!(T && T.subKind && KINDS[T.subKind].beam),
   moreTime: (T, row) => { const k = T && KINDS[T.subKind]; return !!(k && k.moreTime && k.moreTime(T, row && row.mix ? row.mix[T.sub].row : row)); },
+  fallTime: (T, row) => { const k = T && KINDS[T.subKind]; return (k && k.fallTime && k.fallTime(T, row && row.mix ? row.mix[T.sub].row : row)) || null; },
 };
 
 // ---------- Settings: the shared ones, the line's left to the level (GC3), and the operations ----------

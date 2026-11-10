@@ -1,4 +1,8 @@
-"""Browser test for Rocket Lander's Number mode levels (D-035, D-038). Version 1.1.
+"""Browser test for Rocket Lander's Number mode levels (D-035, D-038). Version 1.2.
+
+Changes at v1.2 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
+test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
+checked by its sha256) in place of the game's map.js; its checks are unchanged.
 
 Changes at v1.1 (step 2c-build, D-058): one game with a map. Number mode's levels are Moon's, 1 to 8
 along the map as before, and the sums levels follow as 9 to 16, so the address's level out of range
@@ -23,6 +27,7 @@ console error or warning. Screenshots show made-up play only and are never commi
 """
 import functools, http.server, os, re, socketserver, sys, tempfile, threading
 from playwright.sync_api import sync_playwright
+import stand_in  # the stand-in map these checks were written for (step 2c-3b)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -63,6 +68,7 @@ def page(br, w=844, h=390, mobile=True, url=BASE, scheme='dark'):
             outside.append(u)
         return r.abort()
     ctx.route('**/*', route)
+    stand_in.serve(ctx)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')

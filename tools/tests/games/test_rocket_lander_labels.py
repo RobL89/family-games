@@ -1,4 +1,8 @@
-"""RL-3: after a miss, the lit-up number must not sit on top of its neighbours. Version 1.1.
+"""RL-3: after a miss, the lit-up number must not sit on top of its neighbours. Version 1.2.
+
+Changes at v1.2 (step 2c-3b, D-100): it plays the lower track's Moon 1 (?track=reception), Number mode's
+level 1, the same row the stand-in track's Moon 1 was, now that Year 2 holds the higher track; the
+settings and checks are unchanged, and a preview bundle (whose map is inside it) plays the same level.
 
 Changes at v1.1: --page runs the same check on another page, such as a preview bundle
 (test_rocket_lander_preview.py); with no --page it tests the game folder as before.
@@ -56,7 +60,7 @@ def run(br, w, h, mobile, tag):
     ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith(LOCAL) else r.abort())
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
-    pg.goto(LOCAL + PATH + '?track=year2')  # the stand-in levels (D-089)
+    pg.goto(LOCAL + PATH + '?track=reception')  # Moon 1: Number mode's level 1, the row this test was written on (step 2c-3b)
     pg.wait_for_function('window.__test && __test.state().ready')
     pg.evaluate("__test.begin({ settings: { from: -10, to: 10, label_every: 5, landings_per_round: 8 } })")
     pg.click('#play', force=True)

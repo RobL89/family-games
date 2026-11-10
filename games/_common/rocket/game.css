@@ -1,4 +1,7 @@
-/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.1.
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.2.
+   Changes at v2.2 (step 2c-3b, D-100): Year 2's faces in the target's chip (tens rods and ones, words, a
+   sign, a count, a shape cut in parts, a fraction of dots in groups), a dashed box for a number to find,
+   and fractions one number over the other in the chip and the bubble.
    Changes at v2.1 (step 2c-3a, D-092; Rob): on a big screen the heads-up and the bubble grow (about 1.5 times on a
    screen 1000 px high). Also: Reception's faces in the target's chip (white, coral dots in rows of
    5, frames to fill, sweets and plates, a quick look that hides its dots), with "Land on" left to the voice
@@ -98,6 +101,31 @@ button { font: inherit; color: inherit; }
 .target .chip.face-flash .fl-q { animation: fl-show .35s cubic-bezier(.3, 1.6, .5, 1) var(--show, 1500ms) forwards; }
 @keyframes fl-hide { to { opacity: 0; transform: scale(.5); } }
 @keyframes fl-show { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+/* Year 2's faces (step 2c-3b, D-100): tens rods and ones, a number in words, "47 < ?", a count to go on, a
+   shape cut in equal parts, a fraction of some dots; a box (dashed) for the number to find; fractions one over the other */
+.chip.face svg.blocks { height: 1.42em; }
+.chip .pv-ten { fill: var(--mint); stroke: var(--ink); stroke-width: .7; }
+.chip .pv-l { stroke: var(--ink); stroke-width: .35; opacity: .5; }
+.chip .pv-one { fill: var(--sun); stroke: var(--ink); stroke-width: .7; }
+.chip.face-words .wd { font-size: .6em; font-weight: 700; padding: .06em .14em; white-space: nowrap; }
+.chip .fq, .chip.sum .q { display: inline-grid; place-items: center; min-width: 1.1em; padding: 0 .16em; border-radius: .38em; background: var(--paper);
+  border: 2px dashed var(--ink); font-size: .82em; line-height: 1.12; }
+.chip.sum .q { min-width: .9em; font-size: 1em; padding: 0 .1em; line-height: 1; border-radius: .3em; }
+.chip.sum .sm { white-space: nowrap; display: inline-flex; align-items: center; gap: .18em; }
+.chip.face-sign .fn, .chip.face-sign .fq, .chip.face-seq .fn, .chip.face-seq .fq { font-size: .7em; }
+.chip.face-seq { gap: .14em; }
+.chip.face svg.shape { height: 1.3em; }
+.chip .fs-on { fill: var(--coral); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.chip .fs-off { fill: var(--paper); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.chip .fs-edge { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.chip .fr, .bubble .fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.02; font-weight: 700; }
+.chip .fr { font-size: .62em; }
+.bubble .fr { font-size: .72em; margin: 0 .08em; }
+.chip .fr b, .bubble .fr b { display: block; padding: 0 .14em; background: none; border-radius: 0; }
+.chip .fr b:first-child, .bubble .fr b:first-child { border-bottom: .13em solid currentColor; padding-bottom: .05em; }
+.chip .fr b + b, .bubble .fr b + b { padding-top: .05em; }
+.chip .fo-group { fill: var(--lilac); stroke: var(--ink); stroke-width: .9; }
+.chip.face-fracof .fn { font-size: .7em; }
 /* a challenge round (D-091): its card's chip */
 .chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
 .chip.challenge svg { width: .9em; height: .9em; }
