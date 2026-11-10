@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.16 · 2026-11-09 |
+| **Version** | 1.17 · 2026-11-10 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.17:** a script for sketches of new ship ideas, `sketch_rocket_ship_ideas.py` (D-062: new ships when Rob asks); the game's files are unchanged.
 
 **Changes at v1.16:** one rocket game with a map (step 2c-build, D-058, D-064 to D-068). Rocket Sums joined Rocket Lander: its sums and levels are in `games/rocket-lander/` (`sums.js`, `sums-levels.js`), its folder is gone (git keeps it), and the levels sit on a map of solar systems (`map.js`, stand-in levels until the level plan). The engine gains the map screens (`starmap.js`: the map, the galaxy, hyperspace) and the map's progress rules (`progress.js`, format 3 on the device). The tests follow: the sums core checks are in `test_rocket_lander_core.py`, the sums browser test is `test_rocket_lander_sums_e2e.py`, and the map screens have `test_rocket_lander_map_e2e.py`; a bench for the map, `mutate_rocket_map.py`.
 
@@ -76,6 +78,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `sketch_rocket_ships.py`, with `sketch_rocket_hangar.js` | Not a check: builds one page of moving mock-ups of the hangar's ships and two hangar layouts (step 2a-4a, D-046), bundling the page with `games/_common/rocket/` (the ships now among it, in `ships.js`, D-053) as `build_preview.py` does, for a private artifact; then checks the page at phone and PC sizes and plays both hangars by mouse |
 | `sketch_rocket_door.py` | Not a check: draws places for the hangar door on copies of the real start screens (step 2a-4b, D-052), for a private artifact. The game's own files are never changed. It drew the two tiles' start screens, gone since step 2c-build, so it runs only at its own commit (26b299c) |
 | `sketch_rocket_map.py` | Not a check: draws crude SVG screens of the one game with a map (step 2c-1, D-058 to D-060), taking the systems' colours from `planets.js`, for a private artifact. The game's own files are never changed |
+| `sketch_rocket_ship_ideas.py` | Not a check: draws new ship ideas as SVG sketches (flying, landing, and at their size in play), original art, for a private artifact (D-062), then checks the page at phone and PC sizes, light and dark: no script errors, nothing fetched, no sideways scrolling. The game's own files are never changed |
 | `count_rocket_map_rocks.py` | A count, not a check: how many moon rocks a map can pay out against the ships' prices, and the room a die has on a line of 0 to 10 (Q-026, D-060) |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
@@ -118,6 +121,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.17 | 2026-11-10 | The new ship ideas sketch script (D-062) |
 | 1.16 | 2026-11-09 | One rocket game with a map (step 2c-build): Rocket Sums joined Rocket Lander; `starmap.js`, `progress.js`, `map.js`; progress format 3; the tests and the close's map follow; `mutate_rocket_map.py` |
 | 1.15 | 2026-11-09 | One game with a map is planned (D-058); the map sketch and rock-count scripts |
 | 1.14 | 2026-11-09 | The close's choice of tests after a full pass (D-056); the test panels keep progress on the device (ER-004) |
