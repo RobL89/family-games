@@ -151,6 +151,7 @@ const out = {
   defaultNotes: S.resolveSettings(S.SETTINGS).notes,
   given: S.resolveSettings(S.SETTINGS, { from: -20, to: 5000, step: 'x', show_as: 'decimal', speak: false, speed: 0, extra: 1 }),
   badOpt: S.resolveSettings(S.SETTINGS, { show_as: 'roman', speak: 'yes' }),
+  fall: { table: S.FALL_SECONDS, more: S.MORE_TIME, at: [1, 2, 3, 4, 5, 2.5, 0, 9, 'x'].map((v) => S.fallSecondsFor(v)), more3: S.fallSecondsFor(3, true), more5: S.fallSecondsFor(5, true) },
   planets: P.PLANETS.map((p) => p.id),
   planetIndex: [P.planetIndex('ice'), P.planetIndex('nope')],
   levels: L.LEVELS,
@@ -377,11 +378,17 @@ check(o['nearTight']['allowed'] == 5 and o['nearTight']['tight'], 'marks 3px apa
 check(o['nearClose']['allowed'] == 2, 'close_enough 2: within 2 counts')
 
 want = {'speak': True, 'from': 0, 'to': 10, 'step': 1, 'label_every': 1, 'show_as': 'fraction',
-        'close_enough': 0, 'landings_per_round': 8, 'speed': 2}
+        'close_enough': 0, 'landings_per_round': 8, 'speed': 3}
 check(o['defaults'] == want and o['defaultNotes'] == [], f'built-in defaults as in the games pack\'s table ({o["defaults"]})')
 g = o['given']['values']
 check(g['from'] == -20 and g['to'] == 1000 and g['step'] == 1 and g['show_as'] == 'decimal' and g['speak'] is False and g['speed'] == 1
       and 'extra' not in g, f'given settings: kept in range, odd ones fall back, unknown ones ignored ({g})')
+# Speeds (Rob, step 2c-3a, D-096): 1 to 5 fall in 18, 15, 12, 9 and 7 seconds; 3 (12 s, the old speed 1) is the default.
+# Between two speeds, in a straight line: 2.5 is halfway from 15 to 12, 13.5. Outside 1 to 5, the nearest end; not a number: the default.
+# Pictures, dice and sums get 25% more (D-097): 12 x 1.25 = 15; 7 x 1.25 = 8.75.
+fl = o['fall']
+check(fl['table'] == [18, 15, 12, 9, 7] and fl['at'] == [18, 15, 12, 9, 7, 13.5, 18, 7, 12] and fl['more'] == 1.25
+      and fl['more3'] == 15 and fl['more5'] == 8.75, f"fall times: 18, 15, 12, 9, 7 s for speeds 1 to 5 (D-096), 25% more for pictures, dice and sums (D-097): {fl}")
 check(len(o['given']['notes']) == 3, f'one note for each value changed: to, step, speed ({o["given"]["notes"]})')
 check(o['badOpt']['values']['show_as'] == 'fraction' and o['badOpt']['values']['speak'] is True and len(o['badOpt']['notes']) == 2,
       'an option not in the list, or a word for true or false, falls back to the default')

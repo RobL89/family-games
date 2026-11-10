@@ -410,7 +410,7 @@ with sync_playwright() as pw:
     infos.clear()
     pg = open_game(br, 390, 844, True, {'from': -5000, 'show_as': 'roman', 'speed': 'fast'})
     s = state(pg)
-    check(s['settings']['from'] == -1000 and s['settings']['show_as'] == 'fraction' and s['settings']['speed'] == 2,
+    check(s['settings']['from'] == -1000 and s['settings']['show_as'] == 'fraction' and s['settings']['speed'] == 3,
           f'odd settings fall back or are kept in range: {s["settings"]}')
     check(any('outside' in m for m in infos), 'console.info explains the odd settings')
     pg.context.close()

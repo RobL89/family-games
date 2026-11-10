@@ -6,7 +6,8 @@
 // as mode.tracks. Two new kinds of level: 'ask', Reception's questions asked by a picture or a phrase
 // (asks.js, faces.js), and 'challenge', a round mixing its system's seven levels, each landing played
 // the way its own level plays it (asks.js, planChallenge; D-091). Sums levels may show dots under each
-// number (`pictures`, Q-033); number levels may keep their targets to part of the line (`pick`).
+// number (`pictures`, Q-033); number levels may keep their targets to part of the line (`pick`). Each
+// kind says which landings get 25% more time to fall (moreTime, D-097): pictures, dice and sums.
 // Changes at v3.1 (step 2c-build, D-066): the map sets the level (round.js and progress.js), so the
 // flat list of levels for levelOf goes.
 //
@@ -77,6 +78,7 @@ const NUMBER = {
     : { speech: `That's ${say(spot, S.show_as)}. ${say(goal, S.show_as)} is over here!`,
       html: `That's <b class="no-n">${fmt(spot, S.show_as)}</b>. <b>${fmt(goal, S.show_as)}</b> is over here!` }),
   beam: false,
+  moreTime: (T, row) => T.rule === 'dice' || (row && row.labels === 'dice'), // dice to read (D-097)
   testHooks: {
     // make this landing's target a given number on the line
     aim(v, { line, set }) { const T = { rule: 'any', value: line.value(line.index(v)) }; set(T); return T.value; },
@@ -125,6 +127,7 @@ const SUMS = {
     html: `That's <b class="no-n">${spot}</b>. ${esc(T.sum)} = <b>${T.value}</b>, over here!`,
   }),
   beam: true,
+  moreTime: () => true, // a sum to work out (D-097)
   testHooks: {
     // make this landing's sum a given one, such as aimSum(7, '×', 8); its line is laid out anew
     aimSum(a, op, b, { set }) {
@@ -179,6 +182,7 @@ const ASK = {
   sayAll: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'Land on the number!'),
   miss: (T, spot, goal) => askMiss(T, spot, goal),
   beam: false,
+  moreTime: () => true, // a picture or a phrase to read (D-097)
   testHooks: {
     // make this landing's question a given one, such as aimAsk({ ask: 'dots', n: 4, value: 4 })
     aimAsk(T, { set }) { set({ rule: T.value === undefined ? 'range' : 'ask', ...T }); return true; },
@@ -216,6 +220,7 @@ const CHALLENGE = {
   sayAll: (T, S) => (subOf(T).sayAll ? subOf(T).sayAll(T, S) : `Land on ${subOf(T).words(T, S)}!`),
   miss: (T, spot, goal, S) => subOf(T).miss(T, spot, goal, S),
   beam: (T) => !!(T && T.subKind && KINDS[T.subKind].beam),
+  moreTime: (T, row) => { const k = T && KINDS[T.subKind]; return !!(k && k.moreTime && k.moreTime(T, row && row.mix ? row.mix[T.sub].row : row)); },
 };
 
 // ---------- Settings: the shared ones, the line's left to the level (GC3), and the operations ----------

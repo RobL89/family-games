@@ -8,7 +8,8 @@
 // takes up the other's, and reloads the page on it. A landing's own line (landingLine) may bring its
 // own label look (`labels`: a challenge round's levels each keep theirs), laid out afresh when it
 // changes; a kind's `beam` may be a function of the target; a kind may say its whole spoken ask
-// (sayAll), in place of "Land on" and its words. Test hooks: the track played and the tracks.
+// (sayAll), in place of "Land on" and its words. Falls are slower (settings.js 1.1, D-096), and a kind's
+// moreTime(T, row) gives a landing 25% more (D-097). Test hooks: the track played and the tracks.
 // Changes at v2.5 (step 2d-2, D-080): three hooks a ship may give (ships.js 1.4), read here; ships
 // without them play exactly as before. seat(S): where Bip sits aboard, so his hop out to the small
 // flag and back starts and ends there, and Bip's moment starts there with a short hop to the rope
@@ -94,7 +95,7 @@
 
 import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevice, keptOnDevice } from './kit.js';
 import { play as playSound, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
-import { resolveSettings } from './settings.js';
+import { resolveSettings, fallSecondsFor } from './settings.js';
 import { makeLine, labelGap, nearness, fmt, starsFor, tidy } from './numbers.js';
 import { PLANETS } from './planets.js';
 import { Scene, Fx, drawRock, drawPlanetBall, ladderEnds, clamp, lerp, ease, mix, INK, FONT } from './scene.js';
@@ -121,7 +122,6 @@ export function runRocket(mode) {
   const levelById = (id) => { const at = placeOf(MAP, id) || { ...ROUTE[0], i: 0 }; return { ...at, ...MAP[at.s].levels[at.n] }; };
   // Progress, format 3 (D-058), with the ships (D-053): anything handed in or read back made safe.
   const tidyAll = (raw) => ({ ...tidyProgress(MAP, raw), ...hangarOf(raw && typeof raw === 'object' ? raw : {}) });
-  const FALL_SECONDS = [12, 8, 6, 5, 4]; // speed 1 to 5: seconds from the top to the ground
   const INTRO = 0.7; // seconds the rocket takes to swoop in from above
 
   const stage = $('stage');
@@ -194,10 +194,11 @@ export function runRocket(mode) {
     near = nearness(line, { closeEnough: Number(S.close_enough) || 0, pxPerStep: scene.pps, gapOfLabels: gap });
   }
 
+  // The fall for this landing (settings.js, D-096): 25% more when the kind says its question takes
+  // longer to read (a picture, a dice face, a sum: D-097).
   function fallSeconds() {
-    const s = clamp(Number(S.speed) || 2, 1, 5);
-    const i = Math.min(3, Math.floor(s - 1));
-    return lerp(FALL_SECONDS[i], FALL_SECONDS[i + 1], s - 1 - i);
+    const more = !!(K().moreTime && G.T && K().moreTime(G.T, level.row));
+    return fallSecondsFor(S.speed, more);
   }
 
   // ---------- Layout ----------
@@ -1208,7 +1209,7 @@ export function runRocket(mode) {
 
   const api = {
     state: () => ({
-      track: TRACK, tracks: Object.keys(TRACKS), kept: whole(), ask: G.T && G.T.ask || null, sub: G.T && G.T.sub !== undefined ? G.T.sub : null,
+      track: TRACK, tracks: Object.keys(TRACKS), kept: whole(), fall: G.T && G.fallV ? +((G.touchY - G.startY) / G.fallV).toFixed(3) : null, ask: G.T && G.T.ask || null, sub: G.T && G.T.sub !== undefined ? G.T.sub : null,
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
       sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,
       goal: G.goal, level: level.i + 1, levelId: level.id, kind: level.kind, labelLook: scene.labelLook || level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,

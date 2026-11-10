@@ -1,5 +1,5 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.0.
+Version 1.1. Changes at v1.1: the fall times (D-096, D-097).
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
@@ -113,6 +113,15 @@ with sync_playwright() as pw:
         check(s['track'] == 'reception' and s['tracks'] == ['reception', 'year2'] and s['levelId'] == 'moon-1',
               f'{tag}: a new device plays the lower track from Moon 1 (D-089): {s["track"]}, {s["levelId"]}')
         check(len(mk) == 8, f'{tag}: the Moon has 8 level markers, the 8th its challenge: {len(mk)}')
+
+        # Falls (D-096, D-097): 12 s at the default speed 3; 15 s for a picture, a dice face or a sum
+        falls = {}
+        for lid in ('moon-1', 'moon-3', 'moon-4', 'dust-3'):
+            start(pg, lid)
+            falls[lid] = st(pg)['fall']
+            home(pg)
+        check(falls == {'moon-1': 12, 'moon-3': 15, 'moon-4': 15, 'dust-3': 15} and st(pg)['settings']['speed'] == 3,
+              f'{tag}: the default speed 3 falls in 12 s on a numbers level and 15 s on a picture, a dice line and a sum: {falls}')
 
         # The faces
         for lid, (T, dots) in FACES.items():
