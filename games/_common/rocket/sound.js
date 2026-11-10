@@ -1,5 +1,8 @@
 // Rocket Lander's own sounds, made in the browser (no sound files to download), and
-// words said out loud with the device's own voice. Version 1.2.
+// words said out loud with the device's own voice. Version 1.3.
+//
+// Changes at v1.3 (Rob, 10 Nov): 'warp' lasts as long as the longer hyperspace (≈5.6 s): a low
+// charge, the rush and a rising shimmer, then the chime; the old short one is 'warpCalm', for less motion.
 //
 // Changes at v1.2 (step 2c-build, D-058): 'warp', hyperspace's rising whoosh and shimmer.
 //
@@ -97,7 +100,8 @@ const SOUNDS = {
   chime: (t) => [1568, 2093, 2637, 3136, 2637].forEach((f, i) => tone(f, t + i * 0.07, 0.7, 'sine', 0.05)),
   harp: (t) => [523, 659, 784, 988, 1175, 1319, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.045, 0.6, 'triangle', 0.05)),
   aurora: (t) => { [523, 659, 784, 1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, t + i * 0.06, 1.0, 'sine', 0.045)); tone(262, t, 1.5, 'triangle', 0.06); tone(392, t + 0.2, 1.3, 'triangle', 0.04); },
-  warp: (t) => { noise(t, 2.6, { from: 200, to: 4200, volume: 0.16, q: 1.4 }); tone(110, t, 2.4, 'sawtooth', 0.035, 880); tone(220, t + 0.3, 2.1, 'triangle', 0.05, 1760); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 2.2 + i * 0.06, 0.6, 'sine', 0.04)); },
+  warp: (t) => { noise(t, 1.0, { from: 120, to: 600, volume: 0.1, q: 2 }); tone(70, t, 1.0, 'sawtooth', 0.04, 160); noise(t + 0.8, 4.6, { from: 300, to: 5600, volume: 0.16, q: 1.2 }); tone(110, t + 0.8, 4.4, 'sawtooth', 0.035, 1320); tone(220, t + 0.9, 4.2, 'triangle', 0.05, 2400); for (let k = 0; k < 7; k++) [523, 659, 784, 1047].forEach((f, i) => tone(f * (1 + k * 0.06), t + 1.2 + k * 0.5 + i * 0.07, 0.25, 'sine', 0.022)); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 4.9 + i * 0.06, 0.8, 'sine', 0.045)); },
+  warpCalm: (t) => { noise(t, 2.6, { from: 200, to: 4200, volume: 0.16, q: 1.4 }); tone(110, t, 2.4, 'sawtooth', 0.035, 880); tone(220, t + 0.3, 2.1, 'triangle', 0.05, 1760); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 2.2 + i * 0.06, 0.6, 'sine', 0.04)); },
   fanLegend: (t) => { [392, 523, 659, 784].forEach((f, i) => tone(f, t + i * 0.12, 0.3, 'square', 0.04)); [1047, 1319, 1568].forEach((f) => tone(f, t + 0.5, 1.1, 'triangle', 0.05)); SOUNDS.aurora(t + 0.6); },
 };
 

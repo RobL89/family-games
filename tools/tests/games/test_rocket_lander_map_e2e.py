@@ -1,5 +1,7 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.2.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.3.
 
+Changes at v1.3 (Rob, 10 Nov): after a flight in the galaxy the rocket rests by the planet a moment
+before its map comes; hyperspace lasts longer.
 Changes at v1.2 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and the device keeps
 it there, so leaving a round with home comes back to the rocket on that level.
 Changes at v1.1: a tap on the waiting rocket makes it hop with a boing, and starts nothing.
@@ -283,7 +285,10 @@ with sync_playwright() as pw:
           f'a tap on open level 1 flies the rocket over to it, and the device keeps it there: {mp(pg)["rocketAt"]}, kept {entry(pg)["at"]}')
     tap(pg, '#lc-play')
     pg.wait_for_function('__test.state().phase === "fly"', timeout=10000)
+    # the launcher is P-020's page: a blank page stands in for it here, so its own fetches aren't counted as the game's
+    pg.route(lambda u: u.startswith(LOCAL) and '/games/' not in u, lambda r: r.fulfill(status=200, content_type='text/html', body='<!doctype html><title>launcher</title>'))
     tap(pg, 'button[aria-label="Back to games"]')
+    pg.wait_for_url(lambda u: 'rocket-lander' not in u, timeout=10000)  # home has left the game (ER-005)
     pg.wait_for_load_state()
     pg.goto(BASE)
     pg.wait_for_function('window.__test && __test.state().ready')
@@ -384,6 +389,8 @@ with sync_playwright() as pw:
     pg.mouse.click(p['x'], p['y'])
     pg.wait_for_timeout(300)
     check(mp(pg)['flying'], 'tapping the Moon flies the rocket along the path')
+    pg.wait_for_function('(() => { const f = __test.state().map.arrived; return f !== null && f >= 0.2; })()', timeout=10000)
+    check(st(pg)['screen'] == 'galaxy', 'the rocket rests by the Moon for a moment before the map comes (Rob, 10 Nov)')
     pg.wait_for_function('__test.state().screen === "map" && __test.state().map.system === "moon"', timeout=10000)
     settle(pg)
     m = mp(pg)

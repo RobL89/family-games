@@ -1,6 +1,9 @@
 // The rocket games' hangar (D-026, D-029, D-045, D-046, D-050 to D-053): the showroom behind the
 // hangar door on the start card, where a child looks round the ships, buys one with moon rocks
-// and picks the one to fly. Version 1.1. All original and drawn in code (D-010).
+// and picks the one to fly. Version 1.2. All original and drawn in code (D-010).
+//
+// Changes at v1.2 (Rob, 10 Nov): the ship badges along the bottom are a little bigger (radius 22
+// to 23, from 18 to 19) and go into as many evened-out rows as the width needs, so more ships fit later.
 //
 // Changes at v1.1 (step 2a-4c): the ship on the turntable is told when the device asks for less
 // motion (S.calm), so the Golden Phoenix's wings and the Aurora Cruiser's ribbons keep still.
@@ -498,7 +501,7 @@ export class Hangar {
     const h = this.lastHits.find((x) => x.id === id);
     if (!h || !this.isOpen) return null;
     const r = this.canvas.getBoundingClientRect();
-    return { x: r.left + ((h.x + h.w / 2) * r.width) / this.W, y: r.top + ((h.y + h.h / 2) * r.height) / this.H };
+    return { x: r.left + ((h.x + h.w / 2) * r.width) / this.W, y: r.top + ((h.y + h.h / 2) * r.height) / this.H, w: (h.w * r.width) / this.W, h: (h.h * r.height) / this.H };
   }
 
   // ---------- choosing, buying and flying ----------
@@ -712,9 +715,13 @@ export class Hangar {
       const ar = 24 * u, ay = padY - this.shipH * 0.55, lx = 12 + ar, rx2 = this.tall ? W - 12 - ar : W * 0.62;
       if (this.cur > 0) { circleBtn(ctx, lx, ay, ar, 'left'); this.addHit('left', lx - ar, ay - ar, ar * 2, ar * 2, () => this.switchBy(-1)); }
       if (this.cur < SHIPS.length - 1) { circleBtn(ctx, rx2, ay, ar, 'right'); this.addHit('right', rx2 - ar, ay - ar, ar * 2, ar * 2, () => this.switchBy(1)); }
-      const n = SHIPS.length, r = (this.tall ? 18 : 19) * u, gap = Math.min((W - 30) / n, r * 2.7), y0 = H - r - 16 * u;
+      // the badges: a little bigger, in as many rows as the width needs, the rows evened out (Rob, 10 Nov)
+      const n = SHIPS.length, r = Math.max(22, (this.tall ? 22 : 23) * u), gap = r * 2.55, fit = Math.max(1, Math.floor((W - 24) / gap));
+      const rows = Math.ceil(n / fit), per = Math.ceil(n / rows), yLast = H - r * 1.18 - 14 * u;
       SHIPS.forEach((s, i) => {
-        const x = W / 2 + (i - (n - 1) / 2) * gap, cur = i === this.cur, rr0 = r * (cur ? 1.18 : 1), Tt = TIERS[s.tier];
+        const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per;
+        const x = W / 2 + (col - (inRow - 1) / 2) * gap, y0 = yLast - (rows - 1 - row) * gap;
+        const cur = i === this.cur, rr0 = r * (cur ? 1.18 : 1), Tt = TIERS[s.tier];
         ctx.beginPath(); ctx.arc(x, y0 + 3, rr0, 0, TAU); ctx.fillStyle = 'rgba(10,6,40,.5)'; ctx.fill();
         ctx.beginPath(); ctx.arc(x, y0, rr0, 0, TAU); ctx.fillStyle = cur ? '#3A3290' : '#241C66'; ctx.fill();
         ctx.lineWidth = cur ? 4 : 3; ctx.strokeStyle = Tt.rainbow ? hsl(t * 80 + i * 20, 100, 70) : Tt.col; ctx.stroke();

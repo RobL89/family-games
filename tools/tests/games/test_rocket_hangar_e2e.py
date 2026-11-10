@@ -1,5 +1,8 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.3.
+Version 1.4.
+
+Changes at v1.4 (Rob, 10 Nov): the ship badges are 44 px or more, clear of each other and of the
+big button, and go into rows on narrow screens (320 px wide added to the sizes).
 
 Changes at v1.3 (step 2c-build, D-052, D-058, D-066): the map is home. The hangar door is on the
 map's top bar, with the rocks on it, and the showroom shuts back to the map; the map's rocket is the
@@ -356,7 +359,7 @@ with sync_playwright() as pw:
         pg.context.close()
 
     # ---------- Sizes and looks (Rocket Lander): phone, sideways, PC; light and dark ----------
-    for (w, h, mobile) in [(390, 844, True), (844, 390, True), (1280, 800, False)]:
+    for (w, h, mobile) in [(390, 844, True), (844, 390, True), (1280, 800, False), (360, 740, True)]:
         for scheme in ('light', 'dark'):
             pg = open_tile(br, 'rocket-lander', w, h, mobile, {**V1, 'rocks': 75}, scheme=scheme)
             wide = pg.evaluate('document.documentElement.scrollWidth - innerWidth')
@@ -369,6 +372,16 @@ with sync_playwright() as pw:
             hits = {k: pg.evaluate(f'__test.hangarHit("{k}")') for k in ('action', 'back', 'left', 'right', 'badge:classic', 'badge:aurora')}
             on = all(v and 0 <= v['x'] <= w and 0 <= v['y'] <= h for v in hits.values())
             check(wide <= 0 and card <= 1 and on, f'{w}x{h} {scheme}: no sideways scrolling ({wide}), the hangar door on screen on the map ({card}), showroom buttons on screen: {hits}')
+            # the badges (Rob, 10 Nov): at least 44 px, clear of each other and of the big button, in rows when narrow
+            ids = ['classic', 'box', 'teapot', 'pod', 'saucer', 'crystal', 'phoenix', 'aurora']
+            bs = [pg.evaluate(f'__test.hangarHit("badge:{i}")') for i in ids]
+            act = hits['action']
+            big = all(b and min(b['w'], b['h']) >= 44 for b in bs)
+            apart = all(abs(a['x'] - b['x']) >= (a['w'] + b['w']) / 2 or abs(a['y'] - b['y']) >= (a['h'] + b['h']) / 2 for i, a in enumerate(bs) for b in bs[i + 1:])
+            clear = all(b['y'] - b['h'] / 2 >= act['y'] + act['h'] / 2 or abs(b['x'] - act['x']) >= (b['w'] + act['w']) / 2 for b in bs)
+            rows = len({round(b['y']) for b in bs})
+            check(big and apart and clear and (rows >= 2 if w < 400 else True) and all(0 <= b['x'] - b['w'] / 2 and b['x'] + b['w'] / 2 <= w for b in bs),
+                  f'{w}x{h} {scheme}: the ship badges are 44 px or more ({[round(b["w"]) for b in bs]}), apart, clear of the big button, on screen, in {rows} row(s)')
             if scheme == 'light':
                 pg.screenshot(path=f'{OUT}/size-{w}x{h}-showroom.png')
             pg.context.close()

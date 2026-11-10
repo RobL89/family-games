@@ -1,8 +1,11 @@
 // The rocket game's map screens (D-058, D-065, D-066): the map of the system the child is in, with
 // its level markers along a path and the rocket waiting by its place; the galaxy view of every system
 // along a winding path; and the jumps between them, a short warp and, when a system is done,
-// hyperspace. Version 1.2 (step 2c-build, D-068). All original and drawn in code (D-010).
+// hyperspace. Version 1.3 (step 2c-build, D-068). All original and drawn in code (D-010).
 //
+// Changes at v1.3 (Rob, 10 Nov): after a flight in the galaxy the rocket rests by the planet for a
+// moment, with a sparkle, before its map comes. Hyperspace lasts longer (5.6 s, calm 2.4 s) and is
+// grander: a charge-up, neon streaks in light, rings of a tunnel rushing past, star bursts, then the flash.
 // Changes at v1.2 (Rob, 10 Nov): hopTo(id) flies the waiting rocket over to a level's marker, for a
 // tap on an open level.
 // Changes at v1.1: a tap on the rocket waiting on the map makes it do a happy hop, with a boing and
@@ -413,8 +416,8 @@ export class StarMap {
     this.io.covered(true);
     this.calm = !!this.io.calm();
     const from = this.map[this.s];
-    this.hy = { t: 0, dur: this.calm ? 1.8 : 3.4, from: from ? PLANETS[from.planet] : PLANETS[0], to: PLANETS[this.map[toS].planet], name: this.map[toS].name, toS, done, streaks: [], flash: 0, said: false };
-    this.io.sfx('warp');
+    this.hy = { t: 0, dur: this.calm ? 2.4 : 5.6, from: from ? PLANETS[from.planet] : PLANETS[0], to: PLANETS[this.map[toS].planet], name: this.map[toS].name, toS, done, streaks: [], rings: [], pops: [], flash: 0, said: false };
+    this.io.sfx(this.calm ? 'warpCalm' : 'warp');
     this.io.say('Hyperspace!');
   }
 
@@ -861,8 +864,18 @@ export class StarMap {
       F.t += dt;
       const k = ease.inOut(clamp(F.t / F.dur, 0, 1)), q = along(F.path, k);
       rx = q.x; ry = q.y - L.r * 0.3; rot = q.a + Math.PI / 2; flame = 1.1;
-      if (!this.calm && Math.random() < 0.5) this.bits.push({ kind: 'star', x: rx, y: ry, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40, g: 0, life: 0.5, age: 0, size: 2 + Math.random() * 3, col: Math.random() < 0.5 ? SUN : '#FFFFFF', rot: 0 });
+      const hold = this.calm ? 0.35 : 0.75, there = L.orbs[F.to];
       if (F.t >= F.dur) {
+        // arrived: settle by the planet, a puff and a sparkle, then a short rest before its map (Rob, 10 Nov)
+        const e = ease.out(clamp((F.t - F.dur) / 0.3, 0, 1));
+        rx = lerp(q.x, there.x + there.r * 0.95, e); ry = lerp(q.y - L.r * 0.3, there.y - there.r * 0.6, e); rot = lerp(rot, 0.35, e); flame = 0.4;
+        if (!F.arrived) {
+          F.arrived = true; this.io.sfx('puff');
+          if (!this.calm) for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU; this.bits.push({ kind: 'star', x: there.x, y: there.y, vx: Math.cos(a) * 120, vy: Math.sin(a) * 120, g: 0, life: 0.6, age: 0, size: 3 + Math.random() * 3, col: i % 2 ? SUN : '#FFFFFF', rot: 0 }); }
+        }
+      }
+      if (F.t < F.dur && !this.calm && Math.random() < 0.5) this.bits.push({ kind: 'star', x: rx, y: ry, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40, g: 0, life: 0.5, age: 0, size: 2 + Math.random() * 3, col: Math.random() < 0.5 ? SUN : '#FFFFFF', rot: 0 });
+      if (F.t >= F.dur + hold) {
         const s2 = F.to;
         this.fly = null;
         this.view = 'map'; this.el.gx.hidden = true; this.el.map.hidden = false; this.io.covered(false);
@@ -900,37 +913,76 @@ export class StarMap {
       for (let i = 0; i < 160; i++) { const x = (r() * W - Y.t * 40 * (0.3 + r())) % W; ctx.globalAlpha = 0.4 + r() * 0.5; ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(x < 0 ? x + W : x, r() * H, 0.6 + r() * 1.2, 0, TAU); ctx.fill(); }
       ctx.globalAlpha = 1;
     } else {
-      // streaks rushing out from the middle, faster and faster
-      const speed = 260 + 2600 * ease.in(clamp(Y.t / (Y.dur * 0.8), 0, 1)), far = Math.hypot(W, H) * 0.55;
-      // a tunnel of light opening up ahead
+      // a charge (to 15%), the jump (neon streaks and tunnel rings in light, faster and faster), the flash (from 88%)
+      const far = Math.hypot(W, H) * 0.55, charge = clamp(k / 0.15, 0, 1), jump = clamp((k - 0.15) / 0.73, 0, 1);
+      const speed = 60 + 500 * charge + 4400 * ease.in(jump);
+      const neon = ['#00F0FF', '#FF3DF5', '#FFE14D', '#7CFF6B', Y.to.glow, '#FFFFFF'];
       const tg = ctx.createRadialGradient(cx, cy, 0, cx, cy, far);
-      tg.addColorStop(0, rgba('#FFFFFF', 0.18 + 0.12 * k)); tg.addColorStop(0.25, rgba(Y.to.glow, 0.12)); tg.addColorStop(1, rgba('#04021A', 0));
+      tg.addColorStop(0, rgba('#FFFFFF', 0.12 + 0.3 * jump)); tg.addColorStop(0.2, rgba(Y.to.glow, 0.1 + 0.15 * jump)); tg.addColorStop(1, rgba('#04021A', 0));
       ctx.fillStyle = tg; ctx.fillRect(0, 0, W, H);
-      const cols = [SKY, '#FFFFFF', LILAC, '#FF7EC8', Y.to.glow, Y.to.nebula[0]];
-      if (!Y.streaks.length) for (let i = 0; i < 240; i++) Y.streaks.push({ a: Math.random() * TAU, d: Math.random() * far, w: 1 + Math.random() * 2.8, c: cols[i % cols.length] });
-      while (Y.streaks.length < 240) Y.streaks.push({ a: Math.random() * TAU, d: 4 + Math.random() * 40, w: 1 + Math.random() * 2.8, c: cols[Math.floor(Math.random() * cols.length)] });
-      ctx.lineCap = 'round';
-      for (const s of Y.streaks) {
-        s.d += speed * dt * (0.3 + s.d / 300);
-        const len = clamp(speed * 0.08 * (0.2 + s.d / 250), 3, 320);
-        const x0 = cx + Math.cos(s.a) * s.d, y0 = cy + Math.sin(s.a) * s.d, x1 = cx + Math.cos(s.a) * (s.d + len), y1 = cy + Math.sin(s.a) * (s.d + len);
-        ctx.strokeStyle = rgba(s.c, clamp(0.25 + s.d / 140, 0, 1)); ctx.lineWidth = s.w * (0.6 + s.d / far); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      // the tunnel: neon rings born in the middle, rushing past
+      if (jump > 0) {
+        Y.ringT = (Y.ringT || 0) + dt;
+        const every = 0.22 - 0.14 * jump;
+        while (Y.ringT > every) { Y.ringT -= every; Y.rings.push({ r: 6, c: neon[Y.rings.length % 5], spin: Math.random() * TAU }); }
       }
-      Y.streaks = Y.streaks.filter((s) => s.d < far * 1.4);
+      for (const g of Y.rings) {
+        g.r += (speed * 0.35 + g.r * 2.2) * dt; g.spin += dt * 1.5;
+        const a = clamp(1 - g.r / far, 0, 1) * 0.8, lw = 1.5 + g.r * 0.03;
+        ctx.strokeStyle = rgba(g.c, a * 0.35); ctx.lineWidth = lw * 4; ctx.beginPath(); ctx.ellipse(cx, cy, g.r, g.r * 0.82, g.spin * 0.1, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = rgba(g.c, a); ctx.lineWidth = lw; ctx.setLineDash([g.r * 0.35, g.r * 0.12]); ctx.lineDashOffset = -g.spin * g.r * 0.3;
+        ctx.beginPath(); ctx.ellipse(cx, cy, g.r, g.r * 0.82, g.spin * 0.1, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      }
+      Y.rings = Y.rings.filter((g) => g.r < far * 1.2);
+      // streaks: a soft neon glow and a bright core each
+      const n = 420;
+      if (!Y.streaks.length) for (let i = 0; i < n; i++) Y.streaks.push({ a: Math.random() * TAU, d: Math.random() * far, w: 1 + Math.random() * 2.6, c: neon[i % neon.length] });
+      while (Y.streaks.length < n) Y.streaks.push({ a: Math.random() * TAU, d: 4 + Math.random() * 40, w: 1 + Math.random() * 2.6, c: neon[Math.floor(Math.random() * neon.length)] });
+      ctx.lineCap = 'round';
+      for (const st of Y.streaks) {
+        st.d += speed * dt * (0.3 + st.d / 300);
+        const len = clamp(speed * 0.09 * (0.2 + st.d / 250), 2, 420);
+        const x0 = cx + Math.cos(st.a) * st.d, y0 = cy + Math.sin(st.a) * st.d, x1 = cx + Math.cos(st.a) * (st.d + len), y1 = cy + Math.sin(st.a) * (st.d + len);
+        const a = clamp(0.2 + st.d / 160, 0, 1), w = st.w * (0.6 + st.d / far);
+        ctx.strokeStyle = rgba(st.c, a * 0.3); ctx.lineWidth = w * 4; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.strokeStyle = rgba(st.c === '#FFFFFF' ? '#FFFFFF' : mix(st.c, '#FFFFFF', 0.45), a); ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      }
+      Y.streaks = Y.streaks.filter((st) => st.d < far * 1.4);
+      // star bursts popping out of the dark
+      if (jump > 0.05 && Math.random() < dt * 9) Y.pops.push({ x: cx + (Math.random() - 0.5) * W * 0.9, y: cy + (Math.random() - 0.5) * H * 0.9, age: 0, c: neon[Math.floor(Math.random() * 5)] });
+      for (const b of Y.pops) { b.age += dt; const f = b.age / 0.5; halo(ctx, b.x, b.y, 10 + f * 40, b.c, (1 - f) * 0.6); ctx.fillStyle = rgba('#FFFFFF', 1 - f); sparkle(ctx, b.x, b.y, (1 - f) * 12 + 4); }
+      Y.pops = Y.pops.filter((b) => b.age < 0.5);
+      // the charge: neon rings pulled in to the rocket before the jump
+      if (charge < 1) for (let i = 0; i < 3; i++) {
+        const r = far * (1 - charge) * (0.4 + i * 0.3);
+        ctx.strokeStyle = rgba(neon[i], 0.6 * charge); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, r), 0, TAU); ctx.stroke();
+      }
+      halo(ctx, cx, cy, 60 + 120 * jump + Math.sin(t * 12) * 8, Y.to.glow, 0.35 + 0.3 * jump);
+      ctx.restore();
+    }
+    // the rocket's neon afterburner, behind it (it flies nose to the right)
+    if (!this.calm) {
+      const hb = clamp(Math.min(W, H) * 0.28, 70, 170), len = hb * (0.8 + 2.2 * clamp((k - 0.1) / 0.3, 0, 1));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const ag = ctx.createLinearGradient(cx - hb * 0.4, 0, cx - hb * 0.4 - len, 0);
+      ag.addColorStop(0, rgba('#FFFFFF', 0.8)); ag.addColorStop(0.25, rgba('#00F0FF', 0.55)); ag.addColorStop(0.6, rgba('#FF3DF5', 0.3)); ag.addColorStop(1, rgba('#FF3DF5', 0));
+      ctx.fillStyle = ag; ctx.beginPath(); ctx.ellipse(cx - hb * 0.4 - len / 2, cy, len / 2, hb * 0.16 * (1 + Math.sin(t * 30) * 0.08), 0, 0, TAU); ctx.fill();
+      ctx.restore();
     }
     // the rocket, nose to the right, shaking with speed
-    const h = clamp(Math.min(W, H) * 0.28, 70, 170), shake = this.calm ? 0 : Math.sin(t * 60) * 2 * k;
+    const h = clamp(Math.min(W, H) * 0.28, 70, 170), shake = this.calm ? 0 : Math.sin(t * 60) * (1 + 3 * clamp(k / 0.15, 0, 1)) * (k < 0.88 ? 1 : 0.4);
     ctx.save(); ctx.translate(cx + shake, cy + (this.calm ? Math.sin(Y.t * 2) * 6 : 0)); ctx.rotate(Math.PI / 2); ctx.translate(-cx, -cy);
     this.drawFlown(ctx, cx, cy + h * 0.5, h, t, dt, { legs: 0, flame: 1.25 });
     ctx.restore();
     const fs = clamp(Math.min(W, H) * 0.11, 30, 64);
     const pulse = this.calm ? 1 : 1 + Math.sin(t * 8) * 0.04;
     ctx.save(); ctx.translate(cx, fs * 1.1); ctx.scale(pulse, pulse);
-    text(ctx, 'Hyperspace!', 0, 0, fs, { fill: SUN });
+    text(ctx, 'Hyperspace!', 0, 0, fs, { fill: this.calm ? SUN : `hsl(${(t * 140) % 360}, 100%, 72%)` });
     ctx.restore();
     text(ctx, `Off to ${Y.name}…`, cx, H - fs * 0.8, fs * 0.5, { fill: '#FFFFFF' });
     // the flash at the end, and then the new system
-    if (!this.calm && k > 0.82) { ctx.fillStyle = rgba('#FFFFFF', clamp((k - 0.82) / 0.12, 0, 1)); ctx.fillRect(0, 0, W, H); }
+    if (!this.calm && k > 0.88) { ctx.fillStyle = rgba('#FFFFFF', clamp((k - 0.88) / 0.09, 0, 1)); ctx.fillRect(0, 0, W, H); }
     if (Y.t >= Y.dur) {
       const done = Y.done; this.hy = null;
       if (done) done();
@@ -963,7 +1015,7 @@ export class StarMap {
       rocket: { x: this.R.x, y: this.R.y, shown: this.R.shown, h: this.rh, ship: this.ship().id },
       galaxy: this.view === 'galaxy' && this.gxLay ? this.gxLay.orbs.map((o) => ({ id: this.map[o.s].id, x: o.x, y: o.y, r: o.r, reached: reached(this.map, p, o.s),
         soon: !!this.map[o.s].soon, here: o.s === this.s, stars: systemStars(this.map, p, o.s) })) : null,
-      flying: !!this.fly, hyper: this.hy ? { t: this.hy.t, dur: this.hy.dur, to: this.hy.name } : null,
+      flying: !!this.fly, arrived: this.fly && this.fly.t >= this.fly.dur ? this.fly.t - this.fly.dur : null, hyper: this.hy ? { t: this.hy.t, dur: this.hy.dur, to: this.hy.name } : null,
     };
   }
 }
