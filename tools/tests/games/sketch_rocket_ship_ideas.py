@@ -1,4 +1,9 @@
-"""Sketches: six new ship ideas for Rocket Lander's hangar. Version 1.0.
+"""Sketches: new ship ideas for Rocket Lander's hangar. Version 1.1.
+
+Changes at v1.1 (10 Nov, Rob: "svg mock up the also thought of ideas, except for comfy armchair"): five
+more ideas, 7 to 11 (Spin Cycle, Watermelon Boat, Snow Globe, Shopping Trolley, Hamster Ball), drawn
+the same three ways on the same page, now sketches 2; the Comfy Armchair is listed as left out. The
+first six are drawn as before.
 
 Rob, 10 Nov (after step 2c-build): the last ships were too rocket-shaped; he wants unusual, funny,
 original ships like the Cardboard Box and the Teapot, described in words and SVG sketches before
@@ -8,8 +13,8 @@ Each idea is drawn three ways, as plain SVG, original art (D-010): flying, landi
 joke, kept above the number line, ER-003) and standing at its size in play on a sideways phone
 (58.5 px: scene.js's rocketH, min(15% of the height, 20% of the width), 56 to 128 px). Every
 idea keeps today's ships' envelope (ships.js: as tall as the classic rocket, feet on the ground,
-Bip near the middle), so play would not change (D-045, D-046). Bip is drawn as scene.js draws
-him. Nothing in the game's files changes. A sketch, not the finished look.
+Bip near the middle), so play would not change (D-045, D-046). Bip's head is drawn as scene.js
+draws it. Nothing in the game's files changes. A sketch, not the finished look.
 
 Writes index.html into the folder given (default /mnt/user-data/outputs/ship-ideas/), then checks
 the page in headless Chromium (a stand-in for the phone and PC): phone upright and sideways and
@@ -25,7 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/ship-ideas'
 os.makedirs(OUT, exist_ok=True)
-VERSION = '1.0'
+VERSION = '1.1'
 COMMIT = subprocess.check_output(['git', '-C', REPO, 'rev-parse', '--short', 'HEAD'], text=True).strip()
 
 # The game's colours (scene.js, ships.js)
@@ -430,6 +435,227 @@ def jelly(mode):
     s.append(defs + circle(cx, cy, 6, f'url(#{gid})', LW * 0.8) + circle(cx - 2, cy - 2, 1.6, '#FFFFFF', stroke=None))
     return ''.join(s)
 
+def sock(x, y, rot, col, stripe=None, k=1.0):
+    """A sock round (x, y): cuff at the top, toe to the right."""
+    g = path('M-3 -8H3V2Q3 4 5 4H8Q11 4 11 7Q11 10 8 10H-1Q-3 10 -3 8Z', col, LW * 0.5)
+    g += f'<rect x="-3" y="-8" width="6" height="3" fill="#FFFFFF" stroke="{INK}" stroke-width="{f(LW * 0.4)}"/>'
+    if stripe:
+        g += line('M-3 -1H3M-3 2.4H3.2', stripe, 1.5)
+    return f'<g transform="translate({f(x)} {f(y)}) rotate({rot}) scale({k})">{g}</g>'
+
+
+def dial(x, y):
+    """A dial with dots round it: no numbers, as the game is about numbers."""
+    g = circle(x, y, 5.5, '#FFFFFF', LW * 0.6) + line(f'M{x} {y}L{x + 3} {y - 3}', INK, 1.6)
+    for a in range(200, 341, 35):
+        g += circle(x + 8 * math.cos(math.radians(a)), y + 8 * math.sin(math.radians(a)), 0.9, INK, stroke=None)
+    return g
+
+
+def arrow_arc(d, tip, op=0.85):
+    """A white curved arrow (spinning, rolling)."""
+    return motion(d, op, 2.4) + path(tip, '#FFFFFF', stroke=None, extra=f' opacity="{op}"')
+
+
+def washer(mode):
+    s = []
+    if mode == 'fly':
+        s.append(blob([(-7, 56, 6), (2, 54, 7.2), (10, 57, 5.6)], '#EAF8FF', 1.6))
+        s.append(blob([(-14, 70, 4), (-8, 68.5, 5), (-2, 70.5, 4)], '#EAF8FF', 1.4))
+        for x, y, r in ((12, 72, 2.4), (-16, 83, 2), (5, 87, 1.6)):
+            s.append(circle(x, y, r, '#DDF7FF', 1))
+    for x in (-25, 25):  # four little feet (two seen)
+        s.append(f'<rect x="{x - 3}" y="41" width="6" height="6.5" fill="#9FA6BF" stroke="{INK}" stroke-width="{f(LW * 0.6)}"/>')
+        s.append(f'<rect x="{x - 6.5}" y="46.5" width="13" height="3.5" rx="1.7" fill="#3A3560" stroke="{INK}" stroke-width="{f(LW * 0.5)}"/>')
+    gid, defs = grad([(0, '#FFFFFF'), (1, '#D9D3F0')])
+    s.append(defs + f'<rect x="-37" y="-43" width="74" height="86" rx="9" fill="url(#{gid})" stroke="{INK}" stroke-width="{LW}"/>')
+    s.append(line('M-37 -26H37', INK, LW * 0.7) + line('M-31 -18V32', '#FFFFFF', 2.4, ' opacity=".8"'))
+    s.append(f'<rect x="-31" y="-38" width="18" height="8" rx="2" fill="#F1F2F8" stroke="{INK}" stroke-width="{f(LW * 0.6)}"/>' + line('M-26 -34H-18', INK, 1.4))
+    s.append(circle(1, -34, 2.4, MINT, LW * 0.4) + circle(8, -34, 2.4, CORAL, LW * 0.4) + dial(25, -34))
+    sg_id, sg_defs = rgrad([(0, '#FFFFFF', None), (1, '#9AA3C0', None)], 0.35, 0.3, 0.85)
+    if mode != 'land':
+        s.append(sg_defs + circle(0, 8, 24, f'url(#{sg_id})'))
+        cid = uid('c')
+        s.append(f'<defs><clipPath id="{cid}"><circle cx="0" cy="8" r="17.5"/></clipPath></defs>')
+        inside = [circle(0, 8, 17.5, '#C9F1FF', stroke=None)]
+        inside.append(path('M-20 15Q-10 11 0 15T20 15V30H-20Z', '#7FD3F7', stroke=None, extra=' opacity=".9"'))
+        inside.append(sock(-10, 16, 35, CORAL, None, 0.9) + sock(10, -2, -60, '#FFFFFF', '#4F7BEA', 0.9))
+        inside.append(f'<g transform="rotate(28 1 7)">{bip(1, 7, 8.4)}</g>')
+        for x, y, r in ((-12, 2, 1.6), (12, 14, 2), (-4, 21, 1.4), (6, -6, 1.2)):
+            inside.append(circle(x, y, r, '#FFFFFF', 0.8, extra=' opacity=".9"'))
+        if mode == 'fly':
+            inside.append(motion('M-13 -2A15 15 0 0 1 -2 -7', 0.9, 1.8) + motion('M13 18A15 15 0 0 1 2 23', 0.9, 1.8))
+        s.append(f'<g clip-path="url(#{cid})">{"".join(inside)}</g>')
+        s.append(circle(0, 8, 17.5, 'none', LW * 0.8) + line('M-11 -2A14 14 0 0 1 -2 -6.5', '#FFFFFF', 2.4, ' opacity=".85"'))
+        s.append(f'<rect x="19.5" y="3" width="5" height="11" rx="2.5" fill="#E8ECF7" stroke="{INK}" stroke-width="{f(LW * 0.6)}"/>')
+        if mode == 'fly':
+            s.append(sock(31, 26, -105, '#FFFFFF', '#4F7BEA', 1.15))  # one sock stuck in the door, flapping
+            s.append(motion('M44 20q5 3 4 9', 0.85, 2) + motion('M49 14q6 3 5 10', 0.6, 2))
+    else:
+        # WHIRR... CLUNK: the door swings open; Bip leans out, dizzy, a sock on top
+        s.append(circle(0, 8, 23, '#3B3561'))
+        for k in range(10):
+            a = math.radians(k * 36 + 18)
+            s.append(circle(16 * math.cos(a), 8 + 16 * math.sin(a), 1.4, '#5E5790', stroke=None))
+        s.append(bip(4, 3, 10.5, 'oh'))
+        s.append(sock(4, -9, 90, '#FFFFFF', '#4F7BEA', 1.25))
+        s.append(motion('M-11 -2q-5 -3 -2 -7q4 -3 5 1', 0.9, 1.8) + motion('M20 -4q5 -3 2 -7q-4 -3 -5 1', 0.9, 1.8))
+        s.append(blob([(-13, 27, 4.6), (-6, 29.5, 5), (2, 28.5, 4.6), (9, 29.5, 4.2), (15, 27, 3.6)], '#FFFFFF', 1.4))
+        s.append(hand(-12, 15) + hand(19, 13))
+        s.append(sg_defs + ellipse(-37, 8, 7, 24, f'url(#{sg_id})') + ellipse(-37, 8, 4.4, 17, '#C9F1FF', LW * 0.7))
+        s.append(sock(48, -40, 35, CORAL, None, 1.1) + motion('M24 -4Q42 -12 44 -30', 0.8, 2, '3 4'))
+        s.append(bang(-24, -54, 'WHIRR...', 12, -8) + bang(18, -64, 'CLUNK!', 15, 8))
+        for sg in (-1, 1):
+            for k in range(3):
+                s.append(motion(f'M{sg * (44 + 5 * k)} {22 + 5 * k}v9', 0.9 - 0.2 * k, 2.2))
+    return ''.join(s)
+
+
+def melon(mode):
+    s = []
+    if mode == 'fly':
+        for x, y, r in ((-58, 18, 2.4), (-68, 10, 2), (-80, 4, 1.6)):
+            s.append(ellipse(x, y, r, r * 1.3, '#FF6B81', 1, rot=-60))
+        for x, y, a in ((-62, 30, 120), (-76, 22, 100)):
+            s.append(ellipse(x, y, 1.6, 2.8, '#2B1D14', stroke=None, rot=a))
+        for x, y in ((-50, -2), (-56, 8), (-48, 18)):
+            s.append(motion(f'M{x} {y}h-12', 0.7, 2.2))
+    for x in (-17, 17):  # two little green feet
+        s.append(f'<rect x="{x - 4.5}" y="36" width="9" height="14" rx="4.5" fill="#3FA34D" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>')
+    boat = [tube('M8 -4V-48', '#E8C48A', 3.4), path('M6.5 -50L19 -46L6.5 -42Z', CORAL, LW * 0.5)]
+    boat.append(path('M10 -45Q42 -38 38 -12Q24 -9 10 -9Z', '#5FD47C', LW * 0.8))
+    boat.append(line('M11 -27Q24 -27 34 -22', '#2E9C55', 1.4) + line('M18 -27Q24 -36 30 -38', '#2E9C55', 1.1) + line('M20 -27Q26 -18 33 -14', '#2E9C55', 1.1))
+    boat.append(path('M-46 -4A46 46 0 0 0 46 -4Z', '#2E8B3E'))
+    boat.append(path('M-41.5 -4A41.5 41.5 0 0 0 41.5 -4Z', '#C8F0A0', stroke=None))
+    gid, defs = grad([(0, '#FF7A8E'), (1, '#F23A57')])
+    boat.append(defs + path('M-38 -4A38 38 0 0 0 38 -4Z', f'url(#{gid})', stroke=None))
+    boat.append(line('M-36 -1.5H36', '#FFB3C0', 1.8, ' opacity=".9"'))
+    for x, y, a in ((-27, 3, 30), (-19, 17, 20), (25, 4, -30), (17, 21, -15), (-4, 28, 0), (30, 13, -45), (-31, 13, 45)):
+        boat.append(ellipse(x, y, 1.6, 2.8, '#2B1D14', stroke=None, rot=a))
+    cid = uid('c')
+    boat.append(f'<defs><clipPath id="{cid}"><circle cx="-2" cy="9" r="8.6"/></clipPath></defs>')
+    boat.append(circle(-2, 9, 11.4, '#2B1D14', LW * 0.8) + circle(-2, 9, 8.6, '#BFEFFF', LW * 0.5))
+    boat.append(bip(-2, 11.5, 6.8, 'happy' if mode == 'land' else '', cid))
+    boat.append(circle(-5, 5.5, 1.6, '#FFFFFF', stroke=None, extra=' opacity=".6"'))
+    if mode == 'land':
+        s.append(f'<g transform="rotate(-7 0 42)">{"".join(boat)}</g>')
+        for sg in (-1, 1):
+            s.append(motion(f'M{sg * 50} 40q{sg * 6} -8 {sg * 2} -18', 0.85, 2.2) + motion(f'M{sg * 57} 38q{sg * 6} -8 {sg * 2} -18', 0.55, 2.2))
+        for (x, y, a), d in zip(((-42, -34, 70), (-56, -20, 40), (-30, -52, 100)),
+                                ('M-8 2Q-24 -30 -40 -32', 'M-10 6Q-40 -18 -54 -18', 'M-6 0Q-12 -40 -28 -50')):
+            s.append(motion(d, 0.75, 1.8, '3 4') + ellipse(x, y, 1.9, 3.2, '#2B1D14', 0.9, rot=a))
+        s.append(bang(-12, -64, 'PTOO!', 15, -8))
+    else:
+        s.append(''.join(boat))
+    return ''.join(s)
+
+
+def globe(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        s.append(blob([(-8, 55, 5.5), (0, 53, 6.5), (8, 55.5, 5)], '#DFF6FF', 1.5))
+        for x, y, k in ((-14, 68, 3.6), (10, 70, 3.2), (-2, 81, 2.8), (16, 85, 2.4)):
+            s.append(sparkle(x, y, k))
+    for x in (-22, 22):  # two little round feet
+        s.append(ellipse(x, 46.5, 5.5, 3.6, '#6E4426', LW * 0.6))
+    s.append(circle(0, -6, 34, '#CDEFFF', stroke=None, extra=' opacity=".55"'))
+    cid = uid('c')
+    s.append(f'<defs><clipPath id="{cid}"><circle cx="0" cy="-6" r="33"/></clipPath></defs>')
+    inside = [path('M-34 21Q-16 6 2 12Q18 6 34 21V34H-34Z', '#FFFFFF', LW * 0.6)]
+    inside.append(f'<rect x="17.5" y="5" width="3" height="5" fill="#8E5A34" stroke="{INK}" stroke-width="1"/>')
+    inside.append(path('M19 -14L27 -1H11Z', '#2FA36B', LW * 0.5) + path('M19 -8L28.5 6H9.5Z', '#2FA36B', LW * 0.5))
+    inside.append(path('M19 -14L22 -9H16Z', '#FFFFFF', stroke=None) + path('M14 4.5H24', '#FFFFFF', stroke=None))
+    inside.append(bip(-6, -3, 10.5, 'oh' if land else ''))
+    inside.append(path('M-16.5 5Q-6 9.5 4.5 5L5 8.5Q-6 13 -17 8.5Z', CORAL, LW * 0.5) + path('M-1 8L1 18L5.5 17L3 7.5Z', CORAL, LW * 0.5))
+    r = rnd(11 if land else 5)
+    for _ in range(34 if land else 12):
+        a, d = r() * math.tau, 30 * math.sqrt(r())
+        inside.append(circle(d * math.cos(a), -6 + d * math.sin(a), 0.9 + r(), '#FFFFFF', stroke=None, extra=' opacity=".95"'))
+    if land:
+        inside.append(motion('M-24 -20A26 26 0 0 1 4 -30', 0.7, 1.8) + motion('M24 4A26 26 0 0 1 -2 18', 0.7, 1.8))
+        inside.append(blob([(8, -3, 2.6), (11, -5, 2.2), (11, -1, 2)], '#FFFFFF', 0.9))
+    s.append(f'<g clip-path="url(#{cid})">{"".join(inside)}</g>')
+    s.append(circle(0, -6, 34, 'none') + line('M-25 -22A29 29 0 0 1 -9 -33', '#FFFFFF', 3, ' opacity=".85"') + circle(-28, -13, 1.6, '#FFFFFF', stroke=None, extra=' opacity=".8"'))
+    gid, defs = grad([(0, '#D29262'), (1, '#8E5A34')])
+    s.append(defs + path('M-25 23H25L31 44H-31Z', f'url(#{gid})'))
+    s.append(f'<rect x="-10" y="30" width="20" height="8" rx="2" fill="{GOLD[1]}" stroke="{INK}" stroke-width="{f(LW * 0.5)}"/>')
+    s.append(path('M0 31.4l1 2 2.2.3-1.6 1.5.4 2.2L0 36.3l-2 1.1.4-2.2-1.6-1.5 2.2-.3z', '#FFFFFF', stroke=None))
+    if land:
+        for sg in (-1, 1):
+            s.append(motion(f'M{sg * 40} -18q{sg * 6} 6 0 12', 0.9, 2.2) + motion(f'M{sg * 46} -22q{sg * 7} 8 0 18', 0.6, 2.2))
+        s.append(bang(-24, -50, 'A-CHOO!', 15, -8))
+    return ''.join(s)
+
+
+def trolley(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        d = 'M-47 -36C-60 -46 -70 -24 -84 -32S-104 -48 -116 -36'
+        s.append(tube(d, '#FFFFFF', 7) + line(d, '#B9B4D6', 1.4, ' stroke-dasharray="2.5 3"'))
+    # the chassis and the wheels
+    s.append(tube('M-30 18L-28 38', '#C9CEDF', 2.4) + tube('M24 18L26 38', '#C9CEDF', 2.4) + tube('M-34 34H30', '#C9CEDF', 2.2))
+    s.append(tube('M-28 38V43', '#C9CEDF', 2) + tube('M26 38V43', '#C9CEDF', 2))
+    s.append(circle(-28, 44, 6, '#3A3560', LW * 0.7) + circle(-28, 44, 2.2, '#D6DCEC', LW * 0.4))
+    s.append(ellipse(26, 44, 6, 5.2, '#3A3560', LW * 0.7, rot=25) + circle(26, 44, 2.2, '#D6DCEC', LW * 0.4))
+    if mode == 'fly':
+        s.append(motion('M34 38q6 4 3 11', 0.85, 2) + motion('M18 52q-5 -2 -4 -9', 0.85, 2))
+    # the shopping and Bip, behind the front wires
+    s.append(f'<g transform="translate(22 -30) rotate(-35)"><rect x="-4.5" y="-18" width="9" height="32" rx="4.5" fill="#E8B56A" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>'
+             + line('M-2.5 -10l5 -3M-2.5 -2l5 -3M-2.5 6l5 -3', '#C98A3A', 1.4) + '</g>')
+    s.append(f'<rect x="-37" y="-40" width="12" height="17" fill="#FFFFFF" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>'
+             + path('M-37 -40L-31 -46L-25 -40Z', '#4F7BEA', LW * 0.6) + f'<rect x="-37" y="-33" width="12" height="4" fill="#9CC7FF"/>')
+    if land:
+        s.append(f'<g transform="translate(-36 -62) rotate(20) scale(1.5)">' + path('M0 -4Q8 6 18 -2Q8 2 2 -8Z', SUN, LW * 0.4) + path('M2 0Q10 9 20 2Q10 5 3 -3Z', SUN, LW * 0.4) + '</g>')
+        s.append(motion('M4 -34Q-10 -54 -22 -58', 0.8, 2, '3 4'))
+    else:
+        s.append(path('M2 -36Q10 -26 20 -34Q10 -30 4 -40Z', SUN, LW * 0.6) + path('M4 -32Q12 -23 22 -30Q12 -27 5 -35Z', SUN, LW * 0.6))
+    s.append(bip(-11, -33, 10, 'happy' if land else ''))
+    basket = 'M-40 -24H38L30 18H-30Z'
+    cid = uid('c')
+    s.append(f'<defs><clipPath id="{cid}"><path d="{basket}"/></clipPath></defs>')
+    grid = [path(basket, '#E3F4FF', stroke=None, extra=' opacity=".22"')]
+    for x in range(-36, 38, 7):
+        grid.append(line(f'M{x} -24V18', '#8E98B8', 1.5))
+    for y in (-14, -4, 6):
+        grid.append(line(f'M-40 {y}H40', '#8E98B8', 1.5))
+    s.append(f'<g clip-path="url(#{cid})">{"".join(grid)}</g>' + path(basket, 'none'))
+    s.append(tube('M-41 -24H39', '#C9CEDF', 2.6) + hand(-18, -24.5) + hand(-3, -24.5))
+    s.append(tube('M-40 -24L-48 -36', '#C9CEDF', 2.6) + circle(-49, -37.5, 4.6, CORAL, LW * 0.7) + circle(-50.4, -39, 1.2, '#FFFFFF', stroke=None))
+    if land:
+        s.append(motion('M16 36q-4 6 0 13', 0.9, 2.2) + motion('M36 36q4 6 0 13', 0.9, 2.2) + motion('M12 32q-6 9 0 19', 0.55, 2.2))
+        s.append(bang(38, -62, 'SQUEAK!', 14, 10))
+    return ''.join(s)
+
+
+def hamster(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        s.append(motion('M-44 46C-60 46 -72 40 -100 42', 0.7, 2.4, '1 6'))
+        s.append(arrow_arc('M-46 -6A50 50 0 0 1 -26 -34', 'M-26 -34l-6.4 .4 3.4 4.8z') + arrow_arc('M46 26A50 50 0 0 1 26 54', 'M26 54l6.4 -.4 -3.4 -4.8z'))
+        s.append(sparkle(-58, 20, 3) + sparkle(54, -10, 2.6))
+    s.append(circle(0, 10, 40, '#D8F3FF', stroke=None, extra=' opacity=".2"'))
+    run = [tube('M0 31L-8 42', MINT, 3.6), tube('M5 31L13 40', MINT, 3.6)]
+    run.append(ellipse(-9.5, 43.5, 3.6, 2.2, '#3A3560', LW * 0.4) + ellipse(15, 41, 3.6, 2.2, '#3A3560', LW * 0.4, rot=-30))
+    run.append(tube('M2 18L3 30', MINT, 11))
+    run.append(tube('M5 21L13 27', MINT, 3) + tube('M-1 21L-9 15', MINT, 3) + hand(13.5, 27.5, 2.4) + hand(-9.5, 14.5, 2.4))
+    run.append(bip(3, 5, 10, 'happy' if land else ''))
+    s.append(f'<g transform="rotate(170 2 18)">{"".join(run)}</g>' if land else ''.join(run))
+    s.append(tube('M-39.5 14Q0 22 39.5 14', '#FF9F43', 4.4))
+    for a in (-150, -132, -114, -66, -48, -30):
+        a1, a2 = math.radians(a - 4), math.radians(a + 4)
+        s.append(line(f'M{f(33 * math.cos(a1))} {f(10 + 33 * math.sin(a1))}A33 33 0 0 1 {f(33 * math.cos(a2))} {f(10 + 33 * math.sin(a2))}', '#3A3560', 2.4, ' opacity=".4"'))
+    s.append(circle(0, -26, 6.5, '#FFC48A', LW * 0.6, extra=' fill-opacity=".85"') + circle(0, -26, 3, 'none', 1.2))
+    s.append(circle(0, 10, 40, 'none') + line('M-31 -12A36 36 0 0 1 -13 -25', '#FFFFFF', 3.2, ' opacity=".85"') + circle(-34, -2, 1.7, '#FFFFFF', stroke=None, extra=' opacity=".8"'))
+    if land:
+        for sg in (-1, 1):
+            s.append(motion(f'M{sg * 46} 44q{sg * 6} -8 {sg * 1} -18', 0.85, 2.2))
+        s.append(blob([(-30, 45, 3.2), (-36, 44, 2.6)], '#FFFFFF', 1.1) + blob([(30, 45, 3.2), (36, 44, 2.6)], '#FFFFFF', 1.1))
+        s.append(bang(30, -42, 'WHEE!', 15, 10))
+    return ''.join(s)
+
 
 def classic():
     """The classic rocket today, for scale (sketch_rocket_map.py's crude rocket, centred)."""
@@ -538,14 +764,44 @@ IDEAS = [
         ('Landing joke', 'The flower slows down and nods, and a bee buzzes a loop round Bip.'),
         ('Sound', 'A whirr winding down, then bzzz.'),
         ('Watch', 'The sunflower has no face, so it stays our own and not like another game\'s.')]),
+    (washer, 'Spin Cycle', 'A washing machine that flies. Bip spins round in the window with the socks.', [
+        ('Looks', 'A white washing machine with a big round door, a soap drawer, two little lights and a dial (dots, no numbers). Bip, socks and suds whirl round behind the glass.'),
+        ('Flies on', 'Puffs of soap suds from underneath, with one sock stuck in the door, flapping like a flag.'),
+        ('Stands on', 'Four little feet.'),
+        ('Landing joke', '<b>WHIRR... CLUNK!</b> It shakes to a stop, the door swings open and Bip leans out, dizzy, with a stripy sock on top.'),
+        ('Sound', 'A spin winding down, then a clunk.'),
+        ('Watch', 'Bip spinning in the window needs its calm version for less motion (D-045).')]),
+    (melon, 'Watermelon Boat', 'A slice of watermelon sailing through space, with a leaf for a sail.', [
+        ('Looks', 'A half-moon slice, green rind underneath and pink-red flesh on top, black seeds and one round window with Bip in it; a lolly-stick mast with a leaf sail.'),
+        ('Flies on', 'Its leaf sail, leaving a trail of juice drops and seeds.'),
+        ('Stands on', 'Two little green feet.'),
+        ('Landing joke', '<b>PTOO!</b> It rocks like a boat, and Bip spits three seeds out of the window.'),
+        ('Sound', 'A creak of the mast, then ptoo, ptoo, ptoo.'),
+        ('Watch', 'The seeds fly up and away, never onto the numbers.')]),
+    (globe, 'Snow Globe', 'Bip lives inside a snow globe, with a little tree and a red scarf.', [
+        ('Looks', 'A glass globe on a wooden base with a gold plate (no writing). Inside: Bip in a red scarf on a snowy hill, by a tiny pine tree.'),
+        ('Flies on', 'A frosty puff from under the base, with snow drifting inside.'),
+        ('Stands on', 'Two little round feet under the base.'),
+        ('Landing joke', 'The bump shakes up a snowstorm inside, and Bip sneezes: <b>A-CHOO!</b>'),
+        ('Sound', 'A music-box twinkle, then a sneeze.'),
+        ('Watch', 'The snowstorm stays inside the glass, so it never covers the numbers.')]),
+    (trolley, 'Shopping Trolley', 'A supermarket trolley full of shopping, with one wonky wheel.', [
+        ('Looks', 'A wire trolley with a red handle. Bip rides in the basket with a baguette, bananas and a carton of milk (no shop names or logos).'),
+        ('Flies on', 'Its wonky wheel spinning, with a long till receipt fluttering behind like a tail.'),
+        ('Stands on', 'Its wheels.'),
+        ('Landing joke', '<b>SQUEAK!</b> The wonky wheel wobbles and squeaks, and the bananas bounce up and out.'),
+        ('Sound', 'A squeaky wheel and a rattle of wire.'),
+        ('Watch', 'Bip rides a little higher than the usual window, as in the toaster.')]),
+    (hamster, 'Hamster Ball', 'Bip runs inside a clear ball, like a hamster, to roll through space.', [
+        ('Looks', 'A clear plastic ball with air slots, an orange lid and an orange band round the middle; Bip running inside.'),
+        ('Flies on', 'Bip running, the ball rolling, with a dotted trail behind.'),
+        ('Stands on', 'The ball itself.'),
+        ('Landing joke', '<b>WHEE!</b> The ball rocks to a stop and Bip tumbles head over heels inside.'),
+        ('Sound', 'A plasticky rumble and a wheee.'),
+        ('Watch', 'Close to the Bubble Pod (also a ball with Bip inside): what makes it different is Bip running like a hamster.')]),
 ]
 ALSO = [
-    ('Spin Cycle', 'a washing machine; Bip spins round with the socks behind the round door.'),
-    ('Watermelon Boat', 'a slice of watermelon, its seeds as windows.'),
-    ('Snow Globe', 'Bip inside a snow globe; landing shakes up a snowstorm.'),
-    ('Comfy Armchair', 'an armchair with slippers and a reading lamp.'),
-    ('Shopping Trolley', 'with one wonky wheel that squeaks.'),
-    ('Hamster Ball', 'Bip rolls along inside a clear ball.'),
+    ('Comfy Armchair', 'an armchair with slippers and a reading lamp: left out (Rob, 10 Nov).'),
 ]
 
 sections = []
@@ -560,7 +816,7 @@ also = ''.join(f'<li><b>{n}</b>: {d}</li>' for n, d in ALSO)
 
 html = f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rocket Lander: new ship ideas (sketches 1)</title>
+<title>Rocket Lander: new ship ideas (sketches 2)</title>
 <style>
 :root {{ --bg: #F7F5FF; --fg: #1B1446; --mut: #5d5880; --card: #fff; }}
 @media (prefers-color-scheme: dark) {{ :root {{ --bg: #121027; --fg: #EDEBFF; --mut: #a9a5c9; --card: #1d1a3a; }} }}
@@ -579,14 +835,15 @@ figure.tile {{ flex: 0 0 auto; max-width: none; padding: 4px; }}
 figure.tile svg {{ width: 112px; height: auto; }}
 ul {{ padding-left: 20px; max-width: 70ch; }}
 </style></head><body>
-<h1>Rocket Lander: new ship ideas (sketches 1)</h1>
+<h1>Rocket Lander: new ship ideas (sketches 2)</h1>
 <p class="stamp">Sketches, not the finished look: the shapes, the jokes, and how each one flies and lands. All original. sketch_rocket_ship_ideas.py {VERSION} · built at {COMMIT} · draft</p>
-<p>Six ideas that are not rockets: funny everyday things, a toy and a snail, each with its own way of flying, its own landing joke and sound, and Bip on show. Each keeps today's ships' size and landing spot, so play doesn't change. Pick the best few to draw in detail.</p>
+<p><b>New in sketches 2:</b> ideas 7 to 11, the ones that were only listed before (all but the Comfy Armchair).</p>
+<p>{len(IDEAS)} ideas that are not rockets: funny everyday things, food, toys and a snail, each with its own way of flying, its own landing joke and sound, and Bip on show. Each keeps today's ships' size and landing spot, so play doesn't change. Pick the best few to draw in detail.</p>
 {"".join(sections)}
 <section><h2>At their size in play</h2>
 <p>On a sideways phone a ship is {PLAY_H:g} px tall (bigger upright and on the PC). Each idea is drawn here at that size, next to today's Classic, to check it still reads when it's small.</p>
 <div class="tiles">{tiles}</div></section>
-<section><h2>Also thought of (not sketched)</h2><p>Swap any of these in for one above.</p><ul>{also}</ul></section>
+<section><h2>Left out</h2><ul>{also}</ul></section>
 </body></html>'''
 page = os.path.join(OUT, 'index.html')
 with open(page, 'w', encoding='utf-8') as fh:
