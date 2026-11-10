@@ -1,5 +1,7 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.3.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.4.
 
+Changes at v1.4 (D-071): with the calm versions off for now, a device asking for less motion gets
+the full hyperspace.
 Changes at v1.3 (Rob, 10 Nov): after a flight in the galaxy the rocket rests by the planet a moment
 before its map comes; hyperspace lasts longer.
 Changes at v1.2 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and the device keeps
@@ -431,14 +433,14 @@ with sync_playwright() as pw:
     pg.screenshot(path=f'{OUT}/map-sideways-dust-done.png')
     pg.context.close()
 
-    # ---------- Less motion (D-045): calm hyperspace, the map still works ----------
+    # ---------- Less motion asked: the calm versions are off for now (D-071), so the full hyperspace ----------
     pg = open_game(br, MOON7, motion='reduce')
     three(pg)
     start_from_bubble(pg)
     play_round(pg, [True, True, True])
     tap(pg, '#to-map')
     pg.wait_for_function('__test.state().screen === "hyper"', timeout=5000)
-    check(mp(pg)['hyper']['dur'] < 2.5, f'less motion: a shorter, calm hyperspace: {mp(pg)["hyper"]}')
+    check(mp(pg)['hyper']['dur'] > 5, f'less motion asked: still the full hyperspace, calm off for now (D-071): {mp(pg)["hyper"]}')
     pg.wait_for_function('__test.state().screen === "map" && __test.state().map.system === "dust"', timeout=10000)
     check(True, 'less motion: it lands on Red Dust all the same')
     pg.context.close()

@@ -1,5 +1,7 @@
-// The rocket game's round flow (D-027, D-058). Version 2.1.
+// The rocket game's round flow (D-027, D-058). Version 2.2.
 //
+// Changes at v2.2 (D-071, Rob, 10 Nov): the calm versions are off for now: the game plays its full
+// motion even when the device asks for less. The calm code stays, back on by FOLLOW_CALM = true.
 // Changes at v2.1 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and keeps it
 // there on the device, before its card opens; so leaving a round with home comes back to the
 // rocket on the level that was being played.
@@ -94,9 +96,10 @@ export function runRocket(mode) {
   const stage = $('stage');
   const scene = new Scene($('scene'));
   const fx = new Fx($('fx'));
+  const FOLLOW_CALM = false; // D-071: off for now; true follows the device's less-motion setting again (D-045)
   const calm = matchMedia('(prefers-reduced-motion: reduce)');
-  scene.calm = calm.matches;
-  calm.addEventListener?.('change', () => { scene.calm = calm.matches; });
+  scene.calm = FOLLOW_CALM && calm.matches;
+  calm.addEventListener?.('change', () => { scene.calm = FOLLOW_CALM && calm.matches; });
 
   const SCHEMA = mode.schema;
   // The level's kind plays it (D-058): a number level or a sums level, each with its own lines,

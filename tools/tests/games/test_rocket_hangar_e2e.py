@@ -1,6 +1,8 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.4.
+Version 1.5.
 
+Changes at v1.5 (D-071): with the calm versions off for now, a device asking for less motion gets
+the full effects.
 Changes at v1.4 (Rob, 10 Nov): the ship badges are 44 px or more, clear of each other and of the
 big button, and go into rows on narrow screens (320 px wide added to the sizes).
 
@@ -349,9 +351,9 @@ with sync_playwright() as pw:
     pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'ship': 'aurora', 'ships': ['classic', 'aurora']}, motion='reduce')
     pix = play_round_pixels(pg, 'aurora', 'calm', full=False)
     sh = st(pg)['ship']
-    check(sh and sh['calm'] and sh['k'] == 0.35 and pix['below'] == 0, f'less motion: the Aurora Cruiser flies calmly, with fewer effects, off the numbers: {sh} {pix}')
+    check(sh and not sh['calm'] and sh['k'] == 1 and pix['below'] == 0, f'less motion asked: the Aurora Cruiser still flies in full (calm off for now, D-071), off the numbers: {sh} {pix}')
     pg.context.close()
-    for motion, still in (('reduce', True), ('no-preference', False)):
+    for motion, still in (('reduce', False), ('no-preference', False)):  # calm off for now (D-071)
         pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'ship': 'phoenix', 'ships': ['classic', 'phoenix']}, motion=motion)
         play_round_pixels(pg, 'phoenix', 'calm' if still else 'beat', full=False)
         sh = st(pg)['ship']
@@ -392,7 +394,7 @@ with sync_playwright() as pw:
     show(pg, 'box')
     tap(pg, 'action')
     pg.wait_for_function('__test.state().progress.ship === "box"', timeout=12000)
-    check(st(pg)['progress']['rocks'] == 5 and hangar(pg)['calm'], 'less motion: the Cardboard Box is bought and flown, calmly (25 - 20 = 5)')
+    check(st(pg)['progress']['rocks'] == 5 and not hangar(pg)['calm'], 'less motion asked: the Cardboard Box is bought and flown, in full (calm off for now, D-071) (25 - 20 = 5)')
     pg.context.close()
     br.close()
 
