@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.19 · 2026-11-10 |
+| **Version** | 1.20 · 2026-11-10 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.20:** a script for the draft level plan (step 2c-2), `plan_rocket_levels.py`: it holds the plan's table, checks it against Rob's syllabus notes (given by path; the notes stay out of the repo while they carry the children's details) and works out the plan's counts; the game's files are unchanged.
 
 **Changes at v1.19:** tests run in batches at checkpoints (D-086): `close.py` runs the fast checks only unless asked; `--full` runs everything, at a checkpoint Rob chooses (before a trial build or a publish); `--changed` picks by the map, as before.
 
@@ -86,6 +88,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `sketch_rocket_new_ships.py`, with `sketch_rocket_new_ships.js` and `sketch_rocket_new_ships_page.js` | Not a check: builds one page of moving mock-ups of the five new ships (step 2d-1, D-073 to D-077), splicing their code into copies of `ships.js`, `fleet.js` and `sound.js` for the page only, and checks it at phone and PC sizes. It builds against the game as it was at 2485c92; since step 2d-2 the ships are in the game itself |
 | `move_rocket_new_ships.py` | A one-off, not a check: moved the five new ships into the game in step 2d-2 (D-078), with the mock-up script's own splice, so the game's code is byte for byte the code on the accepted page. Kept as the record; it refuses to run twice |
 | `count_rocket_map_rocks.py` | A count, not a check: how many moon rocks a map can pay out against the ships' prices, and the room a die has on a line of 0 to 10 (Q-026, D-060) |
+| `plan_rocket_levels.py` | The draft level plan (step 2c-2): its table of tracks, systems and levels, checked against Rob's syllabus notes (every level placed once, in the notes' order, 7 and a challenge a system), and the counts quoted in the plan. Not a test of the game; run with the notes' path |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
 | `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
@@ -127,6 +130,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.20 | 2026-11-10 | The draft level plan's script, `plan_rocket_levels.py` (step 2c-2) |
 | 1.19 | 2026-11-10 | Tests in batches at checkpoints: the close is fast by default, `--full` at a checkpoint (D-086) |
 | 1.18 | 2026-11-10 | Thirteen ships and the three ship hooks (step 2d-2, D-077 to D-080); `test_rocket_ship_hooks_e2e.py`; `move_rocket_new_ships.py`; the new ships' mock-up script listed |
 | 1.17 | 2026-11-10 | The new ship ideas sketch script (D-062) |
