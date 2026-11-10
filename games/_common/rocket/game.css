@@ -1,5 +1,6 @@
 /* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.1.
-   Changes at v2.1 (step 2c-3a, D-092): Reception's faces in the target's chip (white, coral dots in rows of
+   Changes at v2.1 (step 2c-3a, D-092; Rob): on a big screen the heads-up and the bubble grow (about 1.5 times on a
+   screen 1000 px high). Also: Reception's faces in the target's chip (white, coral dots in rows of
    5, frames to fill, sweets and plates, a quick look that hides its dots), with "Land on" left to the voice
    so they keep their size on an upright phone; the challenge round's chip on its card.
    Changes at v2.0 (step 2c-build, D-058, D-066): the map is home: the start card, its title and the planet
@@ -231,6 +232,16 @@ button { font: inherit; color: inherit; }
   .hud { grid-template-columns: 1fr auto; }
   .target { font-size: 30px; }
   .bubble { font-size: 22px; }
+}
+/* A big screen (a PC): the question, its pictures, the voice button, the trail and the bubble grow too,
+   about 1.5 times the phone sizes on a screen 1000 px high (Rob, 10 Nov; scene.js's `big` does the rest). */
+@media (min-width: 900px) and (min-height: 560px) {
+  .target { font-size: clamp(36px, 7.4vh, 84px); }
+  .round { width: clamp(60px, 7.6vh, 86px); height: clamp(60px, 7.6vh, 86px); }
+  .dots li { width: clamp(15px, 2vh, 22px); height: clamp(15px, 2vh, 22px); }
+  .rocks { font-size: clamp(24px, 3.2vh, 34px); }
+  .rock-icon { width: clamp(30px, 4vh, 42px); height: clamp(30px, 4vh, 42px); }
+  .bubble { font-size: clamp(26px, 4vh, 42px); max-width: min(calc(100vw - 24px), 640px); }
 }
 @media (max-width: 480px) {
   .hud { grid-template-columns: 1fr; grid-template-areas: "trail" "ask"; padding-left: max(12px, env(safe-area-inset-left)); gap: 12px; }

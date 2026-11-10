@@ -1,6 +1,8 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
-// Version 1.4. Changes at v1.4 (step 2c-3a, D-060, D-067): dice lines: the label look 'dice' shows
+// Version 1.4. Changes at v1.4 (step 2c-3a, D-060, D-067; Rob): on a big screen the ground, the rocket,
+// the numbers and the dice grow to about 1.5 times the phone sizes (`big`, from 0 on phones to 1 on a
+// screen 1000 px high). Dice lines: dice lines: the label look 'dice' shows
 // every mark's number as dice faces (0 an empty face; 7 to 12 a 6 with the rest stacked under it),
 // as big as the gaps and the ground allow, and the right number lit up after a miss shows its dice.
 // Version 1.3. Changes at v1.3 (step 2c-build, D-066): setBare(true) draws the planet's sky and ground
@@ -766,9 +768,13 @@ export class Scene {
 
   layout() {
     const { W, H } = this;
-    this.groundH = Math.round(clamp(H * 0.19, 84, 150));
+    // How much of a big screen's extra room to use (Rob, 10 Nov): 0 on phones and small windows, up to 1
+    // on a screen 1000 px high (and wide enough for it), where the ground, rocket and numbers grow to
+    // about 1.5 times the sizes picked for phones.
+    const big = this.big = W >= 900 && H >= 560 ? clamp((Math.min(W / 1.6, H) - 600) / 400, 0, 1) : 0;
+    this.groundH = Math.round(clamp(H * lerp(0.19, 0.22, big), 84, lerp(150, 230, big)));
     this.groundY = H - this.groundH;
-    this.rocketH = clamp(Math.min(H * 0.15, W * 0.2), 56, 128);
+    this.rocketH = clamp(Math.min(H * lerp(0.15, 0.19, big), W * 0.2), 56, lerp(128, 200, big));
     this.fitLabels();
     this.makeStars();
     this.build();
@@ -781,7 +787,7 @@ export class Scene {
     const { line, ctx, W } = this;
     if (!line) { this.x0 = 40; this.x1 = W - 40; this.ppu = 1; this.pps = 1; this.shown = []; this.shownIdx = []; this.fs = 20; return; }
     if (this.labelLook === 'dice') { this.fitDice(); return; }
-    const base = clamp(this.groundH * 0.25, 17, 36);
+    const base = clamp(this.groundH * 0.25, 17, lerp(36, 54, this.big || 0));
     const MIN = 15;
     ctx.font = `600 ${base}px ${FONT}`;
     const text = (i) => fmt(line.value(i), this.showAs);
@@ -832,10 +838,11 @@ export class Scene {
     const { line, W } = this;
     const last = line.gaps, two = line.value(last) > 6;
     const room = this.groundH - 23; // under the strip, above the screen's edge
-    const dMax = Math.min(34, two ? room / 2.14 : room);
+    const cap = lerp(34, 56, this.big || 0); // bigger dice on a big screen
+    const dMax = Math.min(cap, two ? room / 2.14 : room);
     const margin0 = Math.max(30, W * 0.045);
     const pps = (W - margin0 * 2) / last;
-    const d = clamp(Math.min(pps * 0.8, dMax), 12, 34);
+    const d = clamp(Math.min(pps * 0.8, dMax), 12, cap);
     const margin = Math.max(margin0, d / 2 + 14);
     this.notes = [];
     this.dieSize = d;

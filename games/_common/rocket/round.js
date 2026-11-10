@@ -503,7 +503,7 @@ export function runRocket(mode) {
   function fitTarget() {
     const el = $('target');
     el.style.fontSize = '';
-    const room = $('hud').clientWidth - ($('say').hidden ? 0 : 74) - (innerWidth > 480 ? $('dots').parentElement.clientWidth + 100 : 24);
+    const room = $('hud').clientWidth - ($('say').hidden ? 0 : $('say').offsetWidth + 14) - (innerWidth > 480 ? $('dots').parentElement.clientWidth + 100 : 24);
     let fs = parseFloat(getComputedStyle(el).fontSize);
     while (el.scrollWidth > room && fs > 18) { fs -= 2; el.style.fontSize = fs + 'px'; }
   }
