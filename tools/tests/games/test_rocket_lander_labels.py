@@ -56,7 +56,7 @@ def run(br, w, h, mobile, tag):
     ctx.route('**/*', lambda r: r.continue_() if r.request.url.startswith(LOCAL) else r.abort())
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
-    pg.goto(LOCAL + PATH)
+    pg.goto(LOCAL + PATH + '?track=year2')  # the stand-in levels (D-089)
     pg.wait_for_function('window.__test && __test.state().ready')
     pg.evaluate("__test.begin({ settings: { from: -10, to: 10, label_every: 5, landings_per_round: 8 } })")
     pg.click('#play', force=True)

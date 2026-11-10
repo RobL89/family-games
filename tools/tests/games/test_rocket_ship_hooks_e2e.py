@@ -76,7 +76,7 @@ def open_game(br, ship):
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
           if m.type in ('error', 'warning') and 'ERR_FAILED' not in m.text else None)
-    pg.goto(f'{LOCAL}games/{GAME}/index.html')
+    pg.goto(f'{LOCAL}games/{GAME}/index.html?track=year2')  # the stand-in levels (D-089)
     pg.wait_for_function('window.__test && __test.state().ready')
     pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [KEY, entry(ship)])
     pg.reload()

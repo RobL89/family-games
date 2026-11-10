@@ -108,7 +108,7 @@ GAME = 'rocket-lander'  # D-058: one rocket game; the sums levels are its map's 
 def open_tile(br, tile, w=390, h=844, mobile=True, entry=V1, level=None, **kw):
     """The game, with a progress entry on the device if given, and a level to play if given."""
     pg = new_page(br, w, h, mobile, **kw)
-    pg.goto(f'{LOCAL}games/{GAME}/index.html')
+    pg.goto(f'{LOCAL}games/{GAME}/index.html?track=year2')  # the stand-in levels (D-089)
     ready(pg)
     if entry is not None:
         pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(tile), entry])

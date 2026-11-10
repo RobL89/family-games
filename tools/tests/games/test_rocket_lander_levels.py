@@ -39,7 +39,7 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-BASE = f'{LOCAL}games/rocket-lander/index.html'
+BASE = f'{LOCAL}games/rocket-lander/index.html?track=year2'  # the stand-in levels these checks were written for (D-089)
 FONTS = re.compile(r'https://fonts\.(googleapis|gstatic)\.com/')
 INK = '#1B1446'
 errors, infos, fails, outside = [], [], [], []
@@ -236,12 +236,12 @@ with sync_playwright() as pw:
     pg.context.close()
 
     # ---------- The level from the address (GC5) ----------
-    pg = page(br, url=BASE + '?level=6')
+    pg = page(br, url=BASE + '&level=6')
     s = state(pg)
     check(s['level'] == 6 and s['labels'] == [str(i) for i in range(0, 11, 2)], f'?level=6: level 6, every other number ({s["labels"]})')
     pg.context.close()
     before = len(infos)
-    pg = page(br, url=BASE + '?level=17')
+    pg = page(br, url=BASE + '&level=17')
     s = state(pg)
     note = [t for t in infos[before:] if 'level' in t]
     check(s['level'] == 1 and note and '"17"' in note[0], f'?level=17, past the map\'s 16: level 1, with a note ({note})')

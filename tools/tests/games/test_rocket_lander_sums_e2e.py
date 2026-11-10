@@ -68,7 +68,7 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-BASE = f'{LOCAL}games/rocket-lander/index.html'
+BASE = f'{LOCAL}games/rocket-lander/index.html?track=year2'  # the stand-in levels these checks were written for (D-089)
 KEY = 'family-games:rocket-lander:progress'  # D-042, D-058: the one game's entry on the device
 SUMS = 8  # D-058: sums level n is map level 8 + n (Red Dust)
 FONT_LOADED = "document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"
@@ -97,7 +97,7 @@ def open_game(br, w, h, mobile=False, dark=False, query=''):
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}')
           if m.type in ('error', 'warning') and 'ERR_FAILED' not in m.text else None)
-    pg.goto(BASE + query)
+    pg.goto(BASE + query.replace('?', '&', 1))
     pg.wait_for_function('window.__test && __test.state().ready')
     return pg
 
@@ -214,8 +214,8 @@ with sync_playwright() as pw:
           f'the state is saved: Red Dust 2 opened, 3 stars on Red Dust 1 (D-064): {saved}')
     keys = pc.evaluate('Object.keys(localStorage)')
     entry = pc.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 3, **saved} and saved.get('ship') == 'classic' and saved.get('ships') == ['classic'],
-          f'kept on the device under the game\'s one entry, format 3 (D-042, D-058): {keys}, {entry}')
+    check(keys == [KEY] and entry == {'v': 4, **saved} and saved.get('ship') == 'classic' and saved.get('ships') == ['classic'],
+          f'kept on the device under the game\'s one entry, format 4 (D-042, D-058, D-089): {keys}, {entry}')
     pc.reload()
     pc.wait_for_function('window.__test && __test.state().ready')
     check(state(pc)['progress']['open'] == 'dust-2', 'a reload keeps the progress')

@@ -126,7 +126,7 @@ with sync_playwright() as pw:
                                      r.continue_() if r.request.url.startswith(LOCAL) or r.request.url.startswith('data:') else r.abort()))
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append(str(e)))
-        pg.goto(LOCAL + 'a.html')
+        pg.goto(LOCAL + 'a.html?track=year2')  # the stand-in levels these checks were written for (D-089)
         pg.wait_for_function('window.__test && __test.state().ready')
         stamp_shown = pg.is_visible('.preview-stamp')
         check(pg.evaluate("document.fonts.ready.then(() => [...document.fonts].some((f) => f.family.replace(/[\"']/g, '') === 'Fredoka' && f.status === 'loaded'))"),
@@ -144,7 +144,7 @@ with sync_playwright() as pw:
         check(not sideways, f'{tag}: no sideways scrolling')
         check(pg.locator('.pv-cog').count() == 0, f'{tag}: no cog in a normal build')
         # the --debug build
-        pg.goto(LOCAL + 'd.html')
+        pg.goto(LOCAL + 'd.html?track=year2')
         pg.wait_for_function('window.__test && __test.state().ready')
         check(pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog shows on the map')
         covered = pg.evaluate('''() => {
@@ -202,8 +202,10 @@ with sync_playwright() as pw:
         kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
         check(all(kept), f'{tag}: debug build: one tap on Reset clears nothing yet')
         pg.click('.pv-reset')
-        kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => localStorage.getItem(`family-games:${t}:progress`))')
-        check(kept == [None, None], f'{tag}: debug build: a second tap clears the game\'s entry and the old Rocket Sums one: {kept}')
+        kept = pg.evaluate('["rocket-lander", "rocket-sums"].map((t) => JSON.parse(localStorage.getItem(`family-games:${t}:progress`)))')
+        fresh = kept[0] or {}
+        check(kept[1] is None and (fresh.get('rocks'), fresh.get('levels'), fresh.get('maps'), fresh.get('track')) == (0, {}, {}, 'year2'),
+              f'{tag}: debug build: a second tap clears the game\'s progress (its entry now a fresh start on the same track, format 4) and the old Rocket Sums entry: {kept}')
         p = pg.evaluate('__test.state().progress')
         got = (p['open'], p['at'], p['rocks'], p['landings'], p['ship'], p['ships'], pg.inner_text('#map-rocks'), pg.input_value('#pv-rocks'))
         check(got == ('moon-1', 'moon-1', 0, 0, 'classic', ['classic'], '0', '0'), f'{tag}: debug build: the game starts afresh: {got}')

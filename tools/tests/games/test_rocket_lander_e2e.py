@@ -59,7 +59,7 @@ httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 PORT = httpd.server_address[1]
 LOCAL = f'http://127.0.0.1:{PORT}/'
-BASE = f'{LOCAL}games/rocket-lander/index.html'
+BASE = f'{LOCAL}games/rocket-lander/index.html?track=year2'  # the stand-in levels these checks were written for (D-089)
 KEY = 'family-games:rocket-lander:progress'  # D-042: the tile's one entry on the device
 
 errors, infos, fails, outside = [], [], [], []
@@ -228,9 +228,9 @@ with sync_playwright() as pw:
     # D-042: the progress is kept on the device, under the tile's one entry, with a format version
     keys = ph.evaluate('Object.keys(localStorage)')
     entry = ph.evaluate(f'JSON.parse(localStorage.getItem("{KEY}"))')
-    check(keys == [KEY] and entry == {'v': 3, 'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 3, 'rocks': rk}}, 'rocks': rk,
-                                      'landings': 7, 'ship': 'classic', 'ships': ['classic']},
-          f'only the game\'s entry is written, in the agreed shape (format 3, D-058): {keys}, {entry}')
+    check(keys == [KEY] and entry == {'v': 4, 'track': 'year2', 'edition': 'stand-in', 'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 3, 'rocks': rk}}, 'rocks': rk,
+                                      'landings': 7, 'ship': 'classic', 'ships': ['classic'], 'maps': {}},
+          f'only the game\'s entry is written, in the agreed shape (format 4, D-058, D-089): {keys}, {entry}')
     ph.reload()
     ph.wait_for_function('window.__test && __test.state().ready')
     p2 = state(ph)['progress']
@@ -239,7 +239,7 @@ with sync_playwright() as pw:
     mk = state(ph)['map']['markers']
     check([k['state'] for k in mk][:3] == ['done', 'next', 'locked'] and mk[0]['stars'] == 3 and ph.inner_text('#map-rocks') == str(rk),
           'the map shows the kept levels and rocks')
-    for bad, why in (('{broken', 'a broken entry'), ('{"v":4,"at":"dust-3","open":"dust-3","rocks":9}', 'an entry of an unknown format version'),
+    for bad, why in (('{broken', 'a broken entry'), ('{"v":5,"at":"dust-3","open":"dust-3","rocks":9}', 'an entry of an unknown format version'),
                      ('{"v":2,"unlocked":5,"planet":"ice","rocks":9}', 'a format 2 entry, from before the map')):
         ph.evaluate(f'localStorage.setItem("{KEY}", {bad!r})')
         ph.reload()

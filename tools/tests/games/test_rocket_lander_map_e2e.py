@@ -55,7 +55,7 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
-BASE = f'{LOCAL}games/rocket-lander/index.html'
+BASE = f'{LOCAL}games/rocket-lander/index.html?track=year2'  # the stand-in levels these checks were written for (D-089)
 KEY = 'family-games:rocket-lander:progress'
 errors, fails, outside = [], [], []
 
@@ -228,8 +228,8 @@ with sync_playwright() as pw:
     rep = pg.evaluate('__test.reported()')
     check(len(rep) == 1 and rep[0]['level'] == 1 and rep[0]['stars'] == 3, f'the round is reported as level 1, 3 stars: {rep}')
     e = entry(pg)
-    check(e == {'v': 3, 'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 3, 'rocks': 3}}, 'rocks': 3, 'landings': 3, 'ship': 'classic', 'ships': ['classic']},
-          f'kept on the device at format 3, in the agreed shape (D-058): {e}')
+    check(e == {'v': 4, 'track': 'year2', 'edition': 'stand-in', 'at': 'moon-2', 'open': 'moon-2', 'levels': {'moon-1': {'stars': 3, 'rocks': 3}}, 'rocks': 3, 'landings': 3, 'ship': 'classic', 'ships': ['classic'], 'maps': {}},
+          f'kept on the device at format 4, in the agreed shape (D-058, D-089): {e}')
     check(pg.evaluate('Object.keys(localStorage)') == [KEY], 'only the one game\'s entry is written')
     pg.screenshot(path=f'{OUT}/end-phone-first.png')
     tap(pg, '#to-map')

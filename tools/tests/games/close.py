@@ -1,4 +1,8 @@
-"""Close script for P-034 (Kids Games Development). Version 1.7.
+"""Close script for P-034 (Kids Games Development). Version 1.8.
+
+Changes at v1.8 (step 2c-3a): the new browser test of tracks, Reception's levels and the challenge
+rounds, test_rocket_lander_reception_e2e.py, runs when Rocket Lander's own files, the preview builder
+or its panel change (as the sums test does); the fast checks are as before.
 
 Changes at v1.7 (D-086, tests in batches at checkpoints): with no option the close runs the fast
 checks only (seconds), whatever changed, as a wrap-up does; --full runs everything and records the
@@ -74,6 +78,7 @@ COVERS = {
     'test_rocket_lander_levels.py': ['games/rocket-lander/'],
     'test_rocket_lander_map_e2e.py': ['games/rocket-lander/'],
     'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
+    'test_rocket_lander_reception_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_ship_hooks_e2e.py': [],
 }
