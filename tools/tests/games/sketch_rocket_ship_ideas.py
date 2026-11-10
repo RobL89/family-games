@@ -1,5 +1,8 @@
-"""Sketches: new ship ideas for Rocket Lander's hangar. Version 1.1.
+"""Sketches: new ship ideas for Rocket Lander's hangar. Version 1.2.
 
+Changes at v1.2 (10 Nov, Rob: many of the ideas are too wide for the children to land accurately;
+"think of 5 more ideas and describe with text only", one a Christmas tree with a gift box and Bip
+hanging on): five narrow ideas in words only, in their own section; the page becomes sketches 3.
 Changes at v1.1 (10 Nov, Rob: "svg mock up the also thought of ideas, except for comfy armchair"): five
 more ideas, 7 to 11 (Spin Cycle, Watermelon Boat, Snow Globe, Shopping Trolley, Hamster Ball), drawn
 the same three ways on the same page, now sketches 2; the Comfy Armchair is listed as left out. The
@@ -30,7 +33,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/ship-ideas'
 os.makedirs(OUT, exist_ok=True)
-VERSION = '1.1'
+VERSION = '1.2'
 COMMIT = subprocess.check_output(['git', '-C', REPO, 'rev-parse', '--short', 'HEAD'], text=True).strip()
 
 # The game's colours (scene.js, ships.js)
@@ -804,6 +807,44 @@ ALSO = [
     ('Comfy Armchair', 'an armchair with slippers and a reading lamp: left out (Rob, 10 Nov).'),
 ]
 
+NARROW = [
+    ('Christmas Tree', 'A little fir tree flying upright out of a wrapped gift box. Bip clings to the trunk halfway up, arms and legs wrapped round it, antenna poking out through the branches.', [
+        ('Looks', 'Baubles, a string of twinkling lights and a gold star on top that glows like a beacon; the gift box at the bottom with its ribbon bow.'),
+        ('Flies on', 'A sparkly tinsel trail, with puffs of snow from under the box.'),
+        ('Stands on', 'The gift box.'),
+        ('Landing joke', '<b>FLUMP!</b> The bump shakes the snow off the branches onto Bip\'s head, the baubles jingle, and Bip, still hanging on tight, gives a wobbly thumbs-up.'),
+        ('Sound', 'Sleigh bells, then a soft flump.'),
+        ('Why narrow', 'A tree is a tall triangle, and the box under it is about as wide as the Classic\'s feet.')]),
+    ('Bubble-Gum Balloon', 'Bip floats under a huge pink bubble-gum bubble, sitting on a little swing seat hanging from it.', [
+        ('Looks', 'A shiny pink bubble with a highlight, a string down to a small swing seat, Bip on it, legs swinging.'),
+        ('Flies on', 'The bubble, with tiny gum bubbles drifting off behind.'),
+        ('Stands on', 'The swing seat\'s two little feet, right under Bip.'),
+        ('Landing joke', '<b>POP!</b> The bubble bursts and pink gum splats over Bip\'s face; Bip peels it off and blows a new one.'),
+        ('Sound', 'A stretchy squeak, then a pop.'),
+        ('Why narrow', 'The wide part is high up; what lands is only Bip on the seat, so the numbers either side stay clear.')]),
+    ('Space Giraffe', 'A spotty giraffe in a little space helmet, with Bip riding on its head between the horns.', [
+        ('Looks', 'Long neck, patches, a round glass helmet, a tiny jetpack on its back.'),
+        ('Flies on', 'The jetpack, the long neck swaying.'),
+        ('Stands on', 'Its four long legs, close together, hooves on the number.'),
+        ('Landing joke', 'The neck wobbles like a spring, then the giraffe licks Bip with a long purple tongue: <b>SLURP!</b>'),
+        ('Sound', 'Clip-clop, then a slurp.'),
+        ('Why narrow', 'Tall and thin, legs close together.')]),
+    ('Jack-in-the-Box', 'The Toaster\'s pop-up joke, in a narrow box: a starry box with a winding handle on its side.', [
+        ('Looks', 'The lid shut while flying, Bip peeking out through the crack.'),
+        ('Flies on', 'The handle turning like a propeller, with music-box notes floating out.'),
+        ('Stands on', 'The bottom of the box.'),
+        ('Landing joke', 'The tune plays, the handle turns... <b>POP!</b> Bip springs out on a coil, bobs up and down, then squashes back in.'),
+        ('Sound', 'A music-box tune, then a boing.'),
+        ('Why narrow', 'A box about as wide as the Classic.')]),
+    ('Ice Cream Cone', 'A waffle cone with two scoops (strawberry and mint) and a cherry; Bip sits in the top scoop with a wafer for a backrest.', [
+        ('Looks', 'Criss-cross waffle, sprinkles, a cherry on top as the beacon.'),
+        ('Flies on', 'A trail of sprinkles and little drips of melt.'),
+        ('Stands on', 'The tip of the cone: one point, right on the number.'),
+        ('Landing joke', 'It wobbles on its tip, the top scoop starts to slide, and Bip catches it just in time: <b>PHEW!</b>'),
+        ('Sound', 'A wobbly wiggle, then a phew.'),
+        ('Why narrow', 'It lands on a single point; the widest part is high up. The point is at the bottom, so it doesn\'t look like a rocket.')]),
+]
+
 sections = []
 for i, (fn, name, pitch, rows) in enumerate(IDEAS, 1):
     dl = ''.join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in rows)
@@ -811,17 +852,18 @@ for i, (fn, name, pitch, rows) in enumerate(IDEAS, 1):
                     f'<figure>{fly_panel(fn, i, name)}<figcaption>Flying</figcaption></figure>'
                     f'<figure>{land_panel(fn, i, name)}<figcaption>Landing</figcaption></figure>'
                     f'<dl>{dl}</dl></div></section>')
+narrow = ''.join(f'<section><h3>{chr(65 + i)}. {n}</h3><p class="pitch">{p}</p><dl>' + ''.join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in rows) + '</dl></section>' for i, (n, p, rows) in enumerate(NARROW))
 tiles = ''.join(tile(fn, name, i) for i, (fn, name, _, _) in enumerate(IDEAS, 1)) + tile(classic, 'Classic, today', 9)
 also = ''.join(f'<li><b>{n}</b>: {d}</li>' for n, d in ALSO)
 
 html = f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rocket Lander: new ship ideas (sketches 2)</title>
+<title>Rocket Lander: new ship ideas (sketches 3)</title>
 <style>
 :root {{ --bg: #F7F5FF; --fg: #1B1446; --mut: #5d5880; --card: #fff; }}
 @media (prefers-color-scheme: dark) {{ :root {{ --bg: #121027; --fg: #EDEBFF; --mut: #a9a5c9; --card: #1d1a3a; }} }}
 body {{ margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 16px/1.45 system-ui, sans-serif; }}
-h1 {{ font-size: 22px; margin: 0 0 4px; }} h2 {{ font-size: 20px; margin: 26px 0 2px; }}
+h1 {{ font-size: 22px; margin: 0 0 4px; }} h2 {{ font-size: 20px; margin: 26px 0 2px; }} h3 {{ font-size: 18px; margin: 18px 0 2px; }}
 p {{ margin: 0 0 10px; max-width: 70ch; }} .pitch {{ font-weight: 600; }}
 .stamp {{ color: var(--mut); font-size: 13px; }}
 .row {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }}
@@ -835,11 +877,12 @@ figure.tile {{ flex: 0 0 auto; max-width: none; padding: 4px; }}
 figure.tile svg {{ width: 112px; height: auto; }}
 ul {{ padding-left: 20px; max-width: 70ch; }}
 </style></head><body>
-<h1>Rocket Lander: new ship ideas (sketches 2)</h1>
+<h1>Rocket Lander: new ship ideas (sketches 3)</h1>
 <p class="stamp">Sketches, not the finished look: the shapes, the jokes, and how each one flies and lands. All original. sketch_rocket_ship_ideas.py {VERSION} · built at {COMMIT} · draft</p>
-<p><b>New in sketches 2:</b> ideas 7 to 11, the ones that were only listed before (all but the Comfy Armchair).</p>
+<p><b>New in sketches 3:</b> five narrow ideas, in words only, at the end (A to E): many of 1 to 11 are too wide for the children to land accurately. Sketches 2 added ideas 7 to 11.</p>
 <p>{len(IDEAS)} ideas that are not rockets: funny everyday things, food, toys and a snail, each with its own way of flying, its own landing joke and sound, and Bip on show. Each keeps today's ships' size and landing spot, so play doesn't change. Pick the best few to draw in detail.</p>
 {"".join(sections)}
+<section><h2>Narrower ideas, in words only (sketches 3)</h2><p>Narrow where they land, so the numbers either side of the target stay in view.</p>{narrow}</section>
 <section><h2>At their size in play</h2>
 <p>On a sideways phone a ship is {PLAY_H:g} px tall (bigger upright and on the PC). Each idea is drawn here at that size, next to today's Classic, to check it still reads when it's small.</p>
 <div class="tiles">{tiles}</div></section>
