@@ -1,5 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.8.
+"""Rocket Lander's preview bundle (D-018). Version 1.9.
 
+Changes at v1.9 (Rob, 10 Nov): the test panel's "3 stars on this system" fills the picked level's
+system and puts the rocket at its last level, ready for hyperspace, kept through home.
 Changes at v1.8 (step 2c-build): the test panel's cog covers none of the map's buttons, the
 hangar's rocks count or the stamp (it covered the rocks count from the top-right corner).
 
@@ -217,6 +219,23 @@ with sync_playwright() as pw:
         lvl = pg.evaluate('__test.state().level')
         check((p['rocks'], p['open'], lvl) == (0, 'moon-1', 1),
               f'{tag}: debug build: after a reload it stays reset, the map from level 1 (the place is the game\'s, not the tab\'s): {p["rocks"]} rocks, open to {p["open"]}, level {lvl}')
+        # One tap fills a system with 3 stars, the rocket at its last level, ready for hyperspace (Rob, 10 Nov).
+        pg.click('.pv-cog')
+        pg.fill('#pv-code', '1234')
+        pg.click('.pv-open')
+        pg.select_option('.pv-level', '3')
+        pg.click('.pv-fill')
+        s = pg.evaluate('__test.state()')
+        moon = [s['progress']['levels'].get(f'moon-{n}', {}).get('stars') for n in range(1, 9)]
+        check(moon == [3] * 8 and s['progress']['at'] == 'moon-8' and s['level'] == 8 and s['map']['rocketAt'] == 'moon-8'
+              and not s['progress']['levels'].get('dust-1'),
+              f'{tag}: debug build: "3 stars on this system" fills the Moon\'s 8 levels and puts the rocket at level 8, nothing more: {moon}, at {s["progress"]["at"]}')
+        pg.click('.pv-btns button:has-text("Close")')
+        pg.reload()
+        pg.wait_for_function('window.__test && __test.state().ready')
+        p = pg.evaluate('__test.state().progress')
+        check(sum(1 for n in range(1, 9) if p['levels'].get(f'moon-{n}', {}).get('stars') == 3) == 8 and p['at'] == 'moon-8',
+              f'{tag}: debug build: the filled system is kept on the device, through home: at {p["at"]}')
         pg.click('.pv-cog')
         check(pg.is_visible('.pv-lock'), f'{tag}: debug build: the lock asks again each time')
         pg.fill('#pv-code', '1234')
@@ -224,7 +243,7 @@ with sync_playwright() as pw:
         pg.click('.pv-btns button:has-text("Close")')
         pg.click('#play', force=True)
         pg.wait_for_function('__test.state().phase === "fly"', timeout=20000)
-        check(not pg.is_visible('.pv-cog'), f'{tag}: debug build: the cog hides once a round starts')
+        check(not pg.is_visible('.pv-cog') and pg.evaluate('__test.state().levelId') == 'moon-8', f'{tag}: debug build: the cog hides once a round starts, level 8 playing')
         check(not errors, f'{tag}: no page errors' + ('' if not errors else ': ' + ' | '.join(errors[:3])))
         ctx.close()
     br.close()

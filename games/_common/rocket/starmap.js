@@ -1,8 +1,10 @@
 // The rocket game's map screens (D-058, D-065, D-066): the map of the system the child is in, with
 // its level markers along a path and the rocket waiting by its place; the galaxy view of every system
 // along a winding path; and the jumps between them, a short warp and, when a system is done,
-// hyperspace. Version 1.1 (step 2c-build, D-068). All original and drawn in code (D-010).
+// hyperspace. Version 1.2 (step 2c-build, D-068). All original and drawn in code (D-010).
 //
+// Changes at v1.2 (Rob, 10 Nov): hopTo(id) flies the waiting rocket over to a level's marker, for a
+// tap on an open level.
 // Changes at v1.1: a tap on the rocket waiting on the map makes it do a happy hop, with a boing and
 // a few sparkles (Rob's pointers for this step: engaging, small touches that add up).
 //
@@ -293,6 +295,11 @@ export class StarMap {
     const at = this.P_().at;
     this.io.sfx('tap');
     this.launch(at, () => this.io.play(at));
+  }
+
+  // The rocket flies over to a level's marker, if it isn't there already (a tap on an open level).
+  hopTo(id) {
+    if (this.view === 'map' && this.R.at !== id) this.queue({ kind: 'hop', to: id, wait: 0.05 });
   }
 
   // The rocket hops to a level's marker (if it isn't there), blasts off, and then the round starts.

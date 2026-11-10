@@ -1,5 +1,7 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.1.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.2.
 
+Changes at v1.2 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and the device keeps
+it there, so leaving a round with home comes back to the rocket on that level.
 Changes at v1.1: a tap on the waiting rocket makes it hop with a boing, and starts nothing.
 
 Rocket Lander is one game with a map of solar systems (D-058). This test plays it on its own as a
@@ -272,6 +274,27 @@ with sync_playwright() as pw:
     k1 = [k for k in mp(pg)['markers'] if k['id'] == 'moon-1'][0]
     check(k1['rocks'] == 8 and k1['stars'] == 3, f'level 1 on the map: 3 stars and every rock found: {k1}')
 
+    # ---------- Tapping an open level flies the rocket there; leaving a round keeps it there (Rob, 10 Nov) ----------
+    check(mp(pg)['rocketAt'] == 'moon-2', f'before: the rocket waits at level 2: {mp(pg)["rocketAt"]}')
+    tap_level(pg, 'moon-1')
+    pg.wait_for_selector('#level-card:not([hidden])')
+    pg.wait_for_function('!__test.state().map.busy', timeout=10000)
+    check(mp(pg)['rocketAt'] == 'moon-1' and entry(pg)['at'] == 'moon-1',
+          f'a tap on open level 1 flies the rocket over to it, and the device keeps it there: {mp(pg)["rocketAt"]}, kept {entry(pg)["at"]}')
+    tap(pg, '#lc-play')
+    pg.wait_for_function('__test.state().phase === "fly"', timeout=10000)
+    tap(pg, 'button[aria-label="Back to games"]')
+    pg.wait_for_load_state()
+    pg.goto(BASE)
+    pg.wait_for_function('window.__test && __test.state().ready')
+    settle(pg)
+    check(mp(pg)['rocketAt'] == 'moon-1', f'home in the middle of level 1, then back: the rocket is still at level 1: {mp(pg)["rocketAt"]}')
+    tap_level(pg, 'moon-2')
+    pg.wait_for_selector('#level-card:not([hidden])')
+    pg.wait_for_function('!__test.state().map.busy', timeout=10000)
+    tap(pg, '#lc-close')
+    check(mp(pg)['rocketAt'] == 'moon-2' and entry(pg)['at'] == 'moon-2', f'closing the card leaves the rocket where it flew: {mp(pg)["rocketAt"]}')
+
     # ---------- A round of 1 star opens nothing; the rocket stays to try again ----------
     pg.evaluate('__test.begin({ level: 2, settings: { landings_per_round: 3 } })')
     settle(pg)
@@ -443,6 +466,7 @@ with sync_playwright() as pw:
             check(fit[0] <= 1 and fit[1], f'{w}x{h} {scheme}: the level card fits without scrolling: {fit}')
             if scheme == 'dark':
                 pg.screenshot(path=f'{OUT}/size-{w}x{h}-card.png')
+            pg.wait_for_function('!__test.state().map.busy', timeout=10000)  # the rocket flies to level 3 first
             tap(pg, '#lc-close')
             tap(pg, '#to-galaxy')
             pg.wait_for_function('__test.state().screen === "galaxy"')

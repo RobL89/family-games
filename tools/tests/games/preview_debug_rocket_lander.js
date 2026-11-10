@@ -1,5 +1,8 @@
-// Rocket Lander's test panel for previews. Version 1.8.
+// Rocket Lander's test panel for previews. Version 1.9.
 //
+// Changes at v1.9 (Rob, 10 Nov): "3 stars on this system" gives every level of the picked level's
+// system 3 stars (rocks found stay) and sends the rocket to its last level, so hyperspace can be
+// tried without playing the whole system; applied at once and kept on the device.
 // Changes at v1.8 (step 2c-build): the cog moves to the map's bottom-left corner, above the stamp,
 // since in the top-right it covered the hangar's moon rocks count on the map bar.
 // Changes at v1.7 (step 2c-build, D-058, D-068): the map. The level picked is where Apply sends the
@@ -75,7 +78,8 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
 .pv-lock button,.pv-reset{font:700 16px system-ui,sans-serif;padding:11px 16px;border-radius:10px;border:2px solid #1B1446;background:#fff;color:#1B1446;cursor:pointer}
 .pv-lock .pv-open{background:#1B1446;color:#fff}
 .pv-reset{width:100%;margin-top:8px;border-color:#C0283F;color:#C0283F}
-.pv-reset.armed{background:#C0283F;color:#fff}`;
+.pv-reset.armed{background:#C0283F;color:#fff}
+.pv-fill{font:700 16px system-ui,sans-serif;padding:11px 16px;border-radius:10px;border:2px solid #1B1446;background:#FFF6CF;color:#1B1446;cursor:pointer;width:100%;margin-top:8px}`;
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
@@ -127,6 +131,10 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     const e = (T.state().progress.levels || {})[levelId()] || { stars: 0, rocks: 0 };
     stars.value = String(e.stars); found.value = String(e.rocks);
   }
+
+  // 3 stars on every level of the picked level's system, the rocket at its last level (Rob, 10 Nov)
+  const fill = el('button', { type: 'button', className: 'pv-fill', textContent: '3 stars on this system' });
+  progressBox.append(fill, el('small', { textContent: 'Every level of the picked level\'s system, rocks found kept; the rocket goes to its last level. Pass that for hyperspace.' }));
 
   // Reset (D-055): clears the game's progress on this device, on a second tap: its entry, which held
   // Rocket Lander's own before the map, and the old Rocket Sums one.
@@ -211,6 +219,16 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     else msg.textContent = 'Go back to the map first.';
   });
   close.addEventListener('click', () => { back.hidden = true; });
+  fill.addEventListener('click', () => {
+    const r = ROUTE[Number(level.value) - 1];
+    if (!r) return;
+    const given = read(), levels = given.state.levels;
+    for (const lv of r.sys.levels) levels[lv.id] = { stars: 3, rocks: levels[lv.id] ? levels[lv.id].rocks : 0 };
+    const last = r.sys.levels[r.sys.levels.length - 1];
+    given.level = ROUTE.findIndex((x) => x.lv.id === last.id) + 1;
+    if (use(given, true)) { show(); msg.textContent = `${r.sys.name}: 3 stars on all ${r.sys.levels.length} levels; the rocket waits at level ${r.sys.levels.length}. Pass it for hyperspace.`; }
+    else msg.textContent = 'Go back to the map first.';
+  });
   apply.addEventListener('click', () => { if (use(read())) { show(); } });
   defaults.addEventListener('click', () => {
     for (const [key, spec] of Object.entries(SETTINGS)) {

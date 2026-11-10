@@ -1,4 +1,8 @@
-// The rocket game's round flow (D-027, D-058). Version 2.0.
+// The rocket game's round flow (D-027, D-058). Version 2.1.
+//
+// Changes at v2.1 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and keeps it
+// there on the device, before its card opens; so leaving a round with home comes back to the
+// rocket on the level that was being played.
 //
 // Changes at v2.0 (step 2c-build, D-058, D-064 to D-068): one game with a map of solar systems.
 // The game opens on the map of the system the child is in (starmap.js, D-066), with no start card
@@ -252,6 +256,15 @@ export function runRocket(mode) {
     $('level-card').hidden = false;
     drawRockIcons();
     if (S.speak) speak(`Level ${lv.n + 1}. ${lv.about || ''}`);
+  }
+
+  // The rocket flies over to a tapped open level and waits there, kept on the device (Rob, 10 Nov).
+  function pickLevel(id) {
+    if (G.phase !== 'map' || id === progress.at) return;
+    progress = { ...progress, at: id };
+    level = levelById(id);
+    keep();
+    starmap.hopTo(id);
   }
 
   function closeCard(quiet) {
@@ -1016,7 +1029,7 @@ export function runRocket(mode) {
       map: MAP,
       progress: () => progress,
       ship: () => progress.ship,
-      tap: (id) => openCard(id),
+      tap: (id) => { pickLevel(id); openCard(id); },
       play: (id) => startRound(id),
       move: (id) => { progress = { ...progress, at: id }; level = levelById(id); keep(); },
       sfx: (name) => sfx(name),
