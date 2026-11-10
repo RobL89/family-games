@@ -3,7 +3,7 @@
 // less, a frame to fill to make 5 or 10, sums with dots under each number (Q-033), doubles and
 // sharing sweets. Version 1.0 (step 2c-3a). Pure: builds the chip's markup as text from a target
 // (asks.js, sums.js); no imports, page, clock or randomness. Rob judges these by eye in the preview
-// (D-092); the look is game.css's `.chip.face`.
+// (D-092); the look is game.css's `.chip.face` (the pictures' class is `fd`: `dots` is the landings trail's).
 
 const DOT_R = 3.9;     // a dot's radius in a 10-unit cell
 const PER_ROW = 5;     // dots go in rows of 5, as on a ten frame, so 6 is 5 and 1 more
@@ -17,7 +17,7 @@ const dot = (x, y, how = 'on') => (how === 'empty'
     : `<circle class="d-on" cx="${x}" cy="${y}" r="${DOT_R}"/>`);
 
 // An svg of cells in rows of 5: `hows` lists each cell's look in order ('on', 'gone', 'empty').
-function cells(hows, { frame = false, cls = 'dots' } = {}) {
+function cells(hows, { frame = false, cls = 'fd' } = {}) {
   const n = hows.length, cols = Math.max(1, Math.min(PER_ROW, n)), rows = Math.max(1, Math.ceil(n / PER_ROW));
   const w = cols * 10, h = rows * 10;
   const box = frame ? hows.map((_, i) => `<rect class="f-cell" x="${(i % PER_ROW) * 10 + 0.8}" y="${Math.floor(i / PER_ROW) * 10 + 0.8}" width="8.4" height="8.4" rx="1.6"/>`).join('') : '';
@@ -36,14 +36,14 @@ const SCATTER = { 1: [[12, 17]], 2: [[7, 10], [21, 19]], 3: [[6, 18], [15, 7], [
   5: [[5, 13], [15, 5], [25, 11], [10, 25], [22, 24]] };
 export function flashSvg(n, look = 0) {
   const k = Math.max(1, Math.min(5, Math.round(n)));
-  if (look === 1) return cells(many(k), { cls: 'dots fl-dots' }).replace('<svg', '<svg data-look="row"');
+  if (look === 1) return cells(many(k), { cls: 'fd fl-dots' }).replace('<svg', '<svg data-look="row"');
   const pts = look === 2 ? SCATTER[k] : PIPS[k];
   const body = pts.map(([x, y]) => `<circle class="d-on" cx="${x}" cy="${y}" r="${DOT_R}"/>`).join('');
-  return `<svg class="dots fl-dots r3" data-look="${look === 2 ? 'scatter' : 'dice'}" viewBox="0 0 30 30" aria-hidden="true">${body}</svg>`;
+  return `<svg class="fd fl-dots r3" data-look="${look === 2 ? 'scatter' : 'dice'}" viewBox="0 0 30 30" aria-hidden="true">${body}</svg>`;
 }
 
 // A frame of `whole` places (5 or 10), `part` of them filled: what's left is the answer.
-export const bondSvg = (whole, part) => cells([...many(part), ...many(whole - part, 'empty')], { frame: true, cls: 'dots frame' });
+export const bondSvg = (whole, part) => cells([...many(part), ...many(whole - part, 'empty')], { frame: true, cls: 'fd frame' });
 
 // A number with its dots under it; for a take-away, the first number's last `gone` dots crossed out.
 const column = (n, hows) => `<span class="pc"><b class="fn">${esc(n)}</b>${hows.length ? cells(hows) : '<span class="d-none"></span>'}</span>`;
@@ -87,9 +87,9 @@ export function sweetsSvg(n) {
     return `<path class="sw-end" d="M${x - 3.2} ${y}L${x - 5.6} ${y - 2.6}L${x - 5.6} ${y + 2.6}ZM${x + 3.2} ${y}L${x + 5.6} ${y - 2.6}L${x + 5.6} ${y + 2.6}Z" fill="${c}"/>`
       + `<circle class="sw" cx="${x}" cy="${y}" r="3.4" fill="${c}"/>`;
   }).join('');
-  return `<svg class="dots sweets r${rows}" viewBox="-0.6 -0.6 ${cols * 12 + 1.2} ${rows * 10 + 1.2}" aria-hidden="true">${body}</svg>`;
+  return `<svg class="fd sweets r${rows}" viewBox="-0.6 -0.6 ${cols * 12 + 1.2} ${rows * 10 + 1.2}" aria-hidden="true">${body}</svg>`;
 }
 export function platesSvg(g) {
   const body = Array.from({ length: g }, (_, i) => `<ellipse class="plate" cx="${i * 16 + 8}" cy="5" rx="7" ry="3.6"/><ellipse class="plate-in" cx="${i * 16 + 8}" cy="4.6" rx="4.2" ry="1.9"/>`).join('');
-  return `<svg class="dots plates" viewBox="-0.6 -0.6 ${g * 16 + 1.2} 11.2" aria-hidden="true">${body}</svg>`;
+  return `<svg class="fd plates" viewBox="-0.6 -0.6 ${g * 16 + 1.2} 11.2" aria-hidden="true">${body}</svg>`;
 }

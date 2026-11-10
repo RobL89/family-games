@@ -68,9 +68,10 @@ button { font: inherit; color: inherit; }
 .target.is-face { padding-left: .2em; }
 .target.is-face .target-lbl { display: none; }
 .chip.face { display: inline-flex; align-items: center; gap: .2em; padding: .14em .34em; border-radius: .45em; background: var(--paper); font-size: 1.15em; }
-.chip.face svg { display: block; height: .56em; width: auto; overflow: visible; }
-.chip.face svg.r2 { height: 1.12em; }
-.chip.face svg.r3 { height: 1.3em; }
+.chip.face svg { display: block; height: .7em; width: auto; overflow: visible; }
+.chip.face svg.r2 { height: 1.36em; }
+.chip.face svg.r3 { height: 1.4em; }
+.chip.face svg.plates { height: .62em; }
 .chip .d-on { fill: var(--coral); stroke: var(--ink); stroke-width: 1.5; }
 .chip .d-empty { fill: var(--paper); stroke: #8F87C9; stroke-width: 1.2; stroke-dasharray: 1.7 1.3; }
 .chip .d-gone { fill: #E3E0F5; stroke: #8F87C9; stroke-width: 1.2; }
@@ -79,8 +80,9 @@ button { font: inherit; color: inherit; }
 .chip .fw { font-size: .46em; font-weight: 700; line-height: 1; text-align: center; max-width: 3.4em; white-space: normal; }
 .chip .fn { display: inline-grid; place-items: center; min-width: 1.1em; padding: 0 .16em; border-radius: .38em; background: var(--sun); border: 2px solid var(--ink); font-size: .82em; line-height: 1.12; }
 .chip .pc { display: inline-flex; flex-direction: column; align-items: center; gap: .08em; }
-.chip .pc svg { height: .42em; }
-.chip .pc .d-none { display: block; height: .42em; }
+.chip .pc svg { height: .56em; }
+.chip .pc .d-none { display: block; height: .56em; }
+.chip.face-sum .fn, .chip.face-double .fn { font-size: .74em; }
 .chip .op { font-size: .82em; }
 .chip .pair { display: inline-flex; gap: .22em; }
 .chip .sw { stroke: var(--ink); stroke-width: 1.1; }

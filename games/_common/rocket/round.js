@@ -1211,7 +1211,7 @@ export function runRocket(mode) {
       track: TRACK, tracks: Object.keys(TRACKS), kept: whole(), ask: G.T && G.T.ask || null, sub: G.T && G.T.sub !== undefined ? G.T.sub : null,
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
       sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,
-      goal: G.goal, level: level.i + 1, levelId: level.id, kind: level.kind, labelLook: level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
+      goal: G.goal, level: level.i + 1, levelId: level.id, kind: level.kind, labelLook: scene.labelLook || level.row.labels, plan: G.plan.slice(), idx: G.idx, total: G.total, right: G.right, perfects: G.perfects, ready,
       rocks: progress.rocks, progress: { ...progress }, allowed: near && near.allowed, perfect: near && near.perfect, tight: near && near.tight,
       pps: scene.pps, x0: scene.x0, x1: scene.x1, rocketX: R.x, rocketY: R.y, touchY: G.touchY, startY: G.startY, startX: G.startX,
       rocketValue: line && scene.ppu ? tidy(scene.valueAt(R.x)) : null,

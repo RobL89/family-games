@@ -73,7 +73,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
 .pv-row small{grid-column:1/-1;font-size:12.5px;opacity:.72}
 .pv-row input,.pv-row select{font:inherit;width:100%;box-sizing:border-box;padding:6px 8px;border:2px solid #C9C4E6;border-radius:8px;background:#fff;color:inherit}
 .pv-row input[type=checkbox]{width:26px;height:26px;justify-self:end}
-.pv-level{width:100%;font:inherit;padding:8px;border:2px solid #C9C4E6;border-radius:8px;margin:2px 0 6px}
+.pv-level,.pv-track{width:100%;font:inherit;padding:8px;border:2px solid #C9C4E6;border-radius:8px;margin:2px 0 6px}
 .pv-btns{display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;background:#fff;padding-top:8px}
 .pv-btns button{font:700 16px system-ui,sans-serif;padding:11px 16px;border-radius:10px;border:2px solid #1B1446;background:#fff;color:#1B1446;cursor:pointer}
 .pv-btns .pv-apply{background:#1B1446;color:#fff;flex:1}
@@ -117,7 +117,7 @@ body:has(#map[hidden]) .pv-cog,body:has(#level-card:not([hidden])) .pv-cog{displ
     ]));
   }
 
-  const track = el('select', { className: 'pv-level', id: 'pv-track' }, Object.entries(TRACKS).map(([id, t]) => el('option', { value: id, textContent: t.name })));
+  const track = el('select', { className: 'pv-track', id: 'pv-track' }, Object.entries(TRACKS).map(([id, t]) => el('option', { value: id, textContent: t.name })));
   track.addEventListener('change', () => { msg.textContent = track.value === TRACK ? '' : 'Press Apply to change track: the rocks and ships stay; each track keeps its own map.'; });
   const trackBox = el('fieldset', {}, [el('legend', { textContent: 'Track' }), track,
     el('small', { textContent: 'Which school years this device plays (D-089). Changing it keeps the moon rocks and ships; each track keeps its own map, and the game reloads on it.' })]);

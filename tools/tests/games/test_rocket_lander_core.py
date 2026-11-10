@@ -329,7 +329,7 @@ const FC = await import(process.argv[2] + '/faces.js');
 const chip = (T) => FC.faceChip(T).html;
 const n = (html, cls) => (html.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
 out.faces = {
-  dots: [1, 5, 6, 10].map((k) => [dotsOn(chip({ ask: 'dots', n: k })), n(chip({ ask: 'dots', n: k }), 'dots r' + (k > 5 ? 2 : 1))]),
+  dots: [1, 5, 6, 10].map((k) => [dotsOn(chip({ ask: 'dots', n: k })), n(chip({ ask: 'dots', n: k }), 'fd r' + (k > 5 ? 2 : 1))]),
   flash: [0, 1, 2].map((look) => [1, 3, 5].map((k) => dotsOn(chip({ ask: 'flash', n: k, look, ms: 1500 })))),
   flashMs: chip({ ask: 'flash', n: 3, look: 0, ms: 1500 }).includes('--show:1500ms'),
   compare: ['more', 'fewer', 'same'].map((rel) => { const h = chip({ ask: 'compare', rel, n: 4 }); return [dotsOn(h), /more than|fewer than|the same as/.exec(h)[0]]; }),
