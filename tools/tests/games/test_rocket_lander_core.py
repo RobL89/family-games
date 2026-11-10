@@ -1,4 +1,18 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.7.
+"""Rocket Lander's pure core and its boundaries. Version 1.8.
+
+Changes at v1.8 (step 2c-3b, D-100): Year 2 on the higher track. The higher track's map is Year 2's
+three systems, a new edition (so a map kept on the stand-in levels starts afresh there; a format 3
+entry, with no stand-in track left, keeps only its rocks, landings and ships), each 7 levels and a
+challenge, its ids the level plan's and its rows' numbers the notes' params. The progress and tracks
+checks keep the stand-in map they were written on as a fixture here (STAND_IN_IDS), so they stay as
+strict as before. Year 2's questions (asks.js 1.1): tens and ones, number words, <, > and = on a
+number, counting in steps, odd or even to 100, fractions of shapes and of numbers: what each can ask,
+by an enumeration in Python of the notes' words, and the stretch of the line each landing is shown
+(10 marks with the answer in it, inside the level's numbers). Their faces (faces.js 1.1). Year 2's
+sums (sums.js 1.3): the forms (TO + O, TO + T, TO − O, TO − T, O + O + O, TO + TO with and without
+carrying, TO − TO with and without exchanging, missing numbers, tens bonds, tables to × 12 and
+dividing), each counted against a Python enumeration; their lines (tables in their own steps, tens
+bonds in tens). Fractions written and said (numbers.js), and a level's own fall time (settings.js 1.2).
 
 Changes at v1.7 (step 2c-3a, D-089 to D-094): two tracks. The tracks' progress (games/_common/rocket/
 tracks.js, format 4): a new device, a track given, a format 3 entry going to the stand-in track,
@@ -115,6 +129,10 @@ const sampleOk = (lv) => {
     if (sm.rule === 'parity') return r.mix.parity > 0 && ['even', 'odd'].includes(sm.parity) ? 'ok' : 'even or odd not asked';
     return 'unknown rule';
   }
+  if (r.forms) { // Year 2's forms (sums.js 1.3): the sample is one of the level's facts, its text and answer both
+    if (sm.rule !== 'sum') return 'not a sum';
+    return M.partsOf(r).some((p) => r.ops.some((op) => M.facts(op, p).some((f) => M.sumText(f) === sm.sum && f.answer === sm.value))) ? 'ok' : 'a sum the level never asks';
+  }
   const m = /^(\d+) (.) (\d+)$/.exec(sm.sum || '');
   if (sm.rule !== 'sum' || !m || !r.ops.includes(m[2])) return 'not a sum of the level\'s operations';
   const [a, op, b] = [Number(m[1]), m[2], Number(m[3])];
@@ -225,9 +243,13 @@ const out = {
     tracks: Object.fromEntries(Object.entries(MP.TRACKS).map(([id, t]) => [id, { name: t.name, edition: t.edition, systems: sysOut(t.systems) }])),
   },
 };
-// The progress on the map (progress.js, D-058, D-064), on the stand-in map with the game's level ids
+// The progress on the map (progress.js, D-058, D-064), on the stand-in map with the game's level ids.
+// Since step 2c-3b the game's higher track is Year 2's, so the stand-in map these checks were written
+// on (map.js 1.0: the Moon's 8 and Red Dust's 8, the rest coming soon) is kept here as a fixture.
+const STAND_IN_IDS = ['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed'].map((id, s) => ({ id, soon: s > 1,
+  levels: s > 1 ? [] : Array.from({ length: 8 }, (_, n) => ({ id: `${id}-${n + 1}` })) }));
 const PG = await import(c + '/progress.js');
-const MAPX = MP.TRACKS.year2.systems.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((lv, n) => ({ id: `${sys.id}-${n + 1}` })) }));
+const MAPX = STAND_IN_IDS;
 const lv = (pairs) => Object.fromEntries(pairs.map(([id, stars, rocks]) => [id, { stars, rocks }]));
 const allMoon = (stars, rocks) => lv([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`moon-${n}`, stars, rocks]));
 const fin = (p, id, r) => { const before = JSON.stringify(p); const x = PG.finish(MAPX, p, id, r); return x && { ...x, untouched: JSON.stringify(p) === before }; };
@@ -274,10 +296,12 @@ out.progress = {
     return [[a.at, a.open], [b.at, b.open], c2 === b, JSON.stringify(P0) === JSON.stringify(PG.fresh(MAPX))]; })(),
   given: [1, '9', 16, 17, 'dust-2', 0, 2.5, 'x', null, undefined, ''].map((g) => PG.levelGiven(MAPX, g)),
 };
-// Tracks (tracks.js, D-089): the two maps' ids, as the game builds them
+// Tracks (tracks.js, D-089): the two maps' ids, as the game builds them. The checks below were written
+// when the higher track was the stand-in map, so TR keeps it so (the fixture above); TRR is the game's own.
 const TK = await import(c + '/tracks.js');
 const idsOf = (t) => MP.TRACKS[t].systems.map((sys) => ({ id: sys.id, soon: !!sys.soon, levels: sys.levels.map((l, n) => ({ id: `${sys.id}-${n + 1}` })) }));
-const TR = Object.fromEntries(Object.keys(MP.TRACKS).map((t) => [t, { map: idsOf(t), edition: MP.TRACKS[t].edition }]));
+const TR = { reception: { map: idsOf('reception'), edition: MP.TRACKS.reception.edition }, year2: { map: STAND_IN_IDS, edition: TK.STAND_IN } };
+const TRR = Object.fromEntries(Object.keys(MP.TRACKS).map((t) => [t, { map: idsOf(t), edition: MP.TRACKS[t].edition }]));
 const F3 = { at: 'dust-2', open: 'dust-3', levels: { 'moon-1': { stars: 3, rocks: 8 } }, rocks: 40, landings: 50, ship: 'teapot', ships: ['classic', 'teapot'] };
 const u3 = TK.unpack(TR, F3, null, 'reception');
 const packed = TK.pack(TR, u3.track, u3.p, u3.others);
@@ -347,6 +371,106 @@ out.pick = (() => { const ln = N.makeLine({ from: 10, to: 20, step: 1 }), rand =
   for (let i = 0; i < 300; i++) { const T = RU.pickTarget('any', ln, prev, rand, [11, 20]); vs.push(T.value); prev = T; }
   const none = RU.pickTarget('any', ln, null, seeded(1), [30, 40]).value;
   return { min: Math.min(...vs), max: Math.max(...vs), kinds: new Set(vs).size, none }; })();
+// ---------- Step 2c-3b: Year 2 on the higher track (v1.8) ----------
+// The game's own tracks: a kept entry from before Year 2 replaced the stand-ins
+const F4S = { track: 'year2', edition: 'stand-in', at: 'dust-2', open: 'dust-3', levels: { 'moon-1': { stars: 3, rocks: 8 } }, rocks: 40, landings: 50, ship: 'teapot', ships: ['classic', 'teapot'], maps: {} };
+const F4R = { track: 'reception', edition: MP.TRACKS.reception.edition, at: 'moon-3', open: 'moon-4', levels: {}, rocks: 7,
+  maps: { year2: { edition: 'stand-in', at: 'dust-2', open: 'dust-3', levels: { 'moon-1': { stars: 3, rocks: 8 } } } } };
+out.realTracks = { f3: TK.unpack(TRR, F3, null, 'reception'), standIn4: TK.unpack(TRR, F4S, null, 'reception'), putBy: TK.unpack(TRR, F4R, 'year2', 'reception') };
+// Year 2's rows (map.js 2.1)
+const Y2 = MP.TRACKS.year2.systems;
+const yRow = (s, n) => Y2[s].levels[n - 1].row;
+const valuesOf = (list) => list.filter((T) => T.value !== undefined).map((T) => T.value);
+const span = (list) => (list.length ? [Math.min(...list), Math.max(...list)] : null);
+// 300 landings (seeded) of a windowed level: each landing's question and the stretch of line it is shown
+const windowed = (row, seed) => { const rand = seeded(seed), plan = AK.planAsks(row, 300, rand); let prev = null; const out2 = [];
+  for (const k of plan) { const T = AK.askTarget(row, k, prev, rand); const w = AK.windowFor(row, T, rand); out2.push({ T, w }); prev = T; } return out2; };
+const winSum = (row, seed) => { const ws = windowed(row, seed); return {
+  n: ws.length, spans: [...new Set(ws.map(({ w }) => w.to - w.from))], steps: [...new Set(ws.map(({ w }) => w.step))],
+  lo: Math.min(...ws.map(({ w }) => w.from)), hi: Math.max(...ws.map(({ w }) => w.to)), starts: new Set(ws.map(({ w }) => w.from)).size,
+  holds: ws.every(({ T, w }) => (T.value !== undefined ? T.value >= w.from && T.value <= w.to : true)),
+  // a <, > or = question: its number on the line with at least 3 marks each side, so either side can be wrong
+  sides: ws.filter(({ T }) => T.ask === 'sign' && T.rule === 'range').every(({ T, w }) => T.n - w.from >= 3 && w.to - T.n >= 3),
+  fits: ws.filter(({ T }) => T.rule === 'range').every(({ T, w }) => { for (let v = w.from; v <= w.to; v++) if (AK.relHolds(T.rel, v, T.n)) return true; return false; }),
+  twice: ws.some(({ T }, i) => i > 0 && AK.keyOf(T) === AK.keyOf(ws[i - 1].T) && T.ask !== 'parity'),
+  kinds: ws.reduce((a, { T }) => ({ ...a, [T.rel ?? T.dir ?? (T.step !== undefined ? 's' + T.step : '-')]: (a[T.rel ?? T.dir ?? (T.step !== undefined ? 's' + T.step : '-')] || 0) + 1 }), {}) }; };
+const seqOk = (T) => { const s = T.dir === 'forward' ? T.step : -T.step, t = [...T.terms, T.value]; return t.every((v, i) => i === 0 || v - t[i - 1] === s); };
+out.y2 = {
+  fracText: [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [1, 3], [2, 3], [3, 3], [6, 4], [5, 10], [13, 10], [0, 3], [8, 4]].map(([v, d]) => N.fracText(v, d)),
+  fracSay: [[1, 2], [1, 3], [2, 3], [1, 4], [2, 4], [3, 4], [1, 10], [3, 10], [2, 7], [5, 12]].map(([a, b]) => N.fracSay(a, b)),
+  fall: [S.fallSecondsFor(3, true, 6), S.fallSecondsFor(1, false, 6), S.fallSecondsFor(3, true, null), S.fallSecondsFor(3, true, 0), S.fallSecondsFor(5, false, undefined)],
+  ASKS: AK.ASKS,
+  choices: {
+    place: AK.choices(yRow(0, 1)).map((T) => [T.n, T.value, T.rule]),
+    words: AK.choices(yRow(0, 2)).map((T) => [T.n, T.value]),
+    sign: ['more', 'fewer', 'same'].map((k) => AK.choices(yRow(0, 3), k).map((T) => [T.rule, T.rel, T.n, T.value ?? null])),
+    seq3: ['forward', 'backward'].map((k) => AK.choices(yRow(0, 4), k).map((T) => [T.step, T.dir, T.terms, T.value])),
+    seq10: ['forward', 'backward'].map((k) => AK.choices(yRow(0, 5), k).map((T) => [T.step, T.dir, T.terms, T.value])),
+    parity: AK.choices(yRow(2, 5)).map((T) => [T.rule, T.rel]),
+    shape: AK.choices(yRow(2, 6)).map((T) => [T.num, T.den, T.look, T.parts, T.value]),
+    fracOf: AK.choices(yRow(2, 7)).map((T) => [T.num, T.den, T.total, T.value]),
+  },
+  seqAllOk: [yRow(0, 4), yRow(0, 5)].every((r) => AK.choices(r).every(seqOk)),
+  windows: { place: winSum(yRow(0, 1), 21), words: winSum(yRow(0, 2), 22), sign: winSum(yRow(0, 3), 23), seq3: winSum(yRow(0, 4), 24),
+    seq10: winSum(yRow(0, 5), 25), parity: winSum(yRow(2, 5), 26), fracOf: winSum(yRow(2, 7), 27) },
+  shapeLines: [2, 4, 3].map((den) => { const T = AK.choices(yRow(2, 6)).find((x) => x.den === den); return AK.shapeLine(T); }),
+  planSign: AK.planAsks(yRow(0, 3), 8, seeded(5)),
+  planSeq: AK.planAsks(yRow(0, 4), 8, seeded(6)),
+  planParity: [AK.planAsks(yRow(2, 5), 8, seeded(7)), AK.planAsks(yRow(2, 5), 8, seeded(8))],
+  // 600 landings of counting in steps and of fractions: how often each step or fraction comes up
+  stepShares: (() => { const r = yRow(0, 4), rand = seeded(31), plan = AK.planAsks(r, 600, rand); let prev = null; const n = {};
+    for (const k of plan) { const T = AK.askTarget(r, k, prev, rand); n[T.step] = (n[T.step] || 0) + 1; prev = T; } return n; })(),
+  fracShares: (() => { const r = yRow(2, 6), rand = seeded(32); let prev = null; const n = {};
+    for (let i = 0; i < 600; i++) { const T = AK.askTarget(r, null, prev, rand); n[`${T.num}/${T.den}`] = (n[`${T.num}/${T.den}`] || 0) + 1; prev = T; } return n; })(),
+  right: [
+    [{ rule: 'range', ask: 'sign', rel: 'more', n: 47 }, [48, 47, 46, 57, 47.5]], [{ rule: 'range', ask: 'sign', rel: 'fewer', n: 47 }, [46, 47, 48, 37]],
+    [{ rule: 'ask', ask: 'sign', rel: 'same', n: 47, value: 47 }, [47, 48]], [{ rule: 'range', ask: 'parity', rel: 'even' }, [48, 47, 0, 100, 48.5]],
+    [{ rule: 'range', ask: 'parity', rel: 'odd' }, [47, 48, 1, 99]],
+  ].map(([T, spots]) => spots.map((v) => AK.isRight(T, v))),
+  goal: (() => { const ln = N.makeLine({ from: 40, to: 50, step: 1 }); return [
+    AK.goalOf({ rule: 'range', ask: 'sign', rel: 'more', n: 44 }, 41.2, ln), AK.goalOf({ rule: 'range', ask: 'sign', rel: 'fewer', n: 44 }, 49, ln),
+    AK.goalOf({ rule: 'range', ask: 'parity', rel: 'even' }, 46.6, ln), AK.goalOf({ rule: 'range', ask: 'parity', rel: 'odd' }, 46.2, ln)]; })(),
+};
+// Year 2's faces (faces.js 1.1)
+const has = (html, cls) => (html.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
+const txt = (html) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+out.y2faces = {
+  place: [34, 70, 19, 99].map((k) => { const c2 = FC.faceChip({ ask: 'place', n: k, value: k }); return [has(c2.html, 'pv-ten'), has(c2.html, 'pv-one'), c2.cls]; }),
+  words: [47, 100, 13, 60, 1].map((k) => { const c2 = FC.faceChip({ ask: 'words', n: k, value: k }); return [txt(c2.html), c2.cls]; }),
+  sign: [['more', '&lt;'], ['fewer', '&gt;'], ['same', '=']].map(([rel, sym]) => { const h = FC.faceChip({ ask: 'sign', rel, n: 47 }).html; return [h.includes(sym), txt(h)]; }),
+  seq: [{ step: 2, dir: 'forward', terms: [6, 8, 10] }, { step: 10, dir: 'backward', terms: [83, 73, 63] }].map((T) => txt(FC.faceChip({ ask: 'seq', ...T }).html)),
+  shape: [[1, 4, 0], [3, 4, 1], [1, 3, 0], [2, 4, 0], [1, 2, 1]].map(([num, den, look]) => { const h = FC.faceChip({ ask: 'frac-shape', num, den, look }).html; return [has(h, 'fs-on'), has(h, 'fs-on') + has(h, 'fs-off')]; }),
+  fracOf: [[3, 4, 12], [1, 2, 24], [1, 3, 9]].map(([num, den, total]) => { const h = FC.faceChip({ ask: 'frac-of', num, den, total }).html; return [has(h, 'd-on'), has(h, 'fo-group'), txt(h)]; }),
+  fracHtml: txt(FC.fracHtml(3, 4)),
+};
+// Year 2's sums (sums.js 1.3): every fact of each form, as [a, op, b, op2, c, missing, result, answer]
+const flat = (f) => [f.a, f.op, f.b, f.op2 ?? null, f.c ?? null, f.missing ?? null, f.result ?? null, f.answer];
+const factsOf = (r) => r.ops.flatMap((op) => M.partsOf(r).flatMap((p) => M.facts(op, p).map(flat)));
+const partFacts = (r) => M.partsOf(r).map((p) => r.ops.flatMap((op) => M.facts(op, p).map(flat)));
+out.y2sums = {
+  FORMS: M.FORMS,
+  facts20: factsOf(yRow(0, 6)), bond: factsOf(yRow(0, 7)),
+  toO: factsOf(yRow(1, 1)), toT: factsOf(yRow(1, 2)), takeOT: factsOf(yRow(1, 3)), three: factsOf(yRow(1, 4)),
+  toTO: partFacts(yRow(1, 5)), takeTO: partFacts(yRow(1, 6)), missing: factsOf(yRow(1, 7)),
+  t10: factsOf(yRow(2, 1)), t2: factsOf(yRow(2, 2)), t5: factsOf(yRow(2, 3)), div: factsOf(yRow(2, 4)),
+  texts: [{ a: 34, op: '+', b: 5 }, { a: 4, op: '+', b: 7, op2: '+', c: 6 }, { a: 35, op: '+', b: 25, result: 60, missing: 'a' }, { a: 30, op: '+', b: 70, result: 100, missing: 'b' }].map((f) => M.sumText(f)),
+  lines: [
+    M.lineForSum({ answer: 70 }, ['×'], yRow(2, 1), seeded(1)), M.lineForSum({ answer: 14 }, ['×'], yRow(2, 2), seeded(1)),
+    M.lineForSum({ answer: 35 }, ['×'], yRow(2, 3), seeded(1)), M.lineForSum({ answer: 7 }, ['÷'], yRow(2, 4), seeded(1)),
+    M.lineForSum({ answer: 70 }, ['+'], yRow(0, 7), seeded(1)),
+  ],
+  roundLines: [yRow(2, 1), yRow(2, 4), yRow(0, 7)].map((r) => M.roundLine(r)),
+  stretch: [[yRow(0, 6), 41], [yRow(1, 1), 42], [yRow(1, 4), 43], [yRow(1, 7), 44]].map(([r, seed]) => { const rand = seeded(seed); let prev = null, ok = true; const starts = new Set();
+    for (let i = 0; i < 200; i++) { const p = M.partsOf(r)[0], s = M.makeSum(r.ops, p, prev, rand); const w = M.lineForSum(s, r.ops, p, rand);
+      if (!(w.to - w.from === 10 && w.step === 1 && s.answer >= w.from && s.answer <= w.to && w.from >= 0)) ok = false; starts.add(w.from); prev = s; } return [ok, starts.size]; }),
+  // the missing numbers' 600 draws, by the form the sum came from: each of the six about as often
+  missingShares: (() => { const r = yRow(1, 7), rand = seeded(51); let prev = null; const n = {};
+    for (let i = 0; i < 600; i++) { const s = M.makeSum(r.ops, r, prev, rand); n[s.group] = (n[s.group] || 0) + 1; prev = s; } return n; })(),
+  twice: [[yRow(1, 4), 52], [yRow(1, 7), 53], [yRow(2, 1), 54]].map(([r, seed]) => { const rand = seeded(seed); let prev = null, same = 0;
+    for (let i = 0; i < 300; i++) { const s = M.makeSum(r.ops, r, prev, rand); if (prev && M.sumText(s) === M.sumText(prev)) same++; prev = s; } return same; }),
+  fall: yRow(0, 6).fall_s ?? null,
+  halves: [M.planParts(yRow(1, 5), 8), M.planParts(yRow(1, 6), 8)],
+};
 console.log(JSON.stringify(out));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + COMMON, 'file://' + GAME], capture_output=True, text=True)
@@ -570,15 +694,20 @@ check(list(TRK) == ['reception', 'year2'] and mp['first'] == 'reception',
       f"two tracks, lower (reception) and higher (year2); a new device starts on the lower (D-089): {list(TRK)}, first {mp['first']}")
 check(all([x['id'] for x in t['systems']] == ['moon', 'dust', 'candy', 'ice', 'jungle', 'ringed'] for t in TRK.values()),
       "each track has the same six systems, in the planets' order")
-# The higher track: version 1.0's stand-in levels until step 2c-3b, checked as map.js 1.0 was
+# The higher track (step 2c-3b, D-100): Year 2's three systems replace the stand-in levels (D-068), a new
+# edition, so a map kept on the stand-ins starts afresh there; Year 3's Ice, Jungle and Ringed come in 2c-3c
 hi = TRK['year2']
-check(hi['edition'] == 'stand-in' and 'stand-in' in hi['name'], f"the higher track is the stand-in map until step 2c-3b: {hi['edition']!r}, {hi['name']!r}")
-moon, dust = hi['systems'][0], hi['systems'][1]
-check(moon['levels'] == [['number', n] for n in range(1, 9)] and not moon['soon'], f"its Moon holds Number mode's eight levels, 1 to 8 (D-068): {moon['levels']}")
-check(dust['levels'] == [['sums', n] for n in range(1, 9)] and not dust['soon'], f"its Red Dust holds the eight sums levels, 1 to 8 (D-068): {dust['levels']}")
-check(all(x['soon'] and x['levels'] == [] for x in hi['systems'][2:]), 'its Candy, Ice, Jungle and Ringed are coming soon, with no levels yet')
-# The lower track: Reception's three systems, as the level plan says (D-091)
 lo = TRK['reception']
+check(hi['edition'] not in ('', 'stand-in', lo['edition']) and hi['name'] == 'Year 2, then Year 3',
+      f"the higher track is Year 2's, with an edition of its own (not the stand-ins'): {hi['edition']!r}, {hi['name']!r}")
+check(all(len(x['levels']) == 8 and not x['soon'] for x in hi['systems'][:3]) and all(x['soon'] and x['levels'] == [] for x in hi['systems'][3:]),
+      'higher track: Moon, Red Dust and Candy hold 8 levels each; Ice, Jungle and Ringed (Year 3, step 2c-3c) are coming soon')
+check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in hi['systems'][:3]) and
+      all(k != 'challenge' for x in hi['systems'][:3] for k, _ in x['levels'][:7]),
+      'each of them ends in a challenge round, and only there (D-091)')
+check(all(lvl is None and r is not None for x in hi['systems'][:3] for (k, lvl), r in zip(x['levels'][:7], x['rows'][:7])),
+      "every Year 2 level has its own row: none is a stand-in level's (D-068) or a table's row")
+# The lower track: Reception's three systems, as the level plan says (D-091)
 check(lo['edition'] not in ('', 'stand-in'), f"the lower track has an edition of its own: {lo['edition']!r}")
 check(all(len(x['levels']) == 8 and not x['soon'] for x in lo['systems'][:3]) and all(x['soon'] and x['levels'] == [] for x in lo['systems'][3:]),
       'lower track: Moon, Red Dust and Candy hold 8 levels each; Ice, Jungle and Ringed (Year 1, step 2c-3c) are coming soon')
@@ -614,6 +743,41 @@ want_rows = [
     ('X-dice12', row('X-dice12')['labels'] == 'dice' and [row('X-dice12')['from'], row('X-dice12')['to']] == [0, 12] and row('X-dice12')['mix'] == {'any': 1}),
 ]
 check(all(ok for _, ok in want_rows), f"the new rows' numbers are the notes' params (dice lines: D-060, D-067, 0 to 6 and 0 to 12, written-number targets): {[i for i, ok in want_rows if not ok]}")
+# Year 2: levels 1 to 7 of Moon, Red Dust and Candy are the plan's, and their rows' numbers the notes' params
+want_hi = PLANS.PLAN['year2']['systems'][:3]
+got_hi = [x['plan'][:7] for x in hi['systems'][:3]]
+check(got_hi == want_hi, f"higher track levels 1 to 7 are the level plan's Year 2, in its order (plan_rocket_levels.py): {got_hi}")
+y2 = {pl: r for x in hi['systems'][:3] for pl, r in zip(x['plan'], x['rows'])}
+Y2S = json.load(open(NOTES, encoding='utf-8'))['stages']['year2']
+yr = lambda i: y2[i]  # noqa: E731
+want_y2 = [
+    ('Y2-01', yr('Y2-01')['ask'] == 'place' and yr('Y2-01')['digits'] == P('Y2-01')['digits'] and [yr('Y2-01')['min'], yr('Y2-01')['max']] == [10, 99]),
+    ('X-words100', yr('X-words100')['ask'] == 'words' and [yr('X-words100')['min'], yr('X-words100')['max']] == Y2S['number_words']),
+    ('Y2-02', yr('Y2-02')['ask'] == 'sign' and [yr('Y2-02')['min'], yr('Y2-02')['max']] == [P('Y2-02')['min'], P('Y2-02')['max']]
+     and P('Y2-02')['symbols'] == ['<', '>', '='] and all(yr('Y2-02')['rels'][k] > 0 for k in ('more', 'fewer', 'same'))),
+    ('Y2-03', yr('Y2-03')['ask'] == 'seq' and yr('Y2-03')['steps'] == P('Y2-03')['steps'] and yr('Y2-03')['start'] == P('Y2-03')['start']
+     and yr('Y2-03')['max'] == P('Y2-03')['max'] and yr('Y2-03')['dirs'] == P('Y2-03')['directions']),
+    ('Y2-04', yr('Y2-04')['ask'] == 'seq' and yr('Y2-04')['steps'] == P('Y2-04')['steps'] and P('Y2-04')['start_any'] and yr('Y2-04')['start'] == 'any'
+     and yr('Y2-04')['max'] == P('Y2-04')['max'] and Y2S['count_in_tens_from_any_number']),
+    ('Y2-05', yr('Y2-05')['forms'] == ['facts'] and yr('Y2-05')['max'] == P('Y2-05')['max'] and yr('Y2-05')['fall_s'] == P('Y2-05')['timed_seconds']
+     and yr('Y2-05')['ops'] == ['+', '−']),
+    ('Y2-06', yr('Y2-06')['forms'] == ['bond'] and yr('Y2-06')['whole'] == P('Y2-06')['target'] and yr('Y2-06')['every'] == P('Y2-06')['multiples_of']),
+    ('Y2-07', yr('Y2-07')['forms'] == ['TO+O'] and yr('Y2-07')['max'] == P('Y2-07')['answer_max'] and P('Y2-07')['form'] == 'TO+O'),
+    ('Y2-08', yr('Y2-08')['forms'] == ['TO+T'] and yr('Y2-08')['max'] == P('Y2-08')['answer_max'] and P('Y2-08')['form'] == 'TO+T'),
+    ('Y2-09', yr('Y2-09')['forms'] == ['TO-O', 'TO-T'] and P('Y2-09')['forms'] == ['TO-O', 'TO-T'] and yr('Y2-09')['ops'] == ['−']),
+    ('Y2-10', yr('Y2-10')['forms'] == ['O+O+O'] and P('Y2-10')['form'] == 'O+O+O'),
+    ('Y2-11', yr('Y2-11')['forms'] == ['TO+TO'] and yr('Y2-11')['max'] == P('Y2-11')['answer_max'] and [p['carry'] for p in yr('Y2-11')['parts']] == [False, True]),
+    ('Y2-12', yr('Y2-12')['forms'] == ['TO-TO'] and P('Y2-12')['form'] == 'TO-TO' and [p['exchange'] for p in yr('Y2-12')['parts']] == [False, True]),
+    ('Y2-13', yr('Y2-13')['forms'] == ['missing'] and yr('Y2-13')['max'] == P('Y2-13')['max'] and yr('Y2-13')['ops'] == ['+', '−'] and P('Y2-13')['ops'] == ['+', '-']),
+    ('Y2-14', yr('Y2-14')['forms'] == ['table'] and yr('Y2-14')['tables'] == P('Y2-14')['tables'] and yr('Y2-14')['times_max'] == P('Y2-14')['max_multiplier']),
+    ('Y2-15', yr('Y2-15')['forms'] == ['table'] and yr('Y2-15')['tables'] == P('Y2-15')['tables'] and yr('Y2-15')['times_max'] == P('Y2-15')['max_multiplier']),
+    ('Y2-16', yr('Y2-16')['forms'] == ['table'] and yr('Y2-16')['tables'] == P('Y2-16')['tables'] and yr('Y2-16')['times_max'] == P('Y2-16')['max_multiplier']),
+    ('Y2-17', yr('Y2-17')['forms'] == ['divide'] and yr('Y2-17')['tables'] == P('Y2-17')['tables'] and yr('Y2-17')['times_max'] == P('Y2-17')['max_multiplier']),
+    ('Y2-18', yr('Y2-18')['ask'] == 'parity' and [yr('Y2-18')['min'], yr('Y2-18')['max']] == [P('Y2-18')['min'], P('Y2-18')['max']]),
+    ('Y2-19', yr('Y2-19')['ask'] == 'frac-shape' and yr('Y2-19')['fractions'] == P('Y2-19')['fractions']),
+    ('Y2-20', yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == P('Y2-20')['total_max']),
+]
+check(all(ok for _, ok in want_y2), f"Year 2's rows' numbers are the notes' params (tables to × 12, D-099; the timed level's 6 s): {[i for i, ok in want_y2 if not ok]}")
 reused = {pl: lvl for x in lo['systems'][:3] for pl, (k, lvl) in zip(x['plan'], x['levels']) if lvl is not None}
 check(reused == {'R01': 1, 'R02': 2, 'X-odd-faint': 5, 'R13': 1, 'R14': 2, 'X-mix10': 3, 'R15': 3, 'X-parity-faint': 4},
       f"levels that play today reuse today's rows: Number mode 1, 2, 5, 3, 4 and sums 1, 2, 3 (level plan section 2): {reused}")
@@ -655,10 +819,19 @@ check(all(j == {'track': 'reception', 'p': {}, 'others': {}} for j in tk['junk']
 check(tk['noStandIn'] == {'track': 'reception', 'p': {'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot']}, 'others': {}},
       f"a format 3 entry when no track is the stand-in any more: only its rocks, landings and ships are kept: {tk['noStandIn']}")
 check(tk['given'] == ['reception', 'year2', None, None, None, None], f"only the game's own tracks are taken as given ('constructor' isn't one): {tk['given']}")
+# The game's own tracks since step 2c-3b: no track is the stand-in any more (D-100)
+rt = o['realTracks']
+KEEP = {'rocks': 40, 'landings': 50, 'ship': 'teapot', 'ships': ['classic', 'teapot']}
+check(rt['f3'] == {'track': 'reception', 'p': KEEP, 'others': {}},
+      f"a format 3 entry (made on the stand-ins, now gone): the lower track, its rocks, landings and ships kept, its map not: {rt['f3']}")
+check(rt['standIn4'] == {'track': 'year2', 'p': KEEP, 'others': {}},
+      f"a format 4 entry on the higher track's stand-in edition: Year 2 from the start, the rocks, landings and ships kept: {rt['standIn4']}")
+check(rt['putBy'] == {'track': 'year2', 'p': {'rocks': 7}, 'others': {'reception': {'edition': lo['edition'], 'at': 'moon-3', 'open': 'moon-4', 'levels': {}}}},
+      f"switching to Year 2 with a stand-in map put by: Year 2 afresh, the rocks kept, the lower map put by as left: {rt['putBy']}")
 
 # ---------- Reception's questions (asks.js, level plan section 5) ----------
 ak = o['asks']
-check(ak['ASKS'] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share'], f"seven kinds of question: {ak['ASKS']}")
+check(ak['ASKS'][:7] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share'], f"Reception's seven kinds of question, first (Year 2's seven follow, checked whole below): {ak['ASKS']}")
 # dots 1 to 10: 10; a quick look 1 to 5, three ways each: 15; more than 1 to 9: 9; fewer than 1 to 10: 10; the same as 1 to 10: 10;
 # one more than 0 to 9: 10; one less than 1 to 10: 10; make 5 from 1 to 4: 4; make 10 from 1 to 9: 9; double 1 to 5: 5; 2 to 10 shared by 2: 5
 check(ak['counts'] == {'dots': 10, 'flash': 15, 'more': 9, 'fewer': 10, 'same': 10, 'oneMore': 10, 'oneLess': 10, 'bond5': 4, 'bond10': 9, 'double': 5, 'share': 5},
@@ -710,6 +883,132 @@ check(mf['n'] == 20 and mf['minA'] == 1 and mf['maxA'] == 5 and mf['minAns'] == 
 pk2 = o['pick']
 check(pk2['min'] == 11 and pk2['max'] == 20 and pk2['kinds'] == 10 and 10 <= pk2['none'] <= 20,
       f"on a line of 10 to 20, targets kept to 11 to 20 (R07): 300 draws give 11 to 20, all 10 of them; a range off the line keeps the whole line: {pk2}")
+
+# ---------- Step 2c-3b: Year 2's questions, faces and sums (asks.js 1.1, faces.js 1.1, sums.js 1.3) ----------
+# Expected values are enumerated here in Python from the notes' words, not taken from the game's code.
+yv = o['y2']
+check(yv['fracText'] == ['0', '1/4', '1/2', '3/4', '1', '1/3', '2/3', '1', '1 1/2', '1/2', '1 3/10', '0', '2'],
+      f"a fraction line's numbers, simplest form: 2/4 is 1/2, 4/4 is 1, 6/4 is 1 1/2, 13/10 is 1 3/10: {yv['fracText']}")
+check(yv['fracSay'] == ['one half', 'one third', 'two thirds', 'one quarter', 'two quarters', 'three quarters', 'one tenth', 'three tenths', 'two sevenths', 'five twelfths'],
+      f"fractions said as they're written: {yv['fracSay']}")
+# A level's own fall (the timed level, 6 s in the notes) takes the place of the speed, the 25% included; none: as before
+check(yv['fall'] == [6, 6, 15, 15, 7], f"a level's own fall time: 6 s at any speed; without one, 12 x 1.25 = 15 and speed 5's 7 s: {yv['fall']}")
+check(yv['ASKS'] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share', 'place', 'words', 'sign', 'seq', 'parity', 'frac-shape', 'frac-of'],
+      f"Reception's seven questions and Year 2's seven: {yv['ASKS']}")
+ch2 = yv['choices']
+check(ch2['place'] == [[n, n, 'ask'] for n in range(10, 100)], f"tens and ones: every 2-digit number, 10 to 99 ({len(ch2['place'])})")
+check(ch2['words'] == [[n, n] for n in range(1, 101)], f"number words: 1 to 100 ({len(ch2['words'])})")
+check(ch2['sign'] == [[['range', 'more', n, None] for n in range(3, 98)], [['range', 'fewer', n, None] for n in range(3, 98)], [['ask', 'same', n, n] for n in range(3, 98)]],
+      f"<, > and = on 3 to 97, so the line can hold 3 numbers each side inside 0 to 100: {[len(x) for x in ch2['sign']]}")
+
+
+def seqs(steps, start, lo, hi, d):
+    out = []
+    for s in steps:
+        t0s = range(lo, hi + 1) if start == 'any' else range(start, hi + 1, s)
+        for t0 in t0s:
+            ts = [t0 + k * s * (1 if d == 'forward' else -1) for k in range(4)]
+            if all(lo <= t <= hi for t in ts):
+                out.append([s, d, ts[:3], ts[3]])
+    return out
+
+
+check(ch2['seq3'] == [seqs([2, 3, 5], 0, 0, 60, 'forward'), seqs([2, 3, 5], 0, 0, 60, 'backward')],
+      f"counting in 2s, 3s and 5s from 0, to 60, both ways: 3 numbers then the next: {[len(x) for x in ch2['seq3']]} (by hand: 28 + 18 + 10 = 56 each way)")
+check(len(ch2['seq3'][0]) == 56 and len(ch2['seq3'][1]) == 56, 'and 56 each way, as worked out by hand')
+check(ch2['seq10'] == [seqs([10], 'any', 0, 100, 'forward'), seqs([10], 'any', 0, 100, 'backward')] and [len(x) for x in ch2['seq10']] == [71, 71],
+      f"tens from any number, to 100, both ways: 0 to 70 up, 30 to 100 down: {[len(x) for x in ch2['seq10']]}")
+check(yv['seqAllOk'], 'every sequence goes up (or down) by its step, the answer included')
+check(ch2['parity'] == [['range', 'even'], ['range', 'odd']], f"odd or even: any number that is: {ch2['parity']}")
+SH = {'1/2': 4, '1/3': 3, '1/4': 4, '2/4': 4, '3/4': 4}  # halves on a line of quarters (Claude's reading: three numbers inside, not one)
+want_shape = [[int(f[0]), int(f[2]), look, SH[f], int(f[0]) * SH[f] // int(f[2])] for f in ['1/2', '1/3', '1/4', '2/4', '3/4'] for look in (0, 1)]
+check(ch2['shape'] == want_shape, f"fractions of shapes: the notes' five, each as a circle and a bar, landing on a line of quarters (thirds for 1/3): {ch2['shape']}")
+want_of = [[int(f[0]), int(f[2]), t, t * int(f[0]) // int(f[2])] for f in ['1/2', '1/3', '1/4', '3/4'] for t in range(int(f[2]), 25, int(f[2]))]
+check(ch2['fracOf'] == want_of and len(want_of) == 32, f"fractions of numbers: whole answers only, totals to 24: 12 + 8 + 6 + 6 = 32: {len(ch2['fracOf'])}")
+WIN = {'place': (10, 99), 'words': (1, 100), 'sign': (0, 100), 'seq3': (0, 60), 'seq10': (0, 100), 'parity': (1, 100), 'fracOf': (0, 18)}
+for k, (wlo, whi) in WIN.items():
+    w2 = yv['windows'][k]
+    check(w2['n'] == 300 and w2['spans'] == [10] and w2['steps'] == [1] and w2['lo'] >= wlo and w2['hi'] <= whi and w2['holds'] and w2['starts'] > 5 and not w2['twice'],
+          f"{k}: 300 landings, each on a stretch of 10 marks inside {wlo} to {whi} with its answer in it, starting in {w2['starts']} places; never the same question twice running: {w2}")
+check(yv['windows']['sign']['sides'] and yv['windows']['sign']['fits'] and yv['windows']['parity']['fits'],
+      '<, > and =: the number with 3 marks each side; odd or even: every stretch has numbers that fit')
+check(yv['windows']['sign']['kinds'] == {'more': 120, 'fewer': 120, 'same': 60} and yv['windows']['seq3']['kinds'] == {'forward': 150, 'backward': 150}
+      and yv['windows']['parity']['kinds'] == {'even': 150, 'odd': 150},
+      f"shares of 300: <, > and = 2:2:1; up and down by turns; even and odd half each: {yv['windows']['sign']['kinds']}, {yv['windows']['seq3']['kinds']}, {yv['windows']['parity']['kinds']}")
+check(yv['shapeLines'] == [{'from': 0, 'to': 4, 'step': 1, 'label_every': 1, 'labels': 'frac4'}] * 2 + [{'from': 0, 'to': 3, 'step': 1, 'label_every': 1, 'labels': 'frac3'}],
+      f"a shape's line: quarters (0 to 4 quarters) for halves and quarters, thirds for a third, every mark written as a fraction: {yv['shapeLines']}")
+ps = yv['planSign']
+check(len(ps) == 8 and ps.count('more') == 3 and ps.count('fewer') == 3 and ps.count('same') == 2, f"a round of <, > and =: 3, 3 and 2, shuffled: {ps}")
+pq = yv['planSeq']
+check(len(pq) == 8 and set(pq) == {'forward', 'backward'} and all(pq[i] != pq[i + 1] for i in range(7)), f"counting up and down by turns: {pq}")
+pp = yv['planParity']
+check(all(len(x) == 8 and x.count('even') == 4 and x.count('odd') == 4 for x in pp) and pp[0] != pp[1], f"odd or even: 4 and 4, shuffled: {pp}")
+check(set(yv['stepShares']) == {'2', '3', '5'} and all(150 <= v <= 250 for v in yv['stepShares'].values()),
+      f"600 sequences: 2s, 3s and 5s about a third each (a step picked first, so 3s and 5s aren't swamped by 2s): {yv['stepShares']}")
+check(set(yv['fracShares']) == {'1/2', '1/3', '1/4', '2/4', '3/4'} and all(80 <= v <= 160 for v in yv['fracShares'].values()),
+      f"600 shapes: each of the five fractions about a fifth: {yv['fracShares']}")
+check(yv['right'] == [[True, False, False, True, False], [True, False, False, True], [True, False], [True, False, True, True, False], [True, False, True, True]],
+      f"right or wrong: 47 < ?: 48 and 57 yes, 47, 46 and 47.5 no; 47 > ?: 46 and 37; 47 = ?: 47; even: 48, 0, 100; odd: 47, 1, 99: {yv['right']}")
+check(yv['goal'] == [45, 43, 46, 47], f"after a miss, on 40 to 50: more than 44 from 41.2: 45; fewer than 44 from 49: 43; even from 46.6: 46; odd from 46.2: 47: {yv['goal']}")
+yf = o['y2faces']
+check(yf['place'] == [[3, 4, 'face face-place'], [7, 0, 'face face-place'], [1, 9, 'face face-place'], [9, 9, 'face face-place']],
+      f"tens and ones: 34 as 3 tens rods and 4 ones, 70, 19 and 99: {yf['place']}")
+check(yf['words'] == [['forty-seven', 'face face-words'], ['one hundred', 'face face-words'], ['thirteen', 'face face-words'], ['sixty', 'face face-words'], ['one', 'face face-words']],
+      f"number words: {yf['words']}")
+check(yf['sign'] == [[True, '47 &lt; ?'], [True, '47 &gt; ?'], [True, '47 = ?']], f"<, > and = with 47: {yf['sign']}")
+check(yf['seq'] == ['6 8 10 ?', '83 73 63 ?'], f"three numbers of a count, then the box to find: {yf['seq']}")
+check(yf['shape'] == [[1, 4], [3, 4], [1, 3], [2, 4], [1, 2]], f"shapes cut in equal parts, so many shaded: 1/4, 3/4, 1/3, 2/4, 1/2: {yf['shape']}")
+check(yf['fracOf'] == [[12, 4, '3 4 of 12'], [24, 2, '1 2 of 24'], [9, 3, '1 3 of 9']], f"3/4 of 12: 12 dots in 4 groups; 1/2 of 24; 1/3 of 9: {yf['fracOf']}")
+check(yf['fracHtml'] == '3 4', 'a fraction as its two numbers, one over the other')
+ys = o['y2sums']
+check(ys['FORMS'] == ['facts', 'TO+O', 'TO+T', 'TO-O', 'TO-T', 'O+O+O', 'TO+TO', 'TO-TO', 'missing', 'bond', 'table', 'divide'], f"sum forms: {ys['FORMS']}")
+F = lambda a, op, b, ans, op2=None, c=None, miss=None, res=None: [a, op, b, op2, c, miss, res, ans]  # noqa: E731
+srt = lambda xs: sorted(xs, key=json.dumps)  # noqa: E731
+R = range
+want_facts20 = [F(a, '+', b, a + b) for a in R(21) for b in R(21 - a)] + [F(a, '−', b, a - b) for a in R(21) for b in R(a + 1)]
+check(srt(ys['facts20']) == srt(want_facts20) and len(want_facts20) == 462, f"fast facts to 20: + and − within 20, 231 of each: {len(ys['facts20'])}")
+check(srt(ys['bond']) == srt([F(a, '+', 100 - a, 100 - a, miss='b', res=100) for a in R(10, 100, 10)]), f"tens bonds to 100: 10 + ? to 90 + ?: {len(ys['bond'])}")
+want_toO = [F(a, '+', b, a + b) for a in R(10, 100) for b in R(1, 10) if a + b <= 100]
+want_toT = [F(a, '+', b, a + b) for a in R(10, 100) for b in R(10, 100, 10) if a + b <= 100]
+check(srt(ys['toO']) == srt(want_toO) and len(want_toO) == 774, f"TO + O to 100: 774 (by hand: 82 x 9 + 36): {len(ys['toO'])}")
+check(srt(ys['toT']) == srt(want_toT) and len(want_toT) == 369, f"TO + T to 100: 369 (by hand: 81 + 71 + ... + 1): {len(ys['toT'])}")
+want_take = [F(a, '−', b, a - b) for a in R(10, 100) for b in R(1, 10)] + [F(a, '−', b, a - b) for a in R(10, 100) for b in R(10, 100, 10) if b <= a]
+check(srt(ys['takeOT']) == srt(want_take) and len(want_take) == 810 + 450, f"TO − O and TO − T: 810 + 450 (by hand: 90 + 80 + ... + 10): {len(ys['takeOT'])}")
+check(srt(ys['three']) == srt([F(a, '+', b, a + b + c, op2='+', c=c) for a in R(1, 10) for b in R(1, 10) for c in R(1, 10)]), f"three numbers 1 to 9 added: 729: {len(ys['three'])}")
+nc = [F(a, '+', b, a + b) for a in R(10, 100) for b in R(10, 100) if a + b <= 100 and a % 10 + b % 10 <= 9]
+cy = [F(a, '+', b, a + b) for a in R(10, 100) for b in R(10, 100) if a + b <= 100 and a % 10 + b % 10 >= 10]
+check([srt(x) for x in ys['toTO']] == [srt(nc), srt(cy)], f"TO + TO to 100 in halves: no new ten from the ones ({len(nc)}), then a new ten ({len(cy)}), e.g. 34 + 25 then 34 + 28 (D-094)")
+ne = [F(a, '−', b, a - b) for a in R(10, 100) for b in R(10, 100) if b <= a and a % 10 >= b % 10]
+ex = [F(a, '−', b, a - b) for a in R(10, 100) for b in R(10, 100) if b <= a and a % 10 < b % 10]
+check([srt(x) for x in ys['takeTO']] == [srt(ne), srt(ex)], f"TO − TO in halves: no exchanging ({len(ne)}), then exchanging ({len(ex)}) (D-094)")
+base = {'+': [x for x in want_toO + want_toT] + [F(a, '+', b, a + b) for a in R(10, 100) for b in R(10, 100) if a + b <= 100],
+        '−': want_take + [F(a, '−', b, a - b) for a in R(10, 100) for b in R(10, 100) if b <= a]}
+want_miss = [F(f[0], f[1], f[2], f[0], miss='a', res=f[7]) for op in ('+', '−') for f in base[op]] + [F(f[0], f[1], f[2], f[2], miss='b', res=f[7]) for op in ('+', '−') for f in base[op]]
+check(srt(ys['missing']) == srt(want_miss), f"missing numbers to 100: each of Year 2's + and − sums with its first or second number hidden: {len(ys['missing'])} (want {len(want_miss)})")
+check(all((m[7] == m[0] if m[5] == 'a' else m[7] == m[2]) and (m[0] + m[2] if m[1] == '+' else m[0] - m[2]) == m[6] and m[6] <= 100 for m in ys['missing']),
+      'every missing number is the hidden one, and the sum holds')
+
+
+def table(t):
+    return [F(t, '×', n, t * n) for n in R(1, 13)] + [F(n, '×', t, t * n) for n in R(1, 13) if n != t]
+
+
+check([srt(ys[k]) for k in ('t10', 't2', 't5')] == [srt(table(10)), srt(table(2)), srt(table(5))] and [len(ys[k]) for k in ('t10', 't2', 't5')] == [23, 23, 23],
+      'the 10, 2 and 5 times tables to × 12, both ways round (10 × 3 and 3 × 10), 23 sums each; no 0 × n (D-033, D-099)')
+check(srt(ys['div']) == srt([F(t * q, '÷', t, q) for t in (2, 5, 10) for q in R(1, 13)]), f"dividing by 2, 5 and 10, whole answers 1 to 12: {len(ys['div'])}")
+check(ys['texts'] == ['34 + 5', '4 + 7 + 6', '? + 25 = 60', '30 + ? = 100'], f"sums written: {ys['texts']}")
+check(ys['lines'] == [{'from': 0, 'to': 120, 'step': 10, 'label_every': 10}, {'from': 0, 'to': 24, 'step': 2, 'label_every': 2},
+                      {'from': 0, 'to': 60, 'step': 5, 'label_every': 5}, {'from': 0, 'to': 12, 'step': 1, 'label_every': 1},
+                      {'from': 0, 'to': 100, 'step': 10, 'label_every': 10}],
+      f"each table's own line, 0 to 12 lots, every mark written (13 marks); dividing on 0 to 12; tens bonds on 0 to 100 in tens: {ys['lines']}")
+check(ys['roundLines'] == [{'from': 0, 'to': 120, 'step': 10, 'label_every': 10}, {'from': 0, 'to': 12, 'step': 1, 'label_every': 1}, {'from': 0, 'to': 100, 'step': 10, 'label_every': 10}],
+      f"and the same line before a round's first sum: {ys['roundLines']}")
+check(all(ok and starts > 5 for ok, starts in ys['stretch']), f"fast facts, TO + O, three numbers and missing numbers: 200 sums each on a stretch of 10 marks with the answer in it, the stretch moving: {ys['stretch']}")
+check(set(ys['missingShares']) == {'TO+O', 'TO+T', 'TO+TO', 'TO-O', 'TO-T', 'TO-TO'} and all(60 <= v <= 140 for v in ys['missingShares'].values()),
+      f"600 missing-number sums: each of the six forms about a sixth (a form picked first, so TO + TO's thousands don't swamp the rest): {ys['missingShares']}")
+check(ys['twice'] == [0, 0, 0], f"never the same sum twice running (three numbers, missing numbers, a table): {ys['twice']}")
+check(ys['fall'] == 6, 'the timed level falls in 6 s (the notes)')
+check(ys['halves'] == [[0, 0, 0, 0, 1, 1, 1, 1]] * 2, 'TO + TO and TO − TO: 4 landings without carrying or exchanging, then 4 with (D-094)')
 
 # ---------- The progress on the map (progress.js, D-058, D-064): format 3's rules ----------
 pr = o['progress']

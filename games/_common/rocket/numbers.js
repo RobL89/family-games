@@ -1,5 +1,8 @@
 // Number line maths for Rocket Lander (no drawing here): tidying the settings, landing
 // spots, which marks get a number, how near counts, and numbers written and said nicely.
+// Version 1.1. Changes at v1.1 (step 2c-3b): fractions on a line counted in parts (a line of quarters is
+// 0 to 4 quarters), written in their simplest form (fracText: 2 of 4 is 1/2) and said as written
+// (fracSay: "two quarters"). Version 1.0 had no number of its own.
 
 export const MAX_SPOTS = 400;
 const MINUS = '−';
@@ -149,6 +152,25 @@ export function say(v, showAs = 'fraction') {
   else if (showAs === 'fraction' && fractionOf(f)) out = whole ? `${words(whole)} and ${fractionOf(f)[2]}` : fractionOf(f)[2];
   else out = `${words(whole)} point ${String(f).slice(2).split('').map((d) => ONES[Number(d)]).join(' ')}`;
   return (neg ? 'minus ' : '') + out;
+}
+
+// A fraction line counts in parts: on a line of quarters, 3 is three quarters. fracText(v, d) writes v
+// parts of d in its simplest form: '0', '1/4', '1/2' (for 2 of 4), '1', '1 1/2' (6 of 4). Drawn one number
+// over the other by scene.js.
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+export function fracText(v, d) {
+  const n = Math.round(v), w = Math.floor(n / d), r = n - w * d;
+  if (r === 0) return String(w);
+  const g = gcd(r, d);
+  return `${w ? `${w} ` : ''}${r / g}/${d / g}`;
+}
+
+// A fraction said as it's written (not simplified): "one half", "two quarters", "three tenths".
+const ORDINALS = { 2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['quarter', 'quarters'], 5: ['fifth', 'fifths'], 6: ['sixth', 'sixths'],
+  7: ['seventh', 'sevenths'], 8: ['eighth', 'eighths'], 9: ['ninth', 'ninths'], 10: ['tenth', 'tenths'], 11: ['eleventh', 'elevenths'], 12: ['twelfth', 'twelfths'] };
+export function fracSay(num, den) {
+  const o = ORDINALS[den];
+  return o ? `${words(num)} ${num === 1 ? o[0] : o[1]}` : `${words(num)} over ${words(den)}`;
 }
 
 // Stars for a round: right on 85% or more = 3, 60% or more = 2, otherwise 1.

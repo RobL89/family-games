@@ -1,5 +1,12 @@
 // Rocket Sums' sums: which sums a level can ask, and the line laid out for each one.
-// Version 1.2. Changes at v1.2 (step 2c-3a): − may have a smallest number taken from (`minus_from`),
+// Version 1.3. Changes at v1.3 (step 2c-3b, D-100): Year 2's sums come in forms (`forms`, formFacts), each
+// with its own numbers in place of D-021's 0 to 10: fast facts within 20, TO + O, TO + T, TO − O, TO − T,
+// three small numbers, TO + TO (with or without a new ten from the ones: `carry`) and TO − TO (with or
+// without exchanging: `exchange`), missing numbers (one of a form's two numbers hidden), bonds (30 + ? =
+// 100), times tables (`tables`, 1 to `times_max` both ways round) and dividing by them. A level's forms
+// are picked evenly before a sum (`group`), so one with thousands of sums doesn't swamp the rest. A
+// 'line' level may count in steps (`step`: a table's own line, 0, 10, 20 ... 120).
+// Changes at v1.2 (step 2c-3a): − may have a smallest number taken from (`minus_from`),
 // for Reception's "taking away within 5", which starts from 1 to 5 (syllabus notes, R10).
 // Changes at v1.1: a level may play in parts, such as two halves (D-040);
 // − may have a biggest number (`minus_max`); makeSum can leave out sums answering 0, so a
@@ -15,9 +22,12 @@
 //   - no times sums with a 0 in them, such as 0 × 9 (D-033); 4 + 0 and 0 ÷ 2 stay.
 // The child lands on the answer, so − and ÷ fit 0 to 10, + up to 0 to 20 and × 0 to 100.
 //
-// A target is { rule: 'sum', value: answer, sum: '3 + 4', a, op, b }.
+// A target is { rule: 'sum', value: answer, sum: '3 + 4', a, op, b }, with op2 and c for three numbers
+// ('4 + 7 + 6'), and result and missing ('a' or 'b') for a missing number ('? + 25 = 60': the answer is
+// the number hidden).
 
 export const OPS = ['+', '−', '×', '÷'];
+export const FORMS = ['facts', 'TO+O', 'TO+T', 'TO-O', 'TO-T', 'O+O+O', 'TO+TO', 'TO-TO', 'missing', 'bond', 'table', 'divide'];
 export const OP_WORDS = { '+': 'plus', '−': 'take away', '×': 'times', '÷': 'divided by' };
 export const DIVISORS = [2, 5, 10];
 // The `operations` setting's choices (contract settings are single choices, F4).
@@ -25,9 +35,71 @@ export const OPS_OPTIONS = ['+', '+ −', '+ − ×', '+ − × ÷'];
 
 const upTo = (n) => Array.from({ length: n + 1 }, (_, i) => i);
 
-// Every sum an operation can ask on a level (+ by `plus_max`, − by `minus_max`, the
-// biggest number taken from, and `minus_from`, the smallest, 0 if not given).
+const runOf = (lo, hi, step = 1) => { const out = []; for (let v = lo; v <= hi; v += step) out.push(v); return out; };
+const TWO = runOf(10, 99), TENS = runOf(10, 90, 10), ONES = runOf(1, 9);
+const plus = (a, b, form) => ({ a, op: '+', b, answer: a + b, form });
+const minus = (a, b, form) => ({ a, op: '−', b, answer: a - b, form });
+
+// Every sum of a form (Year 2's), as { a, op, b, answer, form }, with op2 and c for three numbers, and
+// result, missing and the form it was made from (group) for a missing number. `max` caps an answer (100).
+export function formFacts(form, row) {
+  const max = row.max ?? 100, out = [];
+  switch (form) {
+    case 'facts':
+      for (const a of upTo(max)) for (const b of upTo(max - a)) out.push(plus(a, b, form));
+      for (const a of upTo(max)) for (const b of upTo(a)) out.push(minus(a, b, form));
+      break;
+    case 'TO+O': for (const a of TWO) for (const b of ONES) if (a + b <= max) out.push(plus(a, b, form)); break;
+    case 'TO+T': for (const a of TWO) for (const b of TENS) if (a + b <= max) out.push(plus(a, b, form)); break;
+    case 'TO-O': for (const a of TWO) for (const b of ONES) out.push(minus(a, b, form)); break;
+    case 'TO-T': for (const a of TWO) for (const b of TENS) if (b <= a) out.push(minus(a, b, form)); break;
+    case 'O+O+O': for (const a of ONES) for (const b of ONES) for (const c of ONES) out.push({ a, op: '+', b, op2: '+', c, answer: a + b + c, form }); break;
+    case 'TO+TO':
+      for (const a of TWO) for (const b of TWO) {
+        const carry = (a % 10) + (b % 10) >= 10; // the ones make a new ten
+        if (a + b <= max && (row.carry === undefined || row.carry === carry)) out.push(plus(a, b, form));
+      }
+      break;
+    case 'TO-TO':
+      for (const a of TWO) for (const b of TWO) {
+        const exchange = a % 10 < b % 10; // a ten has to be broken into ones
+        if (b <= a && (row.exchange === undefined || row.exchange === exchange)) out.push(minus(a, b, form));
+      }
+      break;
+    case 'missing':
+      for (const base of row.of || []) {
+        for (const f of formFacts(base, { ...row, carry: undefined, exchange: undefined })) {
+          if (f.c !== undefined || f.answer > max) continue;
+          for (const hide of ['a', 'b']) out.push({ a: f.a, op: f.op, b: f.b, result: f.answer, missing: hide, answer: f[hide], form, group: base });
+        }
+      }
+      break;
+    case 'bond': {
+      const whole = row.whole ?? 10, every = row.every ?? 1;
+      for (let a = every; a <= whole - every; a += every) out.push({ a, op: '+', b: whole - a, result: whole, missing: 'b', answer: whole - a, form });
+      break;
+    }
+    case 'table':
+      for (const t of row.tables || []) {
+        for (let n = 1; n <= (row.times_max ?? 12); n++) {
+          out.push({ a: t, op: '×', b: n, answer: t * n, form });
+          if (n !== t) out.push({ a: n, op: '×', b: t, answer: t * n, form });
+        }
+      }
+      break;
+    case 'divide':
+      for (const t of row.tables || []) for (let q = 1; q <= (row.times_max ?? 12); q++) out.push({ a: t * q, op: '÷', b: t, answer: q, form });
+      break;
+    default:
+      break;
+  }
+  return out;
+}
+
+// Every sum an operation can ask on a level: its forms' (Year 2's), or else + by `plus_max`, − by
+// `minus_max`, the biggest number taken from, and `minus_from`, the smallest, 0 if not given.
 export function facts(op, row) {
+  if (row.forms) return row.forms.flatMap((form) => formFacts(form, row)).filter((f) => f.op === op);
   const out = [];
   const add = (a, b, answer) => out.push({ a, op, b, answer });
   if (op === '+') { const max = row.plus_max ?? 20; for (const a of upTo(10)) for (const b of upTo(10)) if (a + b <= max) add(a, b, a + b); }
@@ -51,16 +123,25 @@ export function opsFor(row, S) {
   return set.length ? set : row.ops.slice();
 }
 
-export const sumText = (s) => `${s.a} ${s.op} ${s.b}`;
-const same = (x, y) => !!x && !!y && x.a === y.a && x.op === y.op && x.b === y.b;
+export const sumText = (s) => (s.missing === 'a' ? `? ${s.op} ${s.b} = ${s.result}`
+  : s.missing === 'b' ? `${s.a} ${s.op} ? = ${s.result}`
+    : s.c !== undefined ? `${s.a} ${s.op} ${s.b} ${s.op2} ${s.c}` : `${s.a} ${s.op} ${s.b}`);
+// the same sum as the last one asked (a sum made here, or a target, which carries its text as `sum`)
+const same = (x, y) => !!x && !!y && sumText(x) === (y.sum ?? sumText(y));
 
-// One sum: the operation picked evenly, then a sum of it evenly, never the one asked last.
-// With zeroOk false, sums answering 0 are left out (unless nothing else is left).
+// One sum: the operation picked evenly, then (where a level has several forms) a form, then a sum of it
+// evenly, never the one asked last. With zeroOk false, sums answering 0 are left out (unless nothing
+// else is left).
 export function makeSum(ops, row, prev, rand, { zeroOk = true } = {}) {
   const op = ops[Math.min(ops.length - 1, Math.floor(rand() * ops.length))];
   let all = facts(op, row);
   if (!zeroOk && all.some((f) => f.answer !== 0)) all = all.filter((f) => f.answer !== 0);
-  const pool = all.length > 1 ? all.filter((f) => !same(f, prev)) : all;
+  let pool = all.length > 1 ? all.filter((f) => !same(f, prev)) : all;
+  const groups = [...new Set(pool.map((f) => f.group ?? f.form ?? ''))];
+  if (groups.length > 1) {
+    const g = groups[Math.min(groups.length - 1, Math.floor(rand() * groups.length))];
+    pool = pool.filter((f) => (f.group ?? f.form ?? '') === g);
+  }
   const f = pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
   return { ...f, text: sumText(f) };
 }
@@ -71,7 +152,7 @@ export function makeSum(ops, row, prev, rand, { zeroOk = true } = {}) {
 export function lineForSum(sum, ops, row, rand) {
   const top = Math.max(...ops.map((op) => topOf(op, row)));
   const every = row.label_every ?? 1;
-  if (row.layout === 'line' && top <= row.to && sum.answer >= row.from && sum.answer <= row.to) return { from: row.from, to: row.to, step: 1, label_every: every };
+  if (row.layout === 'line' && top <= row.to && sum.answer >= row.from && sum.answer <= row.to) return { from: row.from, to: row.to, step: row.step ?? 1, label_every: every };
   const span = row.span ?? 10;
   if (top <= span) return { from: 0, to: span, step: 1, label_every: every };
   const lo = Math.max(0, sum.answer - span), hi = Math.min(sum.answer, top - span);
@@ -96,7 +177,7 @@ export function planParts(row, total) {
 
 // The line shown before a round's first sum: the level's whole line, or 0 to `span`.
 export function roundLine(row) {
-  return row.layout === 'line' ? { from: row.from, to: row.to, step: 1, label_every: row.label_every ?? 1 }
+  return row.layout === 'line' ? { from: row.from, to: row.to, step: row.step ?? 1, label_every: row.label_every ?? 1 }
     : { from: 0, to: row.span ?? 10, step: 1, label_every: row.label_every ?? 1 };
 }
 

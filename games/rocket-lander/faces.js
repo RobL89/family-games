@@ -1,7 +1,11 @@
 // Reception's target faces (level plan 0.3, section 5; D-092): the pictures and phrases at the top
 // that ask for a number: dots to count, a quick look, more or fewer than some dots, one more or one
 // less, a frame to fill to make 5 or 10, sums with dots under each number (Q-033), doubles and
-// sharing sweets. Version 1.0 (step 2c-3a). Pure: builds the chip's markup as text from a target
+// sharing sweets. Version 1.1. Changes at v1.1 (step 2c-3b, D-100): Year 2's faces: a number as tens
+// rods and ones (place), in words (words), "47 < ?" (sign), three numbers of a count and a box to find
+// (seq), a circle or a bar cut in equal parts with some shaded (frac-shape), and a fraction of a number
+// with its dots in equal groups (frac-of); fractions are written one number over the other (fracHtml).
+// Version 1.0 (step 2c-3a): Reception's. Pure: builds the chip's markup as text from a target
 // (asks.js, sums.js); no imports, page, clock or randomness. Rob judges these by eye in the preview
 // (D-092); the look is game.css's `.chip.face` (the pictures' class is `fd`: `dots` is the landings trail's).
 
@@ -66,9 +70,78 @@ export function faceChip(T) {
       return { cls: 'face face-double', html: `${fw('double')}<span class="pc"><b class="fn">${esc(T.n)}</b><span class="pair">${dotsSvg(T.n)}${dotsSvg(T.n)}</span></span>` };
     case 'share':
       return { cls: 'face face-share', html: `${sweetsSvg(T.total)}${fw('shared by')}${platesSvg(T.groups)}` };
+    case 'place':
+      return { cls: 'face face-place', html: placeSvg(T.n) };
+    case 'words':
+      return { cls: 'face face-words', html: `<span class="wd">${esc(numberWords(T.n))}</span>` };
+    case 'sign':
+      return { cls: 'face face-sign', html: `<b class="fn">${esc(T.n)}</b><span class="op">${T.rel === 'more' ? '&lt;' : T.rel === 'fewer' ? '&gt;' : '='}</span><b class="fq">?</b>` };
+    case 'seq':
+      return { cls: 'face face-seq', html: `${T.terms.map((v) => `<b class="fn">${esc(v)}</b>`).join('')}<b class="fq">?</b>` };
+    case 'frac-shape':
+      return { cls: 'face face-shape', html: shapeSvg(T.num, T.den, T.look) };
+    case 'frac-of':
+      return { cls: 'face face-fracof', html: `${fracHtml(T.num, T.den)}${fw('of')}<b class="fn">${esc(T.total)}</b>${groupsSvg(T.total, T.den)}` };
     default:
       return { cls: '', html: esc(T.value ?? '?') };
   }
+}
+
+// A fraction written as at school: the top number over a line over the bottom one.
+export const fracHtml = (num, den) => `<span class="fr"><b>${esc(num)}</b><b>${esc(den)}</b></span>`;
+
+// A number in words, to 1000 (Year 2's to 100; Year 1's to 20).
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen',
+  'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+export function numberWords(n) {
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? `-${ONES[n % 10]}` : '');
+  if (n < 1000) return `${ONES[Math.floor(n / 100)]} hundred${n % 100 ? ` and ${numberWords(n % 100)}` : ''}`;
+  return n === 1000 ? 'one thousand' : String(n);
+}
+
+// Tens rods (a column of 10 squares) and ones (single squares, in columns of 5 from the bottom), as the
+// base-ten blocks children use: 34 is 3 rods and 4 ones. In units of one square (3 wide).
+export function placeSvg(n) {
+  const t = Math.floor(n / 10) % 10, o = n % 10, q = 3, gap = 1.1, H = 10 * q;
+  const rods = Array.from({ length: t }, (_, i) => {
+    const x = i * (q + gap);
+    const lines = Array.from({ length: 9 }, (_, k) => `<path class="pv-l" d="M${x} ${(k + 1) * q}h${q}"/>`).join('');
+    return `<rect class="pv-ten" x="${x}" y="0" width="${q}" height="${H}" rx=".5"/>${lines}`;
+  }).join('');
+  const ox = t ? t * (q + gap) + 1.6 : 0;
+  const ones = Array.from({ length: o }, (_, i) => `<rect class="pv-one" x="${ox + Math.floor(i / 5) * (q + gap)}" y="${H - (i % 5 + 1) * (q + 0.6) + 0.6}" width="${q}" height="${q}" rx=".5"/>`).join('');
+  const w = Math.max(q, ox + (o ? Math.ceil(o / 5) * (q + gap) - gap : -1.6 - gap));
+  return `<svg class="fd blocks" viewBox="-0.8 -0.8 ${(w + 1.6).toFixed(1)} ${H + 1.6}" aria-hidden="true">${rods}${ones}</svg>`;
+}
+
+// A circle (look 0) or a bar (look 1) cut into `den` equal parts, the first `num` shaded.
+export function shapeSvg(num, den, look = 0) {
+  const part = (i) => (i < num ? 'fs-on' : 'fs-off');
+  if (look === 1) {
+    const w = 36, h = 13, pw = w / den;
+    const body = Array.from({ length: den }, (_, i) => `<rect class="${part(i)}" x="${(i * pw).toFixed(2)}" y="0" width="${pw.toFixed(2)}" height="${h}"/>`).join('');
+    return `<svg class="fd shape bar" viewBox="-1.5 -1.5 ${w + 3} ${h + 3}" aria-hidden="true">${body}<rect class="fs-edge" x="0" y="0" width="${w}" height="${h}" rx="1"/></svg>`;
+  }
+  const r = 14, pt = (a) => `${(r * Math.sin(a)).toFixed(2)} ${(-r * Math.cos(a)).toFixed(2)}`;
+  const body = Array.from({ length: den }, (_, i) => {
+    const a0 = (i / den) * 2 * Math.PI, a1 = ((i + 1) / den) * 2 * Math.PI;
+    return `<path class="${part(i)}" d="M0 0L${pt(a0)}A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${pt(a1)}Z"/>`;
+  }).join('');
+  return `<svg class="fd shape pie" viewBox="${-r - 1.5} ${-r - 1.5} ${2 * r + 3} ${2 * r + 3}" aria-hidden="true">${body}<circle class="fs-edge" cx="0" cy="0" r="${r}"/></svg>`;
+}
+
+// `total` dots in `den` equal groups, each group in a box, side by side: 12 in 4 groups of 3.
+export function groupsSvg(total, den) {
+  const k = total / den, cols = Math.max(1, Math.ceil(Math.sqrt(k))), rows = Math.ceil(k / cols);
+  const bw = cols * 10 + 2, bh = rows * 10 + 2, gap = 3;
+  const body = Array.from({ length: den }, (_, g) => {
+    const gx = g * (bw + gap);
+    const dots = Array.from({ length: k }, (_, i) => dot(gx + 1 + (i % cols) * 10 + 5, 1 + Math.floor(i / cols) * 10 + 5)).join('');
+    return `<rect class="fo-group" x="${gx}" y="0" width="${bw}" height="${bh}" rx="2.5"/>${dots}`;
+  }).join('');
+  return `<svg class="fd groups r${Math.min(3, rows)}" viewBox="-1 -1 ${den * (bw + gap) - gap + 2} ${bh + 2}" aria-hidden="true">${body}</svg>`;
 }
 
 // A Reception sum with dots under each number (R09, R10): 2 + 3 with 2 and 3 dots; 5 − 2 with five

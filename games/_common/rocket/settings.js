@@ -1,5 +1,7 @@
 // Rocket Lander's settings: built-in defaults the game plays on (D-014), and what a grown-up
-// could change. Pure: no page, network, clock or randomness here. Version 1.1.
+// could change. Pure: no page, network, clock or randomness here. Version 1.2.
+// Changes at v1.2 (step 2c-3b): a level may set its own fall time (Year 2's fast facts: 6 s, the notes),
+// which takes the place of the speed and the 25% more (fallSecondsFor's `own`).
 // Changes at v1.1 (step 2c-3a, Rob): slower falls. Speeds 1 to 5 fall in 18, 15, 12, 9 and 7 seconds
 // (was 12, 8, 6, 5, 4), and the default is 3, 12 s, the old speed 1 (D-096); questions asked by a
 // picture, a dice face or a sum get 25% more time than plain numbers (D-097). The table moved here
@@ -31,8 +33,10 @@ export const FALL_SECONDS = [18, 15, 12, 9, 7];
 export const MORE_TIME = 1.25;
 
 // The fall's seconds at a speed (between two speeds, in a straight line; outside 1 to 5, the nearest
-// end; not a number, the default), with 25% more if `more`.
-export function fallSecondsFor(speed, more = false) {
+// end; not a number, the default), with 25% more if `more`; or a level's own time (`own`, seconds over 0),
+// whatever the speed.
+export function fallSecondsFor(speed, more = false, own = null) {
+  if (Number(own) > 0) return Number(own);
   const n = Number(speed);
   const v = Number.isFinite(n) ? Math.max(1, Math.min(5, n)) : SETTINGS.speed.default;
   const i = Math.min(3, Math.floor(v - 1));

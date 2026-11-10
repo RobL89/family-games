@@ -1,5 +1,13 @@
 // Rocket Lander's maps of solar systems: one map for each track, on the same six systems (D-058,
-// D-065, D-066, D-089). Version 2.0 (step 2c-3a).
+// D-065, D-066, D-089). Version 2.1 (step 2c-3b).
+//
+// Changes at v2.1 (step 2c-3b, D-100): the higher track holds Year 2's three systems from the level plan
+// (claude/level-plan.md 0.3, section 4), Moon, Red Dust and Candy, each 7 levels and a challenge, in
+// place of the stand-in levels: a new edition ('higher-1'), so a map kept on the stand-ins starts afresh
+// there (tracks.js). Year 3's Ice, Jungle and Ringed are coming soon (step 2c-3c). Every Year 2 level has
+// its own row, its numbers from Rob's syllabus notes (each `plan` id's params): Year 2's questions
+// (asks.js 1.1) and sums in forms (sums.js 1.3). The stand-in map (version 2.0's higher track) is kept,
+// byte for byte, as tools/tests/games/fixture_map_stand_in.js, which the older browser tests play.
 //
 // Changes at v2.0 (step 2c-3a, D-089 to D-094): two tracks. The lower track (Reception, then Year 1)
 // holds Reception's three systems from the level plan (claude/level-plan.md 0.3, section 4): Moon, Red
@@ -81,29 +89,73 @@ const LOWER = [
   { id: 'ringed', soon: true, levels: [] },
 ];
 
-// The higher track, until step 2c-3b: version 1.0's stand-in levels (D-068).
-const STAND_IN_SYSTEMS = [
+// The higher track: Year 2's three systems (level plan 0.3, section 4), each level a row of its own, its
+// numbers from Rob's syllabus notes. Asks on a stretch of 10 marks (`span`, asks.js windowFor); sums in
+// Year 2's forms (sums.js formFacts), on a stretch of 10 (D-032) or, for tables and bonds, on their own
+// line in steps. Tables go to × 12 (D-099). Y2-11 and Y2-12 play in two halves (D-094).
+const STRETCH = { layout: 'stretch', span: 10, label_every: 1 };
+const HIGHER = [
   { id: 'moon', levels: [
-    { kind: 'number', level: 1, about: 'Land on numbers, 0 to 5', sample: { rule: 'any', value: 3 } },
-    { kind: 'number', level: 2, about: 'Numbers to 10, and dice', sample: { rule: 'dice', value: 4 } },
-    { kind: 'number', level: 3, about: 'Even and odd numbers', sample: { rule: 'parity', parity: 'even' } },
-    { kind: 'number', level: 4, about: 'Even and odd, colours faint', sample: { rule: 'parity', parity: 'odd' } },
-    { kind: 'number', level: 5, about: 'Odd numbers fade away', sample: { rule: 'any', value: 7 } },
-    { kind: 'number', level: 6, about: 'Every other number written', sample: { rule: 'any', value: 5 } },
-    { kind: 'number', level: 7, about: 'Only 0, 5 and 10 written', sample: { rule: 'any', value: 8 } },
-    { kind: 'number', level: 8, about: 'Only 0 and 10 written!', sample: { rule: 'any', value: 6 } },
+    { kind: 'ask', plan: 'Y2-01', row: { ask: 'place', digits: 2, min: 10, max: 99, span: 10, label_every: 1, source: 'Y2-01: tens and ones, 2 digits' },
+      about: 'Tens and ones', sample: { rule: 'ask', ask: 'place', n: 34, value: 34 } },
+    { kind: 'ask', plan: 'X-words100', row: { ask: 'words', min: 1, max: 100, span: 10, label_every: 1, source: 'notes: year2 number_words 1 to 100' },
+      about: 'Number words to 100', sample: { rule: 'ask', ask: 'words', n: 47, value: 47 } },
+    { kind: 'ask', plan: 'Y2-02', row: { ask: 'sign', min: 0, max: 100, rels: { more: 2, fewer: 2, same: 1 }, span: 10, label_every: 1, source: 'Y2-02: <, > and = to 100' },
+      about: 'Bigger, smaller or the same', sample: { rule: 'range', ask: 'sign', rel: 'more', n: 47 } },
+    { kind: 'ask', plan: 'Y2-03', row: { ask: 'seq', steps: [2, 3, 5], start: 0, min: 0, max: 60, dirs: ['forward', 'backward'], span: 10, label_every: 1,
+      source: 'Y2-03: count in 2s, 3s and 5s from 0, to 60, both ways' },
+      about: 'Count in 2s, 3s and 5s', sample: { rule: 'ask', ask: 'seq', step: 2, dir: 'forward', terms: [6, 8, 10], value: 12 } },
+    { kind: 'ask', plan: 'Y2-04', row: { ask: 'seq', steps: [10], start: 'any', min: 0, max: 100, dirs: ['forward', 'backward'], span: 10, label_every: 1,
+      source: 'Y2-04: tens from any number, to 100; both ways, as the curriculum says' },
+      about: 'Tens from any number', sample: { rule: 'ask', ask: 'seq', step: 10, dir: 'forward', terms: [23, 33, 43], value: 53 } },
+    { kind: 'sums', plan: 'Y2-05', row: { ops: ['+', '−'], forms: ['facts'], max: 20, ...STRETCH, fall_s: 6, source: 'Y2-05: + and − within 20, 6 s a landing' },
+      about: 'Fast facts to 20', sample: { rule: 'sum', sum: '13 + 5', value: 18 } },
+    { kind: 'sums', plan: 'Y2-06', row: { ops: ['+'], forms: ['bond'], whole: 100, every: 10, layout: 'line', from: 0, to: 100, step: 10, label_every: 10,
+      source: 'Y2-06: tens that make 100, on 0 to 100 in tens' },
+      about: 'Tens that make 100', sample: { rule: 'sum', sum: '30 + ? = 100', value: 70 } },
+    CHALLENGE,
   ] },
   { id: 'dust', levels: [
-    { kind: 'sums', level: 1, about: 'Plus sums to 5, then to 10', sample: { rule: 'sum', sum: '2 + 3' } },
-    { kind: 'sums', level: 2, about: 'Take-away sums', sample: { rule: 'sum', sum: '5 − 2' } },
-    { kind: 'sums', level: 3, about: 'Plus and take away, to 10', sample: { rule: 'sum', sum: '4 + 5' } },
-    { kind: 'sums', level: 4, about: 'Plus sums up to 20', sample: { rule: 'sum', sum: '9 + 7' } },
-    { kind: 'sums', level: 5, about: 'Plus and take away, to 20', sample: { rule: 'sum', sum: '9 − 4' } },
-    { kind: 'sums', level: 6, about: 'Every other number written', sample: { rule: 'sum', sum: '8 + 6' } },
-    { kind: 'sums', level: 7, about: 'Times sums', sample: { rule: 'sum', sum: '3 × 4' } },
-    { kind: 'sums', level: 8, about: 'All four: + − × ÷', sample: { rule: 'sum', sum: '20 ÷ 5' } },
+    { kind: 'sums', plan: 'Y2-07', row: { ops: ['+'], forms: ['TO+O'], max: 100, ...STRETCH, source: 'Y2-07: TO + O, answers to 100' },
+      about: 'Add ones: 34 + 5', sample: { rule: 'sum', sum: '34 + 5', value: 39 } },
+    { kind: 'sums', plan: 'Y2-08', row: { ops: ['+'], forms: ['TO+T'], max: 100, ...STRETCH, source: 'Y2-08: TO + T, answers to 100' },
+      about: 'Add tens: 34 + 20', sample: { rule: 'sum', sum: '34 + 20', value: 54 } },
+    { kind: 'sums', plan: 'Y2-09', row: { ops: ['−'], forms: ['TO-O', 'TO-T'], max: 100, ...STRETCH, source: 'Y2-09: TO − O and TO − T' },
+      about: 'Take away ones and tens', sample: { rule: 'sum', sum: '47 − 20', value: 27 } },
+    { kind: 'sums', plan: 'Y2-10', row: { ops: ['+'], forms: ['O+O+O'], ...STRETCH, source: 'Y2-10: three numbers 1 to 9' },
+      about: 'Three small numbers', sample: { rule: 'sum', sum: '4 + 7 + 6', value: 17 } },
+    { kind: 'sums', plan: 'Y2-11', row: { ops: ['+'], forms: ['TO+TO'], max: 100, ...STRETCH, parts: [{ carry: false }, { carry: true }],
+      source: 'Y2-11: TO + TO to 100; D-094: no new ten from the ones, then a new ten' },
+      about: 'Add two 2-digit numbers', sample: { rule: 'sum', sum: '34 + 25', value: 59 } },
+    { kind: 'sums', plan: 'Y2-12', row: { ops: ['−'], forms: ['TO-TO'], max: 100, ...STRETCH, parts: [{ exchange: false }, { exchange: true }],
+      source: 'Y2-12: TO − TO; D-094: no exchanging, then exchanging' },
+      about: 'Take away 2-digit numbers', sample: { rule: 'sum', sum: '56 − 23', value: 33 } },
+    { kind: 'sums', plan: 'Y2-13', row: { ops: ['+', '−'], forms: ['missing'], of: ['TO+O', 'TO+T', 'TO+TO', 'TO-O', 'TO-T', 'TO-TO'], max: 100, ...STRETCH,
+      source: "Y2-13: + and − to 100, a number missing; Year 2's own forms (Claude)" },
+      about: 'Missing numbers to 100', sample: { rule: 'sum', sum: '? + 25 = 60', value: 35 } },
+    CHALLENGE,
   ] },
-  { id: 'candy', soon: true, levels: [] },
+  { id: 'candy', levels: [
+    { kind: 'sums', plan: 'Y2-14', row: { ops: ['×'], forms: ['table'], tables: [10], times_max: 12, layout: 'line', from: 0, to: 120, step: 10, label_every: 10,
+      source: 'Y2-14: the 10 times table to × 12 (D-099), on its own line' },
+      about: '10 times table', sample: { rule: 'sum', sum: '10 × 7', value: 70 } },
+    { kind: 'sums', plan: 'Y2-15', row: { ops: ['×'], forms: ['table'], tables: [2], times_max: 12, layout: 'line', from: 0, to: 24, step: 2, label_every: 2,
+      source: 'Y2-15: the 2 times table to × 12 (D-099), on its own line' },
+      about: '2 times table', sample: { rule: 'sum', sum: '2 × 6', value: 12 } },
+    { kind: 'sums', plan: 'Y2-16', row: { ops: ['×'], forms: ['table'], tables: [5], times_max: 12, layout: 'line', from: 0, to: 60, step: 5, label_every: 5,
+      source: 'Y2-16: the 5 times table to × 12 (D-099), on its own line' },
+      about: '5 times table', sample: { rule: 'sum', sum: '5 × 4', value: 20 } },
+    { kind: 'sums', plan: 'Y2-17', row: { ops: ['÷'], forms: ['divide'], tables: [2, 5, 10], times_max: 12, layout: 'line', from: 0, to: 12, step: 1, label_every: 1,
+      source: 'Y2-17: ÷ 2, 5 and 10, whole answers 1 to 12' },
+      about: 'Divide by 2, 5 and 10', sample: { rule: 'sum', sum: '30 ÷ 5', value: 6 } },
+    { kind: 'ask', plan: 'Y2-18', row: { ask: 'parity', min: 1, max: 100, span: 10, label_every: 1, source: 'Y2-18: odd or even, 1 to 100' },
+      about: 'Odd or even to 100', sample: { rule: 'range', ask: 'parity', rel: 'even' } },
+    { kind: 'ask', plan: 'Y2-19', row: { ask: 'frac-shape', fractions: ['1/2', '1/3', '1/4', '2/4', '3/4'], source: 'Y2-19: fractions of shapes' },
+      about: 'Fractions of shapes', sample: { rule: 'ask', ask: 'frac-shape', num: 3, den: 4, look: 0, parts: 4, value: 3 } },
+    { kind: 'ask', plan: 'Y2-20', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '1/4', '3/4'], total_max: 24, span: 10, label_every: 1, source: 'Y2-20: fractions of numbers to 24, whole answers' },
+      about: 'Fractions of numbers', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 4, total: 12, value: 9 } },
+    CHALLENGE,
+  ] },
   { id: 'ice', soon: true, levels: [] },
   { id: 'jungle', soon: true, levels: [] },
   { id: 'ringed', soon: true, levels: [] },
@@ -112,5 +164,5 @@ const STAND_IN_SYSTEMS = [
 export const FIRST_TRACK = 'reception'; // a device with no track yet starts on the lower track
 export const TRACKS = {
   reception: { name: 'Reception, then Year 1', edition: 'lower-1', systems: LOWER },
-  year2: { name: 'Year 2, then Year 3 (stand-in until step 2c-3b)', edition: 'stand-in', systems: STAND_IN_SYSTEMS },
+  year2: { name: 'Year 2, then Year 3', edition: 'higher-1', systems: HIGHER },
 };
