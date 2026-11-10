@@ -1,12 +1,15 @@
 // The rocket games' ships: the one table of names, tiers, prices and touchdown sounds, and the
-// rules for buying and picking a ship. Version 1.1. Pure: no page, storage, clock or randomness, so
+// rules for buying and picking a ship. Version 1.2. Pure: no page, storage, clock or randomness, so
 // test_rocket_fleet_core.py can run it in Node.
 //
+// Changes at v1.2 (step 2d-2, D-077, D-079): five new ships in the Fun and Cool tiers (Splash Tub 25,
+// Jack-in-the-Box 35, Sunflower Copter 40, Spin Cycle 60, Christmas Tree 80; 850 rocks for all twelve
+// to buy), each with its own landing sound; the table is cheapest first within each tier (D-079).
 // Changes at v1.1 (step 2a-4c, D-047, D-051): Crystal Comet, Golden Phoenix and Aurora Cruiser fly,
 // so all eight ships are on sale. Version 1.0 was step 2a-4b's (D-053).
 //
-// Prices are D-046's starting values, to tune after the trial week (Q-025). The touchdown sounds
-// are the ones played on the accepted mock-up page (D-049), made in code in sound.js. `flies`
+// Prices are D-046's and D-077's starting values, to tune after the trial week (Q-025). The touchdown sounds
+// are the ones played on the accepted mock-up pages (D-049, D-078), made in code in sound.js. `flies`
 // is false for a ship drawn in the showroom but not yet brought into play: it shows locked, with
 // its price, and can't be bought (D-051). Since step 2a-4c every ship flies.
 //
@@ -17,9 +20,14 @@
 export const FLEET = [
   { id: 'classic', name: 'Classic', tier: 'starter', price: 0, sound: 'thud', flies: true },
   { id: 'box', name: 'Cardboard Box', tier: 'fun', price: 20, sound: 'boing', flies: true },
+  { id: 'tub', name: 'Splash Tub', tier: 'fun', price: 25, sound: 'splosh', flies: true },
   { id: 'teapot', name: 'Teapot', tier: 'fun', price: 30, sound: 'toot', flies: true },
+  { id: 'jack', name: 'Jack-in-the-Box', tier: 'fun', price: 35, sound: 'jackPop', flies: true },
+  { id: 'sunflower', name: 'Sunflower Copter', tier: 'fun', price: 40, sound: 'bzzz', flies: true },
   { id: 'pod', name: 'Bubble Pod', tier: 'cool', price: 50, sound: 'clunkLock', flies: true },
+  { id: 'spin', name: 'Spin Cycle', tier: 'cool', price: 60, sound: 'spinClunk', flies: true },
   { id: 'saucer', name: 'Saucer', tier: 'cool', price: 70, sound: 'hum', flies: true },
+  { id: 'tree', name: 'Christmas Tree', tier: 'cool', price: 80, sound: 'tada', flies: true },
   { id: 'crystal', name: 'Crystal Comet', tier: 'premium', price: 100, sound: 'chime', flies: true },
   { id: 'phoenix', name: 'Golden Phoenix', tier: 'premium', price: 140, sound: 'harp', flies: true },
   { id: 'aurora', name: 'Aurora Cruiser', tier: 'legendary', price: 200, sound: 'aurora', flies: true },

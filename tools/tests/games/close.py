@@ -1,4 +1,8 @@
-"""Close script for P-034 (Kids Games Development). Version 1.5.
+"""Close script for P-034 (Kids Games Development). Version 1.6.
+
+Changes at v1.6 (step 2d-2, D-080): the ship hooks test, test_rocket_ship_hooks_e2e.py, covers the
+shared engine like the hangar test, so it runs when that changes (and when it changes itself); the
+one-off move of the new ships, move_rocket_new_ships.py, is not part of the run.
 
 Changes at v1.5 (step 2d-1, D-081): a full pass is also recorded in the repo, in
 tools/tests/games/close_pass.txt, committed with the close, so a new chat's clone starts from the
@@ -66,9 +70,10 @@ COVERS = {
     'test_rocket_lander_map_e2e.py': ['games/rocket-lander/'],
     'test_rocket_lander_preview.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
+    'test_rocket_ship_hooks_e2e.py': [],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).
-FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_', T + 'close_pass.txt']
+FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_', T + 'move_', T + 'close_pass.txt']
 
 
 def pick_tests(changed, tests):

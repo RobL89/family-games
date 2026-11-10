@@ -1,4 +1,7 @@
-"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.3.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.4.
+
+Changes at v1.4 (step 2d-2): the ship hooks test is one of the tests, run with the shared engine
+or when it changes itself; the one-off move script is not in the run.
 
 Changes at v1.3 (step 2d-1, D-081): the last full pass is also kept in the repo, in
 tools/tests/games/close_pass.txt, so a new chat's clone starts from it; that file changing runs
@@ -25,7 +28,8 @@ spec.loader.exec_module(close)
 T = 'tools/tests/games/'
 ALL = ['test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_hangar_e2e.py',
        'test_rocket_lander_core.py', 'test_rocket_lander_e2e.py', 'test_rocket_lander_labels.py',
-       'test_rocket_lander_levels.py', 'test_rocket_lander_map_e2e.py', 'test_rocket_lander_preview.py', 'test_rocket_lander_sums_e2e.py']
+       'test_rocket_lander_levels.py', 'test_rocket_lander_map_e2e.py', 'test_rocket_lander_preview.py', 'test_rocket_lander_sums_e2e.py',
+       'test_rocket_ship_hooks_e2e.py']
 FAST = ['test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py']
 fails = []
 
@@ -52,6 +56,8 @@ check(['games/rocket-lander/sums.js'], 'some', FAST + ['test_rocket_lander_e2e.p
       'test_rocket_lander_map_e2e.py', 'test_rocket_lander_preview.py', 'test_rocket_lander_sums_e2e.py'], 'the sums, now Rocket Lander\'s own: its six browser tests')
 check([T + 'test_rocket_hangar_e2e.py'], 'some', FAST + ['test_rocket_hangar_e2e.py'], 'a changed test runs itself')
 check([T + 'mutate_rocket_hangar.py', T + 'sketch_rocket_door.py'], 'some', FAST, 'benches and sketches: not in the run, the fast checks only')
+check([T + 'test_rocket_ship_hooks_e2e.py'], 'some', FAST + ['test_rocket_ship_hooks_e2e.py'], 'the ship hooks test (step 2d-2) runs itself when it changes')
+check([T + 'move_rocket_new_ships.py'], 'some', FAST, 'the one-off move of the new ships (step 2d-2): not in the run, the fast checks only')
 check(['games/_common/rocket/round.js'], 'full', ALL, 'the shared engine: everything')
 check([T + 'close.py'], 'full', ALL, 'the close script itself: everything')
 check(['games/word-worm/index.html'], 'full', ALL, 'a file the map does not know: everything')

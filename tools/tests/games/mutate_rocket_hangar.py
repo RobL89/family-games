@@ -1,5 +1,9 @@
 """Bench, not part of the close: plants faults in the rocket games' hangar (step 2a-4b) and counts
-how many the tests catch. Version 1.1.
+how many the tests catch. Version 1.2.
+
+Changes at v1.2 (step 2d-2): faults for the five new ships and the three ship hooks (D-077 to
+D-080), tagged '2d-2', run against test_rocket_fleet_core.py, test_rocket_hangar_e2e.py or the new
+test_rocket_ship_hooks_e2e.py. `--only 2d-2` runs just those (D-057: a step runs only its new faults).
 
 Changes at v1.1 (step 2a-4c): six faults for the Premium and Legendary ships (a price, a ship
 switched off, the ship drawn past the ground's edge, less motion not handed on, the Phoenix's
@@ -14,10 +18,13 @@ test_rocket_fleet_core.py (by Node, seconds), the rest against test_rocket_hanga
 is an error, not a catch. First run, step 2a-4b: 13 of 13 caught.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/mutate_rocket_hangar.py [repo folder, default .]
+    python3 -B tools/tests/games/mutate_rocket_hangar.py [repo folder, default .] [--only TAG]
 """
 import os, shutil, subprocess, sys, tempfile
-REPO = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else '.')
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--only')]
+ONLY = next((a.split('=', 1)[1] if '=' in a else sys.argv[sys.argv.index(a) + 1] for a in sys.argv[1:] if a.startswith('--only')), None)
+ARGS = [a for a in ARGS if a != ONLY]
+REPO = os.path.abspath(ARGS[0] if ARGS else '.')
 M = [
  ('fleet', 'games/_common/rocket/fleet.js', "price: 20, sound: 'boing'", "price: 21, sound: 'boing'"),
  ('fleet', 'games/_common/rocket/fleet.js', "return rocksOf(p) >= s.price ? 'buy' : 'need';", "return rocksOf(p) > s.price ? 'buy' : 'need';"),
@@ -38,10 +45,28 @@ M = [
  ('hangar', 'games/_common/rocket/round.js', "inPlay: true, calm: scene.calm });", "inPlay: true, calm: false });"),
  ('hangar', 'games/_common/rocket/ships.js', "  if (!S.calm) S.flapT +=", "  S.flapT +="),
  ('hangar', 'games/_common/rocket/round.js', "const touch = (FLEET_BY_ID[progress.ship] || FLEET_BY_ID[STARTER]).sound;", "const touch = 'thud';"),
+ # step 2d-2: the five new ships and the three hooks (D-077 to D-080)
+ ('fleet', 'games/_common/rocket/fleet.js', "price: 25, sound: 'splosh'", "price: 24, sound: 'splosh'", '2d-2'),
+ ('fleet', 'games/_common/rocket/fleet.js', "tier: 'cool', price: 60,", "tier: 'fun', price: 60,", '2d-2'),
+ ('fleet', 'games/_common/rocket/sound.js', "  tada: (t) =>", "  tadaa: (t) =>", '2d-2'),
+ ('fleet', 'games/_common/rocket/fleet.js', "price: 80, sound: 'tada', flies: true", "price: 80, sound: 'tada', flies: false", '2d-2'),
+ ('hangar', 'games/_common/rocket/ships.js', "export const SHIPS = [classic, box, tub, teapot, jack,", "export const SHIPS = [classic, box, tub, jack, teapot,", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "const seatOf = () => (flyShip && flyShip.seat ? flyShip.seat(SH) : WINDOW);", "const seatOf = () => WINDOW;", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "const own = ownLadder(), foot = own ?", "const own = null, foot = own ?", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "V.ladder = flyShip && flyShip.ladder ? null : { x: R.x, dir, k: 0 };", "V.ladder = { x: R.x, dir, k: 0 };", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "    SH.side = G.land.dir; // the side", "    // SH.side = G.land.dir; // the side", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "    SH.side = dir;\n", "", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "if (flyShip && flyShip.ladder && !G.shipLanded) {", "if (false) {", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "hop = seat && !own ? 0.25 : 0;", "hop = 0;", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "const own = ownLadder(), seat = flyShip", "const own = null, seat = flyShip", '2d-2'),
+ ('hooks', 'games/_common/rocket/ships.js', "  seat(S) { const P = treePose(S, 0);", "  seatX(S) { const P = treePose(S, 0);", '2d-2'),
+ ('hooks', 'games/_common/rocket/round.js', "P.s = lerp(s0, s, k);\n          } else if (own) {", "P.s = s;\n          } else if (own) {", '2d-2'),
 ]
-TEST = {'fleet': 'tools/tests/games/test_rocket_fleet_core.py', 'hangar': 'tools/tests/games/test_rocket_hangar_e2e.py'}
+TEST = {'fleet': 'tools/tests/games/test_rocket_fleet_core.py', 'hangar': 'tools/tests/games/test_rocket_hangar_e2e.py',
+        'hooks': 'tools/tests/games/test_rocket_ship_hooks_e2e.py'}
+M = [m for m in M if ONLY is None or (m[4] if len(m) > 4 else None) == ONLY]
 caught = 0
-for i, (kind, f, a, b) in enumerate(M, 1):
+for i, (kind, f, a, b, *_) in enumerate(M, 1):
     d = tempfile.mkdtemp(prefix='mut-')
     for sub in ('games', 'tools'):
         shutil.copytree(os.path.join(REPO, sub), os.path.join(d, sub))

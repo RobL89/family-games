@@ -1,6 +1,9 @@
 // Rocket Lander's own sounds, made in the browser (no sound files to download), and
-// words said out loud with the device's own voice. Version 1.3.
+// words said out loud with the device's own voice. Version 1.4.
 //
+// Changes at v1.4 (step 2d-2, D-077, D-078): the five new ships' own landing sounds ('splosh',
+// 'jackPop', 'bzzz', 'spinClunk', 'tada'), moved unchanged from the step 2d-1 mock-ups
+// (tools/tests/games/sketch_rocket_new_ships.js 1.0).
 // Changes at v1.3 (Rob, 10 Nov): 'warp' lasts as long as the longer hyperspace (≈5.6 s): a low
 // charge, the rush and a rising shimmer, then the chime; the old short one is 'warpCalm', for less motion.
 //
@@ -103,6 +106,11 @@ const SOUNDS = {
   warp: (t) => { noise(t, 1.0, { from: 120, to: 600, volume: 0.1, q: 2 }); tone(70, t, 1.0, 'sawtooth', 0.04, 160); noise(t + 0.8, 4.6, { from: 300, to: 5600, volume: 0.16, q: 1.2 }); tone(110, t + 0.8, 4.4, 'sawtooth', 0.035, 1320); tone(220, t + 0.9, 4.2, 'triangle', 0.05, 2400); for (let k = 0; k < 7; k++) [523, 659, 784, 1047].forEach((f, i) => tone(f * (1 + k * 0.06), t + 1.2 + k * 0.5 + i * 0.07, 0.25, 'sine', 0.022)); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 4.9 + i * 0.06, 0.8, 'sine', 0.045)); },
   warpCalm: (t) => { noise(t, 2.6, { from: 200, to: 4200, volume: 0.16, q: 1.4 }); tone(110, t, 2.4, 'sawtooth', 0.035, 880); tone(220, t + 0.3, 2.1, 'triangle', 0.05, 1760); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 2.2 + i * 0.06, 0.6, 'sine', 0.04)); },
   fanLegend: (t) => { [392, 523, 659, 784].forEach((f, i) => tone(f, t + i * 0.12, 0.3, 'square', 0.04)); [1047, 1319, 1568].forEach((f) => tone(f, t + 0.5, 1.1, 'triangle', 0.05)); SOUNDS.aurora(t + 0.6); },
+  splosh: (t) => { noise(t, 0.45, { from: 2200, to: 180, type: 'lowpass', volume: 0.38 }); tone(190, t, 0.3, 'sine', 0.16, 70); noise(t + 0.05, 0.3, { from: 3500, to: 900, volume: 0.1 }); tone(1500, t + 0.32, 0.09, 'square', 0.045, 1900); tone(1650, t + 0.46, 0.12, 'square', 0.045, 2100); },
+  jackPop: (t) => { [1047, 1319, 1568, 1319].forEach((f, i) => { tone(f, t + i * 0.075, 0.22, 'sine', 0.07); tone(f * 2, t + i * 0.075, 0.12, 'sine', 0.02); }); noise(t + 0.33, 0.06, { from: 3000, to: 1200, volume: 0.2 }); tone(190, t + 0.33, 0.42, 'sine', 0.18, 620); tone(380, t + 0.38, 0.26, 'triangle', 0.05, 950); },
+  bzzz: (t) => { tone(170, t, 0.42, 'sawtooth', 0.04, 55); noise(t, 0.42, { from: 1100, to: 200, volume: 0.1 }); tone(215, t + 0.3, 0.55, 'sawtooth', 0.04, 245); tone(222, t + 0.3, 0.55, 'square', 0.018, 236); tone(430, t + 0.3, 0.5, 'sawtooth', 0.012, 470); },
+  spinClunk: (t) => { tone(320, t, 0.36, 'sawtooth', 0.035, 70); noise(t, 0.36, { from: 900, to: 160, volume: 0.13 }); tone(150, t + 0.32, 0.14, 'square', 0.08, 70); noise(t + 0.32, 0.1, { from: 1600, to: 500, volume: 0.24 }); tone(1319, t + 0.55, 0.12, 'sine', 0.07); tone(1319, t + 0.72, 0.12, 'sine', 0.07); },
+  tada: (t) => { for (let i = 0; i < 6; i++) { noise(t + i * 0.055, 0.07, { from: 7000, to: 9000, type: 'highpass', volume: 0.07 }); tone(2637 + (i % 2) * 500, t + i * 0.055, 0.06, 'sine', 0.025); } [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 0.36 + i * 0.07, 0.5, 'sine', 0.055)); tone(523, t + 0.36, 0.6, 'triangle', 0.05); tone(784, t + 0.36, 0.6, 'triangle', 0.04); },
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);

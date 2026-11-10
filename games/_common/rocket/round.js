@@ -1,5 +1,14 @@
-// The rocket game's round flow (D-027, D-058). Version 2.4.
+// The rocket game's round flow (D-027, D-058). Version 2.5.
 //
+// Changes at v2.5 (step 2d-2, D-080): three hooks a ship may give (ships.js 1.4), read here; ships
+// without them play exactly as before. seat(S): where Bip sits aboard, so his hop out to the small
+// flag and back starts and ends there, and Bip's moment starts there with a short hop to the rope
+// ladder's top. ladder(S): a ship's own ladder (the Christmas Tree), which Bip climbs down and up
+// instead of hopping, and which takes the rope ladder's place in Bip's moment; after a miss on the
+// round's last landing such a ship plays its landing once it has hopped to the right number, so its
+// ladder is up before Bip climbs it. S.side: the side the flag goes, told to the ship at each landing
+// and in Bip's moment. Test hooks: Bip's spot (state().pilot), the ship's side and whether it has
+// played its landing, and trace(), which records Bip's spot frame by frame.
 // Changes at v2.4 (D-072, Rob, 10 Nov): the calm versions are back on: the game follows the device's
 // less-motion setting again (D-045), as before v2.2.
 // Changes at v2.3 (Rob, 10 Nov): the map's portal goes on to the next system through the full
@@ -131,6 +140,12 @@ export function runRocket(mode) {
   let flyShip = null; // the ship flown in play, when it isn't today's rocket
   let flownId = null; // the ship last drawn in play (for the tests)
   const SH = newState(80), PP = new Parts(); // its state and effects in play
+  // Where Bip sits aboard, in units of the rocket's height from its middle (D-080): the ship's own
+  // seat, or the Classic's window, where his hop has always started.
+  const WINDOW = { x: 0, y: 0.255, s: 0.3 };
+  const seatOf = () => (flyShip && flyShip.seat ? flyShip.seat(SH) : WINDOW);
+  const ownLadder = () => (flyShip && flyShip.ladder ? flyShip.ladder(SH) : null);
+  let TR = null; // test hook: Bip's spot, frame by frame, while recording
   const DS = { id: null, S: null, P: new Parts() }; // the ship in the hangar door's doorway
 
   const home = homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: '0 4px 0 rgba(10,6,40,.55)' } });
@@ -432,6 +447,7 @@ export function runRocket(mode) {
     let x, tries = 0;
     do { x = scene.x0 + Math.random() * span; tries++; } while (Math.abs(x - xt) < zone && tries < 80);
     Object.assign(R, { x, y: -R.h, rot: 0, sx: 1, sy: 1, legs: 0, flame: 0.6, pilotIn: true, mood: '', look: 0, vx: 0 });
+    G.shipLanded = false; // the ship flown hasn't played its landing on this one yet
     Object.assign(V, { rocket: R, pilot: null, flag: null, highlight: null, glow: null, arrow: null, perfect: null,
       pad: null, ladder: null, bigFlag: null, fireworks: null });
     V.shadow = { x, k: 0, half: 0, a: 0, fromY: 0 };
@@ -494,7 +510,8 @@ export function runRocket(mode) {
     const dustCol = mix(scene.planet.ground[1], '#FFFFFF', 0.45);
     const last = G.idx >= G.total - 1;
     const touch = (FLEET_BY_ID[progress.ship] || FLEET_BY_ID[STARTER]).sound; // each ship's own (D-046)
-    if (flyShip && right) { SH.dust = dustCol; landShip(flyShip, SH, PP); SH.sqT = null; }
+    SH.side = G.land.dir; // the side the flag goes (D-080)
+    if (flyShip && right) { SH.dust = dustCol; landShip(flyShip, SH, PP); SH.sqT = null; G.shipLanded = true; }
     if (right && last) {
       // the round's last landing: Bip's moment instead of the small flag and take-off (D-044)
       G.right += 1;
@@ -578,7 +595,13 @@ export function runRocket(mode) {
     Object.assign(V, { arrow: null, highlight: null, flag: null, pilot: null, perfect: null, bigFlag: null, fireworks: [] });
     V.glow = { value: G.goal, a: 1 };
     V.pad = { x: R.x, k: 0 };
-    V.ladder = { x: R.x, dir, k: 0 };
+    SH.side = dir;
+    // a ship with its own ladder uses it in place of the rope ladder (D-080); after a miss it plays
+    // its landing now, having hopped to the right number, so its ladder is up before Bip climbs it
+    V.ladder = flyShip && flyShip.ladder ? null : { x: R.x, dir, k: 0 };
+    if (flyShip && flyShip.ladder && !G.shipLanded) {
+      SH.dust = mix(scene.planet.ground[1], '#FFFFFF', 0.45); landShip(flyShip, SH, PP); SH.sqT = null; G.shipLanded = true;
+    }
     Object.assign(R, { y: G.touchY, legs: 1, flame: 0, sx: 1, sy: 1, rot: 0, mood: 'happy', pilotIn: true });
     setPhase('finale');
     sfx('sparkle');
@@ -619,11 +642,21 @@ export function runRocket(mode) {
     if (V.ladder) V.ladder.k = clamp((t2 - FIN.ladder) / 0.4, 0, 1);
     const P = V.pilot;
     if (P) {
-      const { top, foot } = ladderEnds(F.x, gy, R.h, F.dir);
+      // down the rope ladder, or the ship's own (D-080); from its seat if it has one, with a short
+      // hop to the rope ladder's top, or, without one, from the ladder's top as before
+      const own = ownLadder(), seat = flyShip && flyShip.seat ? flyShip.seat(SH) : null;
+      const { top, foot } = own ? { top: { x: F.x + own.top.x * R.h, y: R.y + own.top.y * R.h }, foot: { x: F.x + own.foot.x * R.h, y: gy - 1 } }
+        : ladderEnds(F.x, gy, R.h, F.dir);
       P.s = R.h * 0.5; P.blink = R.blink;
-      if (t2 < FIN.down) {
-        const k = clamp((t2 - FIN.out) / (FIN.down - FIN.out), 0, 1);
-        P.x = lerp(top.x, foot.x, k); P.y = lerp(top.y + P.s * 0.15, gy - 1, k) - Math.abs(Math.sin(k * Math.PI * 4)) * P.s * 0.06;
+      const s0 = seat ? seat.s * R.h : P.s, hop = seat && !own ? 0.25 : 0;
+      if (t2 < FIN.out + hop) {
+        const k = clamp((t2 - FIN.out) / hop, 0, 1), sx = F.x + seat.x * R.h, sy = R.y + seat.y * R.h;
+        P.x = lerp(sx, top.x, k); P.y = lerp(sy, top.y + P.s * 0.15, k) - Math.sin(k * Math.PI) * R.h * 0.2; P.s = lerp(s0, P.s, k);
+        P.wave = false; P.squash = 0;
+      } else if (t2 < FIN.down) {
+        const k = clamp((t2 - FIN.out - hop) / (FIN.down - FIN.out - hop), 0, 1);
+        P.x = lerp(top.x, foot.x, k); P.y = lerp(own ? top.y : top.y + P.s * 0.15, gy - 1, k) - Math.abs(Math.sin(k * Math.PI * 4)) * P.s * 0.06;
+        if (own) P.s = lerp(s0, P.s, k);
         P.wave = false; P.squash = 0;
       } else if (t2 < FIN.walk) {
         const k = ease.inOut(clamp((t2 - FIN.down) / (FIN.walk - FIN.down), 0, 1));
@@ -668,7 +701,7 @@ export function runRocket(mode) {
     hideBubble();
     setPhase('takeoff');
     G.takeFrom = R.y;
-    V.pilot = null; R.pilotIn = true;
+    V.pilot = null; R.pilotIn = true; G.shipLanded = false;
     sfx('whoosh');
   }
 
@@ -934,13 +967,24 @@ export function runRocket(mode) {
       // the pilot pops out, plants a flag and waves, then hops back in
       const P = V.pilot;
       if (P && L.right) {
-        const s = R.h * 0.5;
-        const win = { x: R.x, y: R.y - R.h * 0.045 + s * 0.6 };
+        // from the ship's seat (D-080; the window, as before, on ships without one), hopping, or
+        // down and back up the ship's own ladder
+        const s = R.h * 0.5, seat = seatOf(), s0 = seat.s * R.h;
+        const win = { x: R.x + seat.x * R.h, y: R.y + seat.y * R.h };
         const out = { x: R.x + L.dir * (R.h * 0.42 + s * 0.38), y: scene.groundY - 1 };
+        const own = ownLadder(), foot = own ? { x: R.x + own.foot.x * R.h, y: scene.groundY - 1 } : null;
         const sOut = 0.45, sBack = 2.45;
         if (t2 < sOut + 0.45) {
-          const k = clamp((t2 - sOut) / 0.45, 0, 1);
-          P.x = lerp(win.x, out.x, k); P.y = lerp(win.y, out.y, k) - Math.sin(k * Math.PI) * R.h * 0.75; P.s = s * lerp(0.6, 1, k);
+          if (own && t2 < sOut + 0.4) {
+            const k = clamp((t2 - sOut) / 0.4, 0, 1);
+            P.x = lerp(win.x, foot.x, k); P.y = lerp(win.y, foot.y, k) - Math.abs(Math.sin(k * Math.PI * 4)) * s * 0.05; P.s = lerp(s0, s, k);
+          } else if (own) {
+            const k = clamp((t2 - sOut - 0.4) / 0.05, 0, 1);
+            P.x = lerp(foot.x, out.x, k); P.y = out.y; P.s = s;
+          } else {
+            const k = clamp((t2 - sOut) / 0.45, 0, 1);
+            P.x = lerp(win.x, out.x, k); P.y = lerp(win.y, out.y, k) - Math.sin(k * Math.PI) * R.h * 0.75; P.s = lerp(s0, s, k);
+          }
           P.squash = 0;
         } else if (t2 < sBack) {
           P.x = out.x; P.y = out.y; P.s = s;
@@ -949,8 +993,18 @@ export function runRocket(mode) {
           P.wave = t2 > 1.4;
           if (V.flag) { V.flag.x = out.x + L.dir * s * 0.42; V.flag.grow = clamp((t2 - 0.95) / 0.45, 0, 1); }
         } else {
-          const k = clamp((t2 - sBack) / 0.4, 0, 1);
-          P.x = lerp(out.x, win.x, k); P.y = lerp(out.y, win.y, k) - Math.sin(k * Math.PI) * R.h * 0.6; P.s = s * lerp(1, 0.6, k);
+          let k;
+          if (own && t2 < sBack + 0.1) {
+            k = 0;
+            const k1 = clamp((t2 - sBack) / 0.1, 0, 1);
+            P.x = lerp(out.x, foot.x, k1); P.y = out.y; P.s = s;
+          } else if (own) {
+            k = clamp((t2 - sBack - 0.1) / 0.3, 0, 1);
+            P.x = lerp(foot.x, win.x, k); P.y = lerp(foot.y, win.y, k) - Math.abs(Math.sin(k * Math.PI * 4)) * s * 0.05; P.s = lerp(s, s0, k);
+          } else {
+            k = clamp((t2 - sBack) / 0.4, 0, 1);
+            P.x = lerp(out.x, win.x, k); P.y = lerp(out.y, win.y, k) - Math.sin(k * Math.PI) * R.h * 0.6; P.s = lerp(s, s0, k);
+          }
           P.wave = false; P.squash = 0;
           if (k >= 1) { V.pilot = null; R.pilotIn = true; }
         }
@@ -974,6 +1028,12 @@ export function runRocket(mode) {
       finaleFrame(dt);
     }
     syncShip(dt, t);
+    if (TR) {
+      TR.push({ t: G.t, phase: G.phase, fin: G.fin ? G.fin.t : null, pilot: V.pilot ? { x: V.pilot.x, y: V.pilot.y, s: V.pilot.s } : null,
+        rx: R.x, ry: R.y, rh: R.h, gy: scene.groundY, rope: !!V.ladder && V.ladder.k > 0, dir: G.fin ? G.fin.dir : G.land ? G.land.dir : null,
+        side: SH.side ?? null, landed: !!G.shipLanded });
+      if (TR.length > 4000) TR.shift();
+    }
   }
 
   let last = performance.now(), frame = 0, clock = 0;
@@ -1100,7 +1160,8 @@ export function runRocket(mode) {
       finale: G.fin && { t: G.fin.t, stars: G.fin.stars, pad: !!V.pad && V.pad.k > 0, ladder: !!V.ladder && V.ladder.k > 0,
         flag: !!V.bigFlag && V.bigFlag.grow > 0, shown: V.bigFlag ? V.bigFlag.shown : 0, fireworks: (V.fireworks || []).length, pilotIn: R.pilotIn },
       hangar: hangar ? hangar.state() : null, doorShip: DS.id, flown: G.phase === 'map' ? null : flownId,
-      ship: flyShip ? { id: flyShip.id, calm: !!SH.calm, k: PP.k, effects: PP.list.length, flap: SH.flapT } : null, heard: heard.slice(),
+      ship: flyShip ? { id: flyShip.id, calm: !!SH.calm, k: PP.k, effects: PP.list.length, flap: SH.flapT, side: SH.side ?? null, landed: !!G.shipLanded } : null, heard: heard.slice(),
+      pilot: V.pilot ? { x: V.pilot.x, y: V.pilot.y, s: V.pilot.s } : null,
     }),
     // The ship flown and its effects alone, drawn as in play onto a clear canvas: how many pixels
     // show below the line's edge, where the numbers are written (D-045), and above it.
@@ -1158,6 +1219,8 @@ export function runRocket(mode) {
       const r = el.getBoundingClientRect();
       return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
     },
+    // Bip's spot, frame by frame: trace(true) starts recording afresh; trace(false) stops and returns it
+    trace(on) { const out = TR || []; TR = on ? [] : null; return out; },
     freeze(on) { if (on) { cancelAnimationFrame(frame); } else { last = performance.now(); frame = requestAnimationFrame(loop); } },
   };
   // The mode's own hooks, such as making this landing's target a given one (while flying).

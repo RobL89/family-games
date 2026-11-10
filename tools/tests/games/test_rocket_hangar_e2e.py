@@ -1,5 +1,11 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.6.
+Version 1.7.
+
+Changes at v1.7 (step 2d-2, D-077 to D-080): thirteen ships, cheapest first in each tier (D-079),
+so the right arrow from the Teapot shows the Jack-in-the-Box (35 - 7 = 28 rocks short), refused
+with 7 rocks. The five new ships join the picture check: each is flown through a round of 3
+landings and Bip's moment, nothing of it or its effects below the line's edge (ER-003), and
+each lands with its own sound (D-077).
 
 Changes at v1.6 (D-072): the calm versions are back on; the less-motion checks expect calm again.
 Changes at v1.5 (D-071): with the calm versions off for now, a device asking for less motion gets
@@ -153,6 +159,7 @@ def show(pg, ship):
 
 PREMIUM = [('crystal', 100), ('phoenix', 140), ('aurora', 200)]
 OTHERS = [('box', 20), ('teapot', 30), ('pod', 50), ('saucer', 70)]
+NEW = [('tub', 25, 'splosh'), ('jack', 35, 'jackPop'), ('sunflower', 40, 'bzzz'), ('spin', 60, 'spinClunk'), ('tree', 80, 'tada')]  # D-077
 
 
 def play_round_pixels(pg, sid, tag, full=True, level=None):
@@ -246,12 +253,12 @@ with sync_playwright() as pw:
 
         # ---------- Refused: not enough rocks; not flying until 2a-4c ----------
         tap(pg, 'right')
-        pg.wait_for_function('__test.state().hangar.cur === "pod" && !__test.state().hangar.switching', timeout=5000)
-        check(hangar(pg)['verdict'] == 'need', f'{T}: the right arrow shows the Bubble Pod, 43 rocks short')
+        pg.wait_for_function('__test.state().hangar.cur === "jack" && !__test.state().hangar.switching', timeout=5000)
+        check(hangar(pg)['verdict'] == 'need', f'{T}: the right arrow shows the Jack-in-the-Box (D-079), 35 - 7 = 28 rocks short')
         tap(pg, 'action')
         pg.wait_for_timeout(600)
         p = st(pg)['progress']
-        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: the Bubble Pod is refused with 7 rocks: {p}')
+        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: the Jack-in-the-Box is refused with 7 rocks: {p}')
         pg.screenshot(path=f'{OUT}/{T}-showroom-need.png')
         show(pg, 'crystal')
         check(hangar(pg)['verdict'] == 'need', f'{T}: Crystal Comet is on sale now (2a-4c), 100 - 7 = 93 rocks short')
@@ -340,13 +347,17 @@ with sync_playwright() as pw:
         pg.context.close()
 
     # ---------- Effects never over the numbers (D-045): each ship flown, its effects drawn alone ----------
-    for tile, ships, lv in (('rocket-lander', [s for s, _ in OTHERS + PREMIUM], None), ('sums level', [s for s, _ in PREMIUM], 15)):
+    SOUND = {sid: snd for sid, _, snd in NEW}
+    for tile, ships, lv in (('rocket-lander', [s for s, _ in OTHERS] + [s for s, _, _ in NEW] + [s for s, _ in PREMIUM], None), ('sums level', [s for s, _ in PREMIUM], 15)):
         for sid in ships:
             pg = open_tile(br, tile, 844, 390, True, {**V1, 'ship': sid, 'ships': ['classic', sid]})
             pix = play_round_pixels(pg, sid, tile.replace(' ', '-'), full=tile == 'rocket-lander', level=lv)
             check(pix['flown'] == sid and pix['n'] > 10 and pix['drawn'] and pix['below'] == 0,
                   f'{tile} {sid}: flown; in {pix["n"]} looks (flying, landing{", Bip" + chr(39) + "s moment" if pix["finale"] else ""}) '
                   f'nothing of the ship or its effects below the line\'s edge: {pix}')
+            if sid in SOUND:
+                heard = st(pg)['heard']
+                check(SOUND[sid] in heard, f'{tile} {sid}: lands with its own sound, {SOUND[sid]} (D-077): {heard[-12:]}')
             pg.context.close()
     # less motion: the ship flown is calm, makes about a third of the effects, and stays off the numbers
     pg = open_tile(br, 'rocket-lander', 844, 390, True, {**V1, 'ship': 'aurora', 'ships': ['classic', 'aurora']}, motion='reduce')
@@ -376,7 +387,7 @@ with sync_playwright() as pw:
             on = all(v and 0 <= v['x'] <= w and 0 <= v['y'] <= h for v in hits.values())
             check(wide <= 0 and card <= 1 and on, f'{w}x{h} {scheme}: no sideways scrolling ({wide}), the hangar door on screen on the map ({card}), showroom buttons on screen: {hits}')
             # the badges (Rob, 10 Nov): at least 44 px, clear of each other and of the big button, in rows when narrow
-            ids = ['classic', 'box', 'teapot', 'pod', 'saucer', 'crystal', 'phoenix', 'aurora']
+            ids = ['classic', 'box', 'tub', 'teapot', 'jack', 'sunflower', 'pod', 'spin', 'saucer', 'tree', 'crystal', 'phoenix', 'aurora']  # all thirteen (D-079)
             bs = [pg.evaluate(f'__test.hangarHit("badge:{i}")') for i in ids]
             act = hits['action']
             big = all(b and min(b['w'], b['h']) >= 44 for b in bs)

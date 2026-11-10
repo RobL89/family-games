@@ -1,4 +1,9 @@
-"""The rocket games' ships table and buying rules (games/_common/rocket/fleet.js). Version 1.1.
+"""The rocket games' ships table and buying rules (games/_common/rocket/fleet.js). Version 1.2.
+
+Changes at v1.2 (step 2d-2, D-077, D-079): thirteen ships. The five new ones at D-077's tiers and
+prices (Splash Tub 25, Jack-in-the-Box 35, Sunflower Copter 40, Spin Cycle 60, Christmas Tree 80;
+850 rocks for all twelve to buy), each with its own landing sound made by sound.js, and the table
+cheapest first within each tier (D-079), so owned ships are listed in that order too.
 
 Changes at v1.1 (step 2a-4c, D-047, D-051): all eight ships fly, so Crystal Comet (100), Golden
 Phoenix (140) and Aurora Cruiser (200) are on sale, bought once and only with enough rocks; the
@@ -79,6 +84,8 @@ cases.buyAgain = F.buy(b1, 'teapot');
 cases.buyShort = F.buy(b1, 'pod');
 cases.buyPremium = ['crystal', 'phoenix', 'aurora'].map((id) => { const p = F.buy(at(F.FLEET_BY_ID[id].price + 5), id); return { exact: F.buy(at(F.FLEET_BY_ID[id].price), id), plus5: p, again: p && F.buy({ ...p, rocks: 500 }, id), short: F.buy(at(F.FLEET_BY_ID[id].price - 1), id) }; });
 cases.buyUnknown = F.buy(at(500), 'rocket9');
+cases.newOwned = F.hangarOf(P({ ship: 'tree', ships: ['tree', 'tub', 'spin', 'sunflower', 'jack', 'teapot'] }));
+cases.newVerdicts = ['tub', 'jack', 'sunflower', 'spin', 'tree'].map((id) => [F.verdict(at(F.FLEET_BY_ID[id] ? F.FLEET_BY_ID[id].price : 0), id), F.verdict(at(F.FLEET_BY_ID[id] ? F.FLEET_BY_ID[id].price - 1 : 0), id)]);
 const pk = F.pick(b1, 'teapot');
 cases.pick = { after: pk, inputKept: b1.ship === 'classic' };
 cases.pickNotOwned = F.pick(b1, 'pod');
@@ -107,19 +114,28 @@ o = json.loads(r.stdout)
 C = o['cases']
 
 # ---------- The table (D-046, D-049, D-051) ----------
-WANT = [  # id, name, tier, price, touchdown sound, flies (all eight from 2a-4c)
+WANT = [  # id, name, tier, price, touchdown sound, flies (all from 2a-4c; the five new from 2d-2, D-077, in D-079's order)
     ('classic', 'Classic', 'starter', 0, 'thud', True),
     ('box', 'Cardboard Box', 'fun', 20, 'boing', True),
+    ('tub', 'Splash Tub', 'fun', 25, 'splosh', True),
     ('teapot', 'Teapot', 'fun', 30, 'toot', True),
+    ('jack', 'Jack-in-the-Box', 'fun', 35, 'jackPop', True),
+    ('sunflower', 'Sunflower Copter', 'fun', 40, 'bzzz', True),
     ('pod', 'Bubble Pod', 'cool', 50, 'clunkLock', True),
+    ('spin', 'Spin Cycle', 'cool', 60, 'spinClunk', True),
     ('saucer', 'Saucer', 'cool', 70, 'hum', True),
+    ('tree', 'Christmas Tree', 'cool', 80, 'tada', True),
     ('crystal', 'Crystal Comet', 'premium', 100, 'chime', True),
     ('phoenix', 'Golden Phoenix', 'premium', 140, 'harp', True),
     ('aurora', 'Aurora Cruiser', 'legendary', 200, 'aurora', True),
 ]
 got = [(s['id'], s['name'], s['tier'], s['price'], s['sound'], s['flies']) for s in o['fleet']]
-check(got == WANT, f'the table: eight ships, names, tiers, prices, sounds and flying as decided: {got}')
-check(sum(s['price'] for s in o['fleet']) == 610, 'the seven ships to buy cost 610 moon rocks in all (D-046)')
+check(got == WANT, f'the table: thirteen ships in D-079\'s order, names, tiers, prices, sounds and flying as decided: {got}')
+check(sum(s['price'] for s in o['fleet']) == 850, 'the twelve ships to buy cost 850 moon rocks in all (610 + 25 + 35 + 40 + 60 + 80 = 850, D-077)')
+TIER_RANK = {'starter': 0, 'fun': 1, 'cool': 2, 'premium': 3, 'legendary': 4}
+check([(TIER_RANK[s['tier']], s['price']) for s in o['fleet']] == sorted((TIER_RANK[s['tier']], s['price']) for s in o['fleet']),
+      'cheapest first within each tier, tiers in order (D-079)')
+check(len(set(s['sound'] for s in o['fleet'])) == 13, 'every ship has a landing sound of its own (D-077 for the five new)')
 check(o['starter'] == 'classic' and o['byId'] == o['ids'], 'Classic is the starter, and every ship can be looked up by id')
 check(all(set(s) == {'id', 'name', 'tier', 'price', 'sound', 'flies'} for s in o['fleet']), 'each row holds those six things and nothing else')
 missing = [s['sound'] for s in o['fleet'] if s['sound'] not in o['sounds']]
@@ -162,8 +178,11 @@ check(pk and pk['ship'] == 'teapot' and pk['rocks'] == 7 and pk['ships'] == ['cl
 check(C['pickNotOwned'] is None and C['pickPremiumNotOwned'] is None, 'a ship not owned cannot be picked, the Aurora Cruiser included')
 check([x and x['ship'] for x in C['pickPremium']] == ['crystal', 'phoenix', 'aurora'], f'each Premium and Legendary ship, once owned, can be flown: {C["pickPremium"]}')
 check(C['pickBack'] and C['pickBack']['ship'] == 'classic', 'Classic can always be picked again')
-check(C['chain'] == {'left': [0, 0, 0, 0, 0, 0, 0], 'owned': ['classic', 'box', 'teapot', 'pod', 'saucer', 'crystal', 'phoenix', 'aurora']},
-      f'all seven ships bought in turn, each with exactly its price, leaves 0 rocks each time and owns all eight: {C["chain"]}')
+check(C['chain'] == {'left': [0] * 12, 'owned': [w[0] for w in WANT]},
+      f'all twelve ships bought in turn, each with exactly its price, leaves 0 rocks each time and owns all thirteen: {C["chain"]}')
+check(C['newOwned'] == {'ship': 'tree', 'ships': ['classic', 'tub', 'teapot', 'jack', 'sunflower', 'spin', 'tree']},
+      f'the new ships can be owned and flown, listed in the table\'s order: {C["newOwned"]}')
+check(C['newVerdicts'] == [['buy', 'need']] * 5, f'each new ship can be bought at its price and not one rock less: {C["newVerdicts"]}')
 SN = C['soon']
 check(SN['verdict'] == 'soon' and SN['short'] == 0 and SN['buy'] is None and SN['pick'] is None
       and SN['owned'] == {'ship': 'classic', 'ships': ['classic', 'box']},

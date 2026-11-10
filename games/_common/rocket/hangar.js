@@ -1,7 +1,11 @@
 // The rocket games' hangar (D-026, D-029, D-045, D-046, D-050 to D-053): the showroom behind the
 // hangar door on the start card, where a child looks round the ships, buys one with moon rocks
-// and picks the one to fly. Version 1.2. All original and drawn in code (D-010).
+// and picks the one to fly. Version 1.3. All original and drawn in code (D-010).
 //
+// Changes at v1.3 (step 2d-2): thirteen ships (D-077, D-079). On a small phone held upright (360 by
+// 740) their badges need three rows, which reached up over the big button; the stand, ship, price and
+// button now move up just enough to clear the badges whenever the rows need more room (badgeGrid(),
+// one formula for the layout and the drawing). Screens with room to spare are as before.
 // Changes at v1.2 (Rob, 10 Nov): the ship badges along the bottom are a little bigger (radius 22
 // to 23, from 18 to 19) and go into as many evened-out rows as the width needs, so more ships fit later.
 //
@@ -465,10 +469,23 @@ export class Hangar {
     this.u = clamp(Math.min(W, H) / 390, 0.95, 1.45);
     const up = H > W;
     this.tall = up;
-    if (up) { this.cx = W / 2; this.padY = Math.round(H * 0.56); this.shipH = Math.round(Math.min(W * 0.5, H * 0.26)); }
-    else { this.cx = Math.round(W * 0.4); this.padY = Math.round(H * 0.7); this.shipH = Math.round(Math.min(H * 0.46, W * 0.26)); }
+    if (up) {
+      this.cx = W / 2; this.padY = Math.round(H * 0.56); this.shipH = Math.round(Math.min(W * 0.5, H * 0.26));
+      // the big button (54 high, below the price) clears the top row of badges by 8, or the stand moves up
+      const g = this.badgeGrid(), u = this.u;
+      const top = g.yLast - (g.rows - 1) * g.gap - g.r * 1.18, bottom = this.padY + this.shipH * 0.48 + 64 * u + 27 * u + 8 * u;
+      if (bottom > top) this.padY -= Math.ceil(bottom - top);
+    } else { this.cx = Math.round(W * 0.4); this.padY = Math.round(H * 0.7); this.shipH = Math.round(Math.min(H * 0.46, W * 0.26)); }
     this.fy = this.padY - Math.round(this.shipH * 0.12);
     this.S = newState(this.shipH); this.S.idle = true; this.S.dust = '#C9CFF5';
+  }
+
+  // Where the badges go: their size, spacing, rows (evened out) and the last row's height.
+  badgeGrid() {
+    const u = this.u, W = this.W, H = this.H;
+    const n = SHIPS.length, r = Math.max(22, (this.tall ? 22 : 23) * u), gap = r * 2.55, fit = Math.max(1, Math.floor((W - 24) / gap));
+    const rows = Math.ceil(n / fit), per = Math.ceil(n / rows), yLast = H - r * 1.18 - 14 * u;
+    return { n, r, gap, rows, per, yLast };
   }
 
   get ship() { return SHIPS[this.cur]; }
@@ -716,8 +733,7 @@ export class Hangar {
       if (this.cur > 0) { circleBtn(ctx, lx, ay, ar, 'left'); this.addHit('left', lx - ar, ay - ar, ar * 2, ar * 2, () => this.switchBy(-1)); }
       if (this.cur < SHIPS.length - 1) { circleBtn(ctx, rx2, ay, ar, 'right'); this.addHit('right', rx2 - ar, ay - ar, ar * 2, ar * 2, () => this.switchBy(1)); }
       // the badges: a little bigger, in as many rows as the width needs, the rows evened out (Rob, 10 Nov)
-      const n = SHIPS.length, r = Math.max(22, (this.tall ? 22 : 23) * u), gap = r * 2.55, fit = Math.max(1, Math.floor((W - 24) / gap));
-      const rows = Math.ceil(n / fit), per = Math.ceil(n / rows), yLast = H - r * 1.18 - 14 * u;
+      const { n, r, gap, rows, per, yLast } = this.badgeGrid();
       SHIPS.forEach((s, i) => {
         const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per;
         const x = W / 2 + (col - (inRow - 1) / 2) * gap, y0 = yLast - (rows - 1 - row) * gap;
