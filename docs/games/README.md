@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.18 · 2026-11-10 |
+| **Version** | 1.19 · 2026-11-10 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.19:** tests run in batches at checkpoints (D-086): `close.py` runs the fast checks only unless asked; `--full` runs everything, at a checkpoint Rob chooses (before a trial build or a publish); `--changed` picks by the map, as before.
 
 **Changes at v1.18:** thirteen ships (step 2d-2, D-077 to D-080): the five new ones moved into `fleet.js`, `ships.js` and `sound.js` from their accepted mock-ups by `move_rocket_new_ships.py`, cheapest first in each tier, and three ship hooks read by `round.js` (where Bip sits, a ship's own ladder, the flag's side). A new test, `test_rocket_ship_hooks_e2e.py`, covers the hooks; the close runs it with the shared engine. The mock-up script `sketch_rocket_new_ships.py` (step 2d-1) gets its row here.
 
@@ -72,7 +74,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 
 | Script | What it checks |
 |---|---|
-| `close.py` | Runs everything below, in order. Run at every working close, before committing. The first run in a clone runs every test (about 11 minutes); after that full pass, a run takes the fast checks (Node, seconds) and only the browser tests whose files changed since, by the map in the script; a change to `games/_common/`, to `close.py` or to any file the map doesn't know runs everything, as does `--full` (D-056) |
+| `close.py` | Run at every working close, before committing. With no option it runs the fast checks (Node, seconds) and the repo, doc and pin checks (D-086). `--full` runs every test too (about 25 minutes), at a checkpoint Rob chooses: before a trial build or a publish, or when he asks; it records the pass. `--changed` runs the fast checks and only the browser tests whose files changed since the last full pass, by the map in the script; a change to `games/_common/`, to `close.py` or to any file the map doesn't know runs everything (D-056, D-081) |
 | `test_*.py` | The checks' own tests (`test_checks.py`, and `test_close_pick.py` for the close's choice of tests), then the games' tests. For Rocket Lander: `test_rocket_lander_core.py` (its pure core and boundaries, by Node: the number levels and rules, the sums levels and sums, the map and the map's progress rules), `test_rocket_lander_labels.py` (RL-3), `test_rocket_lander_e2e.py` (full rounds in a headless browser, about 3 minutes), `test_rocket_lander_levels.py` (Number mode's eight levels, their targets and chips, about 2 minutes), `test_rocket_lander_sums_e2e.py` (the sums levels' rounds, lines and the preview's panel, about 2 minutes), `test_rocket_lander_map_e2e.py` (the map as home, level cards, replays, hyperspace and the galaxy with real taps, at phone and PC sizes, about 4 minutes) and `test_rocket_lander_preview.py` (the preview bundle: same bytes on a rebuild, the font inside the page and nothing fetched, RL-3 on the bundle, the test panel); for its hangar, `test_rocket_fleet_core.py` (the ships' table and the rules for buying and picking, by Node) and `test_rocket_hangar_e2e.py` (the door, the showroom, buying and flying ships with real taps, on a number level and a sums level, and a picture check that no ship or its effects reach the numbers, with less motion too, about 7 minutes) and `test_rocket_ship_hooks_e2e.py` (the three ship hooks, D-080: where Bip leaves and boards a ship, the Christmas Tree's own ladder, the flag's side, about 3 minutes) |
 | `build_preview.py` | Not a check: bundles a game folder into one page for a private preview (D-018), with a stamp naming the commit and the folder's sha256. Writes outside the repo by default. `--debug` adds the game's test panel (`preview_debug_<game>.js`: a cog on the map, opened with 1234, for Rob's testing only, never in a trial preview; D-020, D-055) |
 | `measure_rocket_lander_line.py` | A measurement, not a check: how many numbers fit on the line, exactly aimable, at phone and PC sizes |
@@ -125,6 +127,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.19 | 2026-11-10 | Tests in batches at checkpoints: the close is fast by default, `--full` at a checkpoint (D-086) |
 | 1.18 | 2026-11-10 | Thirteen ships and the three ship hooks (step 2d-2, D-077 to D-080); `test_rocket_ship_hooks_e2e.py`; `move_rocket_new_ships.py`; the new ships' mock-up script listed |
 | 1.17 | 2026-11-10 | The new ship ideas sketch script (D-062) |
 | 1.16 | 2026-11-09 | One rocket game with a map (step 2c-build): Rocket Sums joined Rocket Lander; `starmap.js`, `progress.js`, `map.js`; progress format 3; the tests and the close's map follow; `mutate_rocket_map.py` |

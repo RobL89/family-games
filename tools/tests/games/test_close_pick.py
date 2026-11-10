@@ -1,4 +1,7 @@
-"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.4.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.5.
+
+Changes at v1.5 (D-086): close.choose(): the close runs the fast checks only unless asked;
+--full runs everything, --changed picks by the map as before.
 
 Changes at v1.4 (step 2d-2): the ship hooks test is one of the tests, run with the shared engine
 or when it changes itself; the one-off move script is not in the run.
@@ -42,6 +45,19 @@ def check(changed, want_mode, want, what, tests=ALL):
         fails.append(what)
 
 
+# D-086: tests in batches at checkpoints; a wrap-up's close is the fast checks only
+def check_choose(args, want_mode, want, what, changed=None):
+    mode, got = close.choose(args, ALL, lambda: changed)
+    ok = mode == want_mode and sorted(got) == sorted(want)
+    print(('ok   ' if ok else 'FAIL ') + f'{what}: {mode} {sorted(got)}')
+    if not ok:
+        fails.append(what)
+
+
+check_choose([], 'fast', FAST, 'no option (a wrap-up, D-086): the fast checks only, whatever changed', changed=['games/_common/rocket/round.js'])
+check_choose(['--full'], 'full', ALL, '--full (a checkpoint): everything', changed=[])
+check_choose(['--changed'], 'full', ALL, '--changed: picked by the map, the shared engine runs everything', changed=['games/_common/rocket/round.js'])
+check_choose(['--changed'], 'some', FAST, '--changed: picked by the map, a bench runs the fast checks', changed=[T + 'mutate_rocket_hangar.py'])
 check(None, 'full', ALL, 'no full pass in this clone yet: everything')
 check([], 'unchanged', FAST, 'nothing changed since the full pass: the fast checks only')
 check(['docs/games/README.md', 'games.json'], 'some', FAST, 'docs and the games list: the fast checks (the doc check covers them)')

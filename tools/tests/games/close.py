@@ -1,4 +1,9 @@
-"""Close script for P-034 (Kids Games Development). Version 1.6.
+"""Close script for P-034 (Kids Games Development). Version 1.7.
+
+Changes at v1.7 (D-086, tests in batches at checkpoints): with no option the close runs the fast
+checks only (seconds), whatever changed, as a wrap-up does; --full runs everything and records the
+pass (a checkpoint: before a trial build or a publish, or when Rob asks); --changed picks the tests
+by the map below, as before.
 
 Changes at v1.6 (step 2d-2, D-080): the ship hooks test, test_rocket_ship_hooks_e2e.py, covers the
 shared engine like the hangar test, so it runs when that changes (and when it changes itself); the
@@ -36,7 +41,7 @@ compares with today's main. It never commits or pushes: that stays a step the
 chat takes, naming the file versions, once this passes.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/close.py [--no-fetch] [--full]
+    python3 -B tools/tests/games/close.py [--no-fetch] [--full | --changed]
 Exit 0 only if every part passes.
 """
 import glob
@@ -97,6 +102,15 @@ def pick_tests(changed, tests):
     return 'some', [t for t in tests if t in pick]
 
 
+def choose(args, tests, changed_fn=None):
+    """Which tests this close runs (D-086): fast by default, everything with --full, by the map with --changed."""
+    if '--full' in args:
+        return 'full', list(tests)
+    if '--changed' in args:
+        return pick_tests((changed_fn or changed_since_pass)(), tests)
+    return 'fast', [t for t in tests if t in FAST]
+
+
 def pass_commit(paths=None):
     """The commit of the last full pass: this clone's own record first, then the repo's."""
     for path in paths or [STAMP, PASS_FILE]:
@@ -132,11 +146,15 @@ def main():
         if r.returncode != 0:
             print('fetch main failed:', r.stderr.strip())
     found = sorted(glob.glob(os.path.join(HERE, 'test_*.py')), key=lambda p: (not p.endswith('test_checks.py'), p))
-    changed = None if '--full' in sys.argv[1:] else changed_since_pass()
-    mode, names = pick_tests(changed, [os.path.basename(p) for p in found])
+    seen = {}
+    mode, names = choose(sys.argv[1:], [os.path.basename(p) for p in found], lambda: seen.setdefault('c', changed_since_pass()))
     tests = [p for p in found if os.path.basename(p) in names]
-    print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {(pass_commit() or "?")[:7]}; '
-                                 f'changed: {", ".join(changed) or "nothing"})'))
+    if mode == 'fast':
+        print('== tests: fast checks only (D-086; --full at a checkpoint runs everything)')
+    else:
+        changed = seen.get('c')
+        print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {(pass_commit() or "?")[:7]}; '
+                                     f'changed: {", ".join(changed or []) or "nothing"})'))
     results.append((f'tests chosen: {mode}, {len(tests)} of {len(found)}', 'PASS'))
     for t in tests:
         code = run(os.path.relpath(t, REPO), PY + [t])
