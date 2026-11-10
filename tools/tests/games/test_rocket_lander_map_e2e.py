@@ -1,5 +1,7 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.4.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.5.
 
+Changes at v1.5 (Rob, 10 Nov): the portal by level 8 goes on through the full hyperspace; the
+arrows and the galaxy keep the quick warp.
 Changes at v1.4 (D-071): with the calm versions off for now, a device asking for less motion gets
 the full hyperspace.
 Changes at v1.3 (Rob, 10 Nov): after a flight in the galaxy the rocket rests by the planet a moment
@@ -399,13 +401,28 @@ with sync_playwright() as pw:
     check(m['at'] == 'moon-8' and m['rocketAt'] == 'moon-8', f'back on the Moon, the rocket waits at its first level with something left to win (level 8, 3 rocks found): {m["at"]}')
     # the arrows: the Moon to Red Dust and back
     tap(pg, '#sys-next')
+    pg.wait_for_timeout(250)
+    seen_hyper = st(pg)['screen'] == 'hyper'
     pg.wait_for_function('__test.state().map.system === "dust"', timeout=8000)
     settle(pg)
-    check(mp(pg)['at'] == 'dust-1', 'the arrow flies on to Red Dust, to its newest level')
+    check(mp(pg)['at'] == 'dust-1' and not seen_hyper, 'the arrow flies on to Red Dust, to its newest level, by the quick warp')
     tap(pg, '#sys-prev')
     pg.wait_for_function('__test.state().map.system === "moon"', timeout=8000)
     settle(pg)
     check(mp(pg)['system'] == 'moon' and entry(pg)['at'] == 'moon-8', 'and back again; the place is kept on the device')
+    # the portal by level 8 goes on through hyperspace, the full one (Rob, 10 Nov)
+    p = pg.evaluate('__test.mapHit("portal")')
+    pg.mouse.click(p['x'], p['y'])
+    pg.wait_for_function('__test.state().screen === "hyper"', timeout=5000)
+    check(mp(pg)['hyper']['dur'] > 5 and mp(pg)['hyper']['to'] == 'Red Dust', f'the portal: hyperspace to Red Dust: {mp(pg)["hyper"]}')
+    pg.wait_for_function('__test.state().screen === "map" && __test.state().map.system === "dust"', timeout=12000)
+    pg.wait_for_timeout(300)
+    banner = mp(pg)['banner']
+    settle(pg)
+    check(mp(pg)['rocketAt'] == 'dust-1' and entry(pg)['at'] == 'dust-1' and banner == 'Welcome to Red Dust!', f'through the portal: Red Dust\'s map, the rocket at level 1, a welcome: {mp(pg)["rocketAt"]}, {banner!r}')
+    tap(pg, '#sys-prev')
+    pg.wait_for_function('__test.state().map.system === "moon"', timeout=8000)
+    settle(pg)
     tap(pg, '#to-galaxy')
     pg.wait_for_function('__test.state().screen === "galaxy"')
     tap(pg, '#gx-back')

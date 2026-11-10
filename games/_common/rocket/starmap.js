@@ -1,8 +1,10 @@
 // The rocket game's map screens (D-058, D-065, D-066): the map of the system the child is in, with
 // its level markers along a path and the rocket waiting by its place; the galaxy view of every system
 // along a winding path; and the jumps between them, a short warp and, when a system is done,
-// hyperspace. Version 1.3 (step 2c-build, D-068). All original and drawn in code (D-010).
+// hyperspace. Version 1.4 (step 2c-build, D-068). All original and drawn in code (D-010).
 //
+// Changes at v1.4 (Rob, 10 Nov): the portal by the last level goes on through the full hyperspace
+// (io.portal); the arrows and the galaxy keep the quick warp.
 // Changes at v1.3 (Rob, 10 Nov): after a flight in the galaxy the rocket rests by the planet for a
 // moment, with a sparkle, before its map comes. Hyperspace lasts longer (5.6 s, calm 2.4 s) and is
 // grander: a charge-up, neon streaks in light, rings of a tunnel rushing past, star bursts, then the flash.
@@ -23,6 +25,7 @@
 //   tap(id)          an open level's marker was tapped (round.js opens its card);
 //   play(id)         start a round on a level (after the rocket's launch);
 //   move(id)         the rocket flew to another system and waits at this level now;
+//   portal(s)        the portal by the last level was tapped: on to system s through hyperspace;
 //   sfx(name), say(text), calm()   sounds, words and less motion, as the game has them;
 //   covered(on)      the galaxy or hyperspace covers the whole stage (round.js hides the home button).
 
@@ -325,6 +328,7 @@ export class StarMap {
       else (d < 0 ? this.el.prev : this.el.next).animate([{ transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'none' }], { duration: 300 });
       return;
     }
+    if (portal) { this.io.portal(s2); return; } // the portal: the full hyperspace (Rob, 10 Nov)
     this.io.sfx('whoosh');
     this.queue({ kind: 'warp', dur: this.calm ? 0.35 : 0.8, to: s2 });
   }

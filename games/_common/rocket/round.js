@@ -1,5 +1,7 @@
-// The rocket game's round flow (D-027, D-058). Version 2.2.
+// The rocket game's round flow (D-027, D-058). Version 2.3.
 //
+// Changes at v2.3 (Rob, 10 Nov): the map's portal goes on to the next system through the full
+// hyperspace, landing at that system's level as the arrows would (placeIn), with a welcome.
 // Changes at v2.2 (D-071, Rob, 10 Nov): the calm versions are off for now: the game plays its full
 // motion even when the device asks for less. The calm code stays, back on by FOLLOW_CALM = true.
 // Changes at v2.1 (Rob, 10 Nov): a tap on an open level flies the rocket over to it and keeps it
@@ -78,7 +80,7 @@ import { FLEET_BY_ID, STARTER, hangarOf, buy as buyShip, pick as pickShip } from
 import { SHIP_BY_ID, Parts, newState, tickShip, landShip, drawShip, drawTrail } from './ships.js';
 import { Hangar } from './hangar.js';
 import { StarMap } from './starmap.js';
-import { route, placeOf, fresh, tidy as tidyProgress, finish, rockLeft, goTo, levelGiven, bestOf, foundOf, systemStars, ROCKS_PER_LEVEL, PASS_STARS } from './progress.js';
+import { route, placeOf, fresh, tidy as tidyProgress, finish, rockLeft, goTo, levelGiven, bestOf, foundOf, systemStars, placeIn, ROCKS_PER_LEVEL, PASS_STARS } from './progress.js';
 
 export function runRocket(mode) {
   const heard = []; // the last sounds played, by name, for the tests
@@ -1035,6 +1037,12 @@ export function runRocket(mode) {
       tap: (id) => { pickLevel(id); openCard(id); },
       play: (id) => startRound(id),
       move: (id) => { progress = { ...progress, at: id }; level = levelById(id); keep(); },
+      portal: (s2) => { // through the portal to the next system: the full hyperspace (Rob, 10 Nov)
+        const at = placeIn(MAP, progress, s2);
+        if (!at) return;
+        progress = { ...progress, at }; level = levelById(at); keep();
+        starmap.hyperspace(s2, () => { showMap({ drop: true, banner: `Welcome to ${MAP[s2].name}!` }); if (S.speak) speak(`Welcome to ${MAP[s2].name}!`); });
+      },
       sfx: (name) => sfx(name),
       say: (text) => { if (S.speak) speak(text); },
       calm: () => scene.calm,
