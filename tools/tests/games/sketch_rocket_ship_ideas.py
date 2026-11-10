@@ -1,5 +1,9 @@
-"""Sketches: new ship ideas for Rocket Lander's hangar. Version 1.2.
+"""Sketches: new ship ideas for Rocket Lander's hangar. Version 1.3.
 
+Changes at v1.3 (10 Nov, Rob: "mock up ... A. Christmas tree, but have Bip holding onto the top of
+the tree while flying, when it lands he puts a star on the tree and climbs / uses a ladder to get
+down. B to E. as described"): the five narrow ideas drawn the same three ways, 12 to 16; the
+words-only section goes; the page becomes sketches 4.
 Changes at v1.2 (10 Nov, Rob: many of the ideas are too wide for the children to land accurately;
 "think of 5 more ideas and describe with text only", one a Christmas tree with a gift box and Bip
 hanging on): five narrow ideas in words only, in their own section; the page becomes sketches 3.
@@ -33,7 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/ship-ideas'
 os.makedirs(OUT, exist_ok=True)
-VERSION = '1.2'
+VERSION = '1.3'
 COMMIT = subprocess.check_output(['git', '-C', REPO, 'rev-parse', '--short', 'HEAD'], text=True).strip()
 
 # The game's colours (scene.js, ships.js)
@@ -659,6 +663,224 @@ def hamster(mode):
         s.append(bang(30, -42, 'WHEE!', 15, 10))
     return ''.join(s)
 
+def star_shape(x, y, r, fill=SUN, w=LW * 0.7):
+    pts = []
+    for i in range(10):
+        a = -math.pi / 2 + i * math.pi / 5
+        rr = r if i % 2 == 0 else r * 0.45
+        pts.append(f'{f(x + rr * math.cos(a))} {f(y + rr * math.sin(a))}')
+    return path('M' + 'L'.join(pts) + 'Z', fill, w)
+
+
+def body(x0, y0, x1, y1, w=8):
+    """Bip's little suit between two points (for a whole Bip: arms and legs are tubes too)."""
+    return tube(f'M{f(x0)} {f(y0)}L{f(x1)} {f(y1)}', MINT, w)
+
+
+def xmas(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        s.append(blob([(-8, 55, 5), (0, 53, 6), (8, 55.5, 4.6)], '#FFFFFF', 1.5))
+        for x, y, k in ((-14, 66, 3.4), (12, 70, 3), (-2, 80, 2.6)):
+            s.append(sparkle(x, y, k, SUN))
+        s.append(motion('M-30 60q-6 10 -2 20', 0.6, 2) + motion('M30 60q6 10 2 20', 0.6, 2))
+    # the tree: trunk, three tiers, snow on the edges, lights and baubles
+    s.append(f'<rect x="-4" y="18" width="8" height="12" fill="#8E5A34" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>')
+    tiers = ((22, 30, -4), (6, 24, -21), (-10, 17, -38))
+    for yb, hw, yt in tiers:
+        s.append(path(f'M0 {yt}L{hw} {yb}Q0 {yb + 5} -{hw} {yb}Z', '#2FA36B'))
+        s.append(path(f'M0 {yt}L-{hw} {yb}Q{-hw * 0.4} {yb + 3} -{hw * 0.15} {yb + 4}Z', '#24865A', stroke=None))
+    s.append(line('M-22 2Q0 12 22 0M-16 -14Q0 -6 15 -16', '#FFE48A', 1.2))
+    for i, (x, y) in enumerate(((-16, 5), (-6, 8), (6, 8), (16, 4), (-10, -10), (2, -8), (11, -13))):
+        s.append(circle(x, y, 1.5, ('#FFE14D', '#FF6B81', '#8CF5FF', '#7CFF6B')[i % 4], stroke=None))
+    for x, y, c in ((-19, 16, CORAL), (12, 17, SKY), (-2, 0, SUN), (-12, -4, PINK), (9, -6, CORAL), (0, -22, SKY), (-6, -18, SUN)):
+        s.append(circle(x, y, 2.8, c, LW * 0.45) + circle(x - 0.9, y - 0.9, 0.8, '#FFFFFF', stroke=None))
+    # the gift box
+    s.append(f'<rect x="-18" y="31" width="36" height="19" rx="2" fill="#E8443A" stroke="{INK}" stroke-width="{LW}"/>')
+    s.append(f'<rect x="-20" y="27" width="40" height="6" rx="2" fill="#F2564B" stroke="{INK}" stroke-width="{f(LW * 0.8)}"/>')
+    s.append(f'<rect x="-3" y="27" width="6" height="23" fill="{GOLD[1]}" stroke="{INK}" stroke-width="{f(LW * 0.5)}"/>')
+    s.append(path('M0 28Q-10 18 -12 26Q-8 30 0 28Z', GOLD[1], LW * 0.6) + path('M0 28Q10 18 12 26Q8 30 0 28Z', GOLD[1], LW * 0.6) + circle(0, 28, 2.2, GOLD[2], LW * 0.5))
+    if not land:
+        # Bip holds on to the top, legs fluttering in the wind (Rob, 10 Nov)
+        s.append(body(-6, -36, -20, -26, 7))
+        s.append(tube('M-20 -26L-30 -30', MINT, 3) + tube('M-21 -25L-31 -20', MINT, 3))
+        s.append(motion('M-36 -34h-8M-37 -22h-9', 0.8, 2))
+        s.append(bip(-9, -41, 8, '' if mode == 'stand' else 'oh'))
+        s.append(tube('M-4 -36L0 -39', MINT, 2.8) + hand(0.5, -39.5, 2.4) + hand(-1.5, -37, 2.4))
+    else:
+        # TA-DA: the star on top, lit; Bip on a little ladder, on the way down
+        gl, gdefs = rgrad([(0, SUN, 0.8), (1, SUN, 0)], 0.5, 0.5, 0.5)
+        s.append(gdefs + circle(0, -43, 14, f'url(#{gl})', stroke=None) + star_shape(0, -43, 8))
+        for a in range(0, 360, 45):
+            ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+            s.append(motion(f'M{f(ca * 11)} {f(-43 + sa * 11)}L{f(ca * 15)} {f(-43 + sa * 15)}', 0.9, 1.6))
+        s.append(tube('M18 50L8 -14', '#C98A5A', 2.2) + tube('M27 50L17 -14', '#C98A5A', 2.2))
+        for k in range(1, 8):
+            y = 50 - k * 8
+            x0 = 18 - (50 - y) * 10 / 64
+            s.append(line(f'M{f(x0)} {y}H{f(x0 + 9)}', '#8E5A34', 2.2))
+        s.append(body(20, 2, 21, 12, 7) + tube('M20 13L17 20', MINT, 3) + tube('M22 13L25 19', MINT, 3))
+        s.append(bip(20, -6, 7.5, 'happy') + hand(15, 0, 2.2) + hand(25, -2, 2.2))
+        s.append(bang(-24, -54, 'TA-DA!', 14, -8))
+        s.append(sparkle(-18, -32, 3.4) + sparkle(18, -40, 2.8))
+    return ''.join(s)
+
+
+def gumball(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        for x, y, r in ((-34, -6, 4), (-44, 4, 3), (-52, -12, 2.4)):
+            s.append(circle(x, y, r, '#FF9EC9', 1.2) + circle(x - r * 0.3, y - r * 0.3, r * 0.3, '#FFFFFF', stroke=None))
+        s.append(motion('M-30 20h-10M-32 30h-12', 0.7, 2))
+    # the seat's two little feet, the seat, the strings
+    for x in (-6, 6):
+        s.append(f'<rect x="{x - 1.6}" y="40" width="3.2" height="9" fill="#9FA6BF" stroke="{INK}" stroke-width="{f(LW * 0.5)}"/>' + ellipse(x, 49, 3.4, 1.4, '#3A3560', LW * 0.4))
+    if not land:
+        s.append(line('M-9 36Q-6 20 -1 5M9 36Q6 20 1 5', INK, 1.4))
+    else:
+        s.append(line('M-9 36Q-14 22 -6 14M9 36Q15 24 8 16', INK, 1.4))
+    # Bip on the seat, legs dangling
+    s.append(tube('M-2 38L-6 46', MINT, 3.2) + tube('M3 38L6 47', MINT, 3.2))
+    s.append(body(0, 30, 0, 37, 8))
+    s.append(f'<rect x="-11" y="36" width="22" height="5" rx="2" fill="#C98A5A" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>')
+    if not land:
+        s.append(bip(0, 21, 8.5) + hand(-8, 30, 2.2) + hand(8, 30, 2.2))
+        gid, defs = rgrad([(0, '#FFC4E1', None), (0.6, '#FF7FBF', None), (1, '#E0479A', None)], 0.35, 0.3, 0.8)
+        s.append(defs + circle(0, -21, 27, f'url(#{gid})'))
+        s.append(ellipse(-10, -32, 7, 4.5, '#FFFFFF', stroke=None, rot=-30, extra=' opacity=".7"') + circle(-17, -22, 2, '#FFFFFF', stroke=None, extra=' opacity=".6"'))
+        s.append(path('M-3 5Q0 9 3 5Q2 3 0 4Q-2 3 -3 5Z', '#E0479A', LW * 0.5))
+    else:
+        # POP: the bubble bursts and the gum splats on Bip's face
+        pts = []
+        for i in range(16):
+            a = i * math.tau / 16
+            r = 24 if i % 2 == 0 else 12
+            pts.append(f'{f(r * math.cos(a))} {f(-22 + r * math.sin(a))}')
+        s.append(path('M' + 'L'.join(pts) + 'Z', '#FF9EC9', LW * 0.6, extra=' opacity=".9"'))
+        for x, y, r in ((-30, -36, 2.4), (28, -40, 2), (-26, -6, 2), (30, -10, 2.6)):
+            s.append(circle(x, y, r, '#FF7FBF', 0.9))
+        s.append(bip(0, 21, 8.5, 'oh') + hand(-8, 30, 2.2) + hand(8, 30, 2.2))
+        s.append(path('M-8 17Q-4 10 2 13Q9 12 8 19Q9 26 2 26Q-4 28 -7 24Q-11 21 -8 17Z', '#FF7FBF', LW * 0.5, extra=' opacity=".92"'))
+        s.append(circle(-3, 19, 1.4, SKY, stroke=None) + circle(3, 19, 1.4, SKY, stroke=None))
+        s.append(bang(0, -52, 'POP!', 16, -6))
+    return ''.join(s)
+
+
+def giraffe(mode):
+    s = []
+    land = mode == 'land'
+    Y, SPOT = '#FFC94D', '#C9762E'
+    if mode == 'fly':
+        s.append(path('M-14 2Q-26 8 -34 4Q-27 1 -22 -2Z', '#FFB347', stroke=None, extra=' opacity=".9"'))
+        s.append(motion('M-38 14h-10M-36 24h-12', 0.7, 2))
+    for x, sh in ((-14, 0), (-8, 0), (7, 0), (13, 0)):  # four legs, close together
+        s.append(tube(f'M{x} 22L{x + sh} 47', Y, 3.6) + ellipse(x + sh, 48.6, 2.8, 1.6, '#5A3A22', LW * 0.4))
+    s.append(tube('M-21 10Q-26 16 -24 22', Y, 1.6) + ellipse(-24, 23, 1.6, 2.4, '#5A3A22', stroke=None))
+    # the jetpack on its back
+    s.append(f'<rect x="-14" y="-2" width="10" height="11" rx="2" fill="#9FA6BF" stroke="{INK}" stroke-width="{f(LW * 0.7)}"/>')
+    s.append(ellipse(1, 15, 21, 9.5, Y))
+    for x, y, r in ((-12, 13, 3), (-3, 18, 2.6), (6, 12, 3.2), (13, 18, 2.4), (-6, 9, 2)):
+        s.append(ellipse(x, y, r, r * 0.8, SPOT, stroke=None))
+    neck = 'M14 9Q18 -6 16 -18' if not land else 'M14 9Q22 -6 14 -18'
+    s.append(tube(neck, Y, 8))
+    for x, y in ((16, 2), (17, -8)):
+        s.append(ellipse(x, y, 2, 1.6, SPOT, stroke=None))
+    hx, hy = (18, -22) if not land else (16, -22)
+    s.append(ellipse(hx + 3, hy, 8.6, 5.6, Y) + ellipse(hx + 9, hy + 1.5, 3.6, 3, '#FFE1A0', LW * 0.5) + circle(hx + 3, hy - 1.5, 1.3, INK, stroke=None))
+    s.append(path(f'M{hx - 4} {hy - 3}l-5 -2 2 4z', Y, LW * 0.5))
+    # the round space helmet, the two horns poking out of its top
+    s.append(circle(hx + 3, hy - 1, 12, '#CFEFFF', LW * 0.7, extra=' fill-opacity=".35"') + line(f'M{hx - 4} {hy - 7}A9 9 0 0 1 {hx + 3} {hy - 10}', '#FFFFFF', 1.8, ' opacity=".8"'))
+    for dx in (-1, 6):
+        s.append(tube(f'M{hx + dx} {hy - 11}V{hy - 15}', Y, 1.6) + circle(hx + dx, hy - 16, 1.8, '#5A3A22', stroke=None))
+    # Bip on top, between the horns
+    s.append(body(hx + 2.5, hy - 15, hx + 2.5, hy - 19, 6))
+    s.append(bip(hx + 2.5, hy - 25, 7.5, 'happy' if land else ''))
+    s.append(hand(hx - 1, hy - 16, 2) + hand(hx + 6, hy - 16, 2))
+    if land:
+        s.append(path(f'M{hx + 12} {hy + 2}Q{hx + 22} {hy - 6} {hx + 16} {hy - 22}Q{hx + 12} {hy - 30} {hx + 7} {hy - 26}Q{hx + 14} {hy - 20} {hx + 13} {hy - 6}Z', '#9B5DE5', LW * 0.6))
+        s.append(motion(f'M{hx - 10} {hy + 8}q-4 4 0 8M{hx - 14} {hy + 4}q-5 5 0 11', 0.85, 2))
+        s.append(bang(-22, -46, 'SLURP!', 14, -8))
+    return ''.join(s)
+
+
+def jackbox(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        for x, y, a in ((26, -6, 10), (36, -16, -10), (20, -22, 15)):
+            s.append(f'<g transform="translate({x} {y}) rotate({a})">' + circle(0, 4, 2.4, '#FFFFFF', stroke=None) + line('M2.2 4V-5l4 2', '#FFFFFF', 1.4) + '</g>')
+        s.append(blob([(-6, 55, 4.6), (2, 53.5, 5.4), (9, 55.6, 4.2)], '#FFFFFF', 1.4))
+    gid, defs = grad([(0, '#A88BFF'), (1, '#7553E0')])
+    s.append(defs + f'<rect x="-20" y="10" width="40" height="40" rx="3" fill="url(#{gid})" stroke="{INK}" stroke-width="{LW}"/>')
+    for x, y, r in ((-10, 20, 4), (9, 33, 5), (-8, 41, 3.4), (11, 18, 3)):
+        s.append(star_shape(x, y, r, SUN, LW * 0.35))
+    s.append(line('M-20 14H20M-20 46H20', '#FFFFFF', 1.2, ' opacity=".35"'))
+    # the winding handle on the side
+    s.append(tube('M20 30H27', '#D6DCEC', 2.4) + tube('M27 30V22', '#D6DCEC', 2.4) + circle(27, 21, 2.6, CORAL, LW * 0.5))
+    if mode == 'fly':
+        s.append(motion('M27 14A10 10 0 0 1 37 26', 0.85, 2) + motion('M27 40A10 10 0 0 1 17 30', 0.6, 2))
+    if not land:
+        # the lid, a crack open, Bip peeking out
+        s.append(bip(0, 10, 8, '', None))
+        s.append(f'<rect x="-21" y="4" width="42" height="6" rx="2" fill="#8E6CF0" stroke="{INK}" stroke-width="{f(LW * 0.9)}" transform="rotate(-8 -21 10)"/>')
+        s.append(f'<rect x="-20" y="10" width="40" height="4" fill="#7553E0"/>' + line('M-20 10H20', INK, LW * 0.7))
+    else:
+        # POP: Bip springs out on a coil and bobs
+        s.append(f'<rect x="-21" y="2" width="42" height="6" rx="2" fill="#8E6CF0" stroke="{INK}" stroke-width="{f(LW * 0.9)}" transform="rotate(-70 -21 8)"/>')
+        s.append(tube('M0 10l6 -3l-12 -3l12 -3l-12 -3l12 -3l-12 -3l12 -3l-6 -2', '#D6DCEC', 2))
+        s.append(body(0, -17, 0, -24, 7) + tube('M-3 -21L-11 -27', MINT, 3) + tube('M3 -21L11 -27', MINT, 3) + hand(-11.5, -27.5, 2.2) + hand(11.5, -27.5, 2.2))
+        s.append(bip(0, -32, 9, 'happy'))
+        s.append(motion('M-16 -38q-4 4 0 8M16 -38q4 4 0 8', 0.85, 2))
+        s.append(bang(-28, -50, 'POP!', 15, -8))
+        for x, y, a in ((28, -36, 10), (36, -22, -12)):
+            s.append(f'<g transform="translate({x} {y}) rotate({a})">' + circle(0, 4, 2.4, '#FFFFFF', stroke=None) + line('M2.2 4V-5l4 2', '#FFFFFF', 1.4) + '</g>')
+    return ''.join(s)
+
+
+def cone(mode):
+    s = []
+    land = mode == 'land'
+    if mode == 'fly':
+        cols = (SUN, MINT, '#4F7BEA', PINK, '#9B5DE5', CORAL)
+        r = rnd(13)
+        for i in range(12):
+            x, y, a = -18 + r() * 36, 48 + r() * 34, r() * 180
+            s.append(f'<rect x="{f(x - 2.2)}" y="{f(y - 0.8)}" width="4.4" height="1.6" rx="0.8" fill="{cols[i % 6]}" transform="rotate({f(a)} {f(x)} {f(y)})"/>')
+        s.append(ellipse(-8, 30, 1.6, 2.6, '#BFF5DC', 0.8) + ellipse(9, 40, 1.4, 2.2, '#FFC2D1', 0.8))
+    g = []
+    cid = uid('c')
+    g.append(f'<defs><clipPath id="{cid}"><path d="M-16 -2H16L0 50Z"/></clipPath></defs>')
+    g.append(path('M-16 -2H16L0 50Z', '#E8B56A'))
+    g.append(f'<g clip-path="url(#{cid})">' + ''.join(line(f'M{x} -2L{x + 30} 50', '#C98A3A', 1.2) + line(f'M{x + 30} -2L{x} 50', '#C98A3A', 1.2) for x in range(-40, 20, 7)) + '</g>')
+    g.append(path('M-16 -2H16L0 50Z', 'none'))
+    # the mint scoop, its drips, the wafer stuck in it
+    g.append(path('M-17 -2Q-19 -14 -10 -20Q0 -26 10 -20Q19 -14 17 -2Q14 3 11 -1Q8 4 5 -1Q2 5 -1 -1Q-4 4 -7 -1Q-11 4 -13 -1Q-15 2 -17 -2Z', '#9BF0C9'))
+    g.append(f'<rect x="-15" y="-34" width="6" height="18" rx="1" fill="#F2D59A" stroke="{INK}" stroke-width="{f(LW * 0.6)}" transform="rotate(-14 -12 -16)"/>')
+    top = []
+    top.append(path('M-14 -24Q-16 -36 -6 -40Q4 -44 11 -36Q16 -30 13 -24Q10 -20 7 -23Q4 -19 1 -23Q-2 -19 -5 -23Q-9 -19 -14 -24Z', '#FF9AB5'))
+    for x, y, a, c in ((-8, -30, 30, SUN), (6, -32, -40, '#4F7BEA'), (-2, -26, 80, MINT), (9, -27, 10, '#9B5DE5')):
+        top.append(f'<rect x="{x - 2}" y="{y - 0.7}" width="4" height="1.4" rx="0.7" fill="{c}" transform="rotate({a} {x} {y})"/>')
+    top.append(bip(1, -37, 7.6, 'oh' if land else ''))
+    top.append(hand(-6, -31, 2.2) + hand(8, -31, 2.2))
+    gl, gdefs = rgrad([(0, '#FF8FA0', 0.7), (1, '#FF8FA0', 0)], 0.5, 0.5, 0.5)
+    top.append(gdefs + circle(12, -38, 7, f'url(#{gl})', stroke=None) + circle(12, -38, 3.6, '#E8243F', LW * 0.6) + line('M12 -41Q13 -46 17 -47', '#5A8F2E', 1.2))
+    if land:
+        g.append(f'<g transform="translate(9 2) rotate(14 0 -24)">{"".join(top)}</g>')
+        g.append(tube('M-8 -24L4 -30', MINT, 3) + hand(4.5, -30.5, 2.2))
+    else:
+        g.append(''.join(top))
+    for x, y in ((-12, 4), (6, 6)):
+        g.append(path(f'M{x} {y - 3}Q{x + 1.6} {y + 2} {x} {y + 3}Q{x - 1.6} {y + 2} {x} {y - 3}Z', '#9BF0C9', LW * 0.4))
+    if land:
+        s.append(f'<g transform="rotate(6 0 50)">{"".join(g)}</g>')
+        s.append(motion('M-8 46q-4 -3 -6 -8M8 46q4 -3 6 -8', 0.9, 2))
+        s.append(bang(-26, -50, 'PHEW!', 15, -8))
+    else:
+        s.append(''.join(g))
+    return ''.join(s)
+
 
 def classic():
     """The classic rocket today, for scale (sketch_rocket_map.py's crude rocket, centred)."""
@@ -802,63 +1024,61 @@ IDEAS = [
         ('Landing joke', '<b>WHEE!</b> The ball rocks to a stop and Bip tumbles head over heels inside.'),
         ('Sound', 'A plasticky rumble and a wheee.'),
         ('Watch', 'Close to the Bubble Pod (also a ball with Bip inside): what makes it different is Bip running like a hamster.')]),
+    (xmas, 'Christmas Tree', 'A little fir tree flying out of a wrapped gift box, with Bip holding on to the very top.', [
+        ('Looks', 'Baubles and a string of twinkling lights on three tiers of branches, a red gift box with a gold ribbon and bow; no star on top yet.'),
+        ('Flies on', 'A sparkly tinsel trail and puffs of snow from under the box; Bip\'s legs flutter in the wind.'),
+        ('Stands on', 'The gift box.'),
+        ('Landing joke', '<b>TA-DA!</b> Bip puts a gold star on the top of the tree, it lights up, and Bip climbs down a little ladder.'),
+        ('Sound', 'Sleigh bells, then a twinkle as the star lights.'),
+        ('Watch', 'Bip holds on above the usual window while flying; the ladder stands on the ground beside the box, above the line.')]),
+    (gumball, 'Bubble-Gum Balloon', 'Bip floats under a huge pink bubble-gum bubble, sitting on a little swing seat hanging from it.', [
+        ('Looks', 'A shiny pink bubble, two strings down to a small wooden seat, Bip on it, legs swinging.'),
+        ('Flies on', 'The bubble, with tiny gum bubbles drifting off behind.'),
+        ('Stands on', 'The seat\'s two little feet, right under Bip.'),
+        ('Landing joke', '<b>POP!</b> The bubble bursts and pink gum splats over Bip\'s face; Bip peels it off and blows a new one.'),
+        ('Sound', 'A stretchy squeak, then a pop.'),
+        ('Watch', 'The wide bubble is high up; what lands is only Bip on the seat, so the numbers either side stay clear.')]),
+    (giraffe, 'Space Giraffe', 'A spotty giraffe in a round space helmet, with Bip riding on its head between the horns.', [
+        ('Looks', 'Long neck, patches, the horns poking out through the helmet, a little jetpack on its back.'),
+        ('Flies on', 'The jetpack, the long neck swaying.'),
+        ('Stands on', 'Its four long legs, close together.'),
+        ('Landing joke', 'The neck wobbles like a spring, then the giraffe licks Bip with a long purple tongue: <b>SLURP!</b>'),
+        ('Sound', 'Clip-clop, then a slurp.'),
+        ('Watch', 'Bip rides high, above the usual window.')]),
+    (jackbox, 'Jack-in-the-Box', 'The Toaster\'s pop-up joke in a narrow box: a starry box with a winding handle on its side.', [
+        ('Looks', 'The lid a crack open while flying, Bip peeking out.'),
+        ('Flies on', 'The handle turning like a propeller, with music-box notes floating out.'),
+        ('Stands on', 'The bottom of the box.'),
+        ('Landing joke', 'The tune plays... <b>POP!</b> Bip springs out on a coil, bobs up and down, then squashes back in.'),
+        ('Sound', 'A music-box tune, then a boing.'),
+        ('Watch', 'Bip pops up only after touchdown, so the spring never covers the numbers.')]),
+    (cone, 'Ice Cream Cone', 'A waffle cone with a mint scoop and a strawberry scoop; Bip rides in the top one, a wafer for a backrest.', [
+        ('Looks', 'Criss-cross waffle, sprinkles, drips, a glowing cherry as the beacon.'),
+        ('Flies on', 'A trail of sprinkles and little drips of melt.'),
+        ('Stands on', 'The tip of the cone: one point, right on the number.'),
+        ('Landing joke', 'It wobbles on its tip, the top scoop starts to slide with Bip in it, and Bip grabs the wafer just in time: <b>PHEW!</b>'),
+        ('Sound', 'A wobbly wiggle, then a phew.'),
+        ('Watch', 'It lands on a single point; the point is at the bottom, so it doesn\'t look like a rocket.')]),
 ]
 ALSO = [
     ('Comfy Armchair', 'an armchair with slippers and a reading lamp: left out (Rob, 10 Nov).'),
 ]
 
-NARROW = [
-    ('Christmas Tree', 'A little fir tree flying upright out of a wrapped gift box. Bip clings to the trunk halfway up, arms and legs wrapped round it, antenna poking out through the branches.', [
-        ('Looks', 'Baubles, a string of twinkling lights and a gold star on top that glows like a beacon; the gift box at the bottom with its ribbon bow.'),
-        ('Flies on', 'A sparkly tinsel trail, with puffs of snow from under the box.'),
-        ('Stands on', 'The gift box.'),
-        ('Landing joke', '<b>FLUMP!</b> The bump shakes the snow off the branches onto Bip\'s head, the baubles jingle, and Bip, still hanging on tight, gives a wobbly thumbs-up.'),
-        ('Sound', 'Sleigh bells, then a soft flump.'),
-        ('Why narrow', 'A tree is a tall triangle, and the box under it is about as wide as the Classic\'s feet.')]),
-    ('Bubble-Gum Balloon', 'Bip floats under a huge pink bubble-gum bubble, sitting on a little swing seat hanging from it.', [
-        ('Looks', 'A shiny pink bubble with a highlight, a string down to a small swing seat, Bip on it, legs swinging.'),
-        ('Flies on', 'The bubble, with tiny gum bubbles drifting off behind.'),
-        ('Stands on', 'The swing seat\'s two little feet, right under Bip.'),
-        ('Landing joke', '<b>POP!</b> The bubble bursts and pink gum splats over Bip\'s face; Bip peels it off and blows a new one.'),
-        ('Sound', 'A stretchy squeak, then a pop.'),
-        ('Why narrow', 'The wide part is high up; what lands is only Bip on the seat, so the numbers either side stay clear.')]),
-    ('Space Giraffe', 'A spotty giraffe in a little space helmet, with Bip riding on its head between the horns.', [
-        ('Looks', 'Long neck, patches, a round glass helmet, a tiny jetpack on its back.'),
-        ('Flies on', 'The jetpack, the long neck swaying.'),
-        ('Stands on', 'Its four long legs, close together, hooves on the number.'),
-        ('Landing joke', 'The neck wobbles like a spring, then the giraffe licks Bip with a long purple tongue: <b>SLURP!</b>'),
-        ('Sound', 'Clip-clop, then a slurp.'),
-        ('Why narrow', 'Tall and thin, legs close together.')]),
-    ('Jack-in-the-Box', 'The Toaster\'s pop-up joke, in a narrow box: a starry box with a winding handle on its side.', [
-        ('Looks', 'The lid shut while flying, Bip peeking out through the crack.'),
-        ('Flies on', 'The handle turning like a propeller, with music-box notes floating out.'),
-        ('Stands on', 'The bottom of the box.'),
-        ('Landing joke', 'The tune plays, the handle turns... <b>POP!</b> Bip springs out on a coil, bobs up and down, then squashes back in.'),
-        ('Sound', 'A music-box tune, then a boing.'),
-        ('Why narrow', 'A box about as wide as the Classic.')]),
-    ('Ice Cream Cone', 'A waffle cone with two scoops (strawberry and mint) and a cherry; Bip sits in the top scoop with a wafer for a backrest.', [
-        ('Looks', 'Criss-cross waffle, sprinkles, a cherry on top as the beacon.'),
-        ('Flies on', 'A trail of sprinkles and little drips of melt.'),
-        ('Stands on', 'The tip of the cone: one point, right on the number.'),
-        ('Landing joke', 'It wobbles on its tip, the top scoop starts to slide, and Bip catches it just in time: <b>PHEW!</b>'),
-        ('Sound', 'A wobbly wiggle, then a phew.'),
-        ('Why narrow', 'It lands on a single point; the widest part is high up. The point is at the bottom, so it doesn\'t look like a rocket.')]),
-]
-
 sections = []
 for i, (fn, name, pitch, rows) in enumerate(IDEAS, 1):
     dl = ''.join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in rows)
+    if i == 12:
+        sections.append('<h2 class="band">Narrow ones (sketches 4): they land on a small footprint</h2>')
     sections.append(f'<section><h2>{i}. {name}</h2><p class="pitch">{pitch}</p><div class="row">'
                     f'<figure>{fly_panel(fn, i, name)}<figcaption>Flying</figcaption></figure>'
                     f'<figure>{land_panel(fn, i, name)}<figcaption>Landing</figcaption></figure>'
                     f'<dl>{dl}</dl></div></section>')
-narrow = ''.join(f'<section><h3>{chr(65 + i)}. {n}</h3><p class="pitch">{p}</p><dl>' + ''.join(f'<dt>{k}</dt><dd>{v}</dd>' for k, v in rows) + '</dl></section>' for i, (n, p, rows) in enumerate(NARROW))
 tiles = ''.join(tile(fn, name, i) for i, (fn, name, _, _) in enumerate(IDEAS, 1)) + tile(classic, 'Classic, today', 9)
 also = ''.join(f'<li><b>{n}</b>: {d}</li>' for n, d in ALSO)
 
 html = f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rocket Lander: new ship ideas (sketches 3)</title>
+<title>Rocket Lander: new ship ideas (sketches 4)</title>
 <style>
 :root {{ --bg: #F7F5FF; --fg: #1B1446; --mut: #5d5880; --card: #fff; }}
 @media (prefers-color-scheme: dark) {{ :root {{ --bg: #121027; --fg: #EDEBFF; --mut: #a9a5c9; --card: #1d1a3a; }} }}
@@ -877,12 +1097,11 @@ figure.tile {{ flex: 0 0 auto; max-width: none; padding: 4px; }}
 figure.tile svg {{ width: 112px; height: auto; }}
 ul {{ padding-left: 20px; max-width: 70ch; }}
 </style></head><body>
-<h1>Rocket Lander: new ship ideas (sketches 3)</h1>
+<h1>Rocket Lander: new ship ideas (sketches 4)</h1>
 <p class="stamp">Sketches, not the finished look: the shapes, the jokes, and how each one flies and lands. All original. sketch_rocket_ship_ideas.py {VERSION} · built at {COMMIT} · draft</p>
-<p><b>New in sketches 3:</b> five narrow ideas, in words only, at the end (A to E): many of 1 to 11 are too wide for the children to land accurately. Sketches 2 added ideas 7 to 11.</p>
+<p><b>New in sketches 4:</b> the five narrow ideas drawn, 12 to 16 (in words only in sketches 3), the Christmas Tree as Rob changed it: Bip holds on to the top, and on landing puts a star on it and climbs down a ladder. Many of 1 to 11 are too wide for the children to land accurately.</p>
 <p>{len(IDEAS)} ideas that are not rockets: funny everyday things, food, toys and a snail, each with its own way of flying, its own landing joke and sound, and Bip on show. Each keeps today's ships' size and landing spot, so play doesn't change. Pick the best few to draw in detail.</p>
 {"".join(sections)}
-<section><h2>Narrower ideas, in words only (sketches 3)</h2><p>Narrow where they land, so the numbers either side of the target stay in view.</p>{narrow}</section>
 <section><h2>At their size in play</h2>
 <p>On a sideways phone a ship is {PLAY_H:g} px tall (bigger upright and on the PC). Each idea is drawn here at that size, next to today's Classic, to check it still reads when it's small.</p>
 <div class="tiles">{tiles}</div></section>
