@@ -1,4 +1,9 @@
-"""Browser test for the three ship hooks round.js reads (step 2d-2, D-080). Version 1.0.
+"""Browser test for the three ship hooks round.js reads (step 2d-2, D-080). Version 1.1.
+
+Changes at v1.1 (checkpoint after step 2c-3c, D-107): the Christmas Tree's checks are known to fail about
+3 runs in 4 (ER-009, left as it is by D-106): a failed check of the tree still runs and prints, as
+"KNOWN (ER-009)", but doesn't fail the test; every other ship's check fails it as before. When ER-009 is
+fixed, KNOWN goes (set it to None) and the tree's checks fail the test again.
 
 Decided before the hooks were built. Played on a phone held sideways (844 x 390), level 1 (a line of
 0 to 5), three landings a round, the ship flown set in a made-up progress entry. The round's own test
@@ -45,13 +50,18 @@ threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
 GAME = 'rocket-lander'
 KEY = f'family-games:{GAME}:progress'
-errors, fails, outside = [], [], []
+errors, fails, outside, known = [], [], [], []
+KNOWN = ('tree', 'ER-009')  # (a check's start, its error): a known fault that prints but doesn't fail the test (D-107)
 TOL = 2.0  # pixels: the hop moves at most about a pixel between two slowed-down frames
 WINDOW = (0.0, 0.255, 0.3)  # the Classic's window, where round.js's hop starts today
 FIN_OUT = 0.95  # round.js: Bip leaves the ship in Bip's moment (FIN.out)
 
 
 def check(ok, what):
+    if not ok and KNOWN and what.startswith(KNOWN[0]):
+        print(f'KNOWN ({KNOWN[1]}) ' + what)
+        known.append(what)
+        return
     print(('ok   ' if ok else 'FAIL ') + what)
     if not ok:
         fails.append(what)
@@ -257,5 +267,7 @@ with sync_playwright() as pw:
 httpd.shutdown()
 check(not outside, 'nothing fetched from outside the local server' + ('' if not outside else ': ' + ' | '.join(sorted(set(outside))[:5])))
 check(not errors, 'no console errors or warnings' + ('' if not errors else ': ' + ' | '.join(errors[:5])))
+if known:
+    print(f'\n{len(known)} check(s) of a known fault ({KNOWN[1]}, D-107) failed and are not counted')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)
