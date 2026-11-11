@@ -1,7 +1,12 @@
 // Reception's target faces (level plan 0.3, section 5; D-092): the pictures and phrases at the top
 // that ask for a number: dots to count, a quick look, more or fewer than some dots, one more or one
 // less, a frame to fill to make 5 or 10, sums with dots under each number (Q-033), doubles and
-// sharing sweets. Version 1.1. Changes at v1.1 (step 2c-3b, D-100): Year 2's faces: a number as tens
+// sharing sweets. Version 1.2. Changes at v1.2 (step 2c-3c): Year 1's and Year 3's faces: a number to find
+// (shown as itself, like Number mode's chip), groups of 2, 5 or 10 as rows of dots (an array, the notes'
+// show_array), half of a number as its dots in two groups, a 3-digit number as counters in a place-value
+// chart (H, T, O: nine hundreds as blocks wouldn't fit an upright phone's chip), 10 or 100 more or less, a
+// count in tenths written as tenths (partsHtml), which of two unit fractions is bigger, and a fraction sum
+// (fracSumHtml). Changes at v1.1 (step 2c-3b, D-100): Year 2's faces: a number as tens
 // rods and ones (place), in words (words), "47 < ?" (sign), three numbers of a count and a box to find
 // (seq), a circle or a bar cut in equal parts with some shaded (frac-shape), and a fraction of a number
 // with its dots in equal groups (frac-of); fractions are written one number over the other (fracHtml).
@@ -63,7 +68,7 @@ export function faceChip(T) {
     case 'compare':
       return { cls: 'face face-compare', html: `${fw(T.rel === 'more' ? 'more than' : T.rel === 'fewer' ? 'fewer than' : 'the same as')}${dotsSvg(T.n)}` };
     case 'more-less':
-      return { cls: 'face face-more-less', html: `${fw(T.dir === 'more' ? '1 more than' : '1 less than')}<b class="fn">${esc(T.n)}</b>` };
+      return { cls: 'face face-more-less', html: `${fw(`${T.by ?? 1} ${T.dir === 'more' ? 'more' : 'less'} than`)}<b class="fn">${esc(T.n)}</b>` };
     case 'bond':
       return { cls: 'face face-bond', html: `${bondSvg(T.whole, T.part)}${fw('make')}<b class="fn">${esc(T.whole)}</b>` };
     case 'double':
@@ -71,17 +76,25 @@ export function faceChip(T) {
     case 'share':
       return { cls: 'face face-share', html: `${sweetsSvg(T.total)}${fw('shared by')}${platesSvg(T.groups)}` };
     case 'place':
-      return { cls: 'face face-place', html: placeSvg(T.n) };
+      return { cls: 'face face-place', html: T.n >= 100 ? chartSvg(T.n) : placeSvg(T.n) };
     case 'words':
       return { cls: 'face face-words', html: `<span class="wd">${esc(numberWords(T.n))}</span>` };
     case 'sign':
       return { cls: 'face face-sign', html: `<b class="fn">${esc(T.n)}</b><span class="op">${T.rel === 'more' ? '&lt;' : T.rel === 'fewer' ? '&gt;' : '='}</span><b class="fq">?</b>` };
     case 'seq':
-      return { cls: 'face face-seq', html: `${T.terms.map((v) => `<b class="fn">${esc(v)}</b>`).join('')}<b class="fq">?</b>` };
+      return { cls: 'face face-seq', html: `${T.terms.map((v) => (T.den ? `<b class="fn fx">${partsHtml(v, T.den)}</b>` : `<b class="fn">${esc(v)}</b>`)).join('')}<b class="fq">?</b>` };
     case 'frac-shape':
       return { cls: 'face face-shape', html: shapeSvg(T.num, T.den, T.look) };
     case 'frac-of':
       return { cls: 'face face-fracof', html: `${fracHtml(T.num, T.den)}${fw('of')}<b class="fn">${esc(T.total)}</b>${groupsSvg(T.total, T.den)}` };
+    case 'find':
+      return { cls: '', html: esc(T.n) };
+    case 'groups':
+      return { cls: 'face face-groups', html: `<b class="fn">${esc(T.groups)}</b>${fw(T.groups === 1 ? 'group of' : 'groups of')}<b class="fn">${esc(T.size)}</b>${arraySvg(T.groups, T.size)}` };
+    case 'half':
+      return { cls: 'face face-half', html: `${fw('half of')}<span class="pc"><b class="fn">${esc(T.n)}</b>${groupsSvg(T.n, 2)}</span>` };
+    case 'frac-compare':
+      return { cls: 'face face-fcmp', html: `${fw('Which is bigger?')}${fracHtml(1, T.first)}${fw('or')}${fracHtml(1, T.second)}` };
     default:
       return { cls: '', html: esc(T.value ?? '?') };
   }
@@ -89,6 +102,41 @@ export function faceChip(T) {
 
 // A fraction written as at school: the top number over a line over the bottom one.
 export const fracHtml = (num, den) => `<span class="fr"><b>${esc(num)}</b><b>${esc(den)}</b></span>`;
+
+// v parts of d written as counted: 3 tenths as 3 over 10, 13 tenths as 1 and 3 over 10, 10 tenths as 1.
+export function partsHtml(v, d) {
+  const n = Math.round(v), w = Math.floor(n / d), r = n - w * d;
+  if (r === 0) return esc(w);
+  return w ? `<span class="mx">${esc(w)}${fracHtml(r, d)}</span>` : fracHtml(r, d);
+}
+
+// A fraction sum, its two fractions written one number over the other: 5/7 + 1/7.
+export const fracSumHtml = (T) => `${fracHtml(T.a, T.den)}<span class="op">${esc(T.op)}</span>${fracHtml(T.b, T.den)}`;
+
+// So many groups of 2, 5 or 10, each a row of dots in a box (an array); a row of 10 is two fives.
+export function arraySvg(groups, size) {
+  const gap = size > 5 ? 3 : 0, rowW = size * 10 + gap + 2, rowH = 12;
+  const body = Array.from({ length: groups }, (_, r) => {
+    const y = r * (rowH + 2);
+    const dots = Array.from({ length: size }, (_, i) => dot(1 + i * 10 + (i >= 5 ? gap : 0) + 5, y + 6)).join('');
+    return `<rect class="gr-row" x="0" y="${y}" width="${rowW}" height="${rowH}" rx="3"/>${dots}`;
+  }).join('');
+  const H = groups * (rowH + 2) - 2;
+  return `<svg class="fd array r${groups <= 1 ? 1 : groups === 2 ? 2 : 3}" viewBox="-1 -1 ${rowW + 2} ${H + 2}" aria-hidden="true">${body}</svg>`;
+}
+
+// A 3-digit number as counters in a place-value chart: columns H, T and O, each with as many counters
+// as its digit (3 a row): 347 is 3 hundreds, 4 tens and 7 ones.
+export function chartSvg(n) {
+  const digits = [Math.floor(n / 100) % 10, Math.floor(n / 10) % 10, n % 10], cls = ['pc-h', 'pc-t', 'pc-o'], head = ['H', 'T', 'O'];
+  const cw = 32, top = 11;
+  const body = digits.map((k, c) => {
+    const x0 = c * (cw + 2);
+    const counters = Array.from({ length: k }, (_, i) => `<circle class="${cls[c]}" cx="${x0 + 6 + (i % 3) * 10}" cy="${top + 6 + Math.floor(i / 3) * 10}" r="4.2"/>`).join('');
+    return `<rect class="pc-col" x="${x0}" y="0" width="${cw}" height="${top + 32}" rx="3"/><text class="pc-hd" x="${x0 + cw / 2}" y="8.6">${head[c]}</text>${counters}`;
+  }).join('');
+  return `<svg class="fd chart" viewBox="-1 -1 ${3 * cw + 6} ${top + 34}" aria-hidden="true">${body}</svg>`;
+}
 
 // A number in words, to 1000 (Year 2's to 100; Year 1's to 20).
 const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen',

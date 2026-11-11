@@ -1,5 +1,13 @@
 // Rocket Lander's maps of solar systems: one map for each track, on the same six systems (D-058,
-// D-065, D-066, D-089). Version 2.1 (step 2c-3b).
+// D-065, D-066, D-089). Version 2.2 (step 2c-3c).
+//
+// Changes at v2.2 (step 2c-3c): Year 1's Ice, Jungle and Ringed on the lower track and Year 3's on the
+// higher, from the level plan (claude/level-plan.md 0.3, section 4), each 7 levels and a challenge, so no
+// system is coming soon. The editions stay ('lower-1', 'higher-1'): only systems that were coming soon
+// filled, so every level id kept its meaning. Year 1's three added Number mode levels reuse levels 6, 7
+// and 8 (D-038); every other level has its own row, its numbers from Rob's syllabus notes (each `plan`
+// id's params): asks.js 1.2 and sums.js 1.4. Numbers to 100 (Y1-02), and Year 3's mental adding and taking
+// away (Y3-06, Y3-07), play in halves (D-094).
 //
 // Changes at v2.1 (step 2c-3b, D-100): the higher track holds Year 2's three systems from the level plan
 // (claude/level-plan.md 0.3, section 4), Moon, Red Dust and Candy, each 7 levels and a challenge, in
@@ -36,6 +44,8 @@
 //     sample  a target of the kind the level asks, shown as a chip on its card.
 
 const CHALLENGE = { kind: 'challenge', plan: 'challenge', about: 'Challenge: levels 1 to 7 mixed', sample: { rule: 'challenge' } };
+// A stretch of 10 marks, every one written (asks.js windowFor, sums.js lineForSum; D-032)
+const STRETCH = { layout: 'stretch', span: 10, label_every: 1 };
 
 // The lower track: Reception's three systems (level plan 0.3, section 4). Rows reused as they play today
 // (Moon 1 and 2, Red Dust 6, Candy 1 to 5) keep their table's level number; the rest are new rows, their
@@ -84,16 +94,71 @@ const LOWER = [
       about: 'Dice up to 12', sample: { rule: 'any', value: 9 } },
     CHALLENGE,
   ] },
-  { id: 'ice', soon: true, levels: [] },
-  { id: 'jungle', soon: true, levels: [] },
-  { id: 'ringed', soon: true, levels: [] },
+  // Year 1 (step 2c-3c): numbers to 100, sums to 20, then groups, sharing, halves and quarters
+  { id: 'ice', levels: [
+    { kind: 'ask', plan: 'Y1-01', row: { ask: 'find', min: 0, max: 50, span: 10, label_every: 1, source: 'Y1-01: numerals 0 to 50' },
+      about: 'Numbers to 50', sample: { rule: 'ask', ask: 'find', n: 37, value: 37 } },
+    { kind: 'ask', plan: 'Y1-02', row: { ask: 'find', span: 10, label_every: 1, parts: [{ min: 0, max: 50 }, { min: 0, max: 100 }],
+      source: 'Y1-02: numerals 0 to 100; D-094: to 50, then to 100' },
+      about: 'Numbers to 100', sample: { rule: 'ask', ask: 'find', n: 83, value: 83 } },
+    { kind: 'ask', plan: 'Y1-03', row: { ask: 'seq', steps: [1], start: 'any', min: 0, max: 100, dirs: ['forward', 'backward'], span: 10, label_every: 1,
+      source: 'Y1-03: count on or back in ones from any number, 0 to 100' },
+      about: 'What comes next?', sample: { rule: 'ask', ask: 'seq', step: 1, dir: 'forward', terms: [46, 47, 48], value: 49 } },
+    { kind: 'ask', plan: 'Y1-04', row: { ask: 'seq', steps: [2, 5, 10], start: 0, min: 0, max: 100, dirs: ['forward'], stretch: { 10: 2 }, span: 10, label_every: 1,
+      source: 'Y1-04: count in 2s, 5s and 10s from 0, to 100; 10s on a stretch in 2s (Claude)' },
+      about: 'Count in 2s, 5s and 10s', sample: { rule: 'ask', ask: 'seq', step: 5, dir: 'forward', terms: [15, 20, 25], value: 30 } },
+    { kind: 'ask', plan: 'Y1-05', row: { ask: 'words', min: 1, max: 20, span: 10, label_every: 1, source: 'Y1-05: number words 1 to 20' },
+      about: 'Number words to 20', sample: { rule: 'ask', ask: 'words', n: 14, value: 14 } },
+    { kind: 'ask', plan: 'Y1-06', row: { ask: 'more-less', min: 0, max: 100, span: 10, label_every: 1, source: 'Y1-06: one more or one less, 0 to 100' },
+      about: 'One more, one less to 100', sample: { rule: 'ask', ask: 'more-less', dir: 'less', n: 60, value: 59 } },
+    { kind: 'number', level: 6, plan: 'X-every-other', about: 'Every other number written', sample: { rule: 'any', value: 6 } },
+    CHALLENGE,
+  ] },
+  { id: 'jungle', levels: [
+    { kind: 'sums', plan: 'Y1-07', row: { ops: ['+'], forms: ['bond'], whole: 10, every: 1, layout: 'line', from: 0, to: 10, step: 1, label_every: 1,
+      source: 'Y1-07: bonds to 10, without pictures' },
+      about: 'Bonds to 10', sample: { rule: 'sum', sum: '6 + ? = 10', value: 4 } },
+    { kind: 'sums', plan: 'Y1-08', row: { ops: ['+'], forms: ['facts'], max: 20, b_max: 9, cross: false, ...STRETCH,
+      source: 'Y1-08: + to 20, the second number 0 to 9, not crossing 10 (its half of the split)' },
+      about: 'Adding to 20', sample: { rule: 'sum', sum: '12 + 5', value: 17 } },
+    { kind: 'sums', plan: 'X-add20-cross', row: { ops: ['+'], forms: ['facts'], max: 20, b_max: 9, cross: true, ...STRETCH,
+      source: 'Y1-08 split in two: crossing 10 (Claude)' },
+      about: 'Adding to 20, crossing 10', sample: { rule: 'sum', sum: '7 + 5', value: 12 } },
+    { kind: 'sums', plan: 'Y1-09', row: { ops: ['−'], forms: ['facts'], max: 20, b_max: 9, cross: false, ...STRETCH,
+      source: 'Y1-09: − from 20 or less, 0 to 9 taken, not crossing 10 (its half of the split)' },
+      about: 'Taking away within 20', sample: { rule: 'sum', sum: '17 − 5', value: 12 } },
+    { kind: 'sums', plan: 'X-sub20-cross', row: { ops: ['−'], forms: ['facts'], max: 20, b_max: 9, cross: true, ...STRETCH,
+      source: 'Y1-09 split in two: crossing 10 (Claude)' },
+      about: 'Taking away, crossing 10', sample: { rule: 'sum', sum: '13 − 5', value: 8 } },
+    { kind: 'sums', plan: 'Y1-10', row: { ops: ['+'], forms: ['bond'], whole: 20, every: 1, ...STRETCH, source: 'Y1-10: bonds to 20' },
+      about: 'Bonds to 20', sample: { rule: 'sum', sum: '13 + ? = 20', value: 7 } },
+    { kind: 'sums', plan: 'Y1-11', row: { ops: ['+', '−'], forms: ['missing'], of: ['facts'], max: 20, blanks: ['a', 'b', 'answer'], flip: true, ...STRETCH,
+      source: "Y1-11: + and − to 20, the first, second or answer missing, written both ways round as the notes' '7 = ? − 9'" },
+      about: 'Missing numbers to 20', sample: { rule: 'sum', sum: '7 = ? − 9', value: 16 } },
+    CHALLENGE,
+  ] },
+  { id: 'ringed', levels: [
+    { kind: 'ask', plan: 'Y1-12', row: { ask: 'groups', sizes: [2, 5, 10], max_groups: 5, source: 'Y1-12: 1 to 5 groups of 2, 5 or 10, as an array; on the size\'s own line' },
+      about: 'Groups of 2, 5 and 10', sample: { rule: 'ask', ask: 'groups', groups: 3, size: 5, value: 15 } },
+    { kind: 'ask', plan: 'Y1-13', row: { ask: 'share', total_max: 20, groups: [2, 5, 10], from: 0, to: 10, label_every: 1, source: 'Y1-13: share up to 20 between 2, 5 or 10' },
+      about: 'Share between 2, 5 or 10', sample: { rule: 'ask', ask: 'share', total: 15, groups: 5, value: 3 } },
+    { kind: 'number', level: 7, plan: 'X-0-5-10', about: 'Only 0, 5 and 10 written', sample: { rule: 'any', value: 5 } },
+    { kind: 'ask', plan: 'Y1-14', row: { ask: 'frac-shape', fractions: ['1/2', '1/4'], source: 'Y1-14: halves and quarters of shapes' },
+      about: 'Halves and quarters', sample: { rule: 'ask', ask: 'frac-shape', num: 1, den: 4, look: 0, parts: 4, value: 1 } },
+    { kind: 'ask', plan: 'Y1-15', row: { ask: 'frac-of', fractions: ['1/2'], total_max: 20, from: 0, to: 10, label_every: 1, source: 'Y1-15: half of 2 to 20' },
+      about: 'Half of a number', sample: { rule: 'ask', ask: 'frac-of', num: 1, den: 2, total: 12, value: 6 } },
+    { kind: 'ask', plan: 'X-doubles20', row: { ask: 'double', max: 10, halves: true, min: 0, span: 10, label_every: 1,
+      source: "notes: year1 other: doubles and halves to 20 (double 1 to 10, half of 2 to 20, by turns)" },
+      about: 'Doubles and halves to 20', sample: { rule: 'ask', ask: 'half', n: 14, value: 7 } },
+    { kind: 'number', level: 8, plan: 'X-0-10', about: 'Only 0 and 10 written', sample: { rule: 'any', value: 3 } },
+    CHALLENGE,
+  ] },
 ];
 
 // The higher track: Year 2's three systems (level plan 0.3, section 4), each level a row of its own, its
 // numbers from Rob's syllabus notes. Asks on a stretch of 10 marks (`span`, asks.js windowFor); sums in
 // Year 2's forms (sums.js formFacts), on a stretch of 10 (D-032) or, for tables and bonds, on their own
 // line in steps. Tables go to × 12 (D-099). Y2-11 and Y2-12 play in two halves (D-094).
-const STRETCH = { layout: 'stretch', span: 10, label_every: 1 };
 const HIGHER = [
   { id: 'moon', levels: [
     { kind: 'ask', plan: 'Y2-01', row: { ask: 'place', digits: 2, min: 10, max: 99, span: 10, label_every: 1, source: 'Y2-01: tens and ones, 2 digits' },
@@ -156,9 +221,73 @@ const HIGHER = [
       about: 'Fractions of numbers', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 4, total: 12, value: 9 } },
     CHALLENGE,
   ] },
-  { id: 'ice', soon: true, levels: [] },
-  { id: 'jungle', soon: true, levels: [] },
-  { id: 'ringed', soon: true, levels: [] },
+  // Year 3 (step 2c-3c): numbers to 1000 and mental sums, then pairs, estimates and tables, then fractions
+  { id: 'ice', levels: [
+    { kind: 'ask', plan: 'Y3-01', row: { ask: 'find', min: 100, max: 1000, span: 10, label_every: 1, source: 'Y3-01: numerals 100 to 1000' },
+      about: 'Numbers to 1000', sample: { rule: 'ask', ask: 'find', n: 347, value: 347 } },
+    { kind: 'ask', plan: 'Y3-02', row: { ask: 'place', digits: 3, min: 100, max: 999, span: 10, label_every: 1, source: 'Y3-02: hundreds, tens and ones, 3 digits' },
+      about: 'Hundreds, tens and ones', sample: { rule: 'ask', ask: 'place', n: 347, value: 347 } },
+    { kind: 'ask', plan: 'Y3-03', row: { ask: 'sign', min: 0, max: 1000, rels: { more: 2, fewer: 2, same: 1 }, span: 10, label_every: 1, source: 'Y3-03: <, > and = to 1000' },
+      about: 'Bigger, smaller or the same', sample: { rule: 'range', ask: 'sign', rel: 'fewer', n: 452 } },
+    { kind: 'ask', plan: 'Y3-04', row: { ask: 'more-less', by: [10, 100], min: 0, max: 1000, span: 10, label_every: 1, source: 'Y3-04: 10 or 100 more or less, 0 to 1000' },
+      about: '10 or 100 more or less', sample: { rule: 'ask', ask: 'more-less', dir: 'more', by: 100, n: 347, value: 447 } },
+    { kind: 'ask', plan: 'Y3-05', row: { ask: 'seq', steps: [4, 8, 50, 100], start: 0, min: 0, max: 1000, dirs: ['forward'], stretch: { 50: 10, 100: 20 }, span: 10, label_every: 1,
+      source: 'Y3-05: count in 4s, 8s, 50s and 100s from 0, to 1000; 50s on a stretch in tens, 100s in twenties (Claude)' },
+      about: 'Count in 4s, 8s, 50s, 100s', sample: { rule: 'ask', ask: 'seq', step: 50, dir: 'forward', terms: [250, 300, 350], value: 400 } },
+    { kind: 'sums', plan: 'Y3-06', row: { ops: ['+'], forms: ['HTO+O', 'HTO+T', 'HTO+H'], max: 1000, ...STRETCH, parts: [{ cross: false }, { cross: true }],
+      source: 'Y3-06: HTO + ones, tens and hundreds, to 1000; D-094: not crossing a ten or hundred, then crossing' },
+      about: 'Mental adding to 1000', sample: { rule: 'sum', sum: '245 + 30', value: 275 } },
+    { kind: 'sums', plan: 'Y3-07', row: { ops: ['−'], forms: ['HTO-O', 'HTO-T', 'HTO-H'], max: 1000, ...STRETCH, parts: [{ cross: false }, { cross: true }],
+      source: 'Y3-07: HTO − ones, tens and hundreds; D-094: not crossing a ten or hundred, then crossing' },
+      about: 'Mental take away to 1000', sample: { rule: 'sum', sum: '423 − 50', value: 373 } },
+    CHALLENGE,
+  ] },
+  { id: 'jungle', levels: [
+    { kind: 'sums', plan: 'Y3-08', row: { ops: ['+'], forms: ['bond'], whole: 100, every: 5, layout: 'line', from: 0, to: 100, step: 5, label_every: 10,
+      source: 'Y3-08: pairs to 100 in 5s, on 0 to 100 in fives, every ten written' },
+      about: 'Pairs to 100', sample: { rule: 'sum', sum: '65 + ? = 100', value: 35 } },
+    { kind: 'sums', plan: 'Y3-09', row: { ops: ['+', '−'], forms: ['TO+TO', 'TO-TO'], max: 200, ...STRETCH, source: 'Y3-09: TO + TO (answers to 200) and TO − TO' },
+      about: 'Big 2-digit sums', sample: { rule: 'sum', sum: '68 + 47', value: 115 } },
+    { kind: 'sums', plan: 'Y3-10', row: { ops: ['+', '−'], forms: ['estimate'], rounds: [10, 100], near: 10, span: 10, label_every: 1,
+      source: 'Y3-10: estimate + and −, to the nearest 10 (2-digit numbers) or 100 (3-digit numbers near a hundred), up to 1000' },
+      about: 'Estimate it', sample: { rule: 'sum', sum: '298 + 403', a: 298, op: '+', b: 403, round: 100, exact: 701, value: 700 } },
+    { kind: 'sums', plan: 'Y3-11', row: { ops: ['×'], forms: ['table'], tables: [4], times_max: 12, layout: 'line', from: 0, to: 48, step: 4, label_every: 4,
+      source: 'Y3-11: the 4 times table to × 12 (D-099), on its own line' },
+      about: '4 times table', sample: { rule: 'sum', sum: '4 × 7', value: 28 } },
+    { kind: 'sums', plan: 'Y3-12', row: { ops: ['×'], forms: ['table'], tables: [8], times_max: 12, layout: 'line', from: 0, to: 96, step: 8, label_every: 8,
+      source: 'Y3-12: the 8 times table to × 12 (D-099), on its own line' },
+      about: '8 times table', sample: { rule: 'sum', sum: '8 × 6', value: 48 } },
+    { kind: 'sums', plan: 'Y3-13', row: { ops: ['×'], forms: ['table'], tables: [3], times_max: 12, layout: 'line', from: 0, to: 36, step: 3, label_every: 3,
+      source: 'Y3-13: the 3 times table to × 12 (D-099), on its own line' },
+      about: '3 times table', sample: { rule: 'sum', sum: '3 × 9', value: 27 } },
+    { kind: 'sums', plan: 'X-div348', row: { ops: ['÷'], forms: ['divide'], tables: [3, 4, 8], times_max: 12, layout: 'line', from: 0, to: 12, step: 1, label_every: 1,
+      source: 'notes: year3 division: ÷ 3, 4 and 8 (new this year), whole answers 1 to 12' },
+      about: 'Divide by 3, 4 and 8', sample: { rule: 'sum', sum: '32 ÷ 4', value: 8 } },
+    CHALLENGE,
+  ] },
+  { id: 'ringed', levels: [
+    { kind: 'sums', plan: 'Y3-14', row: { ops: ['×', '÷'], forms: ['table', 'divide'], tables: [2, 3, 4, 5, 8, 10], times_max: 12, ...STRETCH, fall_s: 6,
+      source: 'Y3-14: × and ÷ of the 2, 3, 4, 5, 8 and 10 tables to × 12, 6 s a landing' },
+      about: 'Mixed tables, fast', sample: { rule: 'sum', sum: '8 × 7', value: 56 } },
+    { kind: 'sums', plan: 'Y3-15', row: { ops: ['×'], forms: ['TO*O'], a: [11, 30], b: [2, 5], ...STRETCH, source: 'Y3-15: TO × O, 11 to 30 times 2 to 5' },
+      about: '2-digit times 1-digit', sample: { rule: 'sum', sum: '23 × 4', value: 92 } },
+    { kind: 'sums', plan: 'X-TOdivO', row: { ops: ['÷'], forms: ['TO/O'], divisors: [2, 3, 4, 5, 8], ...STRETCH,
+      source: "notes: year3 division 'extended': TO ÷ O with no remainder, by Year 3's 1-digit tables" },
+      about: '2-digit divided by 1-digit', sample: { rule: 'sum', sum: '48 ÷ 4', value: 12 } },
+    { kind: 'ask', plan: 'Y3-16', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '2/3', '1/4', '3/4', '1/5', '2/5', '3/5', '4/5', '1/8', '3/8', '5/8', '7/8', '1/10', '3/10', '7/10', '9/10'],
+      pick: 'den', total_max: 40, span: 10, label_every: 1, source: 'Y3-16: unit and non-unit fractions (simplest form) of amounts to 40, denominators 2, 3, 4, 5, 8, 10, whole answers' },
+      about: 'Fractions of amounts', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 5, total: 20, value: 12 } },
+    { kind: 'ask', plan: 'Y3-17', row: { ask: 'seq', steps: [1], den: 10, start: 'any', min: 0, max: 20, dirs: ['forward', 'backward'], span: 10, label_every: 1,
+      source: 'Y3-17: count up and down in tenths, 0 to 2 (0 to 20 tenths)' },
+      about: 'Counting in tenths', sample: { rule: 'ask', ask: 'seq', step: 1, dir: 'forward', terms: [7, 8, 9], value: 10, den: 10 } },
+    { kind: 'ask', plan: 'Y3-18', row: { ask: 'frac-compare', dens: [2, 3, 4, 5, 6, 8, 10], min_gap: [1, 12],
+      source: 'Y3-18: compare unit fractions, both marked on 0 to 1; pairs closer than 1/12 left out (Claude)' },
+      about: 'Which fraction is bigger?', sample: { rule: 'ask', ask: 'frac-compare', first: 3, second: 5, parts: 15, value: 5, other: 3 } },
+    { kind: 'sums', plan: 'Y3-19', row: { ops: ['+', '−'], forms: ['frac'], dens: [2, 3, 4, 5, 6, 7, 8, 9, 10], layout: 'parts',
+      source: 'Y3-19: add and take away fractions with the same denominator (2 to 10), within one whole' },
+      about: 'Adding fractions', sample: { rule: 'sum', sum: '5/7 + 1/7', a: 5, op: '+', b: 1, den: 7, value: 6 } },
+    CHALLENGE,
+  ] },
 ];
 
 export const FIRST_TRACK = 'reception'; // a device with no track yet starts on the lower track

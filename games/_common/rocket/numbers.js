@@ -1,6 +1,8 @@
 // Number line maths for Rocket Lander (no drawing here): tidying the settings, landing
 // spots, which marks get a number, how near counts, and numbers written and said nicely.
-// Version 1.1. Changes at v1.1 (step 2c-3b): fractions on a line counted in parts (a line of quarters is
+// Version 1.2. Changes at v1.2 (step 2c-3c): a line counted in parts may be written as it is counted
+// (fracText's `simplest` false: tenths stay tenths, 4/8 stays 4/8), and said so (partsSay: "one and three
+// tenths"). Changes at v1.1 (step 2c-3b): fractions on a line counted in parts (a line of quarters is
 // 0 to 4 quarters), written in their simplest form (fracText: 2 of 4 is 1/2) and said as written
 // (fracSay: "two quarters"). Version 1.0 had no number of its own.
 
@@ -155,13 +157,13 @@ export function say(v, showAs = 'fraction') {
 }
 
 // A fraction line counts in parts: on a line of quarters, 3 is three quarters. fracText(v, d) writes v
-// parts of d in its simplest form: '0', '1/4', '1/2' (for 2 of 4), '1', '1 1/2' (6 of 4). Drawn one number
-// over the other by scene.js.
+// parts of d in its simplest form: '0', '1/4', '1/2' (for 2 of 4), '1', '1 1/2' (6 of 4); or, with
+// `simplest` false, as it is counted: '3/10', '1 3/10', '4/8'. Drawn one number over the other by scene.js.
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
-export function fracText(v, d) {
+export function fracText(v, d, simplest = true) {
   const n = Math.round(v), w = Math.floor(n / d), r = n - w * d;
   if (r === 0) return String(w);
-  const g = gcd(r, d);
+  const g = simplest ? gcd(r, d) : 1;
   return `${w ? `${w} ` : ''}${r / g}/${d / g}`;
 }
 
@@ -171,6 +173,13 @@ const ORDINALS = { 2: ['half', 'halves'], 3: ['third', 'thirds'], 4: ['quarter',
 export function fracSay(num, den) {
   const o = ORDINALS[den];
   return o ? `${words(num)} ${num === 1 ? o[0] : o[1]}` : `${words(num)} over ${words(den)}`;
+}
+
+// v parts of d said as they're counted: "three tenths", "one", "one and three tenths", "zero".
+export function partsSay(v, d) {
+  const n = Math.round(v), w = Math.floor(n / d), r = n - w * d;
+  if (r === 0) return words(w);
+  return w ? `${words(w)} and ${fracSay(r, d)}` : fracSay(r, d);
 }
 
 // Stars for a round: right on 85% or more = 3, 60% or more = 2, otherwise 1.

@@ -1,4 +1,19 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.8.
+"""Rocket Lander's pure core and its boundaries. Version 1.9.
+
+Changes at v1.9 (step 2c-3c): Year 1 on the lower track and Year 3 on the higher, so all six systems of
+both tracks hold 7 levels and a challenge, their ids the level plan's and their rows' numbers the notes'
+params, with no system coming soon (no new edition: only systems that were coming soon filled). Year 1's
+and Year 3's questions (asks.js 1.2): find a number, a count in ones or in steps (on a stretch in a fifth
+of the step for 10s, 50s and 100s), one more or less and 10 or 100 more or less, groups of 2, 5 and 10 on
+their own lines, sharing between 2, 5 or 10, doubles and halves by turns, hundreds, tens and ones,
+fractions of amounts (the denominator picked first), counting in tenths, and which of two unit fractions
+is bigger (both marked on their own line); numbers to 100 in halves (D-094). Their sums (sums.js 1.4):
+adding and taking away to 20 crossing 10 or not, bonds to 10 and 20, missing numbers with the answer
+hidden too and written both ways round, HTO + and − ones, tens and hundreds in halves (D-094), pairs to
+100 in fives, big 2-digit sums, estimates to the nearest 10 or 100, the 3, 4 and 8 tables, mixed tables
+in 6 s, TO × O, TO ÷ O and fraction sums; each counted against a Python enumeration of the notes' words,
+with the lines each lands on. Their faces (faces.js 1.2), and lines counted in parts written as counted
+(numbers.js 1.2: tenths stay tenths).
 
 Changes at v1.8 (step 2c-3b, D-100): Year 2 on the higher track. The higher track's map is Year 2's
 three systems, a new edition (so a map kept on the stand-in levels starts afresh there; a format 3
@@ -70,6 +85,7 @@ Stand-in: Node 22 runs the ES modules in place of the browser.
 Usage, from the repo root: python3 -B tools/tests/games/test_rocket_lander_core.py
 """
 import json, os, re, subprocess, sys
+from math import gcd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -471,6 +487,119 @@ out.y2sums = {
   fall: yRow(0, 6).fall_s ?? null,
   halves: [M.planParts(yRow(1, 5), 8), M.planParts(yRow(1, 6), 8)],
 };
+// ---------- Step 2c-3c: Year 1 on the lower track, Year 3 on the higher (v1.9) ----------
+const LO = MP.TRACKS.reception.systems, HI = MP.TRACKS.year2.systems;
+const lRow = (s, n) => LO[s].levels[n - 1].row, hRow = (s, n) => HI[s].levels[n - 1].row;
+// 300 (or n) landings of a level that plays its own line each landing: the question, its line, and its part
+const landings = (row, seed, n = 300) => { const rand = seeded(seed), plan = AK.planAsks(row, n, rand); let prev = null; const o = [];
+  for (const k of plan) { const T = AK.askTarget(row, k, prev, rand); o.push({ T, L: AK.askLine(row, T, rand), k }); prev = T; } return o; };
+const lineSum = (row, seed, n = 300) => { const ls = landings(row, seed, n); return {
+  n: ls.length, spans: [...new Set(ls.map(({ L }) => (L.to - L.from) / L.step))], steps: [...new Set(ls.map(({ L }) => L.step))].sort((a, b) => a - b),
+  lo: Math.min(...ls.map(({ L }) => L.from)), hi: Math.max(...ls.map(({ L }) => L.to)), starts: new Set(ls.map(({ L }) => L.from)).size,
+  holds: ls.every(({ T, L }) => (T.value === undefined || (T.value >= L.from && T.value <= L.to && (T.value - L.from) % L.step === 0)) && L.from % L.step === 0),
+  sides: ls.filter(({ T }) => T.ask === 'sign' && T.rule === 'range').every(({ T, L }) => T.n - L.from >= 3 && L.to - T.n >= 3),
+  twice: ls.some(({ T }, i) => i > 0 && AK.keyOf(T) === AK.keyOf(ls[i - 1].T)),
+  // per step (a count) or per part: the stretch's step and length, and how often
+  bystep: ls.reduce((a, { T, L }) => { const k = T.step ?? T.by ?? T.size ?? T.part ?? '-'; const e = a[k] || { n: 0, st: [], len: [], hi: -Infinity };
+    e.n++; if (!e.st.includes(L.step)) e.st.push(L.step); if (!e.len.includes((L.to - L.from) / L.step)) e.len.push((L.to - L.from) / L.step); e.hi = Math.max(e.hi, L.to); a[k] = e; return a; }, {}),
+  labels: [...new Set(ls.map(({ L }) => L.labels || 'plain'))],
+  kinds: ls.reduce((a, { T }) => { const k = T.ask === 'half' || T.ask === 'double' ? T.ask : (T.rel ?? T.dir ?? '-'); a[k] = (a[k] || 0) + 1; return a; }, {}),
+  parts: ls.map(({ T }) => T.part ?? null).slice(0, 8), partVals: [0, 1].map((p) => span(ls.filter(({ T }) => T.part === p).map(({ T }) => T.value))) }; };
+const pickShares = (row, seed, by, n = 600) => { const rand = seeded(seed), plan = AK.planAsks(row, n, rand); let prev = null; const o = {};
+  for (const k of plan) { const T = AK.askTarget(row, k, prev, rand); const g = by(T); o[g] = (o[g] || 0) + 1; prev = T; } return o; };
+const flat13 = (f) => [f.a, f.op, f.b, f.op2 ?? null, f.c ?? null, f.missing ?? null, f.result ?? null, f.answer, f.flip ?? null, f.den ?? null, f.round ?? null, f.exact ?? null];
+const facts13 = (r) => r.ops.flatMap((op) => M.partsOf(r).flatMap((p) => M.facts(op, p).map(flat13)));
+const parts13 = (r) => M.partsOf(r).map((p) => r.ops.flatMap((op) => M.facts(op, p).map(flat13)));
+// 600 sums of a level (seeded): each sum, the line it lands on, and the group it was picked from
+const sumDraws = (r, seed, n = 600) => { const rand = seeded(seed); let prev = null; const o = [];
+  for (let i = 0; i < n; i++) { const p = M.partsOf(r)[M.planParts(r, n)[i]]; const s = M.makeSum(r.ops, p, prev, rand);
+    o.push({ f: flat13(s), text: s.text, g: String(s.group ?? s.form), L: M.lineForSum(s, r.ops, p, rand) }); prev = s; } return o; };
+const sumLines = (r, seed) => { const ds = sumDraws(r, seed, 300); return {
+  holds: ds.every(({ f, L }) => f[7] >= L.from && f[7] <= L.to && (f[7] - L.from) % L.step === 0 && L.from >= 0),
+  shapes: [...new Set(ds.map(({ L }) => `${(L.to - L.from) / L.step}x${L.step}`))].sort(), lo: Math.min(...ds.map(({ L }) => L.from)), hi: Math.max(...ds.map(({ L }) => L.to)),
+  starts: new Set(ds.map(({ L }) => L.from)).size, labels: [...new Set(ds.map(({ L }) => L.labels || 'plain'))].sort(),
+  twice: ds.some((d, i) => i > 0 && d.text === ds[i - 1].text) }; };
+const groupShares = (r, seed) => sumDraws(r, seed).reduce((a, { g }) => ({ ...a, [g]: (a[g] || 0) + 1 }), {});
+const ask = (r, kind) => AK.choices(r, kind);
+out.y13 = {
+  ASKS: AK.ASKS, FORMS: M.FORMS,
+  fracText: [[3, 10, false], [10, 10, false], [13, 10, false], [0, 10, false], [20, 10, false], [4, 8, false], [4, 8, true], [6, 7, false]].map(([v, d, s]) => N.fracText(v, d, s)),
+  partsSay: [[3, 10], [10, 10], [13, 10], [0, 10], [1, 10], [20, 10], [6, 7], [11, 10]].map(([v, d]) => N.partsSay(v, d)),
+  // Year 1's questions (lower track: Ice 1 to 6, Ringed 1, 2, 4, 5, 6)
+  find50: ask(lRow(3, 1)).map((T) => [T.n, T.value]), find1000: ask(hRow(3, 1)).map((T) => [T.n, T.value]),
+  findParts: [AK.planAsks(lRow(3, 2), 8, seeded(61)), lineSum(lRow(3, 2), 62)],
+  next1: ['forward', 'backward'].map((k) => ask(lRow(3, 3), k).map((T) => [T.step, T.dir, T.terms, T.value])),
+  count1: ask(lRow(3, 4)).map((T) => [T.step, T.dir, T.terms, T.value]),
+  words20: ask(lRow(3, 5)).map((T) => [T.n, T.value]),
+  oneMore: ['more', 'less'].map((k) => ask(lRow(3, 6), k).map((T) => [T.dir, T.by ?? 1, T.n, T.value])),
+  groups: ask(lRow(5, 1)).map((T) => [T.groups, T.size, T.value]),
+  groupLines: ask(lRow(5, 1)).filter((T) => T.groups === 1).map((T) => AK.askLine(lRow(5, 1), T, seeded(1))),
+  share: ask(lRow(5, 2)).map((T) => [T.total, T.groups, T.value]),
+  halves1: ask(lRow(5, 4)).map((T) => [T.num, T.den, T.look, T.parts, T.value]),
+  half20: ask(lRow(5, 5)).map((T) => [T.num, T.den, T.total, T.value]),
+  doubles: ask(lRow(5, 6)).map((T) => [T.ask, T.n, T.value]),
+  planDoubles: [AK.planAsks(lRow(5, 6), 8, seeded(63)), AK.planAsks(lRow(5, 6), 8, seeded(64))],
+  // Year 3's questions (higher track: Ice 1 to 5, Ringed 4 to 6)
+  place3: ask(hRow(3, 2)).map((T) => [T.n, T.value]),
+  sign1000: ['more', 'fewer', 'same'].map((k) => ask(hRow(3, 3), k).map((T) => [T.rule, T.rel, T.n, T.value ?? null])),
+  more1000: ['more', 'less'].map((k) => ask(hRow(3, 4), k).map((T) => [T.dir, T.by ?? 1, T.n, T.value])),
+  count3: ask(hRow(3, 5)).map((T) => [T.step, T.dir, T.terms, T.value]),
+  amounts: ask(hRow(5, 4)).map((T) => [T.num, T.den, T.total, T.value]),
+  tenths: ['forward', 'backward'].map((k) => ask(hRow(5, 5), k).map((T) => [T.step, T.dir, T.terms, T.value, T.den])),
+  compare: ask(hRow(5, 6)).map((T) => [T.first, T.second, T.parts, T.value, T.other]),
+  compareLines: ask(hRow(5, 6)).map((T) => AK.askLine(hRow(5, 6), T, seeded(1))),
+  compareRight: [[{ rule: 'ask', ask: 'frac-compare', first: 3, second: 5, parts: 15, value: 5, other: 3 }, [5, 4, 6, 3, 2], 1.5],
+    [{ rule: 'ask', ask: 'frac-compare', first: 2, second: 3, parts: 6, value: 3, other: 2 }, [3, 2, 4], 1], [{ rule: 'ask', ask: 'frac-compare', first: 10, second: 3, parts: 30, value: 10, other: 3 }, [10, 7, 13, 6, 3], 3.5]]
+    .map(([T, spots, allowed]) => spots.map((v) => AK.isRight(T, v, allowed))),
+  // the lines each landing is shown, 300 landings each (seeded)
+  lines: { find50: lineSum(lRow(3, 1), 71), next1: lineSum(lRow(3, 3), 72), count1: lineSum(lRow(3, 4), 73), words20: lineSum(lRow(3, 5), 74),
+    oneMore: lineSum(lRow(3, 6), 75), doubles: lineSum(lRow(5, 6), 76), find1000: lineSum(hRow(3, 1), 77), place3: lineSum(hRow(3, 2), 78),
+    sign1000: lineSum(hRow(3, 3), 79), more1000: lineSum(hRow(3, 4), 80), count3: lineSum(hRow(3, 5), 81), amounts: lineSum(hRow(5, 4), 82),
+    tenths: lineSum(hRow(5, 5), 83), groups: lineSum(lRow(5, 1), 84), compare: lineSum(hRow(5, 6), 85) },
+  shares: { count1: pickShares(lRow(3, 4), 91, (T) => T.step), count3: pickShares(hRow(3, 5), 92, (T) => T.step), more1000: pickShares(hRow(3, 4), 93, (T) => T.by),
+    groups: pickShares(lRow(5, 1), 94, (T) => T.size), share: pickShares(lRow(5, 2), 95, (T) => T.groups), amounts: pickShares(hRow(5, 4), 96, (T) => T.den) },
+};
+// Year 1's and Year 3's sums (sums.js 1.4): every fact of each level, as flat13, and their lines
+out.y13sums = {
+  bond10: facts13(lRow(4, 1)), add20: facts13(lRow(4, 2)), add20x: facts13(lRow(4, 3)), sub20: facts13(lRow(4, 4)), sub20x: facts13(lRow(4, 5)),
+  bond20: facts13(lRow(4, 6)), miss20: facts13(lRow(4, 7)),
+  htoAdd: parts13(hRow(3, 6)), htoSub: parts13(hRow(3, 7)), halves: [M.planParts(hRow(3, 6), 8), M.planParts(hRow(3, 7), 8)],
+  pairs100: facts13(hRow(4, 1)), big2: facts13(hRow(4, 2)), est: facts13(hRow(4, 3)),
+  t4: facts13(hRow(4, 4)), t8: facts13(hRow(4, 5)), t3: facts13(hRow(4, 6)), div348: facts13(hRow(4, 7)),
+  mixed: facts13(hRow(5, 1)), toxo: facts13(hRow(5, 2)), todo: facts13(hRow(5, 3)), frac: facts13(hRow(5, 7)),
+  texts: [{ a: 16, op: '−', b: 9, result: 7, missing: 'a', flip: true }, { a: 7, op: '+', b: 5, result: 12, missing: 'answer' },
+    { a: 7, op: '+', b: 5, result: 12, missing: 'answer', flip: true }, { a: 6, op: '+', b: 4, result: 10, missing: 'b', flip: true },
+    { a: 5, op: '+', b: 1, den: 7 }, { a: 3, op: '−', b: 3, den: 8 }].map((f) => M.sumText(f)),
+  lines: { add20: sumLines(lRow(4, 2), 101), bond20: sumLines(lRow(4, 6), 102), miss20: sumLines(lRow(4, 7), 103), htoAdd: sumLines(hRow(3, 6), 104),
+    htoSub: sumLines(hRow(3, 7), 105), big2: sumLines(hRow(4, 2), 106), est: sumLines(hRow(4, 3), 107), mixed: sumLines(hRow(5, 1), 108),
+    toxo: sumLines(hRow(5, 2), 109), todo: sumLines(hRow(5, 3), 110), frac: sumLines(hRow(5, 7), 111) },
+  fixed: [[lRow(4, 1), 4], [hRow(4, 1), 35], [hRow(4, 4), 28], [hRow(4, 5), 48], [hRow(4, 6), 27], [hRow(4, 7), 8]]
+    .map(([r, ans]) => M.lineForSum({ answer: ans }, r.ops, r, seeded(1))),
+  estLines: [[{ answer: 600, round: 100 }, 1], [{ answer: 90, round: 10 }, 2], [{ answer: 200, round: 10 }, 3], [{ answer: 10, round: 10 }, 4]].map(([s, seed]) => M.lineForSum(s, ['+'], hRow(4, 3), seeded(seed))),
+  fracLines: [2, 7, 10].map((d) => M.lineForSum({ answer: 1, den: d }, ['+'], hRow(5, 7), seeded(1))),
+  shares: { est: groupShares(hRow(4, 3), 121), todo: groupShares(hRow(5, 3), 122), frac: groupShares(hRow(5, 7), 123), hto: groupShares({ ...hRow(3, 6), parts: undefined, cross: false }, 124),
+    miss20: sumDraws(lRow(4, 7), 125).reduce((a, { f }) => { const k = `${f[5]}${f[8] ? '/flip' : ''}`; return { ...a, [k]: (a[k] || 0) + 1 }; }, {}) },
+  twice: [[lRow(4, 7), 131], [hRow(4, 3), 132], [hRow(5, 7), 133], [hRow(5, 1), 134]].map(([r, seed]) => { const ds = sumDraws(r, seed, 300); return ds.filter((d, i) => i > 0 && d.text === ds[i - 1].text).length; }),
+  fall: [hRow(5, 1).fall_s ?? null, lRow(4, 2).fall_s ?? null],
+};
+// Their faces (faces.js 1.2)
+const chip13 = (T) => FC.faceChip(T);
+out.y13faces = {
+  find: [37, 347].map((k) => { const c2 = chip13({ ask: 'find', n: k, value: k }); return [c2.cls, txt(c2.html)]; }),
+  groups: [[3, 2], [5, 10], [1, 5]].map(([g, sz]) => { const c2 = chip13({ ask: 'groups', groups: g, size: sz, value: g * sz }); return [c2.cls, has(c2.html, 'd-on'), has(c2.html, 'gr-row'), txt(c2.html)]; }),
+  half: [14, 2].map((k) => { const c2 = chip13({ ask: 'half', n: k, value: k / 2 }); return [c2.cls, has(c2.html, 'd-on'), has(c2.html, 'fo-group'), txt(c2.html)]; }),
+  double10: dotsOn(chip13({ ask: 'double', n: 10, value: 20 }).html),
+  place: [347, 905, 100].map((k) => { const c2 = chip13({ ask: 'place', n: k, value: k }); return [c2.cls, has(c2.html, 'pc-h'), has(c2.html, 'pc-t'), has(c2.html, 'pc-o'), txt(c2.html)]; }),
+  place34: (() => { const c2 = chip13({ ask: 'place', n: 34, value: 34 }); return [has(c2.html, 'pv-ten'), has(c2.html, 'pv-one'), has(c2.html, 'pc-h')]; })(),
+  moreLess: [[{ ask: 'more-less', dir: 'more', by: 100, n: 347, value: 447 }], [{ ask: 'more-less', dir: 'less', by: 10, n: 347, value: 337 }], [{ ask: 'more-less', dir: 'more', n: 6, value: 7 }]]
+    .map(([T]) => txt(chip13(T).html)),
+  tenths: [{ ask: 'seq', step: 1, dir: 'forward', terms: [7, 8, 9], value: 10, den: 10 }, { ask: 'seq', step: 1, dir: 'backward', terms: [13, 12, 11], value: 10, den: 10 }]
+    .map((T) => { const h = chip13(T).html; return [has(h, 'fr'), txt(h)]; }),
+  compare: (() => { const h = chip13({ ask: 'frac-compare', first: 3, second: 5, parts: 15, value: 5, other: 3 }).html; return [has(h, 'fr'), txt(h)]; })(),
+  share10: (() => { const h = chip13({ ask: 'share', total: 20, groups: 10, value: 2 }).html; return [has(h, 'sw'), has(h, 'plate')]; })(),
+  partsHtml: [[3, 10], [13, 10], [10, 10], [0, 10]].map(([v, d]) => txt(FC.partsHtml(v, d))),
+  fracSum: (() => { const c2 = FC.fracSumHtml({ a: 5, op: '+', b: 1, den: 7 }); return [has(c2, 'fr'), txt(c2)]; })(),
+};
 console.log(JSON.stringify(out));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + COMMON, 'file://' + GAME], capture_output=True, text=True)
@@ -700,25 +829,25 @@ hi = TRK['year2']
 lo = TRK['reception']
 check(hi['edition'] not in ('', 'stand-in', lo['edition']) and hi['name'] == 'Year 2, then Year 3',
       f"the higher track is Year 2's, with an edition of its own (not the stand-ins'): {hi['edition']!r}, {hi['name']!r}")
-check(all(len(x['levels']) == 8 and not x['soon'] for x in hi['systems'][:3]) and all(x['soon'] and x['levels'] == [] for x in hi['systems'][3:]),
-      'higher track: Moon, Red Dust and Candy hold 8 levels each; Ice, Jungle and Ringed (Year 3, step 2c-3c) are coming soon')
-check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in hi['systems'][:3]) and
-      all(k != 'challenge' for x in hi['systems'][:3] for k, _ in x['levels'][:7]),
+check(all(len(x['levels']) == 8 and not x['soon'] for x in hi['systems']),
+      'higher track: all six systems hold 8 levels each, Year 2 then Year 3 (step 2c-3c); none is coming soon')
+check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in hi['systems']) and
+      all(k != 'challenge' for x in hi['systems'] for k, _ in x['levels'][:7]),
       'each of them ends in a challenge round, and only there (D-091)')
-check(all(lvl is None and r is not None for x in hi['systems'][:3] for (k, lvl), r in zip(x['levels'][:7], x['rows'][:7])),
-      "every Year 2 level has its own row: none is a stand-in level's (D-068) or a table's row")
+check(all(lvl is None and r is not None for x in hi['systems'] for (k, lvl), r in zip(x['levels'][:7], x['rows'][:7])),
+      "every Year 2 and Year 3 level has its own row: none is a stand-in level's (D-068) or a table's row")
 # The lower track: Reception's three systems, as the level plan says (D-091)
 check(lo['edition'] not in ('', 'stand-in'), f"the lower track has an edition of its own: {lo['edition']!r}")
-check(all(len(x['levels']) == 8 and not x['soon'] for x in lo['systems'][:3]) and all(x['soon'] and x['levels'] == [] for x in lo['systems'][3:]),
-      'lower track: Moon, Red Dust and Candy hold 8 levels each; Ice, Jungle and Ringed (Year 1, step 2c-3c) are coming soon')
-check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in lo['systems'][:3]) and
-      all(k != 'challenge' for x in lo['systems'][:3] for k, _ in x['levels'][:7]),
+check(all(len(x['levels']) == 8 and not x['soon'] for x in lo['systems']),
+      'lower track: all six systems hold 8 levels each, Reception then Year 1 (step 2c-3c); none is coming soon')
+check(all(x['levels'][7] == ['challenge', None] and x['plan'][7] == 'challenge' for x in lo['systems']) and
+      all(k != 'challenge' for x in lo['systems'] for k, _ in x['levels'][:7]),
       'each of them ends in a challenge round, and only there (D-091)')
 sys.path.insert(0, HERE)
 import plan_rocket_levels as PLANS  # noqa: E402
-want_plan = PLANS.PLAN['reception']['systems'][:3]
-got_plan = [x['plan'][:7] for x in lo['systems'][:3]]
-check(got_plan == want_plan, f'lower track levels 1 to 7 are the level plan\'s, in its order (plan_rocket_levels.py): {got_plan}')
+want_plan = PLANS.PLAN['reception']['systems']
+got_plan = [x['plan'][:7] for x in lo['systems']]
+check(got_plan == want_plan, f'lower track levels 1 to 7 of all six systems are the level plan\'s, in its order (plan_rocket_levels.py): {got_plan}')
 NOTES = os.path.join(HERE, 'syllabus-notes.json')
 pr_run = subprocess.run([sys.executable, '-B', os.path.join(HERE, 'plan_rocket_levels.py'), NOTES], capture_output=True, text=True)
 check(pr_run.returncode == 0 and 'plan checks pass' in pr_run.stdout, "the level plan passes its checks against Rob's notes in the repo (Q-033)")
@@ -744,9 +873,9 @@ want_rows = [
 ]
 check(all(ok for _, ok in want_rows), f"the new rows' numbers are the notes' params (dice lines: D-060, D-067, 0 to 6 and 0 to 12, written-number targets): {[i for i, ok in want_rows if not ok]}")
 # Year 2: levels 1 to 7 of Moon, Red Dust and Candy are the plan's, and their rows' numbers the notes' params
-want_hi = PLANS.PLAN['year2']['systems'][:3]
-got_hi = [x['plan'][:7] for x in hi['systems'][:3]]
-check(got_hi == want_hi, f"higher track levels 1 to 7 are the level plan's Year 2, in its order (plan_rocket_levels.py): {got_hi}")
+want_hi = PLANS.PLAN['year2']['systems']
+got_hi = [x['plan'][:7] for x in hi['systems']]
+check(got_hi == want_hi, f"higher track levels 1 to 7 of all six systems are the level plan's Year 2 and Year 3, in its order (plan_rocket_levels.py): {got_hi}")
 y2 = {pl: r for x in hi['systems'][:3] for pl, r in zip(x['plan'], x['rows'])}
 Y2S = json.load(open(NOTES, encoding='utf-8'))['stages']['year2']
 yr = lambda i: y2[i]  # noqa: E731
@@ -778,9 +907,79 @@ want_y2 = [
     ('Y2-20', yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == P('Y2-20')['total_max']),
 ]
 check(all(ok for _, ok in want_y2), f"Year 2's rows' numbers are the notes' params (tables to × 12, D-099; the timed level's 6 s): {[i for i, ok in want_y2 if not ok]}")
+# Year 1 (lower track) and Year 3 (higher track), Ice, Jungle and Ringed: their rows' numbers are the notes' params (step 2c-3c)
+y13r = {pl: r for tr in (lo, hi) for x in tr['systems'][3:] for pl, r in zip(x['plan'], x['rows'])}
+STG = json.load(open(NOTES, encoding='utf-8'))['stages']
+Y1S, Y3S = STG['year1'], STG['year3']
+q = lambda i: y13r[i]  # noqa: E731
+sums_row = lambda i, forms, ops: q(i)['forms'] == forms and q(i)['ops'] == ops  # noqa: E731
+want_y13 = [
+    ('Y1-01', q('Y1-01')['ask'] == 'find' and [q('Y1-01')['min'], q('Y1-01')['max']] == [P('Y1-01')['min'], P('Y1-01')['max']]),
+    # D-094: numbers to 100 in halves, to 50 (Y1-01's numbers), then to 100
+    ('Y1-02', q('Y1-02')['ask'] == 'find' and [[p['min'], p['max']] for p in q('Y1-02')['parts']] == [[P('Y1-01')['min'], P('Y1-01')['max']], [P('Y1-02')['min'], P('Y1-02')['max']]]),
+    ('Y1-03', q('Y1-03')['ask'] == 'seq' and q('Y1-03')['steps'] == [P('Y1-03')['step']] and [q('Y1-03')['min'], q('Y1-03')['max']] == [P('Y1-03')['min'], P('Y1-03')['max']]
+     and q('Y1-03')['dirs'] == P('Y1-03')['directions'] and q('Y1-03')['start'] == 'any' and Y1S['count_forwards_and_backwards_from_any_number']),
+    ('Y1-04', q('Y1-04')['ask'] == 'seq' and q('Y1-04')['steps'] == P('Y1-04')['steps'] == Y1S['skip_counting'] and q('Y1-04')['start'] == P('Y1-04')['start']
+     and q('Y1-04')['max'] == P('Y1-04')['max'] and q('Y1-04')['dirs'] == ['forward'] and 'directions' not in P('Y1-04')),
+    ('Y1-05', q('Y1-05')['ask'] == 'words' and [q('Y1-05')['min'], q('Y1-05')['max']] == [P('Y1-05')['min'], P('Y1-05')['max']] == Y1S['number_words']),
+    ('Y1-06', q('Y1-06')['ask'] == 'more-less' and [q('Y1-06')['min'], q('Y1-06')['max']] == [P('Y1-06')['min'], P('Y1-06')['max']] and 'by' not in q('Y1-06')),
+    ('Y1-07', sums_row('Y1-07', ['bond'], ['+']) and q('Y1-07')['whole'] == P('Y1-07')['target'] and q('Y1-07')['every'] == 1 and P('Y1-07')['show_objects'] is False),
+    ('Y1-08', sums_row('Y1-08', ['facts'], ['+']) and q('Y1-08')['max'] == P('Y1-08')['answer_max'] == P('Y1-08')['a'][1] and q('Y1-08')['b_max'] == P('Y1-08')['b'][1]
+     and q('Y1-08')['cross'] is False),
+    ('X-add20-cross', sums_row('X-add20-cross', ['facts'], ['+']) and q('X-add20-cross')['max'] == P('Y1-08')['answer_max'] and q('X-add20-cross')['b_max'] == P('Y1-08')['b'][1]
+     and q('X-add20-cross')['cross'] is True),
+    ('Y1-09', sums_row('Y1-09', ['facts'], ['−']) and q('Y1-09')['max'] == P('Y1-09')['start'][1] == Y1S['subtraction']['start_max'] and q('Y1-09')['b_max'] == P('Y1-09')['b'][1]
+     and q('Y1-09')['cross'] is False),
+    ('X-sub20-cross', sums_row('X-sub20-cross', ['facts'], ['−']) and q('X-sub20-cross')['max'] == P('Y1-09')['start'][1] and q('X-sub20-cross')['b_max'] == P('Y1-09')['b'][1]
+     and q('X-sub20-cross')['cross'] is True),
+    ('Y1-10', sums_row('Y1-10', ['bond'], ['+']) and q('Y1-10')['whole'] == P('Y1-10')['target'] and q('Y1-10')['every'] == 1),
+    ('Y1-11', sums_row('Y1-11', ['missing'], ['+', '−']) and q('Y1-11')['of'] == ['facts'] and q('Y1-11')['max'] == P('Y1-11')['max'] and P('Y1-11')['ops'] == ['+', '-']
+     and q('Y1-11')['blanks'] == P('Y1-11')['blank_positions'] and q('Y1-11')['flip'] is True and Y1S['missing_number']['example'] == '7 = ? - 9'),
+    ('Y1-12', q('Y1-12')['ask'] == 'groups' and q('Y1-12')['sizes'] == P('Y1-12')['group_sizes'] == Y1S['multiplication']['group_sizes'] and q('Y1-12')['max_groups'] == P('Y1-12')['max_groups']
+     and P('Y1-12')['show_array']),
+    ('Y1-13', q('Y1-13')['ask'] == 'share' and q('Y1-13')['total_max'] == P('Y1-13')['total_max'] and q('Y1-13')['groups'] == P('Y1-13')['groups']),
+    ('Y1-14', q('Y1-14')['ask'] == 'frac-shape' and q('Y1-14')['fractions'] == P('Y1-14')['fractions'] == Y1S['fractions']),
+    ('Y1-15', q('Y1-15')['ask'] == 'frac-of' and q('Y1-15')['fractions'] == P('Y1-15')['fractions'] and q('Y1-15')['total_max'] == P('Y1-15')['total_max']),
+    ('X-doubles20', q('X-doubles20')['ask'] == 'double' and q('X-doubles20')['halves'] is True and 2 * q('X-doubles20')['max'] == 20 and 'doubles and halves to 20' in Y1S['other']),
+    ('Y3-01', q('Y3-01')['ask'] == 'find' and [q('Y3-01')['min'], q('Y3-01')['max']] == [P('Y3-01')['min'], P('Y3-01')['max']]),
+    ('Y3-02', q('Y3-02')['ask'] == 'place' and q('Y3-02')['digits'] == P('Y3-02')['digits'] and [q('Y3-02')['min'], q('Y3-02')['max']] == [100, 999]),
+    ('Y3-03', q('Y3-03')['ask'] == 'sign' and [q('Y3-03')['min'], q('Y3-03')['max']] == [P('Y3-03')['min'], P('Y3-03')['max']] == Y3S['compare']['range']
+     and P('Y3-03')['symbols'] == ['<', '>', '='] and all(q('Y3-03')['rels'][k] > 0 for k in ('more', 'fewer', 'same'))),
+    ('Y3-04', q('Y3-04')['ask'] == 'more-less' and q('Y3-04')['by'] == [10, 100] and [q('Y3-04')['min'], q('Y3-04')['max']] == [P('Y3-04')['min'], P('Y3-04')['max']]
+     and Y3S['ten_or_hundred_more_or_less']),
+    ('Y3-05', q('Y3-05')['ask'] == 'seq' and q('Y3-05')['steps'] == P('Y3-05')['steps'] and q('Y3-05')['start'] == P('Y3-05')['start'] and q('Y3-05')['max'] == P('Y3-05')['max']
+     and q('Y3-05')['dirs'] == ['forward'] and 'directions' not in P('Y3-05')),
+    ('Y3-06', sums_row('Y3-06', ['HTO+O', 'HTO+T', 'HTO+H'], ['+']) and P('Y3-06')['forms'] == ['HTO+O', 'HTO+T', 'HTO+H'] and q('Y3-06')['max'] == P('Y3-06')['answer_max']
+     and [p['cross'] for p in q('Y3-06')['parts']] == [False, True]),
+    ('Y3-07', sums_row('Y3-07', ['HTO-O', 'HTO-T', 'HTO-H'], ['−']) and P('Y3-07')['forms'] == ['HTO-O', 'HTO-T', 'HTO-H'] and [p['cross'] for p in q('Y3-07')['parts']] == [False, True]),
+    ('Y3-08', sums_row('Y3-08', ['bond'], ['+']) and q('Y3-08')['whole'] == P('Y3-08')['target'] and q('Y3-08')['every'] == P('Y3-08')['multiples_of']),
+    ('Y3-09', sums_row('Y3-09', ['TO+TO', 'TO-TO'], ['+', '−']) and P('Y3-09')['form'] == 'TO+TO / TO-TO' and q('Y3-09')['max'] == P('Y3-09')['answer_max']),
+    ('Y3-10', sums_row('Y3-10', ['estimate'], ['+', '−']) and q('Y3-10')['rounds'] == P('Y3-10')['round_to'] and P('Y3-10')['ops'] == ['+', '-'] and P('Y3-10')['max'] == 1000
+     and Y3S['addition']['estimate_first']),
+    ('Y3-11', sums_row('Y3-11', ['table'], ['×']) and q('Y3-11')['tables'] == P('Y3-11')['tables'] and q('Y3-11')['times_max'] == P('Y3-11')['max_multiplier']),
+    ('Y3-12', sums_row('Y3-12', ['table'], ['×']) and q('Y3-12')['tables'] == P('Y3-12')['tables'] and q('Y3-12')['times_max'] == P('Y3-12')['max_multiplier']),
+    ('Y3-13', sums_row('Y3-13', ['table'], ['×']) and q('Y3-13')['tables'] == P('Y3-13')['tables'] and q('Y3-13')['times_max'] == P('Y3-13')['max_multiplier']),
+    ('X-div348', sums_row('X-div348', ['divide'], ['÷']) and q('X-div348')['tables'] == [3, 4, 8] == sorted(Y3S['multiplication']['new_this_year'])
+     and set(q('X-div348')['tables']) <= set(Y3S['division']['times_tables'])),
+    ('Y3-14', sums_row('Y3-14', ['table', 'divide'], ['×', '÷']) and q('Y3-14')['tables'] == P('Y3-14')['tables'] and q('Y3-14')['times_max'] == P('Y3-14')['max_multiplier']
+     and q('Y3-14')['fall_s'] == P('Y3-14')['timed_seconds']),
+    ('Y3-15', sums_row('Y3-15', ['TO*O'], ['×']) and P('Y3-15')['form'] == 'TO*O' and q('Y3-15')['a'] == P('Y3-15')['a'] and q('Y3-15')['b'] == P('Y3-15')['b']),
+    ('X-TOdivO', sums_row('X-TOdivO', ['TO/O'], ['÷']) and q('X-TOdivO')['divisors'] == [d for d in Y3S['division']['times_tables'] if d < 10] and Y3S['division']['exact_only']),
+    ('Y3-16', q('Y3-16')['ask'] == 'frac-of' and q('Y3-16')['fractions'] == [f'{n}/{d}' for d in P('Y3-16')['denominators'] for n in range(1, d) if gcd(n, d) == 1]
+     and q('Y3-16')['total_max'] == P('Y3-16')['total_max'] and P('Y3-16')['non_unit'] and q('Y3-16')['pick'] == 'den'),
+    ('Y3-17', q('Y3-17')['ask'] == 'seq' and q('Y3-17')['den'] == 10 and P('Y3-17')['fraction_step'] == '1/10' and q('Y3-17')['max'] == P('Y3-17')['max'] * 10
+     and q('Y3-17')['steps'] == [1] and q('Y3-17')['dirs'] == ['forward', 'backward']),
+    ('Y3-18', q('Y3-18')['ask'] == 'frac-compare' and q('Y3-18')['dens'] == P('Y3-18')['denominators'] and P('Y3-18')['unit_only'] and q('Y3-18')['min_gap'] == [1, 12]),
+    ('Y3-19', sums_row('Y3-19', ['frac'], ['+', '−']) and q('Y3-19')['dens'] == list(range(2, 11)) and P('Y3-19')['same_denominator'] and P('Y3-19')['max_total'] == 1),
+]
+check(len(want_y13) == 39 and all(ok for _, ok in want_y13),
+      f"Year 1's and Year 3's rows' numbers are the notes' params (D-094's halves; times tables to × 12, D-099; the timed level's 6 s): {[i for i, ok in want_y13 if not ok]}")
 reused = {pl: lvl for x in lo['systems'][:3] for pl, (k, lvl) in zip(x['plan'], x['levels']) if lvl is not None}
 check(reused == {'R01': 1, 'R02': 2, 'X-odd-faint': 5, 'R13': 1, 'R14': 2, 'X-mix10': 3, 'R15': 3, 'X-parity-faint': 4},
       f"levels that play today reuse today's rows: Number mode 1, 2, 5, 3, 4 and sums 1, 2, 3 (level plan section 2): {reused}")
+reused13 = {pl: (k, lvl) for tr in (lo, hi) for x in tr['systems'][3:] for pl, (k, lvl) in zip(x['plan'], x['levels']) if lvl is not None}
+check(reused13 == {'X-every-other': ('number', 6), 'X-0-5-10': ('number', 7), 'X-0-10': ('number', 8)},
+      f"Year 1's three added levels reuse Number mode's levels 6, 7 and 8 (D-038's G2, G3 and T2); every other Year 1 and Year 3 level has its own row: {reused13}")
 check(all(isinstance(t, str) and 0 < len(t) <= 32 for tr in TRK.values() for x in tr['systems'] for t in x['about']),
       f"every level says what it asks, in a few words (32 letters at most): {[t for tr in TRK.values() for x in tr['systems'] for t in x['about'] if not (isinstance(t, str) and 0 < len(t) <= 32)]}")
 bad = [(k, x['id'], i + 1, r) for k, tr in TRK.items() for x in tr['systems'] for i, r in enumerate(x['samples']) if r != 'ok']
@@ -893,8 +1092,8 @@ check(yv['fracSay'] == ['one half', 'one third', 'two thirds', 'one quarter', 't
       f"fractions said as they're written: {yv['fracSay']}")
 # A level's own fall (the timed level, 6 s in the notes) takes the place of the speed, the 25% included; none: as before
 check(yv['fall'] == [6, 6, 15, 15, 7], f"a level's own fall time: 6 s at any speed; without one, 12 x 1.25 = 15 and speed 5's 7 s: {yv['fall']}")
-check(yv['ASKS'] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share', 'place', 'words', 'sign', 'seq', 'parity', 'frac-shape', 'frac-of'],
-      f"Reception's seven questions and Year 2's seven: {yv['ASKS']}")
+check(yv['ASKS'][:14] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share', 'place', 'words', 'sign', 'seq', 'parity', 'frac-shape', 'frac-of'],
+      f"Reception's seven questions and Year 2's seven (Year 1's and Year 3's follow, checked whole below): {yv['ASKS']}")
 ch2 = yv['choices']
 check(ch2['place'] == [[n, n, 'ask'] for n in range(10, 100)], f"tens and ones: every 2-digit number, 10 to 99 ({len(ch2['place'])})")
 check(ch2['words'] == [[n, n] for n in range(1, 101)], f"number words: 1 to 100 ({len(ch2['words'])})")
@@ -961,7 +1160,7 @@ check(yf['shape'] == [[1, 4], [3, 4], [1, 3], [2, 4], [1, 2]], f"shapes cut in e
 check(yf['fracOf'] == [[12, 4, '3 4 of 12'], [24, 2, '1 2 of 24'], [9, 3, '1 3 of 9']], f"3/4 of 12: 12 dots in 4 groups; 1/2 of 24; 1/3 of 9: {yf['fracOf']}")
 check(yf['fracHtml'] == '3 4', 'a fraction as its two numbers, one over the other')
 ys = o['y2sums']
-check(ys['FORMS'] == ['facts', 'TO+O', 'TO+T', 'TO-O', 'TO-T', 'O+O+O', 'TO+TO', 'TO-TO', 'missing', 'bond', 'table', 'divide'], f"sum forms: {ys['FORMS']}")
+check(ys['FORMS'][:12] == ['facts', 'TO+O', 'TO+T', 'TO-O', 'TO-T', 'O+O+O', 'TO+TO', 'TO-TO', 'missing', 'bond', 'table', 'divide'], f"Year 2's sum forms first (Year 3's checked below): {ys['FORMS']}")
 F = lambda a, op, b, ans, op2=None, c=None, miss=None, res=None: [a, op, b, op2, c, miss, res, ans]  # noqa: E731
 srt = lambda xs: sorted(xs, key=json.dumps)  # noqa: E731
 R = range
@@ -1009,6 +1208,226 @@ check(set(ys['missingShares']) == {'TO+O', 'TO+T', 'TO+TO', 'TO-O', 'TO-T', 'TO-
 check(ys['twice'] == [0, 0, 0], f"never the same sum twice running (three numbers, missing numbers, a table): {ys['twice']}")
 check(ys['fall'] == 6, 'the timed level falls in 6 s (the notes)')
 check(ys['halves'] == [[0, 0, 0, 0, 1, 1, 1, 1]] * 2, 'TO + TO and TO − TO: 4 landings without carrying or exchanging, then 4 with (D-094)')
+
+# ---------- Step 2c-3c: Year 1's and Year 3's questions, faces and sums (asks.js 1.2, faces.js 1.2, sums.js 1.4) ----------
+# Expected values are enumerated here in Python from the notes' words and the level plan's, not taken from the game's code.
+y3 = o['y13']
+check(y3['ASKS'] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share', 'place', 'words', 'sign', 'seq', 'parity', 'frac-shape', 'frac-of',
+                     'find', 'groups', 'half', 'frac-compare'], f"Reception's seven questions, Year 2's seven, then find a number, groups of, half of and which fraction is bigger: {y3['ASKS']}")
+check(y3['FORMS'] == ['facts', 'TO+O', 'TO+T', 'TO-O', 'TO-T', 'O+O+O', 'TO+TO', 'TO-TO', 'missing', 'bond', 'table', 'divide',
+                      'HTO+O', 'HTO+T', 'HTO+H', 'HTO-O', 'HTO-T', 'HTO-H', 'estimate', 'TO*O', 'TO/O', 'frac'], f"sum forms, Year 3's after Year 2's: {y3['FORMS']}")
+check(y3['fracText'] == ['3/10', '1', '1 3/10', '0', '2', '4/8', '1/2', '6/7'],
+      f"a line of parts written as it is counted (tenths stay tenths: 4/8, not 1/2), or in simplest form as before: {y3['fracText']}")
+check(y3['partsSay'] == ['three tenths', 'one', 'one and three tenths', 'zero', 'one tenth', 'two', 'six sevenths', 'one and one tenth'],
+      f"parts said as they're written: {y3['partsSay']}")
+# Year 1's questions
+check(y3['find50'] == [[n, n] for n in range(0, 51)] and y3['find1000'] == [[n, n] for n in range(100, 1001)],
+      f"find the number: 0 to 50 (Y1-01) and 100 to 1000 (Y3-01): {len(y3['find50'])}, {len(y3['find1000'])}")
+fpl, fps = y3['findParts']
+check(fpl == [0, 0, 0, 0, 1, 1, 1, 1] and fps['partVals'][0][0] >= 0 and fps['partVals'][0][1] <= 50 and 50 < fps['partVals'][1][1] <= 100
+      and fps['bystep']['0']['hi'] <= 50 and fps['bystep']['1']['hi'] <= 100 and fps['holds'] and fps['spans'] == [10],
+      f"numbers to 100 in halves (D-094): 4 landings to 50, then 4 to 100, each on a stretch of 10 inside its half: {fpl}, {fps['partVals']}")
+check(y3['next1'] == [seqs([1], 'any', 0, 100, 'forward'), seqs([1], 'any', 0, 100, 'backward')] and [len(x) for x in y3['next1']] == [98, 98],
+      f"what comes next: count on or back in ones from any number, 0 to 100: {[len(x) for x in y3['next1']]}")
+c1 = seqs([2, 5, 10], 0, 0, 100, 'forward')
+check(y3['count1'] == c1 and len(c1) == 48 + 18 + 8, f"count in 2s, 5s and 10s from 0 to 100, forward (Year 1 counts in multiples): {len(y3['count1'])} (by hand: 48 + 18 + 8)")
+check(y3['words20'] == [[n, n] for n in range(1, 21)], f"number words 1 to 20: {len(y3['words20'])}")
+check(y3['oneMore'] == [[['more', 1, n, n + 1] for n in range(0, 100)], [['less', 1, n, n - 1] for n in range(1, 101)]],
+      f"one more or one less, 0 to 100: {[len(x) for x in y3['oneMore']]}")
+check(y3['groups'] == [[g, sz, g * sz] for sz in (2, 5, 10) for g in range(1, 6)], f"groups of 2, 5 and 10, 1 to 5 groups: {len(y3['groups'])}")
+check(y3['groupLines'] == [{'from': 0, 'to': 5 * sz, 'step': sz, 'label_every': sz} for sz in (2, 5, 10)],
+      f"each group size lands on its own line, 0 to 5 lots in its steps: {y3['groupLines']}")
+want_share = [[t, g, t // g] for g in (2, 5, 10) for t in range(g, 21, g)]
+check(y3['share'] == want_share and len(want_share) == 16, f"share 20 or fewer between 2, 5 or 10 plates, whole shares: {len(y3['share'])} (10 + 4 + 2)")
+check(y3['halves1'] == [[1, 2, lk, 4, 2] for lk in (0, 1)] + [[1, 4, lk, 4, 1] for lk in (0, 1)], f"halves and quarters of shapes, on a line of quarters: {y3['halves1']}")
+check(y3['half20'] == [[1, 2, t, t // 2] for t in range(2, 21, 2)], f"half of 2 to 20: {len(y3['half20'])}")
+check(y3['doubles'] == [['double', n, 2 * n] for n in range(1, 11)] + [['half', 2 * n, n] for n in range(1, 11)],
+      f"doubles of 1 to 10 and halves of 2 to 20: {len(y3['doubles'])}")
+check(all(len(x) == 8 and set(x) == {'double', 'half'} and all(x[i] != x[i + 1] for i in range(7)) for x in y3['planDoubles']),
+      f"doubles and halves take turns: {y3['planDoubles']}")
+# Year 3's questions
+check(y3['place3'] == [[n, n] for n in range(100, 1000)], f"hundreds, tens and ones: every 3-digit number: {len(y3['place3'])}")
+check(y3['sign1000'] == [[['range', 'more', n, None] for n in range(3, 998)], [['range', 'fewer', n, None] for n in range(3, 998)], [['ask', 'same', n, n] for n in range(3, 998)]],
+      f"<, > and = on 3 to 997 inside 0 to 1000: {[len(x) for x in y3['sign1000']]}")
+m3 = [[['more', by, n, n + by] for by in (10, 100) for n in range(0, 1001 - by)], [['less', by, n, n - by] for by in (10, 100) for n in range(by, 1001)]]
+check(y3['more1000'] == m3 and [len(x) for x in m3] == [991 + 901] * 2, f"10 or 100 more or less, inside 0 to 1000: {[len(x) for x in y3['more1000']]}")
+c3 = seqs([4, 8, 50, 100], 0, 0, 1000, 'forward')
+check(y3['count3'] == c3 and len(c3) == 248 + 123 + 18 + 8, f"count in 4s, 8s, 50s and 100s from 0 to 1000, forward: {len(y3['count3'])}")
+FR16 = [f'{n}/{d}' for d in (2, 3, 4, 5, 8, 10) for n in range(1, d) if gcd(n, d) == 1]
+want_am = [[int(f.split('/')[0]), int(f.split('/')[1]), t, t * int(f.split('/')[0]) // int(f.split('/')[1])] for f in FR16 for t in range(int(f.split('/')[1]), 41, int(f.split('/')[1]))]
+check(y3['amounts'] == want_am and len(FR16) == 17, f"fractions of amounts: the 17 fractions in simplest form with denominators 2, 3, 4, 5, 8 and 10, of totals to 40, whole answers: {len(y3['amounts'])}")
+check(y3['tenths'] == [[s + [10] for s in seqs([1], 'any', 0, 20, d)] for d in ('forward', 'backward')] and [len(x) for x in y3['tenths']] == [18, 18],
+      f"counting in tenths between 0 and 2 (0 to 20 tenths), up and down: {[len(x) for x in y3['tenths']]}")
+D18 = [2, 3, 4, 5, 6, 8, 10]
+want_cmp, gone = [], []
+for x in D18:
+    for y in D18:
+        if x == y:
+            continue
+        big, small = min(x, y), max(x, y)
+        if 12 * (small - big) < big * small:  # 1/big − 1/small under 1/12: the two marks too close to write on an upright phone
+            gone.append((big, small))
+            continue
+        L = big * small // gcd(big, small)
+        want_cmp.append([x, y, L, L // big, L // small])
+check(y3['compare'] == want_cmp and len(want_cmp) == 30 and sorted(set(gone)) == [(4, 5), (5, 6), (5, 8), (6, 8), (6, 10), (8, 10)],
+      f"which is bigger: 15 pairs of unit fractions, both orders, marked on 0 to 1 in their common parts; the 6 pairs closer than 1/12 left out: {len(y3['compare'])}")
+check(all(L == {'from': 0, 'to': c[2], 'step': 1, 'label_every': 0, 'labels': f'frac{c[2]}', 'label_at': [c[4], c[3]]} for L, c in zip(y3['compareLines'], want_cmp)),
+      f"each pair's line: 0 to 1 in their common parts, only the two fractions written (and 0 and 1): {y3['compareLines'][:2]}")
+check(y3['compareRight'] == [[True, False, False, False, False], [True, False, False], [True, True, True, False, False]],
+      f"right or wrong: the bigger fraction's mark; a long line's leeway never reaches halfway to the smaller one: {y3['compareRight']}")
+ln3 = y3['lines']
+INSIDE = {'find50': (0, 50), 'next1': (0, 100), 'count1': (0, 100), 'words20': (1, 20), 'oneMore': (0, 100), 'doubles': (0, 20), 'find1000': (100, 1000),
+          'place3': (100, 999), 'sign1000': (0, 1000), 'more1000': (0, 1000), 'count3': (0, 1000), 'amounts': (0, max(a[3] for a in want_am)), 'tenths': (0, 20)}
+for k, (wlo, whi) in INSIDE.items():
+    w3 = ln3[k]
+    check(w3['n'] == 300 and w3['spans'] == [10] and w3['lo'] >= wlo and w3['hi'] <= whi and w3['holds'] and w3['starts'] > 5 and not w3['twice'],
+          f"{k}: 300 landings, each on a stretch of 10 marks inside {wlo} to {whi} with its answer on a mark, starting in {w3['starts']} places; never the same question twice running: "
+          f"{ {x: w3[x] for x in ('spans', 'steps', 'lo', 'hi', 'holds', 'twice')} }")
+check({k: (v['st'], v['len']) for k, v in ln3['count1']['bystep'].items()} == {'2': ([1], [10]), '5': ([1], [10]), '10': ([2], [10])},
+      f"counting in 2s and 5s on a stretch in ones, in 10s on a stretch in 2s, so 30 isn't the only ten in view: {ln3['count1']['bystep']}")
+check({k: (v['st'], v['len']) for k, v in ln3['count3']['bystep'].items()} == {'4': ([1], [10]), '8': ([1], [10]), '50': ([10], [10]), '100': ([20], [10])},
+      f"counting in 4s and 8s on a stretch in ones, in 50s on one in tens, in 100s on one in twenties: {ln3['count3']['bystep']}")
+check(ln3['sign1000']['sides'] and ln3['tenths']['labels'] == ['parts10'] and ln3['tenths']['steps'] == [1] and ln3['find1000']['labels'] == ['plain'],
+      f"<, > and = with 3 marks each side; tenths on a line written in tenths: {ln3['tenths']['labels']}")
+check(ln3['doubles']['kinds'] == {'double': 150, 'half': 150} and ln3['oneMore']['kinds'] == {'more': 150, 'less': 150},
+      f"doubles and halves, and one more and one less, half each: {ln3['doubles']['kinds']}, {ln3['oneMore']['kinds']}")
+check({k: (v['st'], v['len']) for k, v in ln3['groups']['bystep'].items()} == {'2': ([2], [5]), '5': ([5], [5]), '10': ([10], [5])} and ln3['groups']['holds'],
+      f"groups of 2, 5 and 10 on their own lines (0 to 5 lots): {ln3['groups']['bystep']}")
+check(ln3['compare']['holds'] and ln3['compare']['labels'] and all(lb.startswith('frac') for lb in ln3['compare']['labels']),
+      f"which is bigger: every landing on its pair's fraction line: {ln3['compare']['labels'][:4]}")
+sh3 = y3['shares']
+check(set(sh3['count1']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh3['count1'].values()), f"600 counts: 2s, 5s and 10s about a third each: {sh3['count1']}")
+check(set(sh3['count3']) == {'4', '8', '50', '100'} and all(110 <= v <= 190 for v in sh3['count3'].values()), f"600 counts: 4s, 8s, 50s and 100s about a quarter each: {sh3['count3']}")
+check(set(sh3['more1000']) == {'10', '100'} and all(240 <= v <= 360 for v in sh3['more1000'].values()), f"600 questions: 10 or 100 more or less, about half each: {sh3['more1000']}")
+check(set(sh3['groups']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh3['groups'].values()), f"600 groups: of 2, 5 and 10 about a third each: {sh3['groups']}")
+check(set(sh3['share']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh3['share'].values()), f"600 shares: 2, 5 and 10 plates about a third each: {sh3['share']}")
+check(set(sh3['amounts']) == {'2', '3', '4', '5', '8', '10'} and all(60 <= v <= 140 for v in sh3['amounts'].values()),
+      f"600 fractions of amounts: each denominator about a sixth (picked first, so fifths, eighths and tenths don't swamp halves): {sh3['amounts']}")
+# Year 1's and Year 3's sums
+F13 = lambda a, op, b, ans, op2=None, c=None, miss=None, res=None, flip=None, den=None, rnd=None, exact=None: [a, op, b, op2, c, miss, res, ans, flip, den, rnd, exact]  # noqa: E731
+y3s = o['y13sums']
+check(srt(y3s['bond10']) == srt([F13(a, '+', 10 - a, 10 - a, miss='b', res=10) for a in R(1, 10)]), f"bonds to 10: 1 + ? to 9 + ?: {len(y3s['bond10'])}")
+up10 = lambda a, b: a < 10 < a + b  # noqa: E731
+down10 = lambda a, b: a > 10 > a - b  # noqa: E731
+add20 = [F13(a, '+', b, a + b) for a in R(21) for b in R(min(9, 20 - a) + 1)]
+sub20 = [F13(a, '−', b, a - b) for a in R(21) for b in R(min(9, a) + 1)]
+check(srt(y3s['add20']) == srt([f for f in add20 if not up10(f[0], f[2])]) and srt(y3s['add20x']) == srt([f for f in add20 if up10(f[0], f[2])])
+      and [len(y3s['add20']), len(y3s['add20x'])] == [129, 36],
+      f"adding to 20 (a number and 0 to 9): not crossing 10 (129), then crossing (36, e.g. 7 + 5): {len(y3s['add20'])}, {len(y3s['add20x'])}")
+check(srt(y3s['sub20']) == srt([f for f in sub20 if not down10(f[0], f[2])]) and srt(y3s['sub20x']) == srt([f for f in sub20 if down10(f[0], f[2])])
+      and [len(y3s['sub20']), len(y3s['sub20x'])] == [129, 36],
+      f"taking 0 to 9 from 20 or less: not crossing 10 (129), then crossing (36, e.g. 13 − 5): {len(y3s['sub20'])}, {len(y3s['sub20x'])}")
+check(srt(y3s['bond20']) == srt([F13(a, '+', 20 - a, 20 - a, miss='b', res=20) for a in R(1, 20)]), f"bonds to 20: {len(y3s['bond20'])}")
+base20 = [F13(a, '+', b, a + b) for a in R(21) for b in R(21 - a)] + [F13(a, '−', b, a - b) for a in R(21) for b in R(a + 1)]
+want_m20 = [F13(f[0], f[1], f[2], f[7] if h == 'answer' else (f[0] if h == 'a' else f[2]), miss=h, res=f[7], flip=True if fl else None)
+            for f in base20 for h in ('a', 'b', 'answer') for fl in (False, True)]
+check(srt(y3s['miss20']) == srt(want_m20) and len(want_m20) == 462 * 6,
+      f"missing numbers to 20: the first, the second or the answer hidden, each written both ways round ('7 = ? − 9'): {len(y3s['miss20'])} (462 sums x 3 x 2)")
+check(y3s['texts'] == ['7 = ? − 9', '7 + 5 = ?', '? = 7 + 5', '10 = 6 + ?', '5/7 + 1/7', '3/8 − 3/8'], f"sums written: {y3s['texts']}")
+HH = R(100, 1000)
+ho = [F13(a, '+', b, a + b) for a in HH for b in R(1, 10) if a + b <= 1000]
+ht = [F13(a, '+', b, a + b) for a in HH for b in R(10, 100, 10) if a + b <= 1000]
+hh = [F13(a, '+', b, a + b) for a in HH for b in R(100, 1000, 100) if a + b <= 1000]
+check([srt(x) for x in y3s['htoAdd']] == [srt([f for f in ho if f[0] % 10 + f[2] < 10] + [f for f in ht if f[0] % 100 + f[2] < 100] + hh),
+                                          srt([f for f in ho if f[0] % 10 + f[2] >= 10] + [f for f in ht if f[0] % 100 + f[2] >= 100])],
+      f"mental adding to 1000 in halves (D-094): HTO + ones, tens and hundreds not crossing a ten or hundred, then HTO + ones crossing a ten and + tens crossing a hundred: {[len(x) for x in y3s['htoAdd']]}")
+mo = [F13(a, '−', b, a - b) for a in HH for b in R(1, 10)]
+mt = [F13(a, '−', b, a - b) for a in HH for b in R(10, 100, 10)]
+mh = [F13(a, '−', b, a - b) for a in HH for b in R(100, 1000, 100) if b <= a]
+check([srt(x) for x in y3s['htoSub']] == [srt([f for f in mo if f[0] % 10 >= f[2]] + [f for f in mt if f[0] % 100 >= f[2]] + mh),
+                                          srt([f for f in mo if f[0] % 10 < f[2]] + [f for f in mt if f[0] % 100 < f[2]])],
+      f"mental taking away in halves: not crossing a ten or hundred back, then crossing: {[len(x) for x in y3s['htoSub']]}")
+check(y3s['halves'] == [[0, 0, 0, 0, 1, 1, 1, 1]] * 2, 'HTO + and − sums: 4 landings not crossing, then 4 crossing (D-094)')
+check(srt(y3s['pairs100']) == srt([F13(a, '+', 100 - a, 100 - a, miss='b', res=100) for a in R(5, 100, 5)]), f"pairs to 100 in 5s: 5 + ? to 95 + ?: {len(y3s['pairs100'])}")
+want_big2 = [F13(a, '+', b, a + b) for a in R(10, 100) for b in R(10, 100)] + [F13(a, '−', b, a - b) for a in R(10, 100) for b in R(10, 100) if b <= a]
+check(srt(y3s['big2']) == srt(want_big2) and len(want_big2) == 8100 + 4095, f"big 2-digit sums: TO + TO (answers to 198) and TO − TO: {len(y3s['big2'])}")
+
+
+def near_r(v, r):
+    return (v // r) * r + (r if v % r > r // 2 else 0)
+
+
+want_est = []
+for r, nums, top in ((10, [v for v in R(10, 100) if v % 10 != 5], 200), (100, [v for v in R(100, 1000) if abs(v - near_r(v, 100)) <= 10], 1000)):
+    for a in nums:
+        for b in nums:
+            if a % r == 0 and b % r == 0:
+                continue
+            for op in ('+', '−'):
+                if op == '−' and b > a:
+                    continue
+                ex = a + b if op == '+' else a - b
+                if ex > top or ex % r == r // 2:
+                    continue
+                est = near_r(ex, r)
+                if est == 0 or est != (near_r(a, r) + near_r(b, r) if op == '+' else near_r(a, r) - near_r(b, r)):
+                    continue
+                want_est.append(F13(a, op, b, est, rnd=r, exact=ex))
+check(srt(y3s['est']) == srt(want_est) and len(want_est) == 4860 + 2170 + 14320 + 15950,
+      f"estimates: two 2-digit numbers (no 5s) to the nearest 10, two 3-digit numbers within 10 of a hundred to the nearest 100; only where rounding first and rounding the answer agree, never 0: {len(y3s['est'])}")
+
+
+def table13(t):
+    return [F13(t, '×', n, t * n) for n in R(1, 13)] + [F13(n, '×', t, t * n) for n in R(1, 13) if n != t]
+
+
+check([srt(y3s[k]) for k in ('t4', 't8', 't3')] == [srt(table13(4)), srt(table13(8)), srt(table13(3))], 'the 4, 8 and 3 times tables to × 12, both ways round, 23 sums each (D-099)')
+check(srt(y3s['div348']) == srt([F13(t * q, '÷', t, q) for t in (3, 4, 8) for q in R(1, 13)]), f"dividing by 3, 4 and 8, answers 1 to 12: {len(y3s['div348'])}")
+seen13, mx = set(), []
+for t in (2, 3, 4, 5, 8, 10):
+    for n in R(1, 13):
+        for a, b in ((t, n), (n, t)) if n != t else ((t, n),):
+            if (a, b) not in seen13:
+                seen13.add((a, b))
+                mx.append(F13(a, '×', b, a * b))
+mx += [F13(t * q, '÷', t, q) for t in (2, 3, 4, 5, 8, 10) for q in R(1, 13)]
+check(srt(y3s['mixed']) == srt(mx), f"mixed tables: × of the 2, 3, 4, 5, 8 and 10 tables to × 12 (each sum once: 3 × 8 isn't counted twice) and ÷ by them: {len(y3s['mixed'])} (want {len(mx)})")
+check(srt(y3s['toxo']) == srt([F13(a, '×', b, a * b) for a in R(11, 31) for b in R(2, 6)]), f"TO × O: 11 to 30 times 2 to 5: {len(y3s['toxo'])}")
+want_todo = [F13(n, '÷', d, n // d) for d in (2, 3, 4, 5, 8) for n in R(10, 100) if n % d == 0]
+check(srt(y3s['todo']) == srt(want_todo), f"TO ÷ O: 2-digit numbers divided exactly by 2, 3, 4, 5 or 8: {len(y3s['todo'])}")
+want_fr = [F13(a, '+', b, a + b, den=d) for d in R(2, 11) for a in R(1, d) for b in R(1, d) if a + b <= d] + \
+    [F13(a, '−', b, a - b, den=d) for d in R(2, 11) for a in R(1, d) for b in R(1, a + 1)]
+check(srt(y3s['frac']) == srt(want_fr) and len(want_fr) == 330, f"adding and taking away fractions with the same denominator (2 to 10), within one whole: {len(y3s['frac'])}")
+l3 = y3s['lines']
+for k, (shapes, whi) in {'add20': (['10x1'], 20), 'bond20': (['10x1'], 19), 'miss20': (['10x1'], 20), 'htoAdd': (['10x1'], 1000), 'htoSub': (['10x1'], 999),
+                         'big2': (['10x1'], 198), 'mixed': (['10x1'], 120), 'toxo': (['10x1'], 150), 'todo': (['10x1'], 49)}.items():
+    check(l3[k]['holds'] and l3[k]['shapes'] == shapes and l3[k]['hi'] <= whi and l3[k]['starts'] > 5 and not l3[k]['twice'],
+          f"{k}: 300 sums, each on a stretch of 10 marks inside 0 to {whi} with the answer on it, never the same sum twice running: {l3[k]}")
+check(l3['est']['holds'] and l3['est']['shapes'] == ['10x10', '10x100'] and l3['est']['hi'] <= 1000 and l3['est']['labels'] == ['plain'],
+      f"estimates land on a stretch of 10 marks in tens, or on 0 to 1000 in hundreds: {l3['est']}")
+check(l3['frac']['holds'] and l3['frac']['shapes'] == sorted(f'{d}x1' for d in R(2, 11)) and l3['frac']['labels'] == sorted(f'parts{d}' for d in R(2, 11)),
+      f"fraction sums land on 0 to 1 in their parts, written as they're counted: {l3['frac']['shapes']}")
+check(y3s['fixed'] == [{'from': 0, 'to': 10, 'step': 1, 'label_every': 1}, {'from': 0, 'to': 100, 'step': 5, 'label_every': 10}, {'from': 0, 'to': 48, 'step': 4, 'label_every': 4},
+                       {'from': 0, 'to': 96, 'step': 8, 'label_every': 8}, {'from': 0, 'to': 36, 'step': 3, 'label_every': 3}, {'from': 0, 'to': 12, 'step': 1, 'label_every': 1}],
+      f"lines of their own: bonds to 10 on 0 to 10; pairs to 100 on 0 to 100 in fives, every ten written; the 4, 8 and 3 tables in their steps; ÷ 3, 4, 8 on 0 to 12: {y3s['fixed']}")
+el = y3s['estLines']
+check(el[0] == {'from': 0, 'to': 1000, 'step': 100, 'label_every': 100} and all(x['step'] == 10 and x['to'] - x['from'] == 100 and x['from'] % 10 == 0 and x['from'] <= a <= x['to'] and x['to'] <= 200
+                                                                                 for x, a in zip(el[1:], (90, 200, 10))),
+      f"an estimate's line: 0 to 1000 in hundreds; or 10 marks in tens holding the ten, inside 0 to 200: {el}")
+check(y3s['fracLines'] == [{'from': 0, 'to': d, 'step': 1, 'label_every': 1, 'labels': f'parts{d}'} for d in (2, 7, 10)], f"a fraction sum's line: 0 to 1 in its parts: {y3s['fracLines']}")
+s3 = y3s['shares']
+check(set(s3['est']) == {'r10', 'r100'} and all(240 <= v <= 360 for v in s3['est'].values()), f"600 estimates: to the nearest 10 and 100 about half each: {s3['est']}")
+check(set(s3['todo']) == {'2', '3', '4', '5', '8'} and all(80 <= v <= 160 for v in s3['todo'].values()), f"600 TO ÷ O: each divisor about a fifth: {s3['todo']}")
+check(set(s3['frac']) == {str(d) for d in R(2, 11)} and all(35 <= v <= 100 for v in s3['frac'].values()), f"600 fraction sums: each denominator about a ninth: {s3['frac']}")
+check(set(s3['hto']) == {'HTO+O', 'HTO+T', 'HTO+H'} and all(150 <= v <= 250 for v in s3['hto'].values()), f"600 HTO sums not crossing: + ones, tens and hundreds about a third each: {s3['hto']}")
+check(set(s3['miss20']) == {'a', 'b', 'answer', 'a/flip', 'b/flip', 'answer/flip'} and all(60 <= v <= 140 for v in s3['miss20'].values()),
+      f"600 missing numbers: the first, second or answer hidden, half written answer first: {s3['miss20']}")
+check(y3s['twice'] == [0, 0, 0, 0], f"never the same sum twice running (missing numbers, estimates, fractions, mixed tables): {y3s['twice']}")
+check(y3s['fall'] == [6, None], f"mixed tables fall in 6 s (the notes); the rest as the speed says: {y3s['fall']}")
+yf3 = o['y13faces']
+check(yf3['find'] == [['', '37'], ['', '347']], f"find the number: the number itself, as Number mode's chip: {yf3['find']}")
+check(yf3['groups'] == [['face face-groups', 6, 3, '3 groups of 2'], ['face face-groups', 50, 5, '5 groups of 10'], ['face face-groups', 5, 1, '1 group of 5']],
+      f"groups of: each group a row of dots (an array, the notes' show_array): {yf3['groups']}")
+check(yf3['half'] == [['face face-half', 14, 2, 'half of 14'], ['face face-half', 2, 2, 'half of 2']], f"half of: the dots in two groups: {yf3['half']}")
+check(yf3['double10'] == 20, f"double 10: 10 dots twice: {yf3['double10']}")
+check(yf3['place'] == [['face face-place', 3, 4, 7, 'H T O'], ['face face-place', 9, 0, 5, 'H T O'], ['face face-place', 1, 0, 0, 'H T O']] and yf3['place34'] == [3, 4, 0],
+      f"hundreds, tens and ones: counters in a place-value chart (H, T, O); 2-digit numbers keep their rods and ones: {yf3['place']}, {yf3['place34']}")
+check(yf3['moreLess'] == ['100 more than 347', '10 less than 347', '1 more than 6'], f"10 or 100 more or less, and one more as before: {yf3['moreLess']}")
+check(yf3['tenths'] == [[3, '7 10 8 10 9 10 ?'], [3, '1 3 10 1 2 10 1 1 10 ?']], f"counting in tenths: three tenths written one over the other, then the box: {yf3['tenths']}")
+check(yf3['compare'] == [2, 'Which is bigger? 1 3 or 1 5'], f"which is bigger: the two fractions: {yf3['compare']}")
+check(yf3['share10'] == [20, 10], f"20 sweets shared by 10 plates: {yf3['share10']}")
+check(yf3['partsHtml'] == ['3 10', '1 3 10', '1', '0'] and yf3['fracSum'] == [2, '5 7 + 1 7'], f"tenths and fraction sums written: {yf3['partsHtml']}, {yf3['fracSum']}")
 
 # ---------- The progress on the map (progress.js, D-058, D-064): format 3's rules ----------
 pr = o['progress']
