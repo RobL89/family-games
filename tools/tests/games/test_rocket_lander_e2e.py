@@ -1,4 +1,7 @@
-"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.6.
+"""Browser test for Rocket Lander, played on its own as a plain page. Version 1.7.
+
+Changes at v1.7 (checkpoint after step 2c-3c, D-105, ER-008): falls as D-096 set them: speed 1 in about 18 s
+and the default, speed 3, in about 12 s (D-032's 12 s and 8 s before), with the same tolerance (about 10%).
 
 Changes at v1.6 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
 test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
@@ -334,7 +337,7 @@ with sync_playwright() as pw:
     variation('vneg-ph', 390, 844, True, {'from': -10, 'to': 10, 'label_every': 5}, vneg)
     variation('vneg-pc', 1280, 800, False, {'from': -10, 'to': 10, 'label_every': 5}, vneg, play=(False,))
 
-    # speed 1: about 12 seconds from the top to the ground (speed 2: about 8)
+    # speed 1: about 18 seconds from the top to the ground; the default, speed 3: about 12 (D-096)
     def measure_fall(speed):
         pg = open_game(br, 390, 844, True, {'speed': speed} if speed is not None else None)
         start(pg)
@@ -349,8 +352,8 @@ with sync_playwright() as pw:
         pg.context.close()
         return secs
     s1, s2 = measure_fall(1), measure_fall(None)
-    check(11 < s1 < 13.2, f'speed 1 takes about 12 s to fall ({s1:.1f} s)')
-    check(7.2 < s2 < 8.8, f'speed 2 (default) takes about 8 s to fall ({s2:.1f} s)')
+    check(16.5 < s1 < 19.8, f'speed 1 takes about 18 s to fall (D-096) ({s1:.1f} s)')
+    check(11 < s2 < 13.2, f'speed 3 (default) takes about 12 s to fall (D-096) ({s2:.1f} s)')
 
     # odd settings are fixed and explained with console.info
     infos.clear()

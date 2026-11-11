@@ -1,5 +1,9 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.8.
+Version 1.9.
+
+Changes at v1.9 (checkpoint after step 2c-3c, D-105, ER-007): progress has been format 4 since the tracks
+came in (D-089), so a purchase is kept at format 4, and the "unknown version starts afresh" check uses
+version 5 (4 is known now); the checks are otherwise unchanged.
 
 Changes at v1.8 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
 test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
@@ -246,8 +250,8 @@ with sync_playwright() as pw:
         p = st(pg)['progress']
         check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: bought at its price, 37 - 30 = 7 left: {p}')
         e = entry_of(pg, T)
-        check(e and e.get('v') == 3 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'] and e.get('open') == OPEN,
-              f'{T}: the purchase is kept on the device straight away, at format version 3, the map kept too: {e}')
+        check(e and e.get('v') == 4 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'] and e.get('open') == OPEN,
+              f'{T}: the purchase is kept on the device straight away, at format version 4 (D-089), the map kept too: {e}')
         pg.wait_for_timeout(700)
         pg.screenshot(path=f'{OUT}/{T}-showroom-bought.png')
         pg.wait_for_function('__test.state().progress.ship === "teapot" && !__test.state().hangar.bip', timeout=10000)
@@ -304,7 +308,7 @@ with sync_playwright() as pw:
         check(p['ship'] == 'teapot' and p['ships'] == ['classic', 'teapot'] and p['rocks'] == 7, f'{T}: a reload keeps the ships: {p}')
         for bad, want, why in (
             ({**V1, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 37), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
-            ({**V1, 'v': 4, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version starts afresh'),
+            ({**V1, 'v': 5, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version (5) starts afresh'),
         ):
             pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(T), bad])
             pg.reload(); ready(pg)
