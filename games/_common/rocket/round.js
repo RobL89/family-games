@@ -1,4 +1,8 @@
-// The rocket game's round flow (D-027, D-058). Version 2.7.
+// The rocket game's round flow (D-027, D-058). Version 2.8.
+//
+// Changes at v2.8 (step 2c-3c): a landing's line may name the only marks to write (`label_at`: two unit
+// fractions on a line of their common parts), handed to the scene and part of the line's key, so a new pair
+// lays its line out afresh.
 //
 // Changes at v2.7 (step 2c-3b, D-100): a kind may give a level's own fall time (fallTime(T, row): Year
 // 2's fast facts fall in 6 s, whatever the speed), and the flag after a right landing writes its number
@@ -180,11 +184,12 @@ export function runRocket(mode) {
     G.total = Math.round(clamp(Number(S.landings_per_round) || 8, 3, 20));
   }
 
-  // Lay out a line ({ from, to, step, label_every }) and size the landing leeway to it.
+  // Lay out a line ({ from, to, step, label_every, label_at? }) and size the landing leeway to it.
+  const keyOfLine = (L) => [L.from, L.to, L.step, L.label_every, (L.label_at || []).join('/')].join(',');
   function useLine(L) {
     line = makeLine(L);
-    lineKey = [L.from, L.to, L.step, L.label_every].join(',');
-    scene.setLine(line, Math.max(0, Number(L.label_every) || 0), S.show_as);
+    lineKey = keyOfLine(L);
+    scene.setLine(line, Math.max(0, Number(L.label_every) || 0), S.show_as, L.label_at || null);
     sizeNearness();
     const notes = [...line.notes, ...scene.notes];
     const key = notes.join('; ');
@@ -465,7 +470,7 @@ export function runRocket(mode) {
     if (!own) return;
     const look = own.labels || null;
     if (look && look !== scene.labelLook) { scene.setLabelLook(look); lineKey = ''; }
-    if ([own.from, own.to, own.step, own.label_every].join(',') !== lineKey) useLine(own);
+    if (keyOfLine(own) !== lineKey) useLine(own);
   }
 
   function nextLanding() {

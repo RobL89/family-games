@@ -1,4 +1,8 @@
-/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.2.
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.3.
+   Changes at v2.3 (step 2c-3c): Year 1's and Year 3's faces: groups as rows of dots in lilac boxes, half of a
+   number, a place-value chart (H, T, O: coral hundreds, mint tens, sun ones, as the blocks' colours), which of
+   two fractions is bigger, a count in tenths, an estimate (nearest 10 or 100), a fraction sum, and a mixed
+   number (1 3/10) in the chip and the bubble.
    Changes at v2.2 (step 2c-3b, D-100): Year 2's faces in the target's chip (tens rods and ones, words, a
    sign, a count, a shape cut in parts, a fraction of dots in groups), a dashed box for a number to find,
    and fractions one number over the other in the chip and the bubble.
@@ -126,6 +130,25 @@ button { font: inherit; color: inherit; }
 .chip .fr b + b, .bubble .fr b + b { padding-top: .05em; }
 .chip .fo-group { fill: var(--lilac); stroke: var(--ink); stroke-width: .9; }
 .chip.face-fracof .fn { font-size: .7em; }
+/* Year 1's and Year 3's faces (step 2c-3c): groups of, half of, a place-value chart, which fraction is bigger,
+   tenths, an estimate, a fraction sum; a whole number before a fraction (1 3/10) */
+.chip.face svg.array { height: 1.3em; }
+.chip.face svg.array.r1 { height: .62em; }
+.chip.face svg.array.r2 { height: 1em; }
+.chip .gr-row { fill: var(--lilac); stroke: var(--ink); stroke-width: .9; }
+.chip.face-groups .fn, .chip.face-half .fn { font-size: .7em; }
+.chip.face svg.chart { height: 1.42em; }
+.chip .pc-col { fill: var(--paper); stroke: var(--ink); stroke-width: .9; }
+.chip .pc-hd { font-family: var(--font); font-weight: 700; font-size: 8.4px; fill: var(--ink); text-anchor: middle; }
+.chip .pc-h { fill: var(--coral); stroke: var(--ink); stroke-width: 1; }
+.chip .pc-t { fill: var(--mint); stroke: var(--ink); stroke-width: 1; }
+.chip .pc-o { fill: var(--sun); stroke: var(--ink); stroke-width: 1; }
+.chip .mx, .bubble .mx { display: inline-flex; align-items: center; gap: .08em; vertical-align: middle; }
+.chip.face-seq .fx { padding: .04em .14em; }
+.chip.face-fcmp .fr { font-size: .74em; }
+.chip.sum.frac { display: inline-flex; align-items: center; gap: .16em; }
+.chip.sum.frac .fr { font-size: .62em; }
+.chip.face-est .fw { max-width: 4.2em; }
 /* a challenge round (D-091): its card's chip */
 .chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
 .chip.challenge svg { width: .9em; height: .9em; }

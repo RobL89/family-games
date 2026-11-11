@@ -13,7 +13,8 @@ hidden too and written both ways round, HTO + and − ones, tens and hundreds in
 100 in fives, big 2-digit sums, estimates to the nearest 10 or 100, the 3, 4 and 8 tables, mixed tables
 in 6 s, TO × O, TO ÷ O and fraction sums; each counted against a Python enumeration of the notes' words,
 with the lines each lands on. Their faces (faces.js 1.2), and lines counted in parts written as counted
-(numbers.js 1.2: tenths stay tenths).
+(numbers.js 1.2: tenths stay tenths). Rob's two answers in the step: Year 3's 3-digit numbers and tenths
+on stretches of 7 marks (D-103), and numbers to 100 in halves of 51 to 100, then 0 to 100 (D-104).
 
 Changes at v1.8 (step 2c-3b, D-100): Year 2 on the higher track. The higher track's map is Year 2's
 three systems, a new edition (so a map kept on the stand-in levels starts afresh there; a format 3
@@ -500,8 +501,9 @@ const lineSum = (row, seed, n = 300) => { const ls = landings(row, seed, n); ret
   sides: ls.filter(({ T }) => T.ask === 'sign' && T.rule === 'range').every(({ T, L }) => T.n - L.from >= 3 && L.to - T.n >= 3),
   twice: ls.some(({ T }, i) => i > 0 && AK.keyOf(T) === AK.keyOf(ls[i - 1].T)),
   // per step (a count) or per part: the stretch's step and length, and how often
-  bystep: ls.reduce((a, { T, L }) => { const k = T.step ?? T.by ?? T.size ?? T.part ?? '-'; const e = a[k] || { n: 0, st: [], len: [], hi: -Infinity };
-    e.n++; if (!e.st.includes(L.step)) e.st.push(L.step); if (!e.len.includes((L.to - L.from) / L.step)) e.len.push((L.to - L.from) / L.step); e.hi = Math.max(e.hi, L.to); a[k] = e; return a; }, {}),
+  bystep: ls.reduce((a, { T, L }) => { const k = T.step ?? T.by ?? T.size ?? T.part ?? '-'; const e = a[k] || { n: 0, st: [], len: [], hi: -Infinity, lo: Infinity };
+    e.n++; if (!e.st.includes(L.step)) e.st.push(L.step); if (!e.len.includes((L.to - L.from) / L.step)) e.len.push((L.to - L.from) / L.step);
+    e.hi = Math.max(e.hi, L.to); e.lo = Math.min(e.lo, L.from); a[k] = e; return a; }, {}),
   labels: [...new Set(ls.map(({ L }) => L.labels || 'plain'))],
   kinds: ls.reduce((a, { T }) => { const k = T.ask === 'half' || T.ask === 'double' ? T.ask : (T.rel ?? T.dir ?? '-'); a[k] = (a[k] || 0) + 1; return a; }, {}),
   parts: ls.map(({ T }) => T.part ?? null).slice(0, 8), partVals: [0, 1].map((p) => span(ls.filter(({ T }) => T.part === p).map(({ T }) => T.value))) }; };
@@ -915,8 +917,8 @@ q = lambda i: y13r[i]  # noqa: E731
 sums_row = lambda i, forms, ops: q(i)['forms'] == forms and q(i)['ops'] == ops  # noqa: E731
 want_y13 = [
     ('Y1-01', q('Y1-01')['ask'] == 'find' and [q('Y1-01')['min'], q('Y1-01')['max']] == [P('Y1-01')['min'], P('Y1-01')['max']]),
-    # D-094: numbers to 100 in halves, to 50 (Y1-01's numbers), then to 100
-    ('Y1-02', q('Y1-02')['ask'] == 'find' and [[p['min'], p['max']] for p in q('Y1-02')['parts']] == [[P('Y1-01')['min'], P('Y1-01')['max']], [P('Y1-02')['min'], P('Y1-02')['max']]]),
+    # D-094: numbers to 100 in halves; D-104: 51 to 100 (the numbers past Y1-01's), then 0 to 100
+    ('Y1-02', q('Y1-02')['ask'] == 'find' and [[p['min'], p['max']] for p in q('Y1-02')['parts']] == [[P('Y1-01')['max'] + 1, P('Y1-02')['max']], [P('Y1-02')['min'], P('Y1-02')['max']]]),
     ('Y1-03', q('Y1-03')['ask'] == 'seq' and q('Y1-03')['steps'] == [P('Y1-03')['step']] and [q('Y1-03')['min'], q('Y1-03')['max']] == [P('Y1-03')['min'], P('Y1-03')['max']]
      and q('Y1-03')['dirs'] == P('Y1-03')['directions'] and q('Y1-03')['start'] == 'any' and Y1S['count_forwards_and_backwards_from_any_number']),
     ('Y1-04', q('Y1-04')['ask'] == 'seq' and q('Y1-04')['steps'] == P('Y1-04')['steps'] == Y1S['skip_counting'] and q('Y1-04')['start'] == P('Y1-04')['start']
@@ -1224,9 +1226,9 @@ check(y3['partsSay'] == ['three tenths', 'one', 'one and three tenths', 'zero', 
 check(y3['find50'] == [[n, n] for n in range(0, 51)] and y3['find1000'] == [[n, n] for n in range(100, 1001)],
       f"find the number: 0 to 50 (Y1-01) and 100 to 1000 (Y3-01): {len(y3['find50'])}, {len(y3['find1000'])}")
 fpl, fps = y3['findParts']
-check(fpl == [0, 0, 0, 0, 1, 1, 1, 1] and fps['partVals'][0][0] >= 0 and fps['partVals'][0][1] <= 50 and 50 < fps['partVals'][1][1] <= 100
-      and fps['bystep']['0']['hi'] <= 50 and fps['bystep']['1']['hi'] <= 100 and fps['holds'] and fps['spans'] == [10],
-      f"numbers to 100 in halves (D-094): 4 landings to 50, then 4 to 100, each on a stretch of 10 inside its half: {fpl}, {fps['partVals']}")
+check(fpl == [0, 0, 0, 0, 1, 1, 1, 1] and fps['partVals'][0][0] >= 51 and fps['partVals'][0][1] <= 100 and fps['partVals'][1][0] <= 50 and fps['partVals'][1][1] <= 100
+      and fps['bystep']['0']['lo'] >= 51 and fps['bystep']['0']['hi'] <= 100 and fps['bystep']['1']['lo'] >= 0 and fps['bystep']['1']['hi'] <= 100 and fps['holds'] and fps['spans'] == [10],
+      f"numbers to 100 in halves (D-094, D-104): 4 landings on 51 to 100, then 4 on 0 to 100, each on a stretch of 10 inside its half: {fpl}, {fps['partVals']}")
 check(y3['next1'] == [seqs([1], 'any', 0, 100, 'forward'), seqs([1], 'any', 0, 100, 'backward')] and [len(x) for x in y3['next1']] == [98, 98],
       f"what comes next: count on or back in ones from any number, 0 to 100: {[len(x) for x in y3['next1']]}")
 c1 = seqs([2, 5, 10], 0, 0, 100, 'forward')
@@ -1277,17 +1279,19 @@ check(all(L == {'from': 0, 'to': c[2], 'step': 1, 'label_every': 0, 'labels': f'
 check(y3['compareRight'] == [[True, False, False, False, False], [True, False, False], [True, True, True, False, False]],
       f"right or wrong: the bigger fraction's mark; a long line's leeway never reaches halfway to the smaller one: {y3['compareRight']}")
 ln3 = y3['lines']
-INSIDE = {'find50': (0, 50), 'next1': (0, 100), 'count1': (0, 100), 'words20': (1, 20), 'oneMore': (0, 100), 'doubles': (0, 20), 'find1000': (100, 1000),
-          'place3': (100, 999), 'sign1000': (0, 1000), 'more1000': (0, 1000), 'count3': (0, 1000), 'amounts': (0, max(a[3] for a in want_am)), 'tenths': (0, 20)}
-for k, (wlo, whi) in INSIDE.items():
+# Year 1's on stretches of 10 marks; Year 3's 3-digit numbers and tenths on 7, so an upright phone writes them all (D-103)
+INSIDE = {'find50': (0, 50, 10), 'next1': (0, 100, 10), 'count1': (0, 100, 10), 'words20': (1, 20, 10), 'oneMore': (0, 100, 10), 'doubles': (0, 20, 10),
+          'find1000': (100, 1000, 6), 'place3': (100, 999, 6), 'sign1000': (0, 1000, 6), 'more1000': (0, 1000, 6), 'count3': (0, 1000, 6),
+          'amounts': (0, max(a[3] for a in want_am), 10), 'tenths': (0, 20, 6)}
+for k, (wlo, whi, wspan) in INSIDE.items():
     w3 = ln3[k]
-    check(w3['n'] == 300 and w3['spans'] == [10] and w3['lo'] >= wlo and w3['hi'] <= whi and w3['holds'] and w3['starts'] > 5 and not w3['twice'],
-          f"{k}: 300 landings, each on a stretch of 10 marks inside {wlo} to {whi} with its answer on a mark, starting in {w3['starts']} places; never the same question twice running: "
+    check(w3['n'] == 300 and w3['spans'] == [wspan] and w3['lo'] >= wlo and w3['hi'] <= whi and w3['holds'] and w3['starts'] > 5 and not w3['twice'],
+          f"{k}: 300 landings, each on a stretch of {wspan} marks' gaps inside {wlo} to {whi} with its answer on a mark, starting in {w3['starts']} places; never the same question twice running: "
           f"{ {x: w3[x] for x in ('spans', 'steps', 'lo', 'hi', 'holds', 'twice')} }")
 check({k: (v['st'], v['len']) for k, v in ln3['count1']['bystep'].items()} == {'2': ([1], [10]), '5': ([1], [10]), '10': ([2], [10])},
       f"counting in 2s and 5s on a stretch in ones, in 10s on a stretch in 2s, so 30 isn't the only ten in view: {ln3['count1']['bystep']}")
-check({k: (v['st'], v['len']) for k, v in ln3['count3']['bystep'].items()} == {'4': ([1], [10]), '8': ([1], [10]), '50': ([10], [10]), '100': ([20], [10])},
-      f"counting in 4s and 8s on a stretch in ones, in 50s on one in tens, in 100s on one in twenties: {ln3['count3']['bystep']}")
+check({k: (v['st'], v['len']) for k, v in ln3['count3']['bystep'].items()} == {'4': ([1], [6]), '8': ([1], [6]), '50': ([25], [6]), '100': ([50], [6])},
+      f"counting in 4s and 8s on 7 marks in ones (D-103), in 50s on 7 marks in 25s and in 100s on 7 in 50s, so the answer isn't the only fifty or hundred in view: {ln3['count3']['bystep']}")
 check(ln3['sign1000']['sides'] and ln3['tenths']['labels'] == ['parts10'] and ln3['tenths']['steps'] == [1] and ln3['find1000']['labels'] == ['plain'],
       f"<, > and = with 3 marks each side; tenths on a line written in tenths: {ln3['tenths']['labels']}")
 check(ln3['doubles']['kinds'] == {'double': 150, 'half': 150} and ln3['oneMore']['kinds'] == {'more': 150, 'less': 150},
@@ -1390,21 +1394,22 @@ want_fr = [F13(a, '+', b, a + b, den=d) for d in R(2, 11) for a in R(1, d) for b
     [F13(a, '−', b, a - b, den=d) for d in R(2, 11) for a in R(1, d) for b in R(1, a + 1)]
 check(srt(y3s['frac']) == srt(want_fr) and len(want_fr) == 330, f"adding and taking away fractions with the same denominator (2 to 10), within one whole: {len(y3s['frac'])}")
 l3 = y3s['lines']
-for k, (shapes, whi) in {'add20': (['10x1'], 20), 'bond20': (['10x1'], 19), 'miss20': (['10x1'], 20), 'htoAdd': (['10x1'], 1000), 'htoSub': (['10x1'], 999),
-                         'big2': (['10x1'], 198), 'mixed': (['10x1'], 120), 'toxo': (['10x1'], 150), 'todo': (['10x1'], 49)}.items():
+# Year 1's sums on stretches of 10 marks; Year 3's that reach 100 or more on 7 (D-103), TO ÷ O's 2-digit answers on 10
+for k, (shapes, whi) in {'add20': (['10x1'], 20), 'bond20': (['10x1'], 19), 'miss20': (['10x1'], 20), 'htoAdd': (['6x1'], 1000), 'htoSub': (['6x1'], 999),
+                         'big2': (['6x1'], 198), 'mixed': (['6x1'], 120), 'toxo': (['6x1'], 150), 'todo': (['10x1'], 49)}.items():
     check(l3[k]['holds'] and l3[k]['shapes'] == shapes and l3[k]['hi'] <= whi and l3[k]['starts'] > 5 and not l3[k]['twice'],
-          f"{k}: 300 sums, each on a stretch of 10 marks inside 0 to {whi} with the answer on it, never the same sum twice running: {l3[k]}")
-check(l3['est']['holds'] and l3['est']['shapes'] == ['10x10', '10x100'] and l3['est']['hi'] <= 1000 and l3['est']['labels'] == ['plain'],
-      f"estimates land on a stretch of 10 marks in tens, or on 0 to 1000 in hundreds: {l3['est']}")
+          f"{k}: 300 sums, each on a stretch of {shapes[0].split('x')[0]} gaps inside 0 to {whi} with the answer on it, never the same sum twice running: {l3[k]}")
+check(l3['est']['holds'] and l3['est']['shapes'] == ['10x100', '6x10'] and l3['est']['hi'] <= 1000 and l3['est']['labels'] == ['plain'],
+      f"estimates land on 7 marks in tens (D-103), or on 0 to 1000 in hundreds: {l3['est']}")
 check(l3['frac']['holds'] and l3['frac']['shapes'] == sorted(f'{d}x1' for d in R(2, 11)) and l3['frac']['labels'] == sorted(f'parts{d}' for d in R(2, 11)),
       f"fraction sums land on 0 to 1 in their parts, written as they're counted: {l3['frac']['shapes']}")
 check(y3s['fixed'] == [{'from': 0, 'to': 10, 'step': 1, 'label_every': 1}, {'from': 0, 'to': 100, 'step': 5, 'label_every': 10}, {'from': 0, 'to': 48, 'step': 4, 'label_every': 4},
                        {'from': 0, 'to': 96, 'step': 8, 'label_every': 8}, {'from': 0, 'to': 36, 'step': 3, 'label_every': 3}, {'from': 0, 'to': 12, 'step': 1, 'label_every': 1}],
       f"lines of their own: bonds to 10 on 0 to 10; pairs to 100 on 0 to 100 in fives, every ten written; the 4, 8 and 3 tables in their steps; ÷ 3, 4, 8 on 0 to 12: {y3s['fixed']}")
 el = y3s['estLines']
-check(el[0] == {'from': 0, 'to': 1000, 'step': 100, 'label_every': 100} and all(x['step'] == 10 and x['to'] - x['from'] == 100 and x['from'] % 10 == 0 and x['from'] <= a <= x['to'] and x['to'] <= 200
+check(el[0] == {'from': 0, 'to': 1000, 'step': 100, 'label_every': 100} and all(x['step'] == 10 and x['to'] - x['from'] == 60 and x['from'] % 10 == 0 and x['from'] <= a <= x['to'] and x['to'] <= 200
                                                                                  for x, a in zip(el[1:], (90, 200, 10))),
-      f"an estimate's line: 0 to 1000 in hundreds; or 10 marks in tens holding the ten, inside 0 to 200: {el}")
+      f"an estimate's line: 0 to 1000 in hundreds; or 7 marks in tens holding the ten, inside 0 to 200 (D-103): {el}")
 check(y3s['fracLines'] == [{'from': 0, 'to': d, 'step': 1, 'label_every': 1, 'labels': f'parts{d}'} for d in (2, 7, 10)], f"a fraction sum's line: 0 to 1 in its parts: {y3s['fracLines']}")
 s3 = y3s['shares']
 check(set(s3['est']) == {'r10', 'r100'} and all(240 <= v <= 360 for v in s3['est'].values()), f"600 estimates: to the nearest 10 and 100 about half each: {s3['est']}")

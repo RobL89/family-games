@@ -1,4 +1,8 @@
-"""Close script for P-034 (Kids Games Development). Version 1.9.
+"""Close script for P-034 (Kids Games Development). Version 1.10.
+
+Changes at v1.10 (step 2c-3c): the new browser test of Year 1's and Year 3's levels,
+test_rocket_lander_year1_year3_e2e.py, runs when Rocket Lander's own files change (as the Year 2 test does);
+the fast checks are as before.
 
 Changes at v1.9 (step 2c-3b): the new browser test of Year 2's levels, test_rocket_lander_year2_e2e.py,
 runs when Rocket Lander's own files change (as the Reception test does); the older browser tests that play
@@ -87,6 +91,7 @@ COVERS = {
     'test_rocket_lander_reception_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'],
     'test_rocket_lander_sums_e2e.py': ['games/rocket-lander/', T + 'build_preview.py', T + 'preview_debug_rocket_lander.js'] + STAND,
     'test_rocket_lander_year2_e2e.py': ['games/rocket-lander/'],
+    'test_rocket_lander_year1_year3_e2e.py': ['games/rocket-lander/'],
     'test_rocket_ship_hooks_e2e.py': [],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).

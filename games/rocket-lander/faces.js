@@ -92,7 +92,7 @@ export function faceChip(T) {
     case 'groups':
       return { cls: 'face face-groups', html: `<b class="fn">${esc(T.groups)}</b>${fw(T.groups === 1 ? 'group of' : 'groups of')}<b class="fn">${esc(T.size)}</b>${arraySvg(T.groups, T.size)}` };
     case 'half':
-      return { cls: 'face face-half', html: `${fw('half of')}<span class="pc"><b class="fn">${esc(T.n)}</b>${groupsSvg(T.n, 2)}</span>` };
+      return { cls: 'face face-half', html: `${fw('half of')}<b class="fn">${esc(T.n)}</b>${groupsSvg(T.n, 2)}` };
     case 'frac-compare':
       return { cls: 'face face-fcmp', html: `${fw('Which is bigger?')}${fracHtml(1, T.first)}${fw('or')}${fracHtml(1, T.second)}` };
     default:

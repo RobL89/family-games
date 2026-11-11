@@ -1,4 +1,7 @@
-"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.8.
+"""Browser test for Rocket Lander's sums levels, played on its own as a plain page. Version 1.9.
+
+Changes at v1.9 (step 2c-3c): Year 3 filled the higher track, so the preview's test panel offers its 48
+levels (six systems of 8), not 24; the checks are otherwise unchanged.
 
 Changes at v1.8 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
 test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
@@ -324,7 +327,7 @@ with sync_playwright() as pw:
     check(pv.is_visible('.pv-reset'), '1234 opens the test panel, with its Reset (D-055)')
     opts =pv.evaluate("[...document.querySelectorAll('.pv-level option')].length")
     ops = pv.evaluate("[...document.getElementById('pv-operations').options].map((o) => o.value)")
-    check(opts == 24 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers the higher track\'s 24 levels (Year 2: three systems of 8) and the operations: {opts}, {ops}')
+    check(opts == 48 and ops == ['', '+', '+ −', '+ − ×', '+ − × ÷'], f'the test panel offers the higher track\'s 48 levels (Year 2 and Year 3: six systems of 8) and the operations: {opts}, {ops}')
     pv.select_option('.pv-level', str(TIMES))
     pv.fill('#pv-rocks', '40')
     pv.click('.pv-apply')

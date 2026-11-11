@@ -1,12 +1,14 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.3. Changes at v1.3 (step 2c-3b, D-100): Year 2 replaced the stand-in levels, so no track is the
+Version 1.4. Changes at v1.4 (step 2c-3c): Year 1 filled the lower track, so its Ice, Jungle and Ringed are
+no longer coming soon and the preview's test panel offers its 48 levels, not 24; the rest is unchanged.
+Changes at v1.3 (step 2c-3b, D-100): Year 2 replaced the stand-in levels, so no track is the
 stand-in any more: a format 3 entry (made on the stand-ins) now plays the lower track from Moon 1 with its
 rocks and ships kept (tracks.js, as the core test checks); the rest is unchanged. Changes at v1.2: a miss is played at real speed, so its bubble is read before it goes (it showed for 0.34 s at 6 times speed, and on a PC page the test read the next landing's bubble); the checks are unchanged. Changes at v1.1: the fall times (D-096, D-097).
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
-  - a new device plays the lower track (D-089): Moon, Red Dust and Candy open in turn, Ice, Jungle and
-    Ringed coming soon;
+  - a new device plays the lower track (D-089): Moon, Red Dust and Candy open in turn (then Year 1's Ice,
+    Jungle and Ringed, step 2c-3c);
   - every Reception face (dots, a quick look, more/fewer/the same, one more or less, make 5 and 10,
     pictured + and −, doubles, sharing) shows as a picture without "Land on" (said instead), fits the
     screen with no sideways scroll, and takes a right landing and a wrong one, with its own words
@@ -275,7 +277,7 @@ with sync_playwright() as pw:
         opts = pg.evaluate("[...document.querySelectorAll('#pv-track option')].map((o) => [o.value, o.selected])")
         check(opts == [['reception', True], ['year2', False]], f'debug preview: the Track box shows both tracks, the lower picked: {opts}')
         n_levels = pg.evaluate("document.querySelectorAll('.pv-level option').length")
-        check(n_levels == 24, f'debug preview: the level list is the lower track\'s playable levels (3 systems of 8): {n_levels}')
+        check(n_levels == 48, f'debug preview: the level list is the lower track\'s playable levels (6 systems of 8): {n_levels}')
         pg.select_option('#pv-track', 'year2')
         with pg.expect_navigation():
             pg.click('.pv-apply')

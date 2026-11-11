@@ -1,6 +1,10 @@
 // Drawing for Rocket Lander, all original and drawn in code: space, distant planets,
 // the planet's ground with its number line, the rocket, its robot pilot Bip, and effects.
-// Version 1.5. Changes at v1.5 (step 2c-3b, D-100): fraction lines: the label look 'frac<d>' (frac4, frac3)
+// Version 1.6. Changes at v1.6 (step 2c-3c): the label look 'parts<d>' writes a line counted in parts as
+// it is counted (tenths stay tenths: 5/10, not 1/2; numbers.js fracText's `simplest` false), for counting in
+// tenths and fraction sums; and a line may write only the marks it's given (`label_at`, set with setLine),
+// with its ends: two unit fractions on a line of their common parts (1/5 and 1/3 on fifteenths).
+// Changes at v1.5 (step 2c-3b, D-100): fraction lines: the label look 'frac<d>' (frac4, frac3)
 // writes a line counted in parts as fractions in their simplest form (numbers.js fracText: 0, 1/4, 1/2,
 // 3/4, 1), each drawn one number over the other, as at school, under the line, in the lit-up box after a
 // miss and on the flag after a right landing (textOf). Other lines are written exactly as before.
@@ -783,9 +787,11 @@ export class Scene {
     if (this.W) this.buildGround();
   }
 
-  setLine(line, labelEvery, showAs) {
+  // labelAt (optional): the values of the only marks to write, with the two ends (step 2c-3c).
+  setLine(line, labelEvery, showAs, labelAt = null) {
     this.line = line; this.labelEvery = labelEvery; this.showAs = showAs;
-    this.labelIdx = labelSpots(line, labelEvery);
+    this.labelAt = labelAt && labelAt.length ? labelAt.slice() : null;
+    this.labelIdx = this.labelAt ? [...new Set([0, line.gaps, ...this.labelAt.map((v) => line.index(v))])].sort((a, b) => a - b) : labelSpots(line, labelEvery);
     if (this.W) this.layout();
   }
 
@@ -793,12 +799,14 @@ export class Scene {
   // 'parity' (even and odd in the stylesheet's --even and --odd colours), 'parity-faint'
   // (those colours faded towards white) or 'odd-faint' (odd numbers faint); or 'dice' (D-060,
   // D-067): every mark's number shown as dice faces, laid out to fit (step 2c-3a); or 'frac<d>' (step
-  // 2c-3b): a line counted in parts of d, written as fractions (white, like 'plain').
+  // 2c-3b): a line counted in parts of d, written as fractions in their simplest form (white, like
+  // 'plain'); or 'parts<d>' (step 2c-3c): the same, written as counted (3/10, 5/10, 1 3/10).
   setLabelLook(look = 'plain') {
     const relay = (look === 'dice') !== (this.labelLook === 'dice');
     this.labelLook = look;
-    const fr = /^frac(\d+)$/.exec(look || '');
-    this.parts = fr ? Number(fr[1]) : 0;
+    const fr = /^(frac|parts)(\d+)$/.exec(look || '');
+    this.parts = fr ? Number(fr[2]) : 0;
+    this.simplest = !fr || fr[1] === 'frac';
     if (relay && this.W && this.line) this.layout();
     const cs = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
     const v = (name) => (cs && cs.getPropertyValue(name).trim()) || '#FFFFFF';
@@ -806,7 +814,7 @@ export class Scene {
   }
 
   // A spot's number as it's written: a fraction on a fraction line, otherwise as numbers.js writes it.
-  textOf(v) { return this.parts ? fracText(v, this.parts) : fmt(v, this.showAs); }
+  textOf(v) { return this.parts ? fracText(v, this.parts, this.simplest) : fmt(v, this.showAs); }
 
   // A written number's fill and how strongly it shows, by the label look.
   labelFill(i) {
@@ -852,14 +860,15 @@ export class Scene {
     const asked = this.labelIdx;
     const widest = Math.max(...asked.map(wid));
     const marginFor = (k) => Math.max(30, (widest * k) / 2 + 14, W * 0.045);
-    const tries = every > 0 ? [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] : [0];
+    // a line that writes only the marks it's given (labelAt) writes them all, smaller if need be
+    const tries = this.labelAt ? [1] : every > 0 ? [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] : [0];
     let pick = null;
     // An end that isn't on the regular pattern (0 to 97 in tens) may crowd its neighbour;
     // that neighbour is left out below rather than shrinking every number.
     const regular = (i, e) => e > 0 && Math.abs(line.value(i) / e - Math.round(line.value(i) / e)) < 1e-6;
     for (const f of tries) {
       const e = f ? tidy(every * f) : 0;
-      const idx = f ? labelSpots(line, e) : [0, last];
+      const idx = this.labelAt ? asked : f ? labelSpots(line, e) : [0, last];
       const pps = (W - marginFor(1) * 2) / last;
       // the scale that makes neighbouring labels fit
       let s = 1;

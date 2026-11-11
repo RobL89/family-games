@@ -6,8 +6,10 @@
 // system is coming soon. The editions stay ('lower-1', 'higher-1'): only systems that were coming soon
 // filled, so every level id kept its meaning. Year 1's three added Number mode levels reuse levels 6, 7
 // and 8 (D-038); every other level has its own row, its numbers from Rob's syllabus notes (each `plan`
-// id's params): asks.js 1.2 and sums.js 1.4. Numbers to 100 (Y1-02), and Year 3's mental adding and taking
-// away (Y3-06, Y3-07), play in halves (D-094).
+// id's params): asks.js 1.2 and sums.js 1.4. Numbers to 100 (Y1-02: 51 to 100, then 0 to 100, D-104), and
+// Year 3's mental adding and taking away (Y3-06, Y3-07), play in halves (D-094). Year 3's levels whose
+// numbers reach 100 or more, and its tenths, land on stretches of 7 marks (`span: 6`), so every number is
+// written on an upright phone (D-103).
 //
 // Changes at v2.1 (step 2c-3b, D-100): the higher track holds Year 2's three systems from the level plan
 // (claude/level-plan.md 0.3, section 4), Moon, Red Dust and Candy, each 7 levels and a challenge, in
@@ -44,8 +46,10 @@
 //     sample  a target of the kind the level asks, shown as a chip on its card.
 
 const CHALLENGE = { kind: 'challenge', plan: 'challenge', about: 'Challenge: levels 1 to 7 mixed', sample: { rule: 'challenge' } };
-// A stretch of 10 marks, every one written (asks.js windowFor, sums.js lineForSum; D-032)
+// A stretch of 10 marks, every one written (asks.js windowFor, sums.js lineForSum; D-032); Year 3's 3-digit
+// numbers and tenths on 7 marks, which an upright phone can write in full (D-103)
 const STRETCH = { layout: 'stretch', span: 10, label_every: 1 };
+const STRETCH7 = { layout: 'stretch', span: 6, label_every: 1 };
 
 // The lower track: Reception's three systems (level plan 0.3, section 4). Rows reused as they play today
 // (Moon 1 and 2, Red Dust 6, Candy 1 to 5) keep their table's level number; the rest are new rows, their
@@ -98,8 +102,8 @@ const LOWER = [
   { id: 'ice', levels: [
     { kind: 'ask', plan: 'Y1-01', row: { ask: 'find', min: 0, max: 50, span: 10, label_every: 1, source: 'Y1-01: numerals 0 to 50' },
       about: 'Numbers to 50', sample: { rule: 'ask', ask: 'find', n: 37, value: 37 } },
-    { kind: 'ask', plan: 'Y1-02', row: { ask: 'find', span: 10, label_every: 1, parts: [{ min: 0, max: 50 }, { min: 0, max: 100 }],
-      source: 'Y1-02: numerals 0 to 100; D-094: to 50, then to 100' },
+    { kind: 'ask', plan: 'Y1-02', row: { ask: 'find', span: 10, label_every: 1, parts: [{ min: 51, max: 100 }, { min: 0, max: 100 }],
+      source: 'Y1-02: numerals 0 to 100; in halves (D-094): 51 to 100, the new numbers, then 0 to 100 (D-104)' },
       about: 'Numbers to 100', sample: { rule: 'ask', ask: 'find', n: 83, value: 83 } },
     { kind: 'ask', plan: 'Y1-03', row: { ask: 'seq', steps: [1], start: 'any', min: 0, max: 100, dirs: ['forward', 'backward'], span: 10, label_every: 1,
       source: 'Y1-03: count on or back in ones from any number, 0 to 100' },
@@ -223,21 +227,21 @@ const HIGHER = [
   ] },
   // Year 3 (step 2c-3c): numbers to 1000 and mental sums, then pairs, estimates and tables, then fractions
   { id: 'ice', levels: [
-    { kind: 'ask', plan: 'Y3-01', row: { ask: 'find', min: 100, max: 1000, span: 10, label_every: 1, source: 'Y3-01: numerals 100 to 1000' },
+    { kind: 'ask', plan: 'Y3-01', row: { ask: 'find', min: 100, max: 1000, span: 6, label_every: 1, source: 'Y3-01: numerals 100 to 1000; 7 marks (D-103)' },
       about: 'Numbers to 1000', sample: { rule: 'ask', ask: 'find', n: 347, value: 347 } },
-    { kind: 'ask', plan: 'Y3-02', row: { ask: 'place', digits: 3, min: 100, max: 999, span: 10, label_every: 1, source: 'Y3-02: hundreds, tens and ones, 3 digits' },
+    { kind: 'ask', plan: 'Y3-02', row: { ask: 'place', digits: 3, min: 100, max: 999, span: 6, label_every: 1, source: 'Y3-02: hundreds, tens and ones, 3 digits; 7 marks (D-103)' },
       about: 'Hundreds, tens and ones', sample: { rule: 'ask', ask: 'place', n: 347, value: 347 } },
-    { kind: 'ask', plan: 'Y3-03', row: { ask: 'sign', min: 0, max: 1000, rels: { more: 2, fewer: 2, same: 1 }, span: 10, label_every: 1, source: 'Y3-03: <, > and = to 1000' },
+    { kind: 'ask', plan: 'Y3-03', row: { ask: 'sign', min: 0, max: 1000, rels: { more: 2, fewer: 2, same: 1 }, span: 6, label_every: 1, source: 'Y3-03: <, > and = to 1000; 7 marks (D-103)' },
       about: 'Bigger, smaller or the same', sample: { rule: 'range', ask: 'sign', rel: 'fewer', n: 452 } },
-    { kind: 'ask', plan: 'Y3-04', row: { ask: 'more-less', by: [10, 100], min: 0, max: 1000, span: 10, label_every: 1, source: 'Y3-04: 10 or 100 more or less, 0 to 1000' },
+    { kind: 'ask', plan: 'Y3-04', row: { ask: 'more-less', by: [10, 100], min: 0, max: 1000, span: 6, label_every: 1, source: 'Y3-04: 10 or 100 more or less, 0 to 1000; 7 marks (D-103)' },
       about: '10 or 100 more or less', sample: { rule: 'ask', ask: 'more-less', dir: 'more', by: 100, n: 347, value: 447 } },
-    { kind: 'ask', plan: 'Y3-05', row: { ask: 'seq', steps: [4, 8, 50, 100], start: 0, min: 0, max: 1000, dirs: ['forward'], stretch: { 50: 10, 100: 20 }, span: 10, label_every: 1,
-      source: 'Y3-05: count in 4s, 8s, 50s and 100s from 0, to 1000; 50s on a stretch in tens, 100s in twenties (Claude)' },
+    { kind: 'ask', plan: 'Y3-05', row: { ask: 'seq', steps: [4, 8, 50, 100], start: 0, min: 0, max: 1000, dirs: ['forward'], stretch: { 50: 25, 100: 50 }, span: 6, label_every: 1,
+      source: 'Y3-05: count in 4s, 8s, 50s and 100s from 0, to 1000; 7 marks (D-103), 50s on a stretch in 25s and 100s in 50s (Claude)' },
       about: 'Count in 4s, 8s, 50s, 100s', sample: { rule: 'ask', ask: 'seq', step: 50, dir: 'forward', terms: [250, 300, 350], value: 400 } },
-    { kind: 'sums', plan: 'Y3-06', row: { ops: ['+'], forms: ['HTO+O', 'HTO+T', 'HTO+H'], max: 1000, ...STRETCH, parts: [{ cross: false }, { cross: true }],
+    { kind: 'sums', plan: 'Y3-06', row: { ops: ['+'], forms: ['HTO+O', 'HTO+T', 'HTO+H'], max: 1000, ...STRETCH7, parts: [{ cross: false }, { cross: true }],
       source: 'Y3-06: HTO + ones, tens and hundreds, to 1000; D-094: not crossing a ten or hundred, then crossing' },
       about: 'Mental adding to 1000', sample: { rule: 'sum', sum: '245 + 30', value: 275 } },
-    { kind: 'sums', plan: 'Y3-07', row: { ops: ['−'], forms: ['HTO-O', 'HTO-T', 'HTO-H'], max: 1000, ...STRETCH, parts: [{ cross: false }, { cross: true }],
+    { kind: 'sums', plan: 'Y3-07', row: { ops: ['−'], forms: ['HTO-O', 'HTO-T', 'HTO-H'], max: 1000, ...STRETCH7, parts: [{ cross: false }, { cross: true }],
       source: 'Y3-07: HTO − ones, tens and hundreds; D-094: not crossing a ten or hundred, then crossing' },
       about: 'Mental take away to 1000', sample: { rule: 'sum', sum: '423 − 50', value: 373 } },
     CHALLENGE,
@@ -246,10 +250,10 @@ const HIGHER = [
     { kind: 'sums', plan: 'Y3-08', row: { ops: ['+'], forms: ['bond'], whole: 100, every: 5, layout: 'line', from: 0, to: 100, step: 5, label_every: 10,
       source: 'Y3-08: pairs to 100 in 5s, on 0 to 100 in fives, every ten written' },
       about: 'Pairs to 100', sample: { rule: 'sum', sum: '65 + ? = 100', value: 35 } },
-    { kind: 'sums', plan: 'Y3-09', row: { ops: ['+', '−'], forms: ['TO+TO', 'TO-TO'], max: 200, ...STRETCH, source: 'Y3-09: TO + TO (answers to 200) and TO − TO' },
+    { kind: 'sums', plan: 'Y3-09', row: { ops: ['+', '−'], forms: ['TO+TO', 'TO-TO'], max: 200, ...STRETCH7, source: 'Y3-09: TO + TO (answers to 200) and TO − TO; 7 marks (D-103)' },
       about: 'Big 2-digit sums', sample: { rule: 'sum', sum: '68 + 47', value: 115 } },
-    { kind: 'sums', plan: 'Y3-10', row: { ops: ['+', '−'], forms: ['estimate'], rounds: [10, 100], near: 10, span: 10, label_every: 1,
-      source: 'Y3-10: estimate + and −, to the nearest 10 (2-digit numbers) or 100 (3-digit numbers near a hundred), up to 1000' },
+    { kind: 'sums', plan: 'Y3-10', row: { ops: ['+', '−'], forms: ['estimate'], rounds: [10, 100], near: 10, span: 6, label_every: 1,
+      source: 'Y3-10: estimate + and −, to the nearest 10 (2-digit numbers, on 7 marks in tens: D-103) or 100 (3-digit numbers near a hundred, on 0 to 1000), up to 1000' },
       about: 'Estimate it', sample: { rule: 'sum', sum: '298 + 403', a: 298, op: '+', b: 403, round: 100, exact: 701, value: 700 } },
     { kind: 'sums', plan: 'Y3-11', row: { ops: ['×'], forms: ['table'], tables: [4], times_max: 12, layout: 'line', from: 0, to: 48, step: 4, label_every: 4,
       source: 'Y3-11: the 4 times table to × 12 (D-099), on its own line' },
@@ -266,10 +270,10 @@ const HIGHER = [
     CHALLENGE,
   ] },
   { id: 'ringed', levels: [
-    { kind: 'sums', plan: 'Y3-14', row: { ops: ['×', '÷'], forms: ['table', 'divide'], tables: [2, 3, 4, 5, 8, 10], times_max: 12, ...STRETCH, fall_s: 6,
-      source: 'Y3-14: × and ÷ of the 2, 3, 4, 5, 8 and 10 tables to × 12, 6 s a landing' },
+    { kind: 'sums', plan: 'Y3-14', row: { ops: ['×', '÷'], forms: ['table', 'divide'], tables: [2, 3, 4, 5, 8, 10], times_max: 12, ...STRETCH7, fall_s: 6,
+      source: 'Y3-14: × and ÷ of the 2, 3, 4, 5, 8 and 10 tables to × 12, 6 s a landing; 7 marks (D-103)' },
       about: 'Mixed tables, fast', sample: { rule: 'sum', sum: '8 × 7', value: 56 } },
-    { kind: 'sums', plan: 'Y3-15', row: { ops: ['×'], forms: ['TO*O'], a: [11, 30], b: [2, 5], ...STRETCH, source: 'Y3-15: TO × O, 11 to 30 times 2 to 5' },
+    { kind: 'sums', plan: 'Y3-15', row: { ops: ['×'], forms: ['TO*O'], a: [11, 30], b: [2, 5], ...STRETCH7, source: 'Y3-15: TO × O, 11 to 30 times 2 to 5; 7 marks (D-103)' },
       about: '2-digit times 1-digit', sample: { rule: 'sum', sum: '23 × 4', value: 92 } },
     { kind: 'sums', plan: 'X-TOdivO', row: { ops: ['÷'], forms: ['TO/O'], divisors: [2, 3, 4, 5, 8], ...STRETCH,
       source: "notes: year3 division 'extended': TO ÷ O with no remainder, by Year 3's 1-digit tables" },
@@ -277,8 +281,8 @@ const HIGHER = [
     { kind: 'ask', plan: 'Y3-16', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '2/3', '1/4', '3/4', '1/5', '2/5', '3/5', '4/5', '1/8', '3/8', '5/8', '7/8', '1/10', '3/10', '7/10', '9/10'],
       pick: 'den', total_max: 40, span: 10, label_every: 1, source: 'Y3-16: unit and non-unit fractions (simplest form) of amounts to 40, denominators 2, 3, 4, 5, 8, 10, whole answers' },
       about: 'Fractions of amounts', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 5, total: 20, value: 12 } },
-    { kind: 'ask', plan: 'Y3-17', row: { ask: 'seq', steps: [1], den: 10, start: 'any', min: 0, max: 20, dirs: ['forward', 'backward'], span: 10, label_every: 1,
-      source: 'Y3-17: count up and down in tenths, 0 to 2 (0 to 20 tenths)' },
+    { kind: 'ask', plan: 'Y3-17', row: { ask: 'seq', steps: [1], den: 10, start: 'any', min: 0, max: 20, dirs: ['forward', 'backward'], span: 6, label_every: 1,
+      source: 'Y3-17: count up and down in tenths, 0 to 2 (0 to 20 tenths); 7 marks (D-103)' },
       about: 'Counting in tenths', sample: { rule: 'ask', ask: 'seq', step: 1, dir: 'forward', terms: [7, 8, 9], value: 10, den: 10 } },
     { kind: 'ask', plan: 'Y3-18', row: { ask: 'frac-compare', dens: [2, 3, 4, 5, 6, 8, 10], min_gap: [1, 12],
       source: 'Y3-18: compare unit fractions, both marked on 0 to 1; pairs closer than 1/12 left out (Claude)' },
