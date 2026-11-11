@@ -1,5 +1,10 @@
 """Browser test for the rocket game's hangar: the door, the showroom, buying and flying a ship.
-Version 1.9.
+Version 1.10.
+
+Changes at v1.10 (D-109, Rob, 11 Nov 2026): every price halved and rounded to 5, so the made-up entry
+holds 22 rocks (not 37): the Teapot (15) is bought with 7 left, and the Jack-in-the-Box (20) is still
+refused; the Premium and Legendary ships leave 500 - 50 - 70 - 100 = 280; less motion buys the Box
+with 25 - 10 = 15 left. The checks are otherwise unchanged.
 
 Changes at v1.9 (checkpoint after step 2c-3c, D-105, ER-007): progress has been format 4 since the tracks
 came in (D-089), so a purchase is kept at format 4, and the "unknown version starts afresh" check uses
@@ -80,7 +85,7 @@ httpd.daemon_threads = True
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 LOCAL = f'http://127.0.0.1:{httpd.server_address[1]}/'
 errors, fails, outside = [], [], []
-V1 = {'v': 3, 'at': 'moon-3', 'open': 'moon-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}, 'moon-2': {'stars': 2, 'rocks': 4}}, 'rocks': 37, 'landings': 40}  # made up; no ships
+V1 = {'v': 3, 'at': 'moon-3', 'open': 'moon-3', 'levels': {'moon-1': {'stars': 3, 'rocks': 8}, 'moon-2': {'stars': 2, 'rocks': 4}}, 'rocks': 22, 'landings': 40}  # made up; no ships
 
 
 def check(ok, what):
@@ -167,9 +172,9 @@ def show(pg, ship):
     return ok
 
 
-PREMIUM = [('crystal', 100), ('phoenix', 140), ('aurora', 200)]
-OTHERS = [('box', 20), ('teapot', 30), ('pod', 50), ('saucer', 70)]
-NEW = [('tub', 25, 'splosh'), ('jack', 35, 'jackPop'), ('sunflower', 40, 'bzzz'), ('spin', 60, 'spinClunk'), ('tree', 80, 'tada')]  # D-077
+PREMIUM = [('crystal', 50), ('phoenix', 70), ('aurora', 100)]  # D-109
+OTHERS = [('box', 10), ('teapot', 15), ('pod', 25), ('saucer', 35)]
+NEW = [('tub', 10, 'splosh'), ('jack', 20, 'jackPop'), ('sunflower', 20, 'bzzz'), ('spin', 30, 'spinClunk'), ('tree', 40, 'tada')]  # D-077, prices D-109
 
 
 def play_round_pixels(pg, sid, tag, full=True, level=None):
@@ -228,9 +233,9 @@ with sync_playwright() as pw:
         pg = open_tile(br, T, level=lv)
         p = st(pg)['progress']
         OPEN = 'moon-3' if lv is None else 'dust-1'  # begin({ level: 9 }) takes the rocket to Red Dust 1 and opens the map up to it
-        check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 37 and p['open'] == OPEN,
+        check(p['ship'] == 'classic' and p['ships'] == ['classic'] and p['rocks'] == 22 and p['open'] == OPEN,
               f'{T}: an entry without ships loads with Classic owned and flown: {p}')
-        check(pg.is_visible('#hangar') and pg.inner_text('#map-rocks') == '37',
+        check(pg.is_visible('#hangar') and pg.inner_text('#map-rocks') == '22',
               f'{T}: the map\'s top bar has the hangar door, with the rocks on it (D-052)')
         check(st(pg)['doorShip'] == 'classic' and st(pg)['map']['rocket']['ship'] == 'classic', f'{T}: the doorway and the map\'s rocket show the ship flown')
         pg.screenshot(path=f'{OUT}/{T}-start.png')
@@ -241,14 +246,14 @@ with sync_playwright() as pw:
         check(h['cur'] == 'classic' and h['verdict'] == 'flying', f'{T}: the showroom opens on the ship flown: {h}')
         pg.screenshot(path=f'{OUT}/{T}-showroom-classic.png')
 
-        # ---------- Buy the Teapot (30) with 37 rocks ----------
+        # ---------- Buy the Teapot (15) with 22 rocks ----------
         show(pg, 'teapot')
-        check(hangar(pg)['verdict'] == 'buy', f'{T}: the Teapot can be bought with 37 rocks')
+        check(hangar(pg)['verdict'] == 'buy', f'{T}: the Teapot can be bought with 22 rocks')
         pg.screenshot(path=f'{OUT}/{T}-showroom-teapot.png')
         tap(pg, 'action')
         pg.wait_for_function('__test.state().progress.ships.includes("teapot")', timeout=8000)
         p = st(pg)['progress']
-        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: bought at its price, 37 - 30 = 7 left: {p}')
+        check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: bought at its price, 22 - 15 = 7 left: {p}')
         e = entry_of(pg, T)
         check(e and e.get('v') == 4 and e.get('rocks') == 7 and e.get('ships') == ['classic', 'teapot'] and e.get('open') == OPEN,
               f'{T}: the purchase is kept on the device straight away, at format version 4 (D-089), the map kept too: {e}')
@@ -264,14 +269,14 @@ with sync_playwright() as pw:
         # ---------- Refused: not enough rocks; not flying until 2a-4c ----------
         tap(pg, 'right')
         pg.wait_for_function('__test.state().hangar.cur === "jack" && !__test.state().hangar.switching', timeout=5000)
-        check(hangar(pg)['verdict'] == 'need', f'{T}: the right arrow shows the Jack-in-the-Box (D-079), 35 - 7 = 28 rocks short')
+        check(hangar(pg)['verdict'] == 'need', f'{T}: the right arrow shows the Jack-in-the-Box (D-079), 20 - 7 = 13 rocks short')
         tap(pg, 'action')
         pg.wait_for_timeout(600)
         p = st(pg)['progress']
         check(p['rocks'] == 7 and p['ships'] == ['classic', 'teapot'], f'{T}: the Jack-in-the-Box is refused with 7 rocks: {p}')
         pg.screenshot(path=f'{OUT}/{T}-showroom-need.png')
         show(pg, 'crystal')
-        check(hangar(pg)['verdict'] == 'need', f'{T}: Crystal Comet is on sale now (2a-4c), 100 - 7 = 93 rocks short')
+        check(hangar(pg)['verdict'] == 'need', f'{T}: Crystal Comet is on sale now (2a-4c), 50 - 7 = 43 rocks short')
         pg.screenshot(path=f'{OUT}/{T}-showroom-crystal.png')
         # a swipe to the left shows the next ship
         box = pg.locator('#hangar-room').bounding_box()
@@ -307,7 +312,7 @@ with sync_playwright() as pw:
         p = st(pg)['progress']
         check(p['ship'] == 'teapot' and p['ships'] == ['classic', 'teapot'] and p['rocks'] == 7, f'{T}: a reload keeps the ships: {p}')
         for bad, want, why in (
-            ({**V1, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 37), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
+            ({**V1, 'ship': 'aurora', 'ships': ['aurora', 'box', 'box', 'zzz']}, ('aurora', ['classic', 'box', 'aurora'], 22), 'odd ships are tidied: repeats and unknown ones dropped, Classic added (the Aurora Cruiser flies since 2a-4c)'),
             ({**V1, 'v': 5, 'ship': 'box', 'ships': ['box']}, ('classic', ['classic'], 0), 'an unknown version (5) starts afresh'),
         ):
             pg.evaluate('([k, e]) => localStorage.setItem(k, JSON.stringify(e))', [key(T), bad])
@@ -337,8 +342,8 @@ with sync_playwright() as pw:
         pg.wait_for_timeout(600)
         pg.screenshot(path=f'{OUT}/{T}-showroom-aurora.png')
         e = entry_of(pg, T)
-        check(e and e.get('rocks') == 60 and e.get('ships') == ['classic', 'crystal', 'phoenix', 'aurora'] and e.get('ship') == 'aurora',
-              f'{T}: kept on the device: 500 - 100 - 140 - 200 = 60 rocks, all three owned, the Aurora Cruiser flown: {e}')
+        check(e and e.get('rocks') == 280 and e.get('ships') == ['classic', 'crystal', 'phoenix', 'aurora'] and e.get('ship') == 'aurora',
+              f'{T}: kept on the device: 500 - 50 - 70 - 100 = 280 rocks, all three owned, the Aurora Cruiser flown: {e}')
         tap(pg, 'back')
         pg.wait_for_function('!__test.state().hangar.open', timeout=8000)
         pg.wait_for_timeout(300)
@@ -416,7 +421,7 @@ with sync_playwright() as pw:
     show(pg, 'box')
     tap(pg, 'action')
     pg.wait_for_function('__test.state().progress.ship === "box"', timeout=12000)
-    check(st(pg)['progress']['rocks'] == 5 and hangar(pg)['calm'], 'less motion: the Cardboard Box is bought and flown, calmly (25 - 20 = 5)')
+    check(st(pg)['progress']['rocks'] == 15 and hangar(pg)['calm'], 'less motion: the Cardboard Box is bought and flown, calmly (25 - 10 = 15)')
     pg.context.close()
     br.close()
 

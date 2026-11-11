@@ -1,5 +1,7 @@
-"""The rocket games' ships table and buying rules (games/_common/rocket/fleet.js). Version 1.2.
+"""The rocket games' ships table and buying rules (games/_common/rocket/fleet.js). Version 1.3.
 
+Changes at v1.3 (D-109, Rob, 11 Nov 2026): every price halved and rounded to 5 (10 to 100 moon rocks,
+425 for all twelve), so about half the ships can be bought in one school year; the cases moved with them.
 Changes at v1.2 (step 2d-2, D-077, D-079): thirteen ships. The five new ones at D-077's tiers and
 prices (Splash Tub 25, Jack-in-the-Box 35, Sunflower Copter 40, Spin Cycle 60, Christmas Tree 80;
 850 rocks for all twelve to buy), each with its own landing sound made by sound.js, and the table
@@ -60,22 +62,22 @@ cases.nothing = F.hangarOf(null);
 const at = (rocks, ships = ['classic'], ship = 'classic') => P({ rocks, ships, ship });
 cases.verdicts = {
   classic: F.verdict(at(0), 'classic'),
-  boxShort: F.verdict(at(19), 'box'),
-  boxExact: F.verdict(at(20), 'box'),
+  boxShort: F.verdict(at(9), 'box'),
+  boxExact: F.verdict(at(10), 'box'),
   boxOwned: F.verdict(at(0, ['classic', 'box']), 'box'),
   boxFlying: F.verdict(at(0, ['classic', 'box'], 'box'), 'box'),
   saucerRich: F.verdict(at(500), 'saucer'),
   crystalRich: F.verdict(at(500), 'crystal'),
   phoenixRich: F.verdict(at(500), 'phoenix'),
   auroraRich: F.verdict(at(500), 'aurora'),
-  crystalShort: F.verdict(at(99), 'crystal'),
-  phoenixShort: F.verdict(at(139), 'phoenix'),
-  auroraShort: F.verdict(at(199), 'aurora'),
-  auroraExact: F.verdict(at(200), 'aurora'),
+  crystalShort: F.verdict(at(49), 'crystal'),
+  phoenixShort: F.verdict(at(69), 'phoenix'),
+  auroraShort: F.verdict(at(99), 'aurora'),
+  auroraExact: F.verdict(at(100), 'aurora'),
   auroraOwned: F.verdict(at(0, ['classic', 'aurora']), 'aurora'),
   unknown: F.verdict(at(500), 'rocket9'),
 };
-cases.short = [F.shortOf(at(19), 'box'), F.shortOf(at(20), 'box'), F.shortOf(at(7), 'pod'), F.shortOf(at(500), 'aurora'), F.shortOf(at(150), 'aurora'), F.shortOf(at(37), 'phoenix')];
+cases.short = [F.shortOf(at(9), 'box'), F.shortOf(at(10), 'box'), F.shortOf(at(7), 'pod'), F.shortOf(at(500), 'aurora'), F.shortOf(at(60), 'aurora'), F.shortOf(at(37), 'phoenix')];
 const before = at(37);
 const keep = frozen(before);
 const b1 = F.buy(before, 'teapot');
@@ -116,22 +118,22 @@ C = o['cases']
 # ---------- The table (D-046, D-049, D-051) ----------
 WANT = [  # id, name, tier, price, touchdown sound, flies (all from 2a-4c; the five new from 2d-2, D-077, in D-079's order)
     ('classic', 'Classic', 'starter', 0, 'thud', True),
-    ('box', 'Cardboard Box', 'fun', 20, 'boing', True),
-    ('tub', 'Splash Tub', 'fun', 25, 'splosh', True),
-    ('teapot', 'Teapot', 'fun', 30, 'toot', True),
-    ('jack', 'Jack-in-the-Box', 'fun', 35, 'jackPop', True),
-    ('sunflower', 'Sunflower Copter', 'fun', 40, 'bzzz', True),
-    ('pod', 'Bubble Pod', 'cool', 50, 'clunkLock', True),
-    ('spin', 'Spin Cycle', 'cool', 60, 'spinClunk', True),
-    ('saucer', 'Saucer', 'cool', 70, 'hum', True),
-    ('tree', 'Christmas Tree', 'cool', 80, 'tada', True),
-    ('crystal', 'Crystal Comet', 'premium', 100, 'chime', True),
-    ('phoenix', 'Golden Phoenix', 'premium', 140, 'harp', True),
-    ('aurora', 'Aurora Cruiser', 'legendary', 200, 'aurora', True),
+    ('box', 'Cardboard Box', 'fun', 10, 'boing', True),
+    ('tub', 'Splash Tub', 'fun', 10, 'splosh', True),
+    ('teapot', 'Teapot', 'fun', 15, 'toot', True),
+    ('jack', 'Jack-in-the-Box', 'fun', 20, 'jackPop', True),
+    ('sunflower', 'Sunflower Copter', 'fun', 20, 'bzzz', True),
+    ('pod', 'Bubble Pod', 'cool', 25, 'clunkLock', True),
+    ('spin', 'Spin Cycle', 'cool', 30, 'spinClunk', True),
+    ('saucer', 'Saucer', 'cool', 35, 'hum', True),
+    ('tree', 'Christmas Tree', 'cool', 40, 'tada', True),
+    ('crystal', 'Crystal Comet', 'premium', 50, 'chime', True),
+    ('phoenix', 'Golden Phoenix', 'premium', 70, 'harp', True),
+    ('aurora', 'Aurora Cruiser', 'legendary', 100, 'aurora', True),
 ]
 got = [(s['id'], s['name'], s['tier'], s['price'], s['sound'], s['flies']) for s in o['fleet']]
 check(got == WANT, f'the table: thirteen ships in D-079\'s order, names, tiers, prices, sounds and flying as decided: {got}')
-check(sum(s['price'] for s in o['fleet']) == 850, 'the twelve ships to buy cost 850 moon rocks in all (610 + 25 + 35 + 40 + 60 + 80 = 850, D-077)')
+check(sum(s['price'] for s in o['fleet']) == 425, 'the twelve ships to buy cost 425 moon rocks in all (10 + 10 + 15 + 20 + 20 + 25 + 30 + 35 + 40 + 50 + 70 + 100 = 425, D-109)')
 TIER_RANK = {'starter': 0, 'fun': 1, 'cool': 2, 'premium': 3, 'legendary': 4}
 check([(TIER_RANK[s['tier']], s['price']) for s in o['fleet']] == sorted((TIER_RANK[s['tier']], s['price']) for s in o['fleet']),
       'cheapest first within each tier, tiers in order (D-079)')
@@ -157,23 +159,23 @@ WANTV = {'classic': 'flying', 'boxShort': 'need', 'boxExact': 'buy', 'boxOwned':
          'saucerRich': 'buy', 'crystalRich': 'buy', 'phoenixRich': 'buy', 'auroraRich': 'buy',
          'crystalShort': 'need', 'phoenixShort': 'need', 'auroraShort': 'need', 'auroraExact': 'buy', 'auroraOwned': 'fly', 'unknown': 'unknown'}
 check(V == WANTV, f'the big button for each case: {V}')
-check(C['short'] == [1, 0, 43, 0, 50, 103], f'rocks still needed: 20 - 19 = 1, none at the price, 50 - 7 = 43, none with 500, 200 - 150 = 50, 140 - 37 = 103: {C["short"]}')
+check(C['short'] == [1, 0, 18, 0, 40, 33], f'rocks still needed: 10 - 9 = 1, none at the price, 25 - 7 = 18, none with 500, 100 - 60 = 40, 70 - 37 = 33: {C["short"]}')
 
 # ---------- buy and pick ----------
 b = C['buy']['after']
-check(b and b['rocks'] == 7 and b['ships'] == ['classic', 'teapot'] and b['ship'] == 'classic' and b['unlocked'] == 2 and b['landings'] == 0,
-      f'buying the Teapot with 37 rocks: 37 - 30 = 7 left, owned, not yet flown, the rest kept: {b}')
+check(b and b['rocks'] == 22 and b['ships'] == ['classic', 'teapot'] and b['ship'] == 'classic' and b['unlocked'] == 2 and b['landings'] == 0,
+      f'buying the Teapot with 37 rocks: 37 - 15 = 22 left, owned, not yet flown, the rest kept: {b}')
 check(C['buy']['inputKept'], 'buying returns new progress and leaves the old untouched')
 check(C['buyAgain'] is None and C['buyShort'] is None and C['buyUnknown'] is None,
-      'no second Teapot, no Bubble Pod with 7 rocks, no unknown ship')
-for (sid, price), bp in zip((('crystal', 100), ('phoenix', 140), ('aurora', 200)), C['buyPremium']):
+      'no second Teapot, no Bubble Pod (25) with 22 rocks, no unknown ship')
+for (sid, price), bp in zip((('crystal', 50), ('phoenix', 70), ('aurora', 100)), C['buyPremium']):
     ok = (bp['exact'] and bp['exact']['rocks'] == 0 and bp['exact']['ships'] == ['classic', sid]
           and bp['plus5'] and bp['plus5']['rocks'] == 5 and bp['plus5']['ship'] == 'classic'
           and bp['again'] is None and bp['short'] is None)
     check(ok, f'{sid}: bought at {price} ({price} - {price} = 0, {price + 5} - {price} = 5 left), not flown until picked, '
               f'never twice, and not with {price - 1}: {bp}')
 pk = C['pick']['after']
-check(pk and pk['ship'] == 'teapot' and pk['rocks'] == 7 and pk['ships'] == ['classic', 'teapot'] and C['pick']['inputKept'],
+check(pk and pk['ship'] == 'teapot' and pk['rocks'] == 22 and pk['ships'] == ['classic', 'teapot'] and C['pick']['inputKept'],
       f'picking an owned ship flies it, costs nothing, and leaves the old progress untouched: {pk}')
 check(C['pickNotOwned'] is None and C['pickPremiumNotOwned'] is None, 'a ship not owned cannot be picked, the Aurora Cruiser included')
 check([x and x['ship'] for x in C['pickPremium']] == ['crystal', 'phoenix', 'aurora'], f'each Premium and Legendary ship, once owned, can be flown: {C["pickPremium"]}')
