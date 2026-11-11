@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.24 · 2026-11-11 |
+| **Version** | 1.25 · 2026-11-11 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.25:** the ships cost half as much (`fleet.js` 1.3, D-109: 10 to 100 moon rocks, 425 for all twelve), counted by the new `count_rocket_ship_prices.py`.
 
 **Changes at v1.24:** step 2c-3c: Year 1's Ice, Jungle and Ringed fill the lower track and Year 3's the higher (`map.js` 2.2; the editions are unchanged, as only systems that were coming soon filled, so a kept map with Candy passed opens Ice). Their questions and pictures are in `asks.js` and `faces.js` 1.2 (a number to find, counts in steps or in tenths, groups of, sharing, halves, hundreds tens and ones, which fraction is bigger), their sums in `sums.js` 1.4 (sums to 20 crossing 10 or not, missing answers and sums written answer first, HTO sums, estimates, TO × O, TO ÷ O, fraction sums). Lines counted in parts can be written as counted (`numbers.js` 1.2, `scene.js` 1.6: tenths stay tenths) and can write only the marks they're given (`round.js` 2.8). Year 3's 3-digit and tenths levels land on stretches of 7 marks, which an upright phone writes in full (D-103); numbers to 100 play in halves of 51 to 100, then 0 to 100 (D-104). New browser test: `test_rocket_lander_year1_year3_e2e.py` (the close runs it with Rocket Lander's files, `close.py` 1.10); a bench for the step, `mutate_rocket_years.py`.
 
@@ -96,6 +98,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `sketch_rocket_new_ships.py`, with `sketch_rocket_new_ships.js` and `sketch_rocket_new_ships_page.js` | Not a check: builds one page of moving mock-ups of the five new ships (step 2d-1, D-073 to D-077), splicing their code into copies of `ships.js`, `fleet.js` and `sound.js` for the page only, and checks it at phone and PC sizes. It builds against the game as it was at 2485c92; since step 2d-2 the ships are in the game itself |
 | `move_rocket_new_ships.py` | A one-off, not a check: moved the five new ships into the game in step 2d-2 (D-078), with the mock-up script's own splice, so the game's code is byte for byte the code on the accepted page. Kept as the record; it refuses to run twice |
 | `count_rocket_map_rocks.py` | A count, not a check: how many moon rocks a map can pay out against the ships' prices, and the room a die has on a line of 0 to 10 (Q-026, D-060) |
+| `count_rocket_ship_prices.py` | A count, not a check: the ship prices in `fleet.js` against a school year's moon rocks, at a few scalings (D-109) |
 | `stand_in.py`, with `fixture_map_stand_in.js` | Not a check: the stand-in map (`map.js` 2.0, byte for byte, its sha256 checked before use) served in place of `map.js` to the older browser tests written for the stand-in levels (`test_rocket_lander_e2e.py`, `_levels.py`, `_sums_e2e.py`, `_map_e2e.py`, `test_rocket_hangar_e2e.py`), so their checks stay as they were (step 2c-3b) |
 | `plan_rocket_levels.py`, with `syllabus-notes.json` | The level plan (step 2c-2, decided: D-089 to D-092): its table of tracks, systems and levels, checked against Rob's syllabus notes (every level placed once, in the notes' order, 7 and a challenge a system), and the counts quoted in the plan. Run with the notes' path; `test_rocket_lander_core.py` runs it on `syllabus-notes.json`, Rob's notes without the children's ages (Q-033, D-095) |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch |
@@ -139,6 +142,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.25 | 2026-11-11 | Ship prices halved (`fleet.js` 1.3, D-109), `count_rocket_ship_prices.py`; the checkpoint's full pass recorded (849c0b5) |
 | 1.24 | 2026-11-11 | Step 2c-3c: Year 1 and Year 3 (`map.js` 2.2, `asks.js`, `faces.js`, `sums.js`, `numbers.js`, `scene.js`, `round.js`), D-103 and D-104, `test_rocket_lander_year1_year3_e2e.py`, `mutate_rocket_years.py`, `close.py` 1.10 |
 | 1.23 | 2026-11-11 | Step 2c-3b: Year 2 on the higher track (`map.js` 2.1, `asks.js`, `faces.js`, `sums.js`), fraction lines (`scene.js`), `test_rocket_lander_year2_e2e.py`, `stand_in.py` and its fixture for the older tests |
 | 1.22 | 2026-11-10 | Step 2c-3a: tracks and format 4 (`tracks.js`), Reception's questions (`asks.js`, `faces.js`), Rob's notes in the repo (`syllabus-notes.json`), `test_rocket_lander_reception_e2e.py` |
