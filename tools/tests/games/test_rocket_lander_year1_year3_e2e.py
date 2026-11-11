@@ -323,8 +323,9 @@ with sync_playwright() as pw:
                 pg.wait_for_function(f'__test.state().results.length === {i + 1}', timeout=20000)
             check(sorted(set(subs)) == list(range(7)) and len(subs) == 8, f"{tag} {track} {lid}: each of the system's 7 levels, and one more: {subs}")
             if lid == 'ringed-8':
-                ok = all((fall == 6) == (j == 0) for j, _, fall, _ in looks) and all((lk == 'parts10') == (j == 4) for j, lk, _, _ in looks)
-                ok = ok and all(lk.startswith('frac') for j, lk, _, _ in looks if j == 5) and all(lk.startswith('parts') for j, lk, _, _ in looks if j in (4, 6))
+                # tenths on 'parts10'; a pair of fractions on 'frac<common parts>'; a fraction sum on 'parts<den>' (den 10 too)
+                ok = all((fall == 6) == (j == 0) for j, _, fall, _ in looks) and all(lk == 'parts10' for j, lk, _, _ in looks if j == 4)
+                ok = ok and all(lk.startswith('frac') for j, lk, _, _ in looks if j == 5) and all(lk.startswith('parts') for j, lk, _, _ in looks if j == 6)
                 ok = ok and all(lk == 'plain' for j, lk, _, _ in looks if j in (0, 1, 2, 3))
                 check(ok, f'{tag} year2 ringed-8: each landing as its own level: mixed tables in 6 s, tenths and fraction sums written as counted, the pair of fractions on its own line: {looks}')
             else:

@@ -9,8 +9,8 @@ change in a copy of the repo's games/ and tools/tests/games/ folders (a temporar
 is never changed. A fault whose text isn't found exactly once is an error, not a catch.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/mutate_rocket_years.py [--fast]
---fast skips the faults that need the browser test.
+    python3 -B tools/tests/games/mutate_rocket_years.py [--fast | --browser]
+--fast skips the faults that need the browser test; --browser runs only those.
 """
 import os, shutil, subprocess, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -99,7 +99,7 @@ def run(fault):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] != CORE)]
+faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] != CORE) and not ('--browser' in sys.argv and f[4] == CORE)]
 fast = [f for f in faults if f[4] == CORE]
 slow = [f for f in faults if f[4] != CORE]
 with ThreadPoolExecutor(max_workers=2) as ex:
