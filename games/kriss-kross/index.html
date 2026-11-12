@@ -1109,7 +1109,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 <!-- Family games: everything below this line was added to connect the game to the launcher. -->
 <p id="fgSaved" class="msg good" role="status" style="text-align:center;max-width:1180px;margin:0 auto"></p>
 <script type="module">
-  import { getPlayer, getGameId, homeButton, record } from '../../shared/game-kit.js';
+  import { getPlayer, getGameId, homeButton, record, starsOn } from '../../shared/game-kit.js';
   import * as api from '../../shared/api.js';
 
   const $ = (id) => document.getElementById(id);
@@ -1144,7 +1144,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     const { hints, words, seconds } = e.detail;
     const stars = starsFor(hints);
     await record({ score: words, level: index >= 0 ? index + 1 : 1, stars, seconds });
-    if (player && player.nickname) $('fgSaved').textContent = `${'★'.repeat(stars)} saved for ${player.nickname}!`;
+    // With stars switched off (P48) nothing is saved, so nothing is said.
+    if (starsOn() && player && player.nickname) $('fgSaved').textContent = `${'★'.repeat(stars)} saved for ${player.nickname}!`;
     roundOver();
   });
   document.addEventListener('kk:revealed', roundOver);

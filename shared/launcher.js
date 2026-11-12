@@ -16,6 +16,12 @@ import { openGameSetup as gameSetupView } from './game-setup.js';
 const app = document.getElementById('app');
 const TILT = [-8, 5, -3, 7, -6, 4, -5, 6];
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // a skin choice the Sheet hasn't saved yet
+const TESTING_KEY = 'fg.testing'; // the corner's "games being tested" switch, per device (contract 0.4, section 7)
+
+// Feature switches live in shared/config.js (P48, P49, P52). A switch that isn't there counts as on,
+// so an older config.js keeps the old behaviour.
+const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
+const testingOn = () => !!api.loadLocal(TESTING_KEY, false);
 
 const state = {
   games: [],
@@ -38,6 +44,8 @@ const atLeast = (v, min) => {
 };
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const readyIds = () => state.games.filter((g) => g.status === 'ready').map((g) => g.id);
+// The tiles a child sees: ready and soon games, plus games being tested where this device's Testing switch is on.
+const shownGames = () => state.games.filter((g) => g.status !== 'testing' || testingOn());
 const gameById = (id) => state.games.find((g) => g.id === id);
 
 function profileById(id) {
@@ -87,11 +95,14 @@ function chosenSkin(p) {
   return (local && local.skin) || p.skin || DEFAULT_SKIN;
 }
 
-// A chosen skin only shows if the child still has enough stars for it.
+// Skins are free (P49). With skin locks switched back on, a chosen skin only shows
+// if the child still has enough stars for it.
+const skinOpen = (skin, starsTotal) => !!skin && (!on('skinLocks') || isUnlocked(skin, starsTotal));
+
 function skinToShow(p, starsTotal) {
   const id = chosenSkin(p);
   const skin = state.skins.find((s) => s.skin_id === id);
-  return skin && isUnlocked(skin, starsTotal) ? id : DEFAULT_SKIN;
+  return skinOpen(skin, starsTotal) ? id : DEFAULT_SKIN;
 }
 
 async function chooseSkin(pid, skinId) {
@@ -182,42 +193,48 @@ function renderHome(pid) {
         ${face(p)}
         <div class="me">
           <h1 class="hi">Hi ${esc(p.nickname)}!</h1>
-          <span class="total" role="img" aria-label="${plural(st.starsTotal, 'star')}">${icon('s-star', 'st on')}<span>${st.starsTotal}</span></span>
+          ${on('stars') ? `<span class="total" role="img" aria-label="${plural(st.starsTotal, 'star')}">${icon('s-star', 'st on')}<span>${st.starsTotal}</span></span>` : ''}
         </div>
         ${waiting ? `<span class="sync" role="img" aria-label="Saved on this device, will sync" title="Saved here, will sync">${icon('i-cloud')}</span>` : ''}
       </header>
 
       <section class="games" aria-labelledby="h-games">
         <h2 id="h-games">Games</h2>
-        <div class="tiles">${state.games.map((g) => tile(g, pid, st)).join('')}</div>
+        <div class="tiles">${shownGames().map((g) => tile(g, pid, st)).join('')}</div>
       </section>
 
       <section class="side">
-        <div>
+        ${on('stickers') ? `<div>
           <h2>${shown === 'sticker' ? 'My stickers' : 'My badges'}</h2>
           <div class="slots">${badgeSlots(earned)}</div>
-        </div>
-        <div>
+        </div>` : ''}
+        ${on('lastPlayed') ? `<div>
           <h2>Last played</h2>
           ${lastPlayed(data, outbox, pid)}
-        </div>
+        </div>` : ''}
         <div>
           <h2>My skins</h2>
           <div class="skins">${skinChoices(st.starsTotal, skin)}</div>
-          ${skinProgress(st.starsTotal)}
+          ${on('skinLocks') ? skinProgress(st.starsTotal) : ''}
         </div>
       </section>
     </main>`;
 }
 
+// A game's tile. Ready and testing games open in the wrapper, play.html (P50), unless
+// games.json says "opens": "own-page" (Kriss Kross until stage 3). Testing games carry a tape.
 function tile(g, pid, st) {
   const style = `--g:${esc(g.colour || '#2E8FD0')}`;
   const pic = `<span class="tile-ic">${icon(esc(g.icon || 'g-star'))}</span><span class="tile-t">${esc(g.title)}</span>`;
-  if (g.status !== 'ready') {
+  if (g.status !== 'ready' && g.status !== 'testing') {
     return `<button class="tile soon" data-soon style="${style}" aria-label="${esc(g.title)}: coming soon"><span class="soon-tape" aria-hidden="true">Soon</span>${pic}</button>`;
   }
-  const href = `${g.folder}index.html?player=${encodeURIComponent(pid)}`;
-  return `<a class="tile" href="${esc(href)}" data-g="${esc(g.id)}" style="${style}">${pic}${stars(st.bestStars[g.id] || 0)}</a>`;
+  const href = g.opens === 'own-page'
+    ? `${g.folder}index.html?player=${encodeURIComponent(pid)}`
+    : `play.html?game=${encodeURIComponent(g.id)}&player=${encodeURIComponent(pid)}`;
+  const tape = g.status === 'testing' ? '<span class="soon-tape testing-tape" aria-hidden="true">Testing</span>' : '';
+  const best = on('stars') && on('tileStars') ? stars(st.bestStars[g.id] || 0) : '';
+  return `<a class="tile" href="${esc(href)}" data-g="${esc(g.id)}" style="${style}">${tape}${pic}${best}</a>`;
 }
 
 function badgeSlots(earned) {
@@ -241,7 +258,7 @@ function lastPlayed(data, outbox, pid) {
 
 function skinChoices(total, current) {
   return state.skins.map((s) => {
-    const open = isUnlocked(s, total);
+    const open = skinOpen(s, total);
     const on = s.skin_id === current;
     const label = open ? s.name : `${s.name}: needs ${s.stars_needed} stars`;
     return `
@@ -262,19 +279,21 @@ function skinProgress(total) {
 // ---------- Celebrations ----------
 
 function partyCheck(pid) {
+  if (!on('stickers') && !on('celebration')) return; // both switched off (P48)
   if (document.querySelector('.party') || state.playerId !== pid) return;
   const data = api.getCachedProfile(pid);
   const outbox = api.getOutbox();
   const st = playerStats(data, outbox, pid, readyIds());
 
   // Badges earned some other way (another device, a new day) are caught here.
-  const fresh = newlyEarned(st, earnedIds(data, outbox, pid));
+  const fresh = on('stickers') ? newlyEarned(st, earnedIds(data, outbox, pid)) : [];
   fresh.forEach((a) => api.queueAchievement({ profile_id: pid, achievement_id: a.id }));
   if (fresh.length) api.flush().catch(() => {});
 
   let news = api.loadLocal(CELEBRATE_KEY, null);
   if (news && (news.profile_id !== pid || Date.now() - news.at > 15 * 60 * 1000)) news = null;
   if (news) api.saveLocal(CELEBRATE_KEY, null);
+  if (!on('celebration')) return;
 
   const badges = [...new Set([...(news ? news.achievements : []), ...fresh.map((a) => a.id)])]
     .map((id) => ACHIEVEMENT_BY_ID[id]).filter(Boolean);
@@ -379,7 +398,7 @@ app.addEventListener('click', async (e) => {
     const pid = state.playerId;
     const skin = state.skins.find((s) => s.skin_id === skinBtn.dataset.skin);
     const st = playerStats(api.getCachedProfile(pid), api.getOutbox(), pid, readyIds());
-    if (!isUnlocked(skin, st.starsTotal)) {
+    if (!skinOpen(skin, st.starsTotal)) {
       sound.play('soon');
       replay(skinBtn, 'wiggle');
       say(skinBtn, `Needs ${skin.stars_needed} stars`);
@@ -446,7 +465,7 @@ function handleError(err) {
   const m = String((err && err.message) || err);
   if (m.includes('wrong_code')) toast("Grown-ups: this device's family code doesn't match. Open the gear.");
   else if (m.includes('not_configured')) toast('Grown-ups: the Apps Script link is missing from shared/config.js.');
-  else toast("Can't reach the Sheet right now. Stars are saved on this device.");
+  else toast(on('stars') ? "Can't reach the Sheet right now. Stars are saved on this device." : "Can't reach the Sheet right now.");
 }
 
 window.addEventListener('online', () => refresh());
@@ -571,19 +590,22 @@ function cornerMain(message = '', good = true) {
         <button class="btn" type="button" data-ping>Check connection</button>
       </div>
 
+      ${on('stars') || outbox.results.length || outbox.achievements.length ? `
       <h3>Waiting to sync</h3>
       <p>${waiting}</p>
-      <div class="row"><button class="btn" type="button" data-sync ${outbox.results.length || outbox.achievements.length ? '' : 'disabled'}>Send now</button></div>
+      <div class="row"><button class="btn" type="button" data-sync ${outbox.results.length || outbox.achievements.length ? '' : 'disabled'}>Send now</button></div>` : ''}
 
       <h3>Sound</h3>
       <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="snd" ${sound.isMuted() ? '' : 'checked'}> Sounds on</label>
 
       <h3>Testing</h3>
+      <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="tst" ${testingOn() ? 'checked' : ''}> Games being tested</label>
+      <p class="small">Shows games marked "testing" as tiles on this device only, so a grown-up can try them before they go live.</p>
       <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="dbg" ${debugOn() ? 'checked' : ''}> Skin preview button</label>
-      <p class="small">Shows a button at the bottom right of the screens that switches skins without unlocking or saving them. Remembered on this device.</p>
-
+      <p class="small">Shows a button at the bottom right of the screens that switches skins without saving them. Remembered on this device.</p>
+      ${on('skinLocks') ? `
       <h3>More</h3>
-      <p class="small">Skins and their star targets are in the Sheet's Skins tab: change stars_needed there.</p>
+      <p class="small">Skins and their star targets are in the Sheet's Skins tab: change stars_needed there.</p>` : ''}
     </div>`;
 }
 
@@ -678,6 +700,7 @@ corner.addEventListener('change', (e) => {
     if (e.target.checked) sound.play('tap');
   }
   if (e.target.id === 'dbg') setDebug(e.target.checked);
+  if (e.target.id === 'tst') api.saveLocal(TESTING_KEY, !!e.target.checked);
 });
 
 function openGameSetup(pid) {

@@ -1,13 +1,18 @@
 """Browser test: grown-ups' question, skin preview toggle, Game setup word lists, Kriss Kross default list + Next.
 Runs against a stand-in for the Apps Script (no real Sheet is touched).
 From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
-then: GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_lists.py <folder for screenshots>
+then: python3 -B tools/tests/e2e_lists.py <folder for screenshots>
 The answer is never stored in this repo."""
 import json, os, re, sys, uuid
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_config import TEST_ANSWER, route_config  # noqa: E402
+# Stage 2 switched these features off (P48, P49). This test checks they still work when switched
+# back on, so it serves config.js with every feature on, and with a test grown-ups' answer.
+
 OUT = sys.argv[1]
-ANSWER = os.environ['GROWNUP_ANSWER']
+ANSWER = TEST_ANSWER
 BASE = 'http://127.0.0.1:8123/'
 CODE = 'test-code'
 db = {
@@ -55,6 +60,7 @@ with sync_playwright() as pw:
     ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
     ctx.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
     ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda r: r.abort())
+    route_config(ctx, features=True)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}') if m.type == 'error' and 'ERR_FAILED' not in m.text else None)
@@ -123,6 +129,7 @@ with sync_playwright() as pw:
     ph.add_init_script(f"localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
     ph.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
     ph.route(re.compile(r'https://fonts\..*'), lambda r: r.abort())
+    route_config(ph, features=True)
     pp = ph.new_page(); pp.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pp.goto(BASE + 'index.html'); pp.wait_for_selector('.player'); pp.wait_for_timeout(500)
     box = pp.locator('.gear').bounding_box()

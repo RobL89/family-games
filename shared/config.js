@@ -8,6 +8,17 @@ export const CONFIG = {
   // How many recent scores the profile screen shows.
   recentScores: 10,
 
+  // Feature switches (P48, P49, P52): the one place to turn old features off and on.
+  // Off means hidden and not run; nothing is deleted. Set one to true to bring it back.
+  features: {
+    stars: false,        // stars on the home screen, saving results to the Scores tab, and stars per round in games (P48)
+    stickers: false,     // the sticker or badge slots on the home screen, and earning them (P48)
+    lastPlayed: false,   // the "Last played" row on the home screen (P48)
+    tileStars: false,    // each tile's best stars (P48)
+    celebration: false,  // the confetti card after a round, with new stickers and skins (P48)
+    skinLocks: false,    // skins locked behind star totals from the Skins tab (P49: all skins free)
+  },
+
   // The skin preview button is now switched on and off in the grown-ups' corner
   // (saved on each device). This is only the starting value for a new device.
   debug: false,

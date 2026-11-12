@@ -55,6 +55,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P54 | Artifact games come in through P-020: the launcher keeps a copy that is what the children play. When the maker updates hers, Rob tells P-020, which retakes the copy (B4) | Adopted 2026-11-12 (Rob's direction) |
 | P55 | The launcher's stages, in order: 1 housekeeping (phase A); 2 the simple wrapper, with stars and stickers switched off and skins free; 3 Kriss Kross through the wrapper; 4 a test bed, cut down to what the script change needs; 5 script 0.4.0, then clear the grown-up test rows (Q13). Dropped: launcher levels, the sticker book, progress reports and the goal bar (review S1 to S4, S6, U1, U7) | Adopted 2026-11-12 |
 | P56 | One set of word lists per child, shared by every word game that asks for them (GQ3); GameLists moves from per child per game to per child in script 0.4.0 | Adopted 2026-11-12 |
+| P57 | Rob tries launcher changes in a private preview before he says publish: a claude.ai artifact built from `work` by `tools/preview/build_preview.py`, with a stand-in Sheet in the browser (made-up players; the real Sheet is never touched). Sound after a tap, the bar on a real phone and the real Sheet are checked on the live site after publishing. Checked 2026-11-12 on Rob's PC: in an artifact, game frames, same-site messages, `?game=` in a frame's address, module scripts and device storage all work | Adopted 2026-11-12 |
 
 ## From the review (Rob's answers, 2026-10-30)
 

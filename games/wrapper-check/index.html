@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wrapper check</title>
+<!-- A launcher tool for trying the wrapper (see README.md). Uses only shared/bridge.js (GC4). -->
+<style>
+  body { margin: 0; font: 18px/1.4 system-ui, sans-serif; color: #1F2A44; background: #EAF6FF; min-height: 100vh; display: grid; place-items: center; text-align: center; }
+  button { font: 700 22px system-ui; padding: 14px 28px; margin: 8px; border: 3px solid #1F2A44; border-radius: 16px; background: #FFD447; min-height: 56px; cursor: pointer; }
+  #go { font-size: 30px; padding: 18px 48px; }
+  .card { background: #fff; border: 3px solid #1F2A44; border-radius: 18px; padding: 12px 18px; margin: 12px; text-align: left; }
+  .card p { margin: 6px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <section id="first"><h1>Wrapper check</h1><button id="go" type="button">Play</button></section>
+  <section id="round" hidden>
+    <div class="card" id="facts"></div>
+    <button id="done" type="button">Done</button>
+  </section>
+  <section id="end" hidden>
+    <h2 id="end-h">Round over!</h2>
+    <button id="again" type="button">Again</button>
+  </section>
+</main>
+<script type="module">
+  import { connect } from '../../shared/bridge.js';
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => ['first', 'round', 'end'].forEach((s) => { $(s).hidden = s !== id; });
+  const LOCAL = 'wrapper-check:rounds'; // its own key when running on its own (contract section 6)
+  let start = null;
+  let rounds = 0;
+
+  function beep() {
+    if (!start || !start.sound) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      g.gain.value = 0.12;
+      o.connect(g).connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.25);
+    } catch { /* no sound on this device */ }
+  }
+
+  function facts() {
+    const p = start.player;
+    const lists = start.lists || [];
+    const rows = [
+      start.standalone ? 'Running on its own (no wrapper).' : 'Running in the wrapper.',
+      p ? `Playing: ${p.name} (${p.animal})` : 'Playing: nobody picked',
+      `Sound: ${start.sound ? 'on (did the Play button beep?)' : 'off'}`,
+      `Word lists: ${lists.length}${lists.length ? ` (first: ${lists[0].title}, ${lists[0].words.length} words)` : ''}`,
+      `Rounds finished before: ${rounds}`,
+    ];
+    $('facts').innerHTML = rows.map((r) => `<p></p>`).join('');
+    [...$('facts').children].forEach((el, i) => { el.textContent = rows[i]; });
+  }
+
+  const fg = connect();
+  fg.onStart((s) => {
+    start = s;
+    if (s.standalone) {
+      try { rounds = Number(localStorage.getItem(LOCAL)) || 0; } catch { rounds = 0; }
+    } else {
+      rounds = (s.state && Number(s.state.rounds)) || 0;
+    }
+  });
+
+  $('go').addEventListener('click', () => { beep(); facts(); show('round'); });
+  $('done').addEventListener('click', () => {
+    rounds += 1;
+    if (start.standalone) { try { localStorage.setItem(LOCAL, String(rounds)); } catch {} }
+    else fg.saveState({ rounds });
+    fg.roundOver({ stars: 3, score: rounds });
+    $('end-h').textContent = `Round over! That's ${rounds} so far.`;
+    show('end');
+  });
+  $('again').addEventListener('click', () => { beep(); facts(); show('round'); });
+</script>
+</body>
+</html>

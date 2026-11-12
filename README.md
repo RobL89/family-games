@@ -11,19 +11,20 @@ Simple, child-friendly browser games for the family, played on a phone or a comp
 | Path | What |
 |---|---|
 | `index.html`, `shared/` | The launcher: who's playing, home, grown-ups' corner, skins, talking to the Sheet |
-| `play.html`, `shared/bridge.js` | The wrapper every game runs in, and what a game includes to talk to it (stage 2) |
+| `play.html`, `shared/wrapper.js`, `shared/bridge.js` | The wrapper every game runs in, and what a game includes to talk to it |
 | `games.json` | The list of games: order, status and where each came from |
 | `games/<id>/` | One folder per game: `game.json`, `icon.svg`, a one-page `README.md` and its files |
 | `games/_common/` | Code several games share |
 | `apps-script/Code.gs` | The Sheet's backend, pasted into Apps Script by hand |
 | `tools/tests/` | Browser tests against a stand-in Sheet; each game's release check in `tools/tests/games/<id>/` |
+| `tools/preview/` | Builds the private preview Rob tries changes in before publishing |
 | `docs/` | How it works, decisions, the game contract, Sheet setup; `games-pack/` and `review/` are background |
 
 No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
 
 ## Tests
 
-Needs Python Playwright. From the repo root, serve the site with `python3 -m http.server 8123 --bind 127.0.0.1`, then run a test, for example `GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_launcher.py <folder for screenshots>`. No real Sheet is touched.
+Needs Python Playwright. From the repo root, serve the site with `python3 -m http.server 8123 --bind 127.0.0.1`, then run `python3 -B tools/tests/e2e_wrapper.py <folder for screenshots>`. It checks the launcher as it is now and ends "PASS n of n". The other three tests check the old features with their switches turned back on. No real Sheet is touched, and the tests use a test answer for the grown-ups' question (`tools/tests/test_config.py`).
 
 ## For other projects
 

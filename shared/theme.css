@@ -368,3 +368,22 @@ svg { display: block; }
   .hello { animation: none !important; }
   .confetti, .fx { display: none; }
 }
+
+/* ---------- The wrapper, play.html (P50) ---------- */
+/* A slim bar with Home and the child's face; the game fills the rest of the screen. */
+body.wrapper { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.wbar {
+  position: relative; z-index: 2; flex: none; display: flex; align-items: center; gap: .55rem;
+  padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top));
+  padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right));
+  border-bottom: 2px solid var(--line);
+}
+/* Sizes in px, not rem: the launcher's text grows on big screens, but the bar stays slim (about 56px). */
+.wbar .back { width: 42px; height: 42px; padding: 9px; }
+.wbar .face { width: 42px; height: 42px; padding: 2px; box-shadow: none; }
+.wname { flex: 1; min-width: 0; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wframe { flex: 1; min-height: 0; display: flex; }
+.wframe iframe { flex: 1; width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+
+/* A game being tested (contract 0.4, section 7): shown only where the corner's Testing switch is on. */
+.testing-tape { background: color-mix(in srgb, #2E8FD0 35%, #fff); }

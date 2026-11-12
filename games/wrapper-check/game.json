@@ -1,0 +1,7 @@
+{
+  "title": "Wrapper check",
+  "colour": "#2E8FD0",
+  "icon": "icon.svg",
+  "page": "index.html",
+  "settings": ["word-lists"]
+}

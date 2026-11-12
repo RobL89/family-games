@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-12. Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-12 (stage 2). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -12,27 +12,28 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 - This repo is the master host of every game. Games are developed elsewhere and released here (P53, P54).
 - Plain HTML, CSS and JavaScript, no build step, served by GitHub Pages (P1, P2). It stays simple.
 
-**Still to build (P55):** the wrapper (`play.html`) and the switches that hide stars and stickers. Until stage 2, the launcher still shows stars, stickers and star-locked skins, and games open on their own pages.
+**Switches (P48, P49, P52):** the `features` block in `shared/config.js` turns the old stars, stickers, "Last played", tile stars, celebration and skin locks off and on. All are off. Off means hidden and not run: no results are queued or sent to the Scores tab. Turning one back on restores the old behaviour (the old tests in `tools/tests/` check that).
 
 ## Screens
 
 1. **Who's playing?** Big cartoon-animal stickers with first names (P13, P15). Tap: wiggle, hello, then the child's home screen.
-2. **Home:** the child's games as big tiles, and the skin picker (P20). From stage 2, nothing else.
-3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home and the child's face (P50). Today games open at `games/<id>/` directly.
+2. **Home:** the child's games as big tiles, and the skin picker (P20). Nothing else.
+3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home, the child's face and name (P50). `shared/wrapper.js` runs it; the game talks to it through `shared/bridge.js` (contract section 5). Kriss Kross still opens on its own page (`"opens": "own-page"` in `games.json`) until stage 3.
 4. **Grown-ups' corner:** press and hold the gear for a second, then answer the question (P18, P32). It holds:
    - players (add or edit)
    - Game setup, with word lists (P36)
    - family code and Check connection
    - results waiting to sync
    - sound on or off
-   - the skin preview switch (P34)
+   - Testing: "Games being tested" (shows `testing` tiles on this device only) and the skin preview switch (P34)
 
 ## Information flow (P6)
 
 1. **The launcher opens.** It shows players from the device's cache straight away, sends anything waiting, then refreshes from the Sheet.
 2. **Everything saves on the device first,** then goes to the Sheet. Each item has a unique ID, so a retry never counts twice.
-3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device, and in the Sheet's Settings tab once script 0.4.0 is live (P51).
-4. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview). Games use their own keys, never clear-all (contract section 6).
+3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`), and will keep it in the Sheet's Settings tab once script 0.4.0 is live (P51).
+4. **Word lists** reach a game in `fg:start`: this game's lists for the child, or else the first set the child has for any game, as one set per child (P56) until script 0.4.0 stores them that way.
+5. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview, Testing switch, game states). Games use their own keys, never clear-all (contract section 6).
 
 ## Sheet tabs
 
@@ -77,4 +78,8 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 
 ## Games
 
-Live: Kriss Kross (an artifact game; its stars switch off at stage 2). Bubble pop and four placeholders show as "Soon". How a game gets in: [game-contract.md](game-contract.md), section 7.
+Live: Kriss Kross (an artifact game, on its own page until stage 3; its stars are switched off). Bubble pop and four placeholders show as "Soon". Testing: Wrapper check, a launcher tool for trying the wrapper. How a game gets in: [game-contract.md](game-contract.md), section 7.
+
+## Trying changes before publishing (P57)
+
+Claude builds a private preview from `work` with `tools/preview/build_preview.py` and publishes it as a claude.ai artifact, always at the same link. It runs the real launcher files against a stand-in Sheet with made-up players, kept in the browser; the real Sheet is never touched. Rob tries it on the phone and PC, then says publish. Two things can only be checked on the live site after publishing: sound after a tile tap (GC6) and the real Sheet.

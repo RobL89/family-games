@@ -2,8 +2,13 @@
 Needs Python Playwright. From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
 then: python3 tools/tests/e2e_skins.py <folder for screenshots>
 """
-import json, sys, re
+import json, os, sys, re
 from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_config import TEST_ANSWER, route_config  # noqa: E402
+# Stage 2 switched these features off (P48, P49). This test checks they still work when switched
+# back on, so it serves config.js with every feature on, and with a test grown-ups' answer.
 
 OUT = sys.argv[1]
 BASE = 'http://127.0.0.1:8123/'
@@ -49,6 +54,7 @@ with sync_playwright() as pw:
         ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));" "localStorage.setItem('fg.debug', 'true');")
         ctx.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
         ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda r: r.abort())
+        route_config(ctx, features=True)
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
         pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}') if m.type == 'error' and 'ERR_FAILED' not in m.text else None)
