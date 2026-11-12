@@ -119,7 +119,12 @@ def run():
         check('no "Last played"', pg.locator('.minis, .mini').count() == 0 and 'Last played' not in pg.inner_text('.home'))
         check('no stars on tiles', pg.locator('.tile .stars').count() == 0)
         check('no locked skins', pg.locator('.skin.locked, .lockmark').count() == 0 and pg.locator('.progress').count() == 0)
-        check('four skins to pick', pg.locator('button[data-skin]').count() == 4)
+        check('home is just the games (no side panel)', pg.locator('.side').count() == 0 and pg.locator('button[data-skin]').count() == 0)
+        check('the face has the paint badge', pg.locator('.head [data-skins] .face-badge svg').count() == 1)
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-card')
+        pg.screenshot(path=f'{OUT}/01b-phone-skin-picker.png')
+        check('tapping the face opens the skin picker', pg.locator('.skin-card button[data-skin]').count() == 4)
+        check('the picker fits the phone', pg.evaluate("(() => { const r = document.querySelector('.skin-card').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })()"))
         check('testing game hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
         kk = pg.get_attribute('[data-g="kriss-kross"]', 'href') or ''
         check('Kriss Kross still on its own page', kk.startswith('games/kriss-kross/index.html'), kk)
@@ -127,8 +132,17 @@ def run():
         check('home fits the phone width', no_overflow)
 
         # Skins are free: a star-priced skin applies straight away. Script 0.3.0 still refuses it, so it stays on the device.
-        pg.click('[data-skin="unicorn"]'); pg.wait_for_timeout(1200)
+        pg.click('.skin-card [data-skin="unicorn"]'); pg.wait_for_timeout(1200)
         check('unicorn applies with no stars', pg.evaluate('document.documentElement.dataset.skin') == 'unicorn')
+        check('the picker stays open to try another', pg.locator('.skin-card .skin.on[data-skin="unicorn"]').count() == 1)
+        pg.screenshot(path=f'{OUT}/01c-phone-picker-unicorn.png')
+        pg.click('[data-sheet-close]'); pg.wait_for_timeout(300)
+        check('the tick closes the picker', pg.locator('.skin-sheet').count() == 0)
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-sheet')
+        pg.mouse.click(5, 5); pg.wait_for_timeout(300)
+        check('tapping outside closes the picker', pg.locator('.skin-sheet').count() == 0)
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-sheet'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
+        check('Escape closes the picker', pg.locator('.skin-sheet').count() == 0)
         check('unicorn kept on the device', 'unicorn' in (pg.evaluate("localStorage.getItem('fg.skin.p_sam')") or ''))
         pg.reload(); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
         check('unicorn still on after reload', pg.evaluate('document.documentElement.dataset.skin') == 'unicorn')
@@ -191,6 +205,17 @@ def run():
             fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
             check(f'{name}: saved state comes back in fg:start', 'Rounds finished before: 1' in fr.locator('#facts').inner_text())
             ctx.close()
+
+        # PC home: the games use the whole width once the side panel has gone.
+        ctx, pg = new_page(1366, 768)
+        pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(900)
+        pg.screenshot(path=f'{OUT}/04-pc-home.png')
+        games_w = pg.evaluate("document.querySelector('.games').getBoundingClientRect().width")
+        home_w = pg.evaluate("document.querySelector('.home').getBoundingClientRect().width")
+        check('pc: games use the whole width', games_w > home_w * .95, f'{games_w} of {home_w}')
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-card'); pg.wait_for_timeout(400)
+        pg.screenshot(path=f'{OUT}/05-pc-skin-picker.png')
+        ctx.close()
 
         # Another child has their own state.
         ctx, pg = new_page(1366, 768, testing=True)

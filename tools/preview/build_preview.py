@@ -12,7 +12,7 @@ What changes on the way in, and nothing else:
     match ("+changes" if the working tree differs from it), a short hash of the files, and a
     Reset link that starts the stand-in's data again.
 
-Every other file is copied byte for byte. Same inputs give the same bytes.
+Every other file is copied byte for byte. Only games a child can open (ready or testing) go in. Same inputs give the same bytes.
 
 Usage, from the repo root:
     python3 -B tools/preview/build_preview.py --number 1 [--out PATH]
@@ -65,10 +65,20 @@ def git(*args):
     return subprocess.run(['git', '-C', REPO, *args], check=True, capture_output=True, text=True).stdout
 
 
+def playable_folders():
+    """Game folders a child can open: ready or testing in games.json, plus games/_common/.
+    "Soon" games and games/_template/ can't be opened, so they stay out of the preview."""
+    with open(os.path.join(REPO, 'games.json'), encoding='utf-8') as f:
+        games = json.load(f).get('games', [])
+    return ['games/_common/'] + [f"games/{g['id']}/" for g in games if g.get('status') in ('ready', 'testing')]
+
+
 def source_files():
     """The launcher's files in the working tree, tracked or new (ignored files left out), sorted."""
     listed = git('ls-files', '--cached', '--others', '--exclude-standard', '--', *TOP_FILES, *FOLDERS).split('\n')
-    files = sorted({f for f in listed if f and os.path.isfile(os.path.join(REPO, f))})
+    keep = playable_folders()
+    files = sorted({f for f in listed if f and os.path.isfile(os.path.join(REPO, f))
+                    and (not f.startswith('games/') or any(f.startswith(k) for k in keep))})
     for top in TOP_FILES:
         if top not in files:
             raise BuildError(f'missing {top}')

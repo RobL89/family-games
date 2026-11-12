@@ -32,6 +32,7 @@ const SYMBOLS = `
   <circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="3.6"/>
 </symbol>
 <symbol id="i-lock" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10" fill="none" stroke="currentColor" stroke-width="2.6"/><rect x="4.5" y="10" width="15" height="11" rx="2.5"/></symbol>
+<symbol id="i-brush" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.5C6.6 2.5 2.5 6.6 2.5 11.8c0 5 4 9.7 9.3 9.7 1.3 0 2.1-.8 2.1-1.9 0-.6-.3-1-.6-1.4-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h2.2c2.9 0 4.7-2 4.7-4.6 0-4.6-4.3-8.1-9.5-8.1zM7.2 12.6a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM10.2 8.2a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM15 8.2a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM17.6 12a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-cloud" viewBox="0 0 24 24" fill="currentColor"><path d="M7 19a5 5 0 0 1-.6-10A6.5 6.5 0 0 1 19 9.6 4.7 4.7 0 0 1 18 19z"/></symbol>
 `;

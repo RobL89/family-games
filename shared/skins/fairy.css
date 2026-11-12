@@ -99,7 +99,7 @@
   border-color: #fff; background: linear-gradient(180deg, #FF8CC6, #E04E9A);
   box-shadow: 0 .25em 0 #B0377A, 0 0 1em rgba(255, 150, 210, .8);
 }
-:root[data-skin="fairy"] .party-card { box-shadow: 0 0 0 .3em rgba(255, 255, 255, .7), 0 0 2em rgba(255, 190, 235, .9); }
+:root[data-skin="fairy"] .party-card, :root[data-skin="fairy"] .skin-card { box-shadow: 0 0 0 .3em rgba(255, 255, 255, .7), 0 0 2em rgba(255, 190, 235, .9); }
 :root[data-skin="fairy"] .confetti i {
   width: .9rem; height: .9rem; border-radius: 0;
   clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);

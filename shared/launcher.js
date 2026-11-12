@@ -30,6 +30,7 @@ const state = {
   debugSkin: null, // set by the debug button; never saved
   screen: 'who',
   playerId: null,
+  skinSheet: false, // the skin picker, opened by tapping the child's face on their home screen
 };
 
 // ---------- Small helpers ----------
@@ -155,6 +156,7 @@ function renderSetup(message = '') {
 function renderWho() {
   state.screen = 'who';
   state.playerId = null;
+  state.skinSheet = false;
   setSkin(DEFAULT_SKIN);
   document.title = 'Family games';
   const list = state.profiles;
@@ -190,7 +192,9 @@ function renderHome(pid) {
     <main class="screen home" style="--c:${colourOf(p)}">
       <header class="head">
         <button class="back" data-back aria-label="Back to Who's playing">${icon('i-back')}</button>
-        ${face(p)}
+        <button class="face-btn" type="button" data-skins aria-haspopup="dialog" aria-label="Change my look">
+          ${face(p)}<span class="face-badge" aria-hidden="true">${icon('i-brush')}</span>
+        </button>
         <div class="me">
           <h1 class="hi">Hi ${esc(p.nickname)}!</h1>
           ${on('stars') ? `<span class="total" role="img" aria-label="${plural(st.starsTotal, 'star')}">${icon('s-star', 'st on')}<span>${st.starsTotal}</span></span>` : ''}
@@ -203,7 +207,7 @@ function renderHome(pid) {
         <div class="tiles">${shownGames().map((g) => tile(g, pid, st)).join('')}</div>
       </section>
 
-      <section class="side">
+      ${on('stickers') || on('lastPlayed') ? `<section class="side">
         ${on('stickers') ? `<div>
           <h2>${shown === 'sticker' ? 'My stickers' : 'My badges'}</h2>
           <div class="slots">${badgeSlots(earned)}</div>
@@ -212,14 +216,37 @@ function renderHome(pid) {
           <h2>Last played</h2>
           ${lastPlayed(data, outbox, pid)}
         </div>` : ''}
-        <div>
-          <h2>My skins</h2>
+      </section>` : ''}
+
+      ${state.skinSheet ? `
+      <div class="skin-sheet" data-sheet-bg>
+        <div class="skin-card" role="dialog" aria-modal="true" aria-labelledby="skin-h">
+          <button class="skin-x" type="button" data-sheet-close aria-label="Close">${icon('i-check')}</button>
+          <h2 id="skin-h">My skins</h2>
           <div class="skins">${skinChoices(st.starsTotal, skin)}</div>
           ${on('skinLocks') ? skinProgress(st.starsTotal) : ''}
         </div>
-      </section>
+      </div>` : ''}
     </main>`;
+  // With no side panel, the games take the whole width (P48: home is the games and the skin picker).
+  app.querySelector('.home').classList.toggle('no-side', !app.querySelector('.side'));
+  if (state.skinSheet) {
+    const current = app.querySelector('.skin-card .skin.on') || app.querySelector('.skin-card [data-skin]');
+    if (current) current.focus({ preventScroll: true });
+  }
 }
+
+// The skin picker (Rob, 2026-11-12): the child taps their face to open it, picks a skin
+// (it stays open so they can try another), and closes it with the tick or by tapping outside.
+function openSkinSheet(open) {
+  state.skinSheet = open;
+  if (state.playerId) renderHome(state.playerId);
+  if (!open) { const f = app.querySelector('[data-skins]'); if (f) f.focus({ preventScroll: true }); }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.skinSheet && state.screen === 'home') openSkinSheet(false);
+});
 
 // A game's tile. Ready and testing games open in the wrapper, play.html (P50), unless
 // games.json says "opens": "own-page" (Kriss Kross until stage 3). Testing games carry a tape.
@@ -374,6 +401,17 @@ app.addEventListener('click', async (e) => {
     go(null);
     return;
   }
+  const faceBtn = t.closest('[data-skins]');
+  if (faceBtn) {
+    sound.play('hello');
+    openSkinSheet(true);
+    return;
+  }
+  if (t.closest('[data-sheet-close]') || t.matches('[data-sheet-bg]')) {
+    sound.play('tap');
+    openSkinSheet(false);
+    return;
+  }
   const soon = t.closest('[data-soon]');
   if (soon) {
     sound.play('soon');
@@ -416,6 +454,7 @@ app.addEventListener('click', async (e) => {
 // ---------- Routing ----------
 
 function go(pid) {
+  state.skinSheet = false;
   const url = new URL(location.href);
   if (pid) url.searchParams.set('player', pid); else url.searchParams.delete('player');
   history.pushState({}, '', url);

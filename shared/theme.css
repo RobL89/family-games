@@ -369,6 +369,34 @@ svg { display: block; }
   .confetti, .fx { display: none; }
 }
 
+/* ---------- Home without the side panel, and the skin picker behind the child's face ---------- */
+@media (min-width: 56rem) {
+  .home.no-side { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "games"; }
+}
+.face-btn { position: relative; flex: none; display: block; border-radius: var(--face-radius); }
+.face-btn:active { scale: .95; }
+.face-badge {
+  position: absolute; right: -.3rem; bottom: -.2rem; z-index: 3; display: grid; place-items: center;
+  width: 1.75rem; height: 1.75rem; padding: .3rem; border-radius: 50%;
+  color: #fff; background: var(--accent); border: calc(var(--outline) * .8) solid var(--card); box-shadow: var(--shadow);
+}
+.face-badge svg { width: 100%; height: 100%; }
+.skin-sheet {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1rem;
+  background: rgba(30, 20, 10, .35); animation: fadein .2s ease;
+}
+.skin-card {
+  position: relative; width: min(28rem, 100%); display: flex; flex-direction: column; gap: .8rem; padding: 1.1rem 1.1rem 1.3rem;
+  background: var(--card); border: calc(var(--outline) * 1.2) solid var(--line); border-radius: calc(var(--radius) * 1.6);
+  box-shadow: var(--shadow); animation: pop .3s ease;
+}
+.skin-card h2 { margin: 0; padding-right: 3rem; font-size: 1.7rem; font-weight: inherit; }
+.skin-x {
+  position: absolute; top: .7rem; right: .7rem; width: 2.6rem; height: 2.6rem; padding: .55rem; border-radius: 50%;
+  color: #fff; background: var(--accent); border: var(--outline) solid var(--line); box-shadow: var(--shadow);
+}
+.skin-x svg { width: 100%; height: 100%; }
+
 /* ---------- The wrapper, play.html (P50) ---------- */
 /* A slim bar with Home and the child's face; the game fills the rest of the screen. */
 body.wrapper { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }

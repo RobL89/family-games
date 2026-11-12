@@ -70,7 +70,8 @@
 /* Cards: holographic rainbow edges with a shine that sweeps across */
 :root[data-skin="unicorn"] .tile,
 :root[data-skin="unicorn"] .side,
-:root[data-skin="unicorn"] .party-card {
+:root[data-skin="unicorn"] .party-card,
+:root[data-skin="unicorn"] .skin-card {
   border-color: transparent;
   background: linear-gradient(var(--card), var(--card)) padding-box, var(--rainbow) border-box;
   background-size: 100% 100%, 300% 300%;
