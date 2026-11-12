@@ -61,6 +61,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P60 | The wrapper's bar shows the child's name beside their face (as in the mockup), with ⌂ Home | Adopted 2026-11-12 |
 | P61 | Until script 0.4.0, a word game with no lists of its own gets the child's lists from another game (one set per child, as P56) | Adopted 2026-11-12 |
 | P62 | The skin picker opens from the child's face on their home screen; the home screen shows only the games | Adopted 2026-11-12 (Rob's request) |
+| P63 | Skins on the live site: left as they are until script 0.4.0. Script 0.3.0 still refuses a skin without the stars, so until then a child's skin choice is kept on that device only; the Sheet's Skins tab is not changed | Adopted 2026-11-12 |
 
 ## From the review (Rob's answers, 2026-10-30)
 
