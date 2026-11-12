@@ -18,6 +18,6 @@ No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
 
 ## For other projects
 
-- **What's here:** a family games launcher (profiles, stars, stickers, skins) and its games, with a Google Sheet behind an Apps Script web app.
-- **Ready for others:** nothing is packaged for reuse yet.
-- **Branches:** `main` is the live site; work happens on `work`; `games-wip` holds parked games, not merged.
+- **What's here:** a family games launcher (profiles, free skins and a simple wrapper) and every game it hosts, with a Google Sheet behind an Apps Script web app. P-020 (Family Games Launcher) owns all of it and is the only project that publishes.
+- **Making a game for it:** build to [`docs/game-contract.md`](docs/game-contract.md), then release it to P-020 by board note (section 7). P-020 copies it from your commit onto `work`.
+- **Branches:** `main` is the live site; `work` is P-020's; a games project's own branches are its workshop, copied from and never merged; `games-wip` is a record of three parked games.
