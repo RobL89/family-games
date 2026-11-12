@@ -8,14 +8,17 @@ that keeps made-up players in the browser. The real Sheet is never touched.
 What changes on the way in, and nothing else:
   - shared/api.js: call() answers from shared/preview-sheet.js instead of the Apps Script;
   - shared/preview-sheet.js is added (a copy of tools/preview/preview-sheet.js);
+  - games left out with --leave-out are marked "hidden" in games.json, so they have no tile;
   - index.html gets a small stamp under the page: the preview number, the commit the files
     match ("+changes" if the working tree differs from it), a short hash of the files, and a
     Reset link that starts the stand-in's data again.
 
-Every other file is copied byte for byte. Only games a child can open (ready or testing) go in. Same inputs give the same bytes.
+Every other file is copied byte for byte. Only games a child can open (ready or testing) go in,
+less any named with --leave-out (for example a big artifact game Rob can try at its maker's own
+link instead). Same inputs give the same bytes.
 
 Usage, from the repo root:
-    python3 -B tools/preview/build_preview.py --number 1 [--out PATH]
+    python3 -B tools/preview/build_preview.py --number 1 [--out PATH] [--leave-out ID ...]
 It prints the output folder and writes files.json there: the list Claude publishes with
 publish_files (each file's served path and its path on disk). files.json itself isn't published.
 """
@@ -65,12 +68,16 @@ def git(*args):
     return subprocess.run(['git', '-C', REPO, *args], check=True, capture_output=True, text=True).stdout
 
 
+LEAVE_OUT = set()  # game ids left out of this build (--leave-out)
+
+
 def playable_folders():
     """Game folders a child can open: ready or testing in games.json, plus games/_common/.
-    "Soon" games and games/_template/ can't be opened, so they stay out of the preview."""
+    "Soon" and hidden games and games/_template/ can't be opened, so they stay out of the preview."""
     with open(os.path.join(REPO, 'games.json'), encoding='utf-8') as f:
         games = json.load(f).get('games', [])
-    return ['games/_common/'] + [f"games/{g['id']}/" for g in games if g.get('status') in ('ready', 'testing')]
+    return ['games/_common/'] + [f"games/{g['id']}/" for g in games
+                                 if g.get('status') in ('ready', 'testing') and g['id'] not in LEAVE_OUT]
 
 
 def source_files():
@@ -107,6 +114,12 @@ def build(number, out):
             raise BuildError(f'{rel}: the text to replace is found {text.count(old)} times, not once: {old.strip()[:60]}')
         contents[rel] = text.replace(old, new).encode('utf-8')
     contents['shared/preview-sheet.js'] = read_bytes('tools/preview/preview-sheet.js')
+    if LEAVE_OUT:  # a left-out game is hidden in the preview's games.json, so it has no tile
+        listing_json = json.loads(contents['games.json'])
+        for g in listing_json['games']:
+            if g['id'] in LEAVE_OUT:
+                g['status'] = 'hidden'
+        contents['games.json'] = (json.dumps(listing_json, indent=2) + '\n').encode('utf-8')
 
     page = contents['index.html'].decode('utf-8')
     if page.count('</body>') != 1:
@@ -138,7 +151,9 @@ def main():
     ap.add_argument('--number', type=int, required=True, help='the preview number shown in the stamp')
     ap.add_argument('--out', default=os.path.join(os.path.dirname(REPO), 'family-games-preview'),
                     help='where to write the build (outside the repo; it is a build, not a master)')
+    ap.add_argument('--leave-out', nargs='*', default=[], metavar='ID', help='game ids to leave out of this build')
     a = ap.parse_args()
+    LEAVE_OUT.update(a.leave_out)
     try:
         commit, short, count = build(a.number, os.path.abspath(a.out))
     except BuildError as e:

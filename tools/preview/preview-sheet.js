@@ -30,7 +30,7 @@ function seed() {
     scores: [],
     achievements: [],
     lists: [
-      { list_id: 'l_demo1', profile_id: 'p_sam', game_id: 'kriss-kross', position: 1, title: 'Animals', words: ['cat', 'dog', 'hen', 'cow', 'pig'] },
+      { list_id: 'l_demo1', profile_id: 'p_sam', game_id: 'kriss-kross', position: 1, title: 'Animals', words: ['cat', 'dog', 'cow', 'pig', 'horse'] },
       { list_id: 'l_demo2', profile_id: 'p_sam', game_id: 'kriss-kross', position: 2, title: 'Colours', words: ['red', 'blue', 'green', 'pink'] },
     ],
   };
