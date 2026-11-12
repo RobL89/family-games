@@ -1,5 +1,6 @@
-"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.1.
+"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.2.
 
+Changes at v1.2: repo_check 1.2's folders (D-113): the folder mutants follow its new lines.
 Changes at v1.1: the names mutants are removed with the names check (D-017).
 
 Tests the tests: plants one fault at a time in repo_check.py, doc_check.py and
@@ -17,9 +18,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 MUTANTS = [
-    ('repo_check.py', "OWNED = ('games/', 'games.json', 'docs/games/', 'tools/tests/games/')",
-     "OWNED = ('games', 'games.json', 'docs/games', 'tools/tests/games/')", 'folder prefixes without the slash'),
-    ('repo_check.py', "        elif path == p:", "        elif path.startswith(p):", 'games.json matched as a prefix'),
+    ('repo_check.py', "OWNED = ('games/', 'docs/games/', 'tools/tests/games/')",
+     "OWNED = ('games', 'docs/games', 'tools/tests/games/')", 'folder prefixes without the slash'),
+    ('repo_check.py', "OWNED = ('games/', 'docs/games/', 'tools/tests/games/')",
+     "OWNED = ('games/', 'games.json', 'docs/games/', 'tools/tests/games/')", 'games.json still ours'),
+    ('repo_check.py', "NOT_OURS = ('games/kriss-kross/', 'games/_template/')",
+     "NOT_OURS = ('games/kriss-kross', 'games/_template/')", "P-020's folder without the slash"),
+    ('repo_check.py', "    if any(path.startswith(p) for p in NOT_OURS):", "    if False:", "P-020's game folders ours"),
     ('repo_check.py', "'--no-merges', '--no-renames',", "'--no-merges',", 'renames not split'),
     ('repo_check.py', "'--untracked-files=all', '--no-renames'", "'--untracked-files=no', '--no-renames'", 'untracked files ignored'),
     ('repo_check.py', "    outside = sorted(p for p in committed | working if not owned(p))",

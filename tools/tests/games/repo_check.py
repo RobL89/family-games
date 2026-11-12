@@ -1,10 +1,13 @@
-"""Repo check for P-034 (Kids Games Development). Version 1.1.
+"""Repo check for P-034 (Kids Games Development). Version 1.2.
 
+Changes at v1.2: the repo is P-020 (Family Games Launcher)'s, the host of every game
+(D-113): games.json, games/kriss-kross/ and games/_template/ are no longer P-034's.
 Changes at v1.1: the private-names part is removed (D-017: the children's
 names are not private); the check is now paths only, exit 0 or 1.
 
-Fails if this branch changes anything outside P-034's folders (D-002):
-games/, games.json, docs/games/, tools/tests/games/. It looks at every
+Fails if this branch changes anything outside P-034's folders (D-113):
+games/ (but not games/kriss-kross/ or games/_template/), docs/games/,
+tools/tests/games/. It looks at every
 non-merge commit in BASE..HEAD (renames counted as delete + add) and at the
 working tree (staged, unstaged and untracked files).
 
@@ -16,18 +19,15 @@ import argparse
 import subprocess
 import sys
 
-OWNED = ('games/', 'games.json', 'docs/games/', 'tools/tests/games/')
+OWNED = ('games/', 'docs/games/', 'tools/tests/games/')
+NOT_OURS = ('games/kriss-kross/', 'games/_template/')  # P-020's, inside games/ (D-113)
 
 
 def owned(path):
     """True if a repo-relative path is inside P-034's folders."""
-    for p in OWNED:
-        if p.endswith('/'):
-            if path.startswith(p):
-                return True
-        elif path == p:
-            return True
-    return False
+    if any(path.startswith(p) for p in NOT_OURS):
+        return False
+    return any(path.startswith(p) for p in OWNED)
 
 
 def git(repo, *args):

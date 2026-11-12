@@ -1,6 +1,8 @@
 """Tests for P-034 (Kids Games Development)'s checks: repo_check, doc_check and
-pins_check. Version 1.1.
+pins_check. Version 1.2.
 
+Changes at v1.2: games.json, games/kriss-kross/ and games/_template/ are P-020's, not
+P-034's (D-113): two cases check that a change to them fails the repo check.
 Changes at v1.1: the private-names cases are removed with the names check (D-017).
 
 Each case builds a small throwaway git repo, plants one fault (or none) and
@@ -135,6 +137,25 @@ def case_lookalike_paths(repo):
         try:
             write(r, p, 'x\n'); commit(r)
             ok = ok and check(r, 'repo_check.py')[0] == 1
+        finally:
+            shutil.rmtree(r, ignore_errors=True)
+    return ok
+
+
+def case_games_json_not_ours(repo):
+    # P-020 keeps the list of games (D-113, contract 0.4 section 2)
+    write(repo, 'games.json', '{"games": []}\n'); commit(repo)
+    return check(repo, 'repo_check.py')[0] == 1
+
+
+def case_p020_game_folders(repo):
+    # Kriss Kross and the template are P-020's; another game's folder stays ours (D-113)
+    ok = True
+    for p, want in (('games/kriss-kross/a.js', 1), ('games/_template/a.js', 1), ('games/kriss-krossx/a.js', 0)):
+        r = make_repo()
+        try:
+            write(r, p, 'x\n'); commit(r)
+            ok = ok and check(r, 'repo_check.py')[0] == want
         finally:
             shutil.rmtree(r, ignore_errors=True)
     return ok

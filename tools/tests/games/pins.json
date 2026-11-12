@@ -1,22 +1,15 @@
 {
-  "about": "Pins for P-034 (Kids Games Development)'s close checks. Version 1.0. Change a pin only by a logged decision in P-034. 'frozen': files that must stay byte for byte (sha256). 'drift': what we rely on from P-020 (Family Games Launcher), pinned by git object id on its branch.",
+  "about": "Pins for P-034 (Kids Games Development)'s close checks. Version 1.1. Changes at v1.1 (D-114): the contract pin moves to v0.4, and the frozen pin on Kriss Kross goes, as its files are P-020's now (P54, D-115). Change a pin only by a logged decision in P-034. 'frozen': files that must stay byte for byte (sha256). 'drift': what we rely on from P-020 (Family Games Launcher), pinned by git object id on its branch.",
   "format": 1,
-  "frozen": [
-    {
-      "path": "games/kriss-kross/index.html",
-      "sha256": "b0d81b8766850f473600f7cfe66be5408bea4d90e637e0f433340df3454a9df2",
-      "why": "Rob's wife's game, kept as she made it (D-005, own rule 5)",
-      "basis": "As live on main at 1beba7f, 2026-11-09; not compared with her own copy"
-    }
-  ],
+  "frozen": [],
   "drift": [
     {
-      "name": "Game contract v0.3",
+      "name": "Game contract v0.4",
       "branch": "work",
       "path": "docs/game-contract.md",
-      "object": "a41e78ed24a46f1a847fa5a28fb717e0eff22d43",
-      "pinned_at": "2c0e11e",
-      "why": "We build to it (D-012)"
+      "object": "3a417a93e3f53d066b44c090edef38795a9dc368",
+      "pinned_at": "194adf0",
+      "why": "We build to it (D-114)"
     },
     {
       "name": "P-020's games pack",
@@ -24,7 +17,7 @@
       "path": "docs/games-pack",
       "object": "e8dd55cf010a724bc72f1fa161e3f3a652a018e8",
       "pinned_at": "2c0e11e",
-      "why": "Starting values for the salvage (D-015)"
+      "why": "Background to contract 0.4 (D-114); starting values for the salvage (D-015); the draft bridge.js Rocket Lander's link is built from until P-020's final one (D-117)"
     }
   ]
 }
