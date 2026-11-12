@@ -1,6 +1,6 @@
 # Wrapper check
 
-A launcher tool, not a game for the children. It is listed as `testing`, so its tile shows only where the grown-ups' corner's Testing switch is on.
+A launcher tool, not a game for the children (P58). It is listed as `testing`, so its tile shows only where the grown-ups' corner's Testing switch is on.
 
 **What it's for:** trying the wrapper (`play.html`) on a phone or PC. It shows everything the wrapper sends in `fg:start` and saves a small state, so a grown-up can see that each service works:
 

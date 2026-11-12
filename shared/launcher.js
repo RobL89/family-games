@@ -236,7 +236,7 @@ function renderHome(pid) {
   }
 }
 
-// The skin picker (Rob, 2026-11-12): the child taps their face to open it, picks a skin
+// The skin picker (P62): the child taps their face to open it, picks a skin
 // (it stays open so they can try another), and closes it with the tick or by tapping outside.
 function openSkinSheet(open) {
   state.skinSheet = open;
@@ -249,7 +249,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // A game's tile. Ready and testing games open in the wrapper, play.html (P50), unless
-// games.json says "opens": "own-page" (Kriss Kross until stage 3). Testing games carry a tape.
+// games.json says "opens": "own-page" (Kriss Kross until stage 3, P59). Testing games carry a tape.
 function tile(g, pid, st) {
   const style = `--g:${esc(g.colour || '#2E8FD0')}`;
   const pic = `<span class="tile-ic">${icon(esc(g.icon || 'g-star'))}</span><span class="tile-t">${esc(g.title)}</span>`;

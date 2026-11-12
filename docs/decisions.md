@@ -56,6 +56,11 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P55 | The launcher's stages, in order: 1 housekeeping (phase A); 2 the simple wrapper, with stars and stickers switched off and skins free; 3 Kriss Kross through the wrapper; 4 a test bed, cut down to what the script change needs; 5 script 0.4.0, then clear the grown-up test rows (Q13). Dropped: launcher levels, the sticker book, progress reports and the goal bar (review S1 to S4, S6, U1, U7) | Adopted 2026-11-12 |
 | P56 | One set of word lists per child, shared by every word game that asks for them (GQ3); GameLists moves from per child per game to per child in script 0.4.0 | Adopted 2026-11-12 |
 | P57 | Rob tries launcher changes in a private preview before he says publish: a claude.ai artifact built from `work` by `tools/preview/build_preview.py`, with a stand-in Sheet in the browser (made-up players; the real Sheet is never touched). Sound after a tap, the bar on a real phone and the real Sheet are checked on the live site after publishing. Checked 2026-11-12 on Rob's PC: in an artifact, game frames, same-site messages, `?game=` in a frame's address, module scripts and device storage all work | Adopted 2026-11-12 |
+| P58 | Wrapper check (`games/wrapper-check/`) stays as a launcher tool listed as `testing`: it shows what the wrapper sends and saves, and appears only where the Testing switch is on | Adopted 2026-11-12 |
+| P59 | Kriss Kross opens on its own page (`"opens": "own-page"` in `games.json`) until stage 3 moves it into the wrapper; the launcher's hook at the bottom of its file no longer mentions stars | Adopted 2026-11-12 |
+| P60 | The wrapper's bar shows the child's name beside their face (as in the mockup), with ⌂ Home | Adopted 2026-11-12 |
+| P61 | Until script 0.4.0, a word game with no lists of its own gets the child's lists from another game (one set per child, as P56) | Adopted 2026-11-12 |
+| P62 | The skin picker opens from the child's face on their home screen; the home screen shows only the games | Adopted 2026-11-12 (Rob's request) |
 
 ## From the review (Rob's answers, 2026-10-30)
 

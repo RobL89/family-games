@@ -65,7 +65,7 @@ function wantsLists(entry, manifest) {
 
 // The child's lists, default first, as [{ title, words }]. Until script 0.4.0 the Sheet keeps
 // them per game, so this game's own lists are used if it has any, otherwise the first set this
-// child has for any game: one set per child, as P56 will make it.
+// child has for any game: one set per child, as P56 will make it (P61).
 function listsFor(playerId, id) {
   const clean = (lists) => (lists || [])
     .filter((l) => l && Array.isArray(l.words) && l.words.length)

@@ -17,7 +17,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 ## Screens
 
 1. **Who's playing?** Big cartoon-animal stickers with first names (P13, P15). Tap: wiggle, hello, then the child's home screen.
-2. **Home:** the child's games as big tiles, nothing else. Tapping the child's face (it has a small paint badge) opens the skin picker; it stays open to try skins and closes with the tick, a tap outside or Esc (Rob's request, 2026-11-12).
+2. **Home:** the child's games as big tiles, nothing else. Tapping the child's face (it has a small paint badge) opens the skin picker; it stays open to try skins and closes with the tick, a tap outside or Esc (P62).
 3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home, the child's face and name (P50). `shared/wrapper.js` runs it; the game talks to it through `shared/bridge.js` (contract section 5). Kriss Kross still opens on its own page (`"opens": "own-page"` in `games.json`) until stage 3.
 4. **Grown-ups' corner:** press and hold the gear for a second, then answer the question (P18, P32). It holds:
    - players (add or edit)
