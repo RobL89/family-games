@@ -4,9 +4,11 @@ Status: the proposals log at the bottom records what Rob has adopted or declined
 
 Repo: `RobL89/family-games` (public).
 
-Last updated: 2026-10-29
+Last updated: 2026-11-12
 
 ## What we're building
+
+**Direction changed 2026-11-12 (P48 to P54):** the launcher is a simple window to the games. A child picks their profile and sees the games; there are no launcher stars or stickers, skins are free, and every game runs inside a simple wrapper with a home button. Features that are no longer used are switched off and hidden, not deleted. The launcher repo is the master host of every game. The lines below describe the launcher as first built.
 
 - A **launcher**: pick who's playing, see your home screen (stars, badges, recent games, skins), pick a game.
 - A **series of games**: one folder each, playable with touch (phone) or mouse (PC).
@@ -156,29 +158,29 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P5 | Sheet tabs: Profiles, Scores, Achievements | Adopted 2026-10-28 |
 | P6 | Save on the device first, sync in the background | Adopted 2026-10-28 |
 | P7 | Family code checked by the script | Adopted 2026-10-28 |
-| P8 | Achievement rules in one repo file; the Sheet records unlocks | Adopted 2026-10-28 |
+| P8 | Achievement rules in one repo file; the Sheet records unlocks | Adopted 2026-10-28; switched off 2026-11-12 (P48) |
 | P9 | First names or nicknames and cartoon avatars only; no surnames or other personal data | Adopted 2026-10-28 (first names allowed by Rob) |
 | P10 | Every call to the script is a POST, so the family code never sits in a link | Adopted 2026-10-28 |
 | P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Adopted 2026-10-28 |
 | P12 | A grown-ups' check page at `tools/sheet-check.html` | Adopted 2026-10-28 |
-| P13 | Launcher flow | Adopted 2026-10-28 |
+| P13 | Launcher flow | Adopted 2026-10-28; celebration and stars switched off 2026-11-12 (P48) |
 | P14 | Look and feel: A sticker book (B and C declined) | Adopted 2026-10-28 |
 | P15 | Original cartoon-animal avatars plus colour | Adopted 2026-10-28 |
-| P16 | Starter badge set, locked ones shown greyed with "?" | Adopted 2026-10-28 |
-| P17 | Stars as the headline score, and as the points for skins | Adopted 2026-10-28 |
+| P16 | Starter badge set, locked ones shown greyed with "?" | Adopted 2026-10-28; switched off 2026-11-12 (P48) |
+| P17 | Stars as the headline score, and as the points for skins | Adopted 2026-10-28; switched off 2026-11-12 (P48, P49) |
 | P18 | Grown-ups' corner behind press-and-hold and a sum | Adopted 2026-10-28 |
 | P19 | Sounds with mute; "will sync" cloud icon | Adopted 2026-10-28 |
 | P20 | Phone layout: games above badges | Adopted 2026-10-28 |
-| P21 | Bonus theme skins unlocked with stars: Fairy, Unicorn, Blocks; launcher only | Adopted 2026-10-28 (Rob's idea) |
+| P21 | Bonus theme skins unlocked with stars: Fairy, Unicorn, Blocks; launcher only | Adopted 2026-10-28 (Rob's idea); skins free from 2026-11-12 (P49) |
 | P22 | Each skin is one CSS file that swaps colours, background and frames | Adopted 2026-10-28 |
-| P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request) |
+| P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request); targets ignored from 2026-11-12 (P49) |
 | P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Adopted 2026-10-29 |
 | P25 | Bubble pop as the first working game | Superseded 2026-10-29 by P35 |
 | P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Adopted 2026-10-29 |
 | P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Superseded 2026-10-29 by P32 |
 | P28 | Debug skin button, switched by `debug` in `shared/config.js` | Superseded 2026-10-29 by P34 |
 | P29 | `setup()` makes a backup copy before it changes an existing Sheet | Adopted 2026-10-29 |
-| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29 |
+| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29; switched off 2026-11-12 (P48) |
 | P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
 | P32 | Grown-ups' corner asks "Address of first house" instead of a sum | Adopted 2026-10-29 (Rob's request) |
 | P33 | Keep only a one-way hash of that answer in the public repo | Proposed |
@@ -188,3 +190,11 @@ Skins change the launcher and home screens only, never the games (Rob, 2026-10-2
 | P37 | Lists stored in a GameLists tab, one row per list, script 0.3.0 | Proposed |
 | P38 | Kriss Kross opens on the default list every visit (it doesn't remember the last list); Next also appears after "Show solution" | Proposed |
 | P39 | List changes save to the Sheet straight away; if a save fails, nothing changes | Proposed |
+| P40 to P47 | Used on the `games-wip` branch for the parked games, now P-034's; not reused here | (see `games-wip`) |
+| P48 | No launcher stars or stickers, and no currency carried between games. A child picks their profile, then sees the games. Stars, stickers, "Last played", tile stars and the celebration are switched off and hidden, not deleted. Results are no longer sent to the Scores tab, and there is no grown-ups' progress page (B2) | Adopted 2026-11-12 (Rob's direction) |
+| P49 | Every skin is free to use; the Skins tab's star targets are ignored | Adopted 2026-11-12 (Rob's direction) |
+| P50 | The wrapper (game shell) stays simple: a slim bar with the home button and the child's animal face, the game underneath; no end-of-round panel, level chip or stars (B3) | Adopted 2026-11-12 (Rob's direction) |
+| P51 | A game keeps its own progress and rewards per child. It hands them to the shell, which keeps them on the device at first and saves them to the Sheet once script 0.4.0 is live, with no change to the games (B1) | Adopted 2026-11-12 |
+| P52 | Hide, don't delete: unused features are switched off in one place and hidden. Stale files (the old repo handoff, old mockups, `.pyc` files, the second connection-check page) may still be removed, as long as the app looks correct and tidy (B5) | Adopted 2026-11-12 |
+| P53 | The launcher project (P-020) and this repo are the master host of every game. P-034 develops games and hands each finished one to P-020, which adds it to the launcher. How the folders and branches work is still to be agreed | Adopted 2026-11-12 (Rob's direction) |
+| P54 | Artifact games come in through P-020: the launcher keeps a copy that is what the children play. When the maker updates hers, Rob tells P-020, which retakes the copy (B4) | Adopted 2026-11-12 (Rob's direction) |
