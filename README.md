@@ -1,20 +1,29 @@
 # Family games
 
-Simple, child-friendly browser games for the family, played on a phone or computer. Each child has a profile with stars, badges, recent games and unlockable skins, stored in a Google Sheet.
+Simple, child-friendly browser games for the family, played on a phone or a computer. A child picks their profile and plays the games, each inside a simple wrapper. Profiles and skins are kept in a Google Sheet.
 
-- **Plan and decisions:** [docs/PLAN.md](docs/PLAN.md)
-- **Setting up the Sheet:** [docs/setup-sheet.md](docs/setup-sheet.md)
-- **Grown-ups' connection check:** `tools/sheet-check.html`
+- **How it works:** [docs/PLAN.md](docs/PLAN.md) · **Decisions:** [docs/decisions.md](docs/decisions.md)
+- **Making or adding a game:** [docs/game-contract.md](docs/game-contract.md)
+- **Setting up or updating the Sheet:** [docs/setup-sheet.md](docs/setup-sheet.md)
 
-## How it fits together
+## Folders
 
-- `index.html` + `shared/launcher.js`: the launcher (who's playing, home screen, grown-ups' corner)
-- `games.json`: the list of games and "coming soon" tiles
-- `games/<id>/`: one folder per game; copy `games/_template/` to start a new one; `games/bubble-pop/` is the first
-- `shared/`: code every page uses: `api.js` for the Sheet, `game-kit.js` for games, `theme.css` and `skins/` for the look
-- `apps-script/Code.gs`: the Sheet's backend, pasted into Apps Script by hand
+| Path | What |
+|---|---|
+| `index.html`, `shared/` | The launcher: who's playing, home, grown-ups' corner, skins, talking to the Sheet |
+| `play.html`, `shared/bridge.js` | The wrapper every game runs in, and what a game includes to talk to it (stage 2) |
+| `games.json` | The list of games: order, status and where each came from |
+| `games/<id>/` | One folder per game: `game.json`, `icon.svg`, a one-page `README.md` and its files |
+| `games/_common/` | Code several games share |
+| `apps-script/Code.gs` | The Sheet's backend, pasted into Apps Script by hand |
+| `tools/tests/` | Browser tests against a stand-in Sheet; each game's release check in `tools/tests/games/<id>/` |
+| `docs/` | How it works, decisions, the game contract, Sheet setup; `games-pack/` and `review/` are background |
 
 No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
+
+## Tests
+
+Needs Python Playwright. From the repo root, serve the site with `python3 -m http.server 8123 --bind 127.0.0.1`, then run a test, for example `GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_launcher.py <folder for screenshots>`. No real Sheet is touched.
 
 ## For other projects
 

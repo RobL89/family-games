@@ -1,81 +1,51 @@
-# Kids' Games: Plan
+# How the launcher works
 
-Status: the proposals log at the bottom records what Rob has adopted or declined. Anything not marked adopted is still a proposal.
+Updated 2026-11-12. Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
-Repo: `RobL89/family-games` (public).
+## What it is
 
-Last updated: 2026-11-12
+A simple window to the family's games, on an Android phone (Chrome) or a Windows PC (Q14):
 
-## What we're building
+- A child picks their profile and sees the games, then plays one inside a simple wrapper with a home button (P48, P50).
+- The launcher has no stars, stickers or currency. Each game keeps its own levels, rewards and progress (P48, P51).
+- Four skins change the launcher's look, all free (P49). Games keep their own look.
+- This repo is the master host of every game. Games are developed elsewhere and released here (P53, P54).
+- Plain HTML, CSS and JavaScript, no build step, served by GitHub Pages (P1, P2). It stays simple.
 
-**Direction changed 2026-11-12 (P48 to P54):** the launcher is a simple window to the games. A child picks their profile and sees the games; there are no launcher stars or stickers, skins are free, and every game runs inside a simple wrapper with a home button. Features that are no longer used are switched off and hidden, not deleted. The launcher repo is the master host of every game. The lines below describe the launcher as first built.
+**Still to build (P55):** the wrapper (`play.html`) and the switches that hide stars and stickers. Until stage 2, the launcher still shows stars, stickers and star-locked skins, and games open on their own pages.
 
-- A **launcher**: pick who's playing, see your home screen (stars, badges, recent games, skins), pick a game.
-- A **series of games**: one folder each, playable with touch (phone) or mouse (PC).
-- **Storage** in a Google Sheet, so profiles, scores, badges and skins follow the kids across devices.
-- Style: fun, child friendly, cartoonish, interactive, not overly complex. Sticker book look (P14), with unlockable skins (P21).
+## Screens
 
-## Family (answered 2026-10-28)
-
-- Two children, aged 6 and 4. Build for the 6-year-old first; the 4-year-old plays from pictures and colours.
-- Devices: phone and PC browser. No tablet.
-- Their first names are used as nicknames in the Sheet (Rob, 2026-10-28). Names stay out of this public repo.
-
-## Folder layout (P4)
-
-```
-family-games/
-├─ index.html              Launcher page (the code is in shared/launcher.js)
-├─ games.json              List of games: id, title, icon, colour, folder, status ("ready" or "soon")
-├─ shared/
-│  ├─ config.js            Apps Script web app URL; debug switch for the skin button
-│  ├─ api.js               Talks to the Sheet; keeps an outbox on the device
-│  ├─ launcher.js          Who's playing, home screen, celebrations, grown-ups' corner
-│  ├─ game-kit.js          What every game calls: getPlayer(), record(), finish(), homeButton()
-│  ├─ achievements.js      Badge list and the rules for earning them
-│  ├─ skins.js             Skin list (fallback star targets) and switching
-│  ├─ skin-effects.js      Skin scenery, pictures (wings, horn) and tap effects
-│  ├─ game-setup.js        Grown-ups' corner > Game setup (word lists per player)
-│  ├─ theme.css            Sticker book theme, built from tokens skins can override
-│  ├─ skins/               fairy.css, blocks.css, unicorn.css
-│  ├─ avatars.js           Original cartoon animals and colours
-│  ├─ icons.js             Stars, badge pictures, game pictures, buttons
-│  └─ sound.js             Little sounds made in the browser, with mute
-├─ games/
-│  ├─ _template/           Starter game to copy for each new game
-│  ├─ bubble-pop/          First working game
-│  └─ kriss-kross/         The family's word-grid game, with a small hook to save stars
-├─ apps-script/
-│  └─ Code.gs              The Sheet's backend, pasted into Apps Script
-├─ tools/
-│  ├─ sheet-check.html     Grown-ups' connection check
-│  └─ tests/               Browser tests against a stand-in Sheet
-└─ docs/
-   ├─ PLAN.md              This file
-   ├─ setup-sheet.md       Step-by-step: Sheet, script, deploy, updates
-   └─ mockups/             Look-and-feel mockups (P14)
-```
+1. **Who's playing?** Big cartoon-animal stickers with first names (P13, P15). Tap: wiggle, hello, then the child's home screen.
+2. **Home:** the child's games as big tiles, and the skin picker (P20). From stage 2, nothing else.
+3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home and the child's face (P50). Today games open at `games/<id>/` directly.
+4. **Grown-ups' corner:** press and hold the gear for a second, then answer the question (P18, P32). It holds:
+   - players (add or edit)
+   - Game setup, with word lists (P36)
+   - family code and Check connection
+   - results waiting to sync
+   - sound on or off
+   - the skin preview switch (P34)
 
 ## Information flow (P6)
 
-1. **Launcher opens.** Shows players from the device's cache straight away, sends anything waiting in the outbox, then refreshes from the Sheet.
-2. **Child taps their avatar.** Home screen: greeting and star total, game tiles with best stars, badges earned and still to earn, last five games, skins.
-3. **Child taps a game.** It opens at `games/<id>/index.html?player=<profile_id>`.
-4. **Round ends.** The game calls `record()` (stay, for "Play again") or `finish()` (go back). The result is saved on the device first, then sent to the Sheet by the launcher. Each result has a unique ID, so a retry never counts twice.
-5. **Badges are checked** at the end of each round with the rules in `shared/achievements.js`, and again when the home screen opens. New ones are recorded in the Sheet (duplicates ignored).
-6. **Back in the launcher:** confetti, the stars won, new badges sticking on, and any skin just unlocked.
+1. **The launcher opens.** It shows players from the device's cache straight away, sends anything waiting, then refreshes from the Sheet.
+2. **Everything saves on the device first,** then goes to the Sheet. Each item has a unique ID, so a retry never counts twice.
+3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device, and in the Sheet's Settings tab once script 0.4.0 is live (P51).
+4. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview). Games use their own keys, never clear-all (contract section 6).
 
-## Sheet tabs (P5, P23, P24)
+## Sheet tabs
 
-| Tab | Columns |
-|---|---|
-| Profiles | profile_id, nickname, avatar, colour, created_at, active, skin |
-| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at |
-| Achievements | profile_id, achievement_id, earned_at |
-| Skins | skin_id, name, stars_needed, active |
-| GameLists | list_id, profile_id, game_id, position, title, words, updated_at (P37) |
+| Tab | Columns | Use from stage 2 |
+|---|---|---|
+| Profiles | profile_id, nickname, avatar, colour, created_at, active, skin | In use |
+| Skins | skin_id, name, stars_needed, active | Names and `active` in use; `stars_needed` ignored (P49) |
+| GameLists | list_id, profile_id, game_id, position, title, words, updated_at | In use; per child from script 0.4.0 (P56) |
+| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48) |
+| Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48) |
+| Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state (P51, Q12) |
 
-The family code is kept in the script's settings, not the Sheet. Change a skin's star target by editing `stars_needed` in the Skins tab; the launcher reads it fresh.
+The family code is kept in the script's settings, not the Sheet.
 
 ## Calls the Apps Script answers (script 0.3.0)
 
@@ -83,118 +53,28 @@ The family code is kept in the script's settings, not the Sheet. Change a skin's
 |---|---|
 | `ping` | Checks the family code; returns the script version |
 | `profiles` | Active players, plus the Skins tab |
-| `profile` | One player: recent scores, per-game bests, play count, star total, days played, badges, word lists per game |
-| `addProfile` | Adds a player (grown-ups' corner) |
-| `updateProfile` | Changes a player's name, animal, colour or skin; a skin only if they have the stars |
+| `profile` | One player: recent scores, per-game bests, star total, days played, badges, word lists per game |
+| `addProfile` | Adds a player |
+| `updateProfile` | Changes a player's name, animal, colour or skin |
 | `sync` | Takes the device outbox: results and badges, duplicates skipped |
 | `saveLists` | Replaces one player's lists for one game, in order (the first is the default) |
 
 ## Safety and privacy (P7, P9, P10)
 
-- On a personal GitHub account, the game site is reachable by anyone with its link: private publishing needs GitHub Enterprise Cloud. On GitHub Free the repo itself must also be public.
-- So the Apps Script link is visible in the site's code. To stop strangers writing to the Sheet, each call carries a **family code**, sent in the body of a POST (never in a link). A grown-up enters it once per device; it is stored in that device's browser and in the script's settings, never in the repo. It's a light lock, not a password.
-- The Sheet holds first names or nicknames, a cartoon animal, a colour, scores, badges and the chosen skin. No surnames, birthdays, photos or schools.
-- Writes are locked one at a time in the script, so two kids finishing at once don't clash.
+- **The site and repo are public.** GitHub Pages on a free personal account publishes publicly (checked 2026-10-28), so the Apps Script link is visible in the site's code.
+- **Every call is a POST carrying the family code** (never in a link). A grown-up enters it once per device. It's a light lock, not a password.
+- **The Sheet holds only:** first names or nicknames, a cartoon animal, a colour, the chosen skin, word lists and game progress. No surnames, birthdays, photos or schools.
+- **The repo holds no names or family details.**
+- **Writes are locked one at a time** in the script, so two children finishing at once don't clash.
+- **The grown-ups' question:** only a one-way hash of the answer is in `shared/config.js` (P33).
 
-## Limits checked 2026-10-28
+## Skins (P21, P22, P31, P49)
 
-- **GitHub Pages:** free on public repos; public or private repos with Pro and above. Published site up to 1 GB; soft bandwidth limit 100 GB a month. Source: docs.github.com, "GitHub Pages limits".
-- **Apps Script (gmail.com account):** 6 minutes per run; 30 simultaneous runs per user; 50,000 settings reads/writes a day. Google says quotas can change without notice. Source: developers.google.com/apps-script/guides/services/quotas.
-- **Google Sheets:** up to 20 million cells per spreadsheet (raised September 2026). Source: Google Workspace Updates blog.
-
-Family use is far inside all of these.
-
-## Launcher and home screen (P13–P20, built 2026-10-28)
-
-- **P13 Flow:** "Who's playing?" with big avatar stickers (tap: wiggle and hello) → the child's home screen → a game. Coming back from a game: confetti, stars won, new badges sticking on. Every game within two taps.
-- **P14 Look and feel: A, sticker book.** Kraft paper, chunky outlines, tilted stickers. B and C declined. Mockup of all three: `docs/mockups/look-and-feel.html`.
-- **P15 Avatars:** six original cartoon animals (fox, frog, owl, bear, bunny, penguin) plus six colours.
-- **P16 Badges:** first game; three stars on any game; try every game; 3 days in a row; beat your best; 10, 50 and 100 games. Locked ones are grey with a "?"; tapping any badge says its name.
-- **P17 Scores:** 1–3 stars is the headline in every game; stars are also the points that unlock skins.
-- **P18 Grown-ups' corner:** press and hold the gear for a second, then answer Rob's question (P32). Holds: add or edit players, Game setup for each player (P36), family code and connection check, results waiting to sync, sound on/off, and the skin preview switch (P34).
-- **P32/P33 Grown-ups' question:** "Address of first house". Only a one-way hash (PBKDF2) of the answer is in `shared/config.js`, never the answer; capitals, spaces and punctuation don't matter. To change it, ask Claude for a new hash.
-- **P36 Game setup:** per player, per game. For Kriss Kross: word lists. The first list is the default; the game opens with it, and after each puzzle (solved, or solution shown) a **Next list** button loads the next one (P38). Lists can be added, edited, deleted, moved up or down and made the default; every change saves to the Sheet straight away (P39). Words are checked the way Kriss Kross checks them: 2 to 15 letters, at least 2 and at most 30 per list, no repeats. A player with no lists sees the game's own word screen.
-- **P19 Small touches:** sounds with a mute switch; a cloud icon on the home screen while results are waiting to sync.
-- **P20 Phone layout:** on a phone held upright, games sit above the badges.
-
-## Bonus theme skins (P21–P24)
-
-Skins change the launcher and home screens only, never the games (Rob, 2026-10-28). Unlocked by a child's star total. Starting targets, editable in the Skins tab:
-
-| Skin | Stars needed |
-|---|---|
-| Sticker book | 0 (default) |
-| Fairy | 10 |
-| Blocks | 20 |
-| Unicorn | 30 |
-
-- **Fairy:** an enchanted garden at dusk: moon, stars, hanging vines, toadstools and flowers, drifting fireflies. Avatars grow fluttering wings; tiles are frosted glass with flowers pinned on. Taps throw sparkles and a trail of fairy dust follows the finger or mouse.
-- **Unicorn:** rainbow cloudland: a rainbow that draws itself in, drifting clouds, rising hearts and an original unicorn peeking in from the corner. Avatars get a rainbow ring and a golden horn; tiles have shimmering rainbow edges. Taps make a rainbow ripple and a burst of hearts.
-- **Blocks:** an original pixel world at sunset: pixel sun, stars, stepped hills, floating cubes and a passing comet. Everything is a bevelled block; taps pop out pixels. Asked for as "Minecraft" and to look more like it; declined, as Minecraft's look belongs to Mojang. Name TBC.
-- Colours, fonts and frames are one CSS file per skin in `shared/skins/` (P22); scenery, pictures and tap effects are in `shared/skin-effects.js` (P31).
-- A child's chosen skin is saved in the Profiles `skin` column; if the Sheet can't save it yet, it's kept on that device (P24).
-- **Skin preview button** (bottom right, labelled "Debug skin") switches skins for grown-ups without unlocking or saving anything. Turned on and off in the grown-ups' corner under Testing, and remembered on each device (P34). Off by default.
+Sticker book (the default), Fairy, Blocks and Unicorn.
+- Each skin is one CSS file in `shared/skins/` for colours, fonts and frames. Its scenery and tap effects are in `shared/skin-effects.js`, and each file's header says what the skin looks like.
+- A child's skin is saved in the Profiles `skin` column, or kept on the device if the Sheet can't save it yet (P24).
+- Skins change the launcher only, never the games.
 
 ## Games
 
-| Game | Status |
-|---|---|
-| Kriss Kross (the family's word-grid game) | Ready, and the only live game (P35): solving a puzzle saves stars (P30); "Show solution" saves nothing; word lists from Game setup (P36) |
-| Bubble pop | "Soon" tile (P35); the game itself is built and kept in `games/bubble-pop/` |
-| Memory match, Count it, Shape sort, Spot it | Placeholder "Soon" tiles (P26); names are placeholders |
-
-## Open questions (TBC)
-
-- Blocks skin: final name (the 6-year-old could pick).
-
-## Proposals log
-
-| # | Proposal | Status |
-|---|---|---|
-| P1 | Plain HTML, CSS and JavaScript, no build step | Adopted 2026-10-28 |
-| P2 | Host on GitHub Pages | Adopted 2026-10-28 |
-| P3 | Google Sheet reached through an Apps Script web app | Adopted 2026-10-28 |
-| P4 | Folder layout above | Adopted 2026-10-28 |
-| P5 | Sheet tabs: Profiles, Scores, Achievements | Adopted 2026-10-28 |
-| P6 | Save on the device first, sync in the background | Adopted 2026-10-28 |
-| P7 | Family code checked by the script | Adopted 2026-10-28 |
-| P8 | Achievement rules in one repo file; the Sheet records unlocks | Adopted 2026-10-28; switched off 2026-11-12 (P48) |
-| P9 | First names or nicknames and cartoon avatars only; no surnames or other personal data | Adopted 2026-10-28 (first names allowed by Rob) |
-| P10 | Every call to the script is a POST, so the family code never sits in a link | Adopted 2026-10-28 |
-| P11 | `.nojekyll` file so Pages serves folders starting with `_` (like `games/_template`) | Adopted 2026-10-28 |
-| P12 | A grown-ups' check page at `tools/sheet-check.html` | Adopted 2026-10-28 |
-| P13 | Launcher flow | Adopted 2026-10-28; celebration and stars switched off 2026-11-12 (P48) |
-| P14 | Look and feel: A sticker book (B and C declined) | Adopted 2026-10-28 |
-| P15 | Original cartoon-animal avatars plus colour | Adopted 2026-10-28 |
-| P16 | Starter badge set, locked ones shown greyed with "?" | Adopted 2026-10-28; switched off 2026-11-12 (P48) |
-| P17 | Stars as the headline score, and as the points for skins | Adopted 2026-10-28; switched off 2026-11-12 (P48, P49) |
-| P18 | Grown-ups' corner behind press-and-hold and a sum | Adopted 2026-10-28 |
-| P19 | Sounds with mute; "will sync" cloud icon | Adopted 2026-10-28 |
-| P20 | Phone layout: games above badges | Adopted 2026-10-28 |
-| P21 | Bonus theme skins unlocked with stars: Fairy, Unicorn, Blocks; launcher only | Adopted 2026-10-28 (Rob's idea); skins free from 2026-11-12 (P49) |
-| P22 | Each skin is one CSS file that swaps colours, background and frames | Adopted 2026-10-28 |
-| P23 | Skins tab in the Sheet holds skin names and star targets (start: 10, 20, 30) | Adopted 2026-10-28 (Rob's request); targets ignored from 2026-11-12 (P49) |
-| P24 | Chosen skin saved in a `skin` column on Profiles; kept on the device if the Sheet can't save it | Adopted 2026-10-29 |
-| P25 | Bubble pop as the first working game | Superseded 2026-10-29 by P35 |
-| P26 | Placeholder "Soon" tiles: Memory match, Count it, Shape sort, Spot it | Adopted 2026-10-29 |
-| P27 | Grown-ups' sum is a times-table question (3–9 × 3–9) | Superseded 2026-10-29 by P32 |
-| P28 | Debug skin button, switched by `debug` in `shared/config.js` | Superseded 2026-10-29 by P34 |
-| P29 | `setup()` makes a backup copy before it changes an existing Sheet | Adopted 2026-10-29 |
-| P30 | Kriss Kross stars: no hints 3, one or two hints 2, more 1; showing the solution saves nothing | Adopted 2026-10-29; switched off 2026-11-12 (P48) |
-| P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
-| P32 | Grown-ups' corner asks "Address of first house" instead of a sum | Adopted 2026-10-29 (Rob's request) |
-| P33 | Keep only a one-way hash of that answer in the public repo | Proposed |
-| P34 | Skin preview switch lives in the grown-ups' corner, remembered per device | Adopted 2026-10-29 (Rob's request) |
-| P35 | Kriss Kross is the only live game; Bubble pop becomes a "Soon" tile | Adopted 2026-10-29 (Rob's request) |
-| P36 | Game setup per player per game; Kriss Kross word lists with a default and Next | Adopted 2026-10-29 (Rob's request) |
-| P37 | Lists stored in a GameLists tab, one row per list, script 0.3.0 | Proposed |
-| P38 | Kriss Kross opens on the default list every visit (it doesn't remember the last list); Next also appears after "Show solution" | Proposed |
-| P39 | List changes save to the Sheet straight away; if a save fails, nothing changes | Proposed |
-| P40 to P47 | Used on the `games-wip` branch for the parked games, now P-034's; not reused here | (see `games-wip`) |
-| P48 | No launcher stars or stickers, and no currency carried between games. A child picks their profile, then sees the games. Stars, stickers, "Last played", tile stars and the celebration are switched off and hidden, not deleted. Results are no longer sent to the Scores tab, and there is no grown-ups' progress page (B2) | Adopted 2026-11-12 (Rob's direction) |
-| P49 | Every skin is free to use; the Skins tab's star targets are ignored | Adopted 2026-11-12 (Rob's direction) |
-| P50 | The wrapper (game shell) stays simple: a slim bar with the home button and the child's animal face, the game underneath; no end-of-round panel, level chip or stars (B3) | Adopted 2026-11-12 (Rob's direction) |
-| P51 | A game keeps its own progress and rewards per child. It hands them to the shell, which keeps them on the device at first and saves them to the Sheet once script 0.4.0 is live, with no change to the games (B1) | Adopted 2026-11-12 |
-| P52 | Hide, don't delete: unused features are switched off in one place and hidden. Stale files (the old repo handoff, old mockups, `.pyc` files, the second connection-check page) may still be removed, as long as the app looks correct and tidy (B5) | Adopted 2026-11-12 |
-| P53 | The launcher project (P-020) and this repo are the master host of every game. P-034 develops games and hands each finished one to P-020, which adds it to the launcher. Folders, branches and the release route: `docs/game-contract.md` 0.4, sections 2 and 7 (agreed 2026-11-12) | Adopted 2026-11-12 (Rob's direction) |
-| P54 | Artifact games come in through P-020: the launcher keeps a copy that is what the children play. When the maker updates hers, Rob tells P-020, which retakes the copy (B4) | Adopted 2026-11-12 (Rob's direction) |
+Live: Kriss Kross (an artifact game; its stars switch off at stage 2). Bubble pop and four placeholders show as "Soon". How a game gets in: [game-contract.md](game-contract.md), section 7.

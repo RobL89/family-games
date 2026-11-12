@@ -583,7 +583,6 @@ function cornerMain(message = '', good = true) {
       <p class="small">Shows a button at the bottom right of the screens that switches skins without unlocking or saving them. Remembered on this device.</p>
 
       <h3>More</h3>
-      <p class="small"><a href="tools/sheet-check.html">Sheet check page</a></p>
       <p class="small">Skins and their star targets are in the Sheet's Skins tab: change stars_needed there.</p>
     </div>`;
 }
