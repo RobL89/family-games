@@ -1,0 +1,7 @@
+{
+  "title": "Number Town",
+  "colour": "#E5533D",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}

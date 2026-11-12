@@ -1,4 +1,4 @@
-"""Stage 2 browser test: stars and stickers switched off, skins free, the testing status, and the
+"""Launcher browser test (stages 2 and 3): stars and stickers switched off, skins free, the testing status, and the
 wrapper (play.html) with its messages (game contract 0.4). Runs against a stand-in for the Apps
 Script; no real Sheet is touched, and the grown-ups' answer is a test one (test_config.py).
 
@@ -126,8 +126,8 @@ def run():
         check('tapping the face opens the skin picker', pg.locator('.skin-card button[data-skin]').count() == 4)
         check('the picker fits the phone', pg.evaluate("(() => { const r = document.querySelector('.skin-card').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })()"))
         check('testing game hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
-        kk = pg.get_attribute('[data-g="kriss-kross"]', 'href') or ''
-        check('Kriss Kross still on its own page', kk.startswith('games/kriss-kross/index.html'), kk)
+        check('placeholder tiles hidden (P65)', pg.locator('.tile.soon').count() == 0)
+        check('games being tested hidden without the switch', pg.locator('[data-g="kriss-kross"]').count() == 0)
         no_overflow = pg.evaluate('document.documentElement.scrollWidth <= innerWidth')
         check('home fits the phone width', no_overflow)
 
@@ -147,8 +147,8 @@ def run():
         pg.reload(); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
         check('unicorn still on after reload', pg.evaluate('document.documentElement.dataset.skin') == 'unicorn')
 
-        # Kriss Kross: a solved round saves nothing and says nothing (record() with stars off).
-        pg.goto(BASE + 'games/kriss-kross/index.html?player=p_sam'); pg.wait_for_timeout(2000)
+        # The old game kit: a finished round saves nothing (record() with stars off).
+        pg.goto(BASE + 'games/wrapper-check/index.html?player=p_sam'); pg.wait_for_timeout(2000)
         saved = pg.evaluate("""async () => {
             const kit = await import('./../../shared/game-kit.js');
             const fresh = await kit.record({ score: 5, stars: 3, seconds: 10 });
@@ -156,9 +156,6 @@ def run():
         }""")
         check('a finished round queues nothing', not saved['outbox'] or json.loads(saved['outbox'])['results'] == [], saved)
         check('no celebration news', saved['news'] in (None, 'null') and saved['fresh'] == 0, saved)
-        pg.evaluate("document.dispatchEvent(new CustomEvent('kk:solved', { detail: { hints: 0, words: 3, seconds: 9 } }))")
-        pg.wait_for_timeout(500)
-        check('Kriss Kross says nothing about stars', '★' not in pg.inner_text('#fgSaved'))
         pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(800)
         check('no celebration on coming back', pg.locator('.party').count() == 0)
 

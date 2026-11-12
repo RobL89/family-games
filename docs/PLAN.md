@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-12 (stage 2). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-12 (stage 3). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -18,7 +18,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 
 1. **Who's playing?** Big cartoon-animal stickers with first names (P13, P15). Tap: wiggle, hello, then the child's home screen.
 2. **Home:** the child's games as big tiles, nothing else. Tapping the child's face (it has a small paint badge) opens the skin picker; it stays open to try skins and closes with the tick, a tap outside or Esc (P62).
-3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home, the child's face and name (P50). `shared/wrapper.js` runs it; the game talks to it through `shared/bridge.js` (contract section 5). Kriss Kross still opens on its own page (`"opens": "own-page"` in `games.json`) until stage 3.
+3. **A game** opens in the wrapper: `play.html?game=<id>&player=<id>`, with a slim bar holding ⌂ Home, the child's face and name (P50). `shared/wrapper.js` runs it; the game talks to it through `shared/bridge.js` (contract section 5). An artifact game's page is never edited: the wrapper adds its `adapter.js` to the page, and the adapter talks to the wrapper for it (P67).
 4. **Grown-ups' corner:** press and hold the gear for a second, then answer the question (P18, P32). It holds:
    - players (add or edit)
    - Game setup, with word lists (P36)
@@ -78,7 +78,14 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 
 ## Games
 
-Live: Kriss Kross (an artifact game, on its own page until stage 3; its stars are switched off). Bubble pop and four placeholders show as "Soon". Testing: Wrapper check, a launcher tool for trying the wrapper. How a game gets in: [game-contract.md](game-contract.md), section 7.
+Testing on `work` (stage 3), for Rob to try before publishing (P68): three artifact games, each with its own one-page README in `games/<id>/`:
+- **Kriss Kross:** word lists from Game setup, plus the child's own lists (P66).
+- **Space Explorer:** a guide to space.
+- **Number Town:** a maths town.
+
+Also testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65). Live on `main` until the next publish: the old Kriss Kross on its own page.
+
+**Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. Sound off is handled for them by `games/_common/sound-off/`. Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
 
 ## Trying changes before publishing (P57)
 

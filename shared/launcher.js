@@ -46,7 +46,8 @@ const atLeast = (v, min) => {
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const readyIds = () => state.games.filter((g) => g.status === 'ready').map((g) => g.id);
 // The tiles a child sees: ready and soon games, plus games being tested where this device's Testing switch is on.
-const shownGames = () => state.games.filter((g) => g.status !== 'testing' || testingOn());
+// "hidden" games show nowhere: placeholders switched off, not deleted (P65, P52).
+const shownGames = () => state.games.filter((g) => g.status !== 'hidden' && (g.status !== 'testing' || testingOn()));
 const gameById = (id) => state.games.find((g) => g.id === id);
 
 function profileById(id) {
@@ -249,7 +250,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // A game's tile. Ready and testing games open in the wrapper, play.html (P50), unless
-// games.json says "opens": "own-page" (Kriss Kross until stage 3, P59). Testing games carry a tape.
+// games.json says "opens": "own-page" (no game does now; Kriss Kross did until stage 3, P59). Testing games carry a tape.
 function tile(g, pid, st) {
   const style = `--g:${esc(g.colour || '#2E8FD0')}`;
   const pic = `<span class="tile-ic">${icon(esc(g.icon || 'g-star'))}</span><span class="tile-t">${esc(g.title)}</span>`;

@@ -87,17 +87,18 @@ with sync_playwright() as pw:
     # Kriss Kross: build the example puzzle, solve with hints, check stars are saved.
     kk = page(1280, 860)
     kk.goto(BASE + 'index.html?player=p_sam'); kk.wait_for_selector('.home'); kk.wait_for_timeout(800)
-    kk.goto(BASE + 'games/kriss-kross/index.html?player=p_sam'); kk.wait_for_selector('#buildBtn')
+    # Kriss Kross runs in the wrapper with its adapter (stage 3, P67); its adapter reports a solved round.
+    kk.goto(BASE + 'play.html?game=kriss-kross&player=p_sam'); kk.wait_for_selector('.wframe iframe')
+    kf = kk.frame_locator('.wframe iframe'); kf.locator('#buildBtn').wait_for()
     kk.screenshot(path=f'{OUT}/kk-setup.png')
-    kk.click('#buildBtn'); kk.wait_for_selector('#play:not([hidden])')
+    kf.locator('#buildBtn').click(); kf.locator('#play:not([hidden])').wait_for()
     for _ in range(40):
-        if kk.inner_text('#fgSaved').strip(): break
-        kk.click('#hintBtn'); kk.wait_for_timeout(120)
+        if 'solved' in (kf.locator('#grid').get_attribute('class') or ''): break
+        kf.locator('#hintBtn').click(); kk.wait_for_timeout(120)
     kk.wait_for_timeout(500)
-    print('kk saved line:', kk.inner_text('#fgSaved'))
     print('outbox:', kk.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.game_id, r.stars, r.score])"))
     kk.screenshot(path=f'{OUT}/kk-solved.png')
-    kk.click('button[aria-label="Back to games"]'); kk.wait_for_selector('.home'); kk.wait_for_timeout(1500)
+    kk.click('#home'); kk.wait_for_selector('.home'); kk.wait_for_timeout(1500)
     kk.screenshot(path=f'{OUT}/kk-back.png')
     print('synced:', [(r['game_id'], r['stars']) for r in synced])
     br.close()

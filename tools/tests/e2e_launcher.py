@@ -140,6 +140,7 @@ def run():
                                  'level': 1, 'stars': 3, 'seconds': 30, 'played_at': f'2026-10-2{i % 3 + 5}T10:00:00Z'})
         pg.reload(); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)
         if pg.is_visible('.party'): pg.click('[data-yay]'); pg.wait_for_timeout(400)
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-card')  # skins open from the face (P62)
         pg.click('[data-skin="blocks"]'); pg.wait_for_timeout(1200)
         pg.screenshot(path=f'{OUT}/06-phone-home-blocks.png', full_page=True)
         print('sam skin in sheet:', next(p for p in db['profiles'] if p['profile_id'] == 'p_sam')['skin'])

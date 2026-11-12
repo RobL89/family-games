@@ -104,25 +104,28 @@ with sync_playwright() as pw:
     pg.click('.corner [data-close]'); pg.wait_for_timeout(300)
 
     # Play Kriss Kross: default list, solve by hints, Next, ... last
-    pg.goto(BASE + 'games/kriss-kross/index.html?player=p_a'); pg.wait_for_selector('#play:not([hidden])', timeout=10000)
+    # Kriss Kross runs in the wrapper with its adapter (stage 3, P67).
+    pg.goto(BASE + 'play.html?game=kriss-kross&player=p_a'); pg.wait_for_selector('.wframe iframe')
+    kf = pg.frame_locator('.wframe iframe'); kf.locator('#play:not([hidden])').wait_for(timeout=10000)
     titles = []
     for round_no in range(4):
-        titles.append(pg.inner_text('#pTitle'))
+        titles.append(kf.locator('#pTitle').inner_text())
         for _ in range(40):
-            if pg.inner_text('#fgSaved').strip(): break
-            pg.click('#hintBtn'); pg.wait_for_timeout(60)
+            if 'solved' in (kf.locator('#grid').get_attribute('class') or ''): break
+            kf.locator('#hintBtn').click(); pg.wait_for_timeout(60)
         pg.wait_for_timeout(500)
-        nxt = pg.locator('#play .bar-right .btn.primary')
-        print(f'round {round_no + 1}:', titles[-1], '|', pg.inner_text('#fgSaved'), '| next:', nxt.inner_text() if nxt.is_visible() else '(none)')
+        nxt = kf.locator('[data-fg="next"]')
+        print(f'round {round_no + 1}:', titles[-1], '| next:', nxt.text_content() if nxt.is_visible() else '(none)')
         if round_no == 0: pg.screenshot(path=f'{OUT}/07-kk-next.png')
         if not nxt.is_visible(): break
         nxt.click(); pg.wait_for_timeout(1500)
     pg.screenshot(path=f'{OUT}/08-kk-last.png')
-    print('levels saved:', pg.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.level, r.stars])"))
+    print('rounds saved (level is always 1 now, P50):', pg.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.level, r.stars])"))
 
     # Alex has no lists: game shows its own word screen
-    pg.goto(BASE + 'games/kriss-kross/index.html?player=p_b'); pg.wait_for_timeout(2500)
-    print('Alex sees setup screen:', pg.is_visible('#setup'), '| play hidden:', not pg.is_visible('#play'))
+    pg.goto(BASE + 'play.html?game=kriss-kross&player=p_b'); pg.wait_for_timeout(2500)
+    kf = pg.frame_locator('.wframe iframe')
+    print('Alex sees setup screen:', kf.locator('#setup').is_visible(), '| play hidden:', not kf.locator('#play').is_visible())
 
     # Phone view of Game setup
     ph = br.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
@@ -138,7 +141,8 @@ with sync_playwright() as pw:
     pp.screenshot(path=f'{OUT}/09-phone-corner.png')
     pp.click('[data-setup="p_a"]'); pp.wait_for_selector('.gs-item'); pp.wait_for_timeout(300)
     pp.screenshot(path=f'{OUT}/10-phone-setup.png')
-    pp.goto(BASE + 'games/kriss-kross/index.html?player=p_a'); pp.wait_for_selector('#play:not([hidden])', timeout=10000); pp.wait_for_timeout(500)
+    pp.goto(BASE + 'play.html?game=kriss-kross&player=p_a'); pp.wait_for_selector('.wframe iframe')
+    pp.frame_locator('.wframe iframe').locator('#play:not([hidden])').wait_for(timeout=10000); pp.wait_for_timeout(500)
     pp.screenshot(path=f'{OUT}/11-phone-kk.png')
     br.close()
 print('\n'.join(errors) or 'no page errors')

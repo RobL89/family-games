@@ -63,7 +63,14 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P62 | The skin picker opens from the child's face on their home screen; the home screen shows only the games | Adopted 2026-11-12 (Rob's request) |
 | P63 | Skins on the live site: left as they are until script 0.4.0. Script 0.3.0 still refuses a skin without the stars, so until then a child's skin choice is kept on that device only; the Sheet's Skins tab is not changed | Adopted 2026-11-12 |
 | P64 | The review folder `docs/review/` is retired now that the wrapper is built: its outcomes are in this log, and git keeps it (last at `48c01aa`). The games pack's mentions of it are left as they are (P-034 pins the pack) | Adopted 2026-11-12 |
-| P65 | The four "Soon" placeholder tiles and Bubble pop are hidden when the first released game goes live (set their status so they don't show; nothing deleted, P52) | Adopted 2026-11-12 |
+| P65 | The four "Soon" placeholder tiles and Bubble pop are hidden when the first released game goes live (set their status so they don't show; nothing deleted, P52) | Adopted 2026-11-12; brought forward the same day: hidden (status `hidden`) when the three artifact games go live (Rob's answer) |
+| P66 | Kriss Kross: each child starts with their default list from the Sheet, and can also make their own lists with Edit words. The last five a child builds are saved per child as the game's own state (`fg:state`): on the device now, in the Sheet from script 0.4.0. A "Your lists" card on the word screen shows the grown-ups' lists and the child's own | Adopted 2026-11-12 (Rob's answer) |
+| P67 | An artifact game's adapter is added to the maker's page by the wrapper (`game.json` `"adapter"`), once the page's HTML has been read and again after a reload, so the page is never edited. With sound off in the grown-ups' corner, the adapter silences the game's sounds and speech (`games/_common/sound-off/`, GC7) | Adopted 2026-11-12 (Rob's answer on sound off) |
+| P68 | Kriss Kross, Space Explorer and Number Town (artifact games) join the launcher as `testing`, then `ready` when Rob says publish. Rob checked that none of Number Town's townspeople's names are family names | Adopted 2026-11-12 |
+| P69 | How an artifact game is taken: in the browser pane, Duplicate the maker's artifact into Rob's account, Export the copy as HTML ("Standalone web page"), and copy that file in unchanged as `original.html`. The maker's version is read from the viewer when the link is opened. The export's page title ends "(Copy)"; nothing else is known to differ | Adopted 2026-11-12 (Rob chose the route) |
+| P70 | Number Town keeps its own explorers and "Who's playing?" for now; the adapter could pick the child's explorer later | Proposed 2026-11-12 |
+| P71 | Space Explorer's "Find me" isn't given the device's location inside the wrapper, so the child picks a town instead (privacy) | Proposed 2026-11-12 |
+| P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper | Proposed 2026-11-12 |
 
 ## From the review (Rob's answers, 2026-10-30)
 

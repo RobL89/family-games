@@ -24,7 +24,7 @@ No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
 
 ## Tests
 
-Needs Python Playwright. From the repo root, serve the site with `python3 -m http.server 8123 --bind 127.0.0.1`, then run `python3 -B tools/tests/e2e_wrapper.py <folder for screenshots>`. It checks the launcher as it is now and ends "PASS n of n". The other three tests check the old features with their switches turned back on. No real Sheet is touched, and the tests use a test answer for the grown-ups' question (`tools/tests/test_config.py`).
+Needs Python Playwright. From the repo root, serve the site with `python3 -m http.server 8123 --bind 127.0.0.1`, then run `python3 -B tools/tests/e2e_wrapper.py <folder for screenshots>`. It checks the launcher as it is now and ends "PASS n of n". The other three tests check the old features with their switches turned back on. Each game's release check is `tools/tests/games/<id>/check.py` (how to run them: `tools/tests/games/harness.py`). No real Sheet is touched, and the tests use a test answer for the grown-ups' question (`tools/tests/test_config.py`).
 
 ## For other projects
 

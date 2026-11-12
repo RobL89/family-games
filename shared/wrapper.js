@@ -10,6 +10,9 @@
 //   5. On fg:state, keeps the game's state for this child on this device (P51), until script 0.4.0
 //      saves it in the Sheet's Settings tab.
 //   6. fg:round is ignored while stars are switched off (P48).
+//   7. An artifact game's adapter (game.json "adapter", contract section 2): the maker's page is never
+//      edited, so the wrapper adds the adapter to the page in the frame as soon as its HTML has been
+//      read, and again if the page reloads (P67). The adapter then talks through bridge.js like any game.
 
 import { CONFIG } from './config.js';
 import * as api from './api.js';
@@ -56,6 +59,30 @@ async function loadJSON(url) {
 function childSkin(p) {
   const local = api.loadLocal(LOCAL_SKIN(p.profile_id), null);
   return (local && local.skin) || p.skin || DEFAULT_SKIN; // skins are free (P49)
+}
+
+const safeFile = (f) => typeof f === 'string' && /^[\w./-]+$/.test(f) && !f.includes('..');
+
+// Adds the adapter script to the game's page (P67). The frame is on the same site, so the wrapper
+// may reach into it. It waits until the page's HTML has been read (its scripts have run, but
+// nothing has been tapped yet), checking every 25 ms for up to 20 seconds, and adds it again
+// after a reload. The script's address is relative to the page, so it's games/<id>/<adapter>.
+function addAdapter(frame, file) {
+  const add = () => {
+    let doc;
+    try { doc = frame.contentDocument; } catch { return false; }
+    if (!doc || doc.URL === 'about:blank' || doc.readyState === 'loading' || !doc.documentElement) return false;
+    if (doc.querySelector('script[data-fg-adapter]')) return true;
+    const s = doc.createElement('script');
+    s.type = 'module';
+    s.src = file;
+    s.dataset.fgAdapter = '';
+    (doc.head || doc.documentElement).appendChild(s);
+    return true;
+  };
+  const since = Date.now();
+  const timer = setInterval(() => { if (add() || Date.now() - since > 20000) clearInterval(timer); }, 25);
+  frame.addEventListener('load', add);
 }
 
 function wantsLists(entry, manifest) {
@@ -107,8 +134,8 @@ async function start() {
 
   const folder = `games/${gameId}/`;
   const manifest = await loadJSON(`${folder}game.json`);
-  const page = (manifest && typeof manifest.page === 'string' && /^[\w./-]+$/.test(manifest.page) && !manifest.page.includes('..'))
-    ? manifest.page : 'index.html';
+  const page = manifest && safeFile(manifest.page) ? manifest.page : 'index.html';
+  const adapter = manifest && safeFile(manifest.adapter) ? manifest.adapter : '';
 
   const frame = document.createElement('iframe');
   frame.title = entry.title || 'Game';
@@ -141,6 +168,7 @@ async function start() {
 
   frame.src = `${folder}${page}?player=${encodeURIComponent(pid)}`;
   document.getElementById('frame').appendChild(frame);
+  if (adapter) addAdapter(frame, adapter);
   frame.focus();
 }
 
