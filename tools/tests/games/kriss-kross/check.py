@@ -59,7 +59,7 @@ with sync_playwright() as pw:
     fr.locator('#solBtn').click(); pg.wait_for_timeout(300)
     c.check('no Next after the last list', not nxt.is_visible())
     fr.locator('#printBtn').click(); pg.wait_for_timeout(200)
-    c.check('print screen has the Print button (proposed)', fr.locator('[data-fg="print"]').is_visible())
+    c.check('print screen has the Print button (P72)', fr.locator('[data-fg="print"]').is_visible())
     fr.locator('#backBtn').click()
     fr.locator('#editBtn').click(); pg.wait_for_timeout(200)
     card = fr.locator('[data-fg="lists"]')

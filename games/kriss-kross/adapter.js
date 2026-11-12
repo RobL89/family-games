@@ -8,7 +8,7 @@
 //   2. The child's own lists (P66): a list the child types and builds is saved per child (the last
 //      five) in the game's state, sent to the wrapper with fg:state and handed back next time.
 //      "Your lists" on the word screen holds both: the grown-ups' lists and the child's own.
-//   3. Printing (proposed): a Print button on the print screen prints just this page, because the
+//   3. Printing (P72): a Print button on the print screen prints just this page, because the
 //      browser's own print command would print the whole wrapper.
 //   4. A solved puzzle is reported with fg:round, stars as P30 (no hints 3, one or two 2, more 1;
 //      "Show solution" reports nothing). The wrapper ignores it while stars are switched off (P48).
@@ -125,7 +125,7 @@ $('solBtn').addEventListener('click', () => { round.revealed = true; setTimeout(
 $('hintBtn').addEventListener('click', () => { round.hints += 1; }, true);
 ['buildBtn', 'newBtn', 'resetBtn'].forEach((id) => $(id).addEventListener('click', newRound, true));
 
-// ---- Print just this page (proposed) ----
+// ---- Print just this page (P72) ----
 const print = document.createElement('button');
 print.type = 'button';
 print.className = 'btn primary';

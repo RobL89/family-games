@@ -68,9 +68,9 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P67 | An artifact game's adapter is added to the maker's page by the wrapper (`game.json` `"adapter"`), once the page's HTML has been read and again after a reload, so the page is never edited. With sound off in the grown-ups' corner, the adapter silences the game's sounds and speech (`games/_common/sound-off/`, GC7) | Adopted 2026-11-12 (Rob's answer on sound off) |
 | P68 | Kriss Kross, Space Explorer and Number Town (artifact games) join the launcher as `testing`, then `ready` when Rob says publish. Rob checked that none of Number Town's townspeople's names are family names | Adopted 2026-11-12 |
 | P69 | How an artifact game is taken: in the browser pane, Duplicate the maker's artifact into Rob's account, Export the copy as HTML ("Standalone web page"), and copy that file in unchanged as `original.html`. The maker's version is read from the viewer when the link is opened. The export's page title ends "(Copy)"; nothing else is known to differ | Adopted 2026-11-12 (Rob chose the route) |
-| P70 | Number Town keeps its own explorers and "Who's playing?" for now; the adapter could pick the child's explorer later | Proposed 2026-11-12 |
-| P71 | Space Explorer's "Find me" isn't given the device's location inside the wrapper, so the child picks a town instead (privacy) | Proposed 2026-11-12 |
-| P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper | Proposed 2026-11-12 |
+| P70 | Number Town: one explorer per child (on each device). The adapter shows the game only that child's explorer, keeps which one is theirs as the game's state (`fg:state`), and hides the game's "Who's playing?" and "Switch explorer". A child without one makes it first, with their name filled in; "Change my look" still edits everything | Adopted 2026-11-12 (Rob's direction) |
+| P71 | Space Explorer: "Find me" sets the place to London, England, and never asks for the device's location; the child can still pick another town | Adopted 2026-11-12 (Rob's direction) |
+| P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper (claude.ai blocks printing, so it's checked on the live site) | Adopted 2026-11-12 |
 
 ## From the review (Rob's answers, 2026-10-30)
 

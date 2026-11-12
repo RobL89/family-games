@@ -33,7 +33,21 @@ with sync_playwright() as pw:
     if not c.three:
         print('(3D views skipped: FG_THREE_JS not set)')
 
-    # 2. Sound off: Read to me says nothing (P67), and the game carries on.
+    # 2. "Find me" sets London, England (P71), without asking for the device's location.
+    if c.three:
+        ctx, pg = c.page(browser, 1366, 768)
+        ctx.grant_permissions([])  # a location request would be refused, not answered
+        fr, f = c.open_game(pg)
+        f.evaluate("localStorage.setItem('spaceExplorer.place', JSON.stringify({ name: 'Glasgow', lat: 55.86, lon: -4.25 }))")
+        f.evaluate("location.hash = 'explore-space'"); pg.wait_for_timeout(1500)
+        fr.locator('#xPlace').click(); pg.wait_for_timeout(200)
+        fr.locator('#xFind').click(); pg.wait_for_timeout(400)
+        place = f.evaluate("JSON.parse(localStorage.getItem('spaceExplorer.place'))")
+        c.check('Find me sets London', place and place['name'] == 'London' and abs(place['lat'] - 51.51) < .01, place)
+        c.check('Find me closes the place box', not fr.locator('#xPlaceBox').is_visible())
+        ctx.close()
+
+    # 3. Sound off: Read to me says nothing (P67), and the game carries on.
     ctx, pg = c.page(browser, 1366, 768, muted=True)
     fr, f = c.open_game(pg)
     quiet = f.evaluate(SOUND_STATE)
@@ -43,7 +57,7 @@ with sync_playwright() as pw:
     c.check('sound off: Read to me can be pressed', True)
     ctx.close()
 
-    # 3. Running on its own (GC5): the maker's page, no adapter.
+    # 4. Running on its own (GC5): the maker's page, no adapter.
     ctx, pg = c.page(browser, 1366, 768)
     pg.goto(BASE + 'games/space-explorer/original.html'); pg.wait_for_timeout(2000)
     c.check('runs on its own, as its maker made it', pg.locator('#mapCanvas').is_visible() and pg.locator('script[data-fg-adapter]').count() == 0)

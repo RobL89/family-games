@@ -9,11 +9,11 @@ An artifact game: an interactive guide to space, like a science museum. It has a
 
 **What it needs from the launcher:** only **sound on or off**. With sound off, the adapter silences "Read to me" (`games/_common/sound-off/`, P67).
 
+**What else the adapter does:** "Find me" sets the place to London, England, by pressing the game's own London button, and never asks the device for its location (P71).
+
 **Its own rules:**
 - Four views, each with its own link: `#space`, `#life-of-a-star`, `#earth-moon-sun` and `#explore-space`.
-- **"My place"** is kept on the device (its own key `spaceExplorer.place`). The default is London.
-  - Inside the wrapper, "Find me" can't read the device's location, so the game asks the child to pick a town instead.
-  - Keeping it that way, for privacy, is proposed.
+- **"My place"** is kept on the device (its own key `spaceExplorer.place`). The default is London; the child can pick another town or type numbers.
 - **Needs the internet** for:
   - its 3D library (three.js r128, from cdnjs)
   - its fonts (Google Fonts)

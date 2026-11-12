@@ -18,7 +18,7 @@ An artifact game: a word grid. The child fits every word from a list into a cros
    - the grown-ups' lists
    - the lists the child made: the last five, saved per child (P66)
 4. Saves a list as the child's own when they type their own words and press Build. A grown-ups' list built again by hand isn't saved twice.
-5. Adds a **Print** button on the print screen that prints just the game (proposed). The browser's own print command would print the whole wrapper.
+5. Adds a **Print** button on the print screen that prints just the game (P72). The browser's own print command would print the whole wrapper.
 6. Reports a solved puzzle with `fg:round`, stars as P30. The wrapper ignores it while stars are off (P48).
 
 **Its own rules:**

@@ -7,13 +7,18 @@ An artifact game: a cosy explore-and-collect maths town. The child makes an expl
 - `adapter.js`: connects it to the wrapper (P67).
 - `game.json`, `icon.svg`, this README.
 
-**What it needs from the launcher:** only **sound on or off**. With sound off, the adapter silences its beeps, whatever its own Sound setting says (`games/_common/sound-off/`, P67).
+**What it needs from the launcher:**
+- **Sound on or off.** With sound off, the adapter silences its beeps, whatever its own Sound setting says (`games/_common/sound-off/`, P67).
+- **Saving its own progress:** only which explorer is the child's, `{ explorer: id }`, through `fg:state`.
+
+**One explorer per child (P70):**
+- The adapter shows the game only this child's explorer. If the game's list of explorers has to change, the page reloads once as it opens.
+- A child without one makes it first, with their name filled in.
+- "Switch explorer" is hidden. "Change my look" still edits everything.
+- Other children's explorers stay saved on the device.
 
 **Its own rules:**
-- **Explorers:** it keeps its own explorers on the device, up to 8 per browser, each with its own stars, level and things.
-  - Its own "Who's playing?" shows when there are two or more.
-  - Proposed: leave it so for now, so each child picks their explorer in the game.
-  - Its saves stay on the device and don't go through the wrapper or the Sheet.
+- **Explorers:** it keeps its own explorers on the device (up to 8 per browser), each with its own stars, level and things. The saves stay on the device and don't go through the wrapper or the Sheet, so a child has a separate explorer on each device.
 - **Its own currency:** its stars and shop belong to the game (P51). They aren't launcher stars (P48).
 - **Grown-up controls** open with the game's own PIN, which is set in the file.
 - **Needs the internet** for:
