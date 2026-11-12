@@ -18,7 +18,7 @@ Simple, child-friendly browser games for the family, played on a phone or a comp
 | `apps-script/Code.gs` | The Sheet's backend, pasted into Apps Script by hand |
 | `tools/tests/` | Browser tests against a stand-in Sheet; each game's release check in `tools/tests/games/<id>/` |
 | `tools/preview/` | Builds the private preview Rob tries changes in before publishing |
-| `docs/` | How it works, decisions, the game contract, Sheet setup; `games-pack/` and `review/` are background |
+| `docs/` | How it works, decisions, the game contract, Sheet setup; `games-pack/` is background |
 
 No build step: plain HTML, CSS and JavaScript, served by GitHub Pages.
 

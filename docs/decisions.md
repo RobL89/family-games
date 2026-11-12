@@ -62,10 +62,12 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P61 | Until script 0.4.0, a word game with no lists of its own gets the child's lists from another game (one set per child, as P56) | Adopted 2026-11-12 |
 | P62 | The skin picker opens from the child's face on their home screen; the home screen shows only the games | Adopted 2026-11-12 (Rob's request) |
 | P63 | Skins on the live site: left as they are until script 0.4.0. Script 0.3.0 still refuses a skin without the stars, so until then a child's skin choice is kept on that device only; the Sheet's Skins tab is not changed | Adopted 2026-11-12 |
+| P64 | The review folder `docs/review/` is retired now that the wrapper is built: its outcomes are in this log, and git keeps it (last at `48c01aa`). The games pack's mentions of it are left as they are (P-034 pins the pack) | Adopted 2026-11-12 |
+| P65 | The four "Soon" placeholder tiles and Bubble pop are hidden when the first released game goes live (set their status so they don't show; nothing deleted, P52) | Adopted 2026-11-12 |
 
 ## From the review (Rob's answers, 2026-10-30)
 
-The review (`docs/review/REVIEW.md`) asked Q4 to Q19. Still in force: Q4 push to `work`, publish = merge into `main` · Q9 one handoff, a project doc · Q10 every game runs in the wrapper · Q11 no kid mode for Kriss Kross · Q12 one general Settings tab, word lists in GameLists · Q13 clear the grown-up test rows after script 0.4.0 · Q14 Android phone (Chrome) and Windows PC · Q15 read aloud, behind the sound switch · Q17 Kriss Kross lists stay lists · Q18 an optional tips sheet for artifact-game makers. Replaced by P48: Q5 to Q7 (levels, sticker book, goals) and Q16 (everything a sticker).
+The review (`docs/review/REVIEW.md`, retired by P64; in git history up to `48c01aa`) asked Q4 to Q19. Still in force: Q4 push to `work`, publish = merge into `main` · Q9 one handoff, a project doc · Q10 every game runs in the wrapper · Q11 no kid mode for Kriss Kross · Q12 one general Settings tab, word lists in GameLists · Q13 clear the grown-up test rows after script 0.4.0 · Q14 Android phone (Chrome) and Windows PC · Q15 read aloud, behind the sound switch · Q17 Kriss Kross lists stay lists · Q18 an optional tips sheet for artifact-game makers. Replaced by P48: Q5 to Q7 (levels, sticker book, goals) and Q16 (everything a sticker).
 
 ## Open questions
 
