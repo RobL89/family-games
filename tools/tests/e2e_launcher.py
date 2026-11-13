@@ -1,9 +1,14 @@
 """Browser test for the launcher, run against a stand-in for the Apps Script (no real Sheet is touched).
 Needs Python Playwright. From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
-then: GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_launcher.py <folder for screenshots>
+then: python3 -B tools/tests/e2e_launcher.py <folder for screenshots>
 """
 import json, os, sys, uuid, re
 from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_config import TEST_ANSWER, route_config  # noqa: E402
+# Stage 2 switched these features off (P48, P49). This test checks they still work when switched
+# back on, so it serves config.js with every feature on, and with a test grown-ups' answer.
 
 OUT = sys.argv[1]
 BASE = 'http://127.0.0.1:8123/'
@@ -99,6 +104,7 @@ def run():
                       lambda route: route.fulfill(status=200, content_type='application/json',
                                                   body=json.dumps(handle(json.loads(route.request.post_data or '{}')))))
             ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda route: route.abort())
+            route_config(ctx, features=True)
             pg = ctx.new_page()
             pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
             pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}') if m.type in ('error', 'warning') and 'fonts' not in m.text and 'ERR_FAILED' not in m.text else None)
@@ -134,6 +140,7 @@ def run():
                                  'level': 1, 'stars': 3, 'seconds': 30, 'played_at': f'2026-10-2{i % 3 + 5}T10:00:00Z'})
         pg.reload(); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)
         if pg.is_visible('.party'): pg.click('[data-yay]'); pg.wait_for_timeout(400)
+        pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-card')  # skins open from the face (P62)
         pg.click('[data-skin="blocks"]'); pg.wait_for_timeout(1200)
         pg.screenshot(path=f'{OUT}/06-phone-home-blocks.png', full_page=True)
         print('sam skin in sheet:', next(p for p in db['profiles'] if p['profile_id'] == 'p_sam')['skin'])
@@ -159,7 +166,7 @@ def run():
         pc.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
         pc.mouse.down(); pc.wait_for_timeout(1250); pc.mouse.up()
         pc.wait_for_selector('#quiz-a')
-        pc.fill('#quiz-a', os.environ['GROWNUP_ANSWER']); pc.click('#quiz [type=submit]'); pc.wait_for_selector('[data-add]')
+        pc.fill('#quiz-a', TEST_ANSWER); pc.click('#quiz [type=submit]'); pc.wait_for_selector('[data-add]')
         pc.click('[data-add]'); pc.wait_for_timeout(300)
         pc.screenshot(path=f'{OUT}/13-pc-corner.png')
 

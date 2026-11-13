@@ -324,7 +324,7 @@ svg { display: block; }
 .corner a { color: #3A55C8; text-decoration: underline; }
 .corner form { margin: 0; }
 
-/* ---------- Debug skin switcher (grown-ups, while testing) ---------- */
+/* ---------- Debug skin switcher (grown-ups, while testing; switched off by features.skinPreview, P73) ---------- */
 .debug {
   position: fixed; right: .6rem; bottom: .6rem; z-index: 30; display: flex; align-items: center; gap: 6px;
   padding: 9px 13px; font: 600 13px/1 system-ui, -apple-system, sans-serif; color: #fff;
@@ -368,3 +368,60 @@ svg { display: block; }
   .hello { animation: none !important; }
   .confetti, .fx { display: none; }
 }
+
+/* ---------- Home without the side panel, and the skin picker behind the child's face ---------- */
+@media (min-width: 56rem) {
+  .home.no-side { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "games"; }
+}
+.face-btn { position: relative; flex: none; display: block; border-radius: var(--face-radius); }
+.face-btn:active { scale: .95; }
+.face-badge {
+  position: absolute; right: -.3rem; bottom: -.2rem; z-index: 3; display: grid; place-items: center;
+  width: 1.75rem; height: 1.75rem; padding: .3rem; border-radius: 50%;
+  color: #fff; background: var(--accent); border: calc(var(--outline) * .8) solid var(--card); box-shadow: var(--shadow);
+}
+.face-badge svg { width: 100%; height: 100%; }
+.skin-sheet {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1rem;
+  background: rgba(30, 20, 10, .35); animation: fadein .2s ease;
+}
+.skin-card {
+  position: relative; width: min(28rem, 100%); display: flex; flex-direction: column; gap: .8rem; padding: 1.1rem 1.1rem 1.3rem;
+  background: var(--card); border: calc(var(--outline) * 1.2) solid var(--line); border-radius: calc(var(--radius) * 1.6);
+  box-shadow: var(--shadow); animation: pop .3s ease;
+}
+.skin-card h2 { margin: 0; padding-right: 3rem; font-size: 1.7rem; font-weight: inherit; }
+.skin-x {
+  position: absolute; top: .7rem; right: .7rem; width: 2.6rem; height: 2.6rem; padding: .55rem; border-radius: 50%;
+  color: #fff; background: var(--accent); border: var(--outline) solid var(--line); box-shadow: var(--shadow);
+}
+.skin-x svg { width: 100%; height: 100%; }
+
+/* ---------- The wrapper, play.html (P50) ---------- */
+/* A slim bar with Home and the child's face; the game fills the rest of the screen. */
+body.wrapper { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.wbar {
+  position: relative; z-index: 2; flex: none; display: flex; align-items: center; gap: .55rem;
+  padding: 6px 12px; padding-top: max(6px, env(safe-area-inset-top));
+  padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right));
+  border-bottom: 2px solid var(--line);
+}
+/* Sizes in px, not rem: the launcher's text grows on big screens, but the bar stays slim (about 56px). */
+.wbar .back { width: 42px; height: 42px; padding: 9px; }
+.wbar .face { width: 42px; height: 42px; padding: 2px; box-shadow: none; }
+.wname { flex: 1; min-width: 0; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wframe { position: relative; flex: 1; min-height: 0; display: flex; }
+.wframe iframe { flex: 1; width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+/* The cover (P83): the skin's background and the child's face, over the game while it opens. */
+.wcover {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-items: center;
+  background-color: var(--paper); background-image: var(--bg-image);
+  background-size: var(--bg-size); background-position: var(--bg-pos);
+}
+.wcover[hidden] { display: none; }
+.wcover .face { width: min(8rem, 30vw); height: min(8rem, 30vw); animation: bob 1.2s ease-in-out infinite; }
+.wcover .face:empty { visibility: hidden; }
+@keyframes bob { 50% { transform: translateY(-.6rem); } }
+
+/* A game being tested (contract 0.4, section 7): shown only where the corner's Testing switch is on. */
+.testing-tape { background: color-mix(in srgb, #2E8FD0 35%, #fff); }

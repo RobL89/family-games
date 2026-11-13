@@ -1,0 +1,8 @@
+{
+  "title": "Kriss Kross",
+  "colour": "#1AA3C2",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js",
+  "settings": ["word-lists"]
+}

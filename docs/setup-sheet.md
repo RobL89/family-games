@@ -6,10 +6,10 @@ About 10 minutes, once. Menu names below were checked against Google's Apps Scri
 
 ```
 Game in the browser ──POST──▶ Apps Script web app ──▶ Google Sheet
-                              (checks family code)     Profiles, Scores, Achievements, Skins
+                              (checks family code)     Profiles, Skins, GameLists (and older tabs)
 ```
 
-The Sheet will hold first names or nicknames, cartoon avatar choices, scores, badges and skins only. No surnames, birthdays or photos (decision P9).
+The Sheet will hold first names or nicknames, cartoon avatar choices, skins, word lists and game progress only. No surnames, birthdays or photos (decision P9).
 
 ## 1. The Sheet
 
@@ -35,7 +35,7 @@ The code lives only here and on each device where a grown-up types it in. It nev
 
 1. Back in the editor, pick `setup` from the function list at the top, then **Run**.
 2. Google asks you to authorise the script to work with your spreadsheet. It's your own script; approve it.
-3. The execution log should list the tabs it added (Profiles, Scores, Achievements, Skins) and "FAMILY_CODE is set".
+3. The execution log should list the tabs it added and "FAMILY_CODE is set".
 
 `setup` only adds missing tabs, header rows and columns. It never changes or removes data, and if the spreadsheet already has tabs it makes a backup copy first and logs the link.
 
@@ -50,40 +50,26 @@ The code lives only here and on each device where a grown-up types it in. It nev
 
 ## 6. Check it works
 
-1. Open `tools/sheet-check.html` on the GitHub Pages site.
-2. Enter the family code, **Save code**, then **Check connection**. You should see `ok: true`.
-3. Optional: **Add test player** and **Send test score**. Each adds exactly one row; delete them from the Sheet afterwards if you like.
+1. Open the launcher (the site's front page) and enter the family code when asked.
+2. Press and hold the gear in the top corner for a second, answer the grown-ups' question, then **Check connection**. It should name the script version.
 
 ## 7. Add the players
 
-1. Open the launcher (the site's front page) on any device and enter the family code when asked.
-2. Press and hold the gear in the top corner for a second, answer the sum, then **Add a player** for each child: name, animal, colour.
+In the grown-ups' corner, **Add a player** for each child: name, animal, colour.
 
-## Updating to script version 0.2.0 (skins)
+## Updating the script
 
-Version 0.2.0 adds the Skins tab, a `skin` column on Profiles, star totals and editing players. What changes in the Sheet: one new tab (Skins, with four rows: Sticker book 0, Fairy 10, Blocks 20, Unicorn 30 stars) and one new column at the end of Profiles (`skin`). No existing data is changed.
+Each new script version is pasted and deployed the same way. The handoff and the version's line below say what it changes in the Sheet.
 
-1. In the Sheet: **Extensions > Apps Script**, select everything in `Code.gs` and paste in the new `apps-script/Code.gs` from the repo. Save.
-2. Pick `setup` from the function list and **Run**. The log shows the backup link first, then "Added tab Skins…" and "Added column skin to Profiles…".
-3. Redeploy so the web app uses the new code (next section).
-4. In the launcher's grown-ups' corner, **Check connection** should say "Apps Script version 0.2.0".
+1. **Back up first:** in the editor pick `backup` and **Run**. It saves a dated copy of the whole spreadsheet to your Drive and logs its link. (Or use **File > Make a copy**.)
+2. **Extensions > Apps Script**, select everything in `Code.gs`, paste in the new `apps-script/Code.gs` from the repo, and save.
+3. Pick `setup` in the function list and **Run**. It only adds missing tabs, header rows and columns, never changes or removes data, and logs a backup link first.
+4. **Deploy > Manage deployments**, select the web app, click the pencil (Edit), set **Version** to **New version**, and **Deploy**. The URL stays the same. Editing the code alone doesn't change the live web app.
+5. In the grown-ups' corner, **Check connection** should name the new version.
 
-To change how many stars a skin needs, edit `stars_needed` in the Skins tab. Set `active` to FALSE to hide a skin.
-
-## Updating to script version 0.3.0 (word lists)
-
-Version 0.3.0 adds the word lists set up in the launcher's Game setup. What changes in the Sheet: one new tab, **GameLists**, with a header row (list_id, profile_id, game_id, position, title, words, updated_at) and no data. Nothing else changes.
-
-1. **Extensions > Apps Script**, select everything in `Code.gs`, paste in the new `apps-script/Code.gs` from the repo, and save.
-2. Pick `setup` in the function list at the top and click **Run**. The log should show "Backup made first: …" with a link, then "Added tab GameLists with its header row", then "FAMILY_CODE is set".
-3. **Deploy > Manage deployments**, select the web app, click the pencil (Edit), set **Version** to **New version**, and click **Deploy**.
-4. In the launcher's grown-ups' corner, **Check connection** should say "Apps Script version 0.3.0".
-
-## Changing the script later
-
-Editing the code doesn't change the live web app until you redeploy:
-**Deploy > Manage deployments**, select the deployment, **Edit**, choose a new version, **Deploy**. The URL stays the same.
-
-## Backups
-
-Before any change to the Sheet's data or structure: in the editor pick `backup` and **Run**. It saves a dated copy of the whole spreadsheet to your Drive and logs its link. (Or use **File > Make a copy**.)
+| Version | What it adds to the Sheet |
+|---|---|
+| First version | Profiles, Scores and Achievements tabs |
+| 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
+| 0.3.0 | GameLists tab, header row only |
+| 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |

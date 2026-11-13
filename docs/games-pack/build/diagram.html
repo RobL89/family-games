@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Source of images/how-a-game-plugs-in.jpg. Put fredoka-500/600/700.woff2 (npm @fontsource/fredoka, files/fredoka-latin-*-normal.woff2) beside this file,
+     open it at 1600x860 in a browser (Playwright: device_scale_factor 1.25) and save a screenshot as JPEG. -->
+<style>
+  @font-face { font-family: 'Fredoka'; font-weight: 500; src: url(fredoka-500.woff2); }
+  @font-face { font-family: 'Fredoka'; font-weight: 600; src: url(fredoka-600.woff2); }
+  @font-face { font-family: 'Fredoka'; font-weight: 700; src: url(fredoka-700.woff2); }
+  :root { --ink: #3B2A4A; --paper: #FFF8EC; --blue: #2E8FD0; --pink: #E0457B; --green: #3FA34D; --sun: #FFD447; }
+  html, body { margin: 0; background: #FFFDF8; }
+  body { width: 1600px; height: 860px; position: relative; font-family: Fredoka, Arial, sans-serif; color: var(--ink); font-weight: 500; }
+  .zone { position: absolute; top: 18px; border-radius: 28px; padding: 14px 22px; font-weight: 700; font-size: 22px; }
+  .zone.l { left: 24px; width: 980px; height: 800px; background: #EEF7FF; border: 3px dashed #9CCBEE; box-sizing: border-box; }
+  .zone.r { left: 1030px; width: 546px; height: 800px; background: #FFF1F6; border: 3px dashed #F2A7C3; box-sizing: border-box; }
+  .zone small { display: block; font-weight: 500; font-size: 16px; opacity: .75; margin-top: 2px; }
+  .box { position: absolute; background: #fff; border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); padding: 16px 18px; box-sizing: border-box; font-size: 17px; line-height: 1.35; }
+  .box h3 { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+  .box ul { margin: 0; padding-left: 20px; }
+  .sheet { left: 50px; top: 300px; width: 240px; height: 250px; background: #EAF8EC; }
+  .launcher { left: 340px; top: 270px; width: 260px; height: 310px; background: var(--paper); }
+  .phone { left: 650px; top: 110px; width: 320px; height: 690px; border-radius: 44px; padding: 14px; background: #3B2A4A; box-shadow: 0 8px 0 #20162a; }
+  .screen { width: 100%; height: 100%; border-radius: 32px; background: #FFF8EC; overflow: hidden; position: relative; }
+  .bar { height: 62px; background: #fff; border-bottom: 3px solid var(--ink); display: flex; align-items: center; gap: 10px; padding: 0 14px; font-weight: 700; font-size: 18px; }
+  .chip { white-space: nowrap; border: 3px solid var(--ink); border-radius: 999px; padding: 2px 10px; background: #fff; font-size: 15px; }
+  .home { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--ink); display: grid; place-items: center; background: var(--sun); }
+  .face { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); border: 3px solid var(--ink); }
+  .frame { position: absolute; left: 12px; right: 12px; top: 76px; height: 330px; border: 3px dashed var(--pink); border-radius: 18px; display: grid; place-items: center; text-align: center; font-size: 19px; font-weight: 600; color: var(--pink); background: repeating-linear-gradient(45deg, #fff, #fff 12px, #FFF1F6 12px, #FFF1F6 24px); }
+  .panel { position: absolute; left: 0; right: 0; bottom: 0; height: 210px; background: #fff; border-top: 4px solid var(--ink); border-radius: 26px 26px 0 0; text-align: center; padding-top: 14px; }
+  .stars { font-size: 40px; letter-spacing: 6px; color: #F5B700; -webkit-text-stroke: 2px var(--ink); }
+  .btns { display: flex; justify-content: center; gap: 12px; margin-top: 10px; }
+  .btns span { width: 70px; height: 56px; border-radius: 18px; border: 3px solid var(--ink); display: grid; place-items: center; font-size: 26px; box-shadow: 0 4px 0 var(--ink); }
+  .cap { font-size: 14px; margin-top: 8px; opacity: .8; }
+  .folder { left: 1180px; top: 230px; width: 370px; height: 470px; background: #fff; }
+  .file { border: 3px solid var(--ink); border-radius: 14px; padding: 8px 12px; margin: 10px 0; background: var(--paper); }
+  .file b { font-weight: 700; }
+  .file.shared { background: #EEF7FF; border-style: dashed; }
+  .lbl { position: absolute; font-size: 16px; font-weight: 600; background: #FFFDF8; padding: 4px 8px; border-radius: 10px; line-height: 1.3; }
+  svg { position: absolute; inset: 0; pointer-events: none; }
+</style></head>
+<body>
+  <div class="zone l">Launcher project builds and runs this<small>profiles, saving, levels, stickers, the shell around every game</small></div>
+  <div class="zone r">Games project builds this<small>one folder per game, dropped into the launcher</small></div>
+
+  <div class="box sheet"><h3>Google Sheet</h3><ul><li>Profiles</li><li>Scores</li><li>Settings</li><li>GameLists (word lists)</li><li>Achievements</li></ul></div>
+  <div class="box launcher"><h3>Launcher</h3><ul><li>Who's playing?</li><li>Child's home screen</li><li>Grown-ups' corner: levels, settings, word lists</li><li>Sticker book</li></ul></div>
+
+  <div class="box phone"><div class="screen">
+    <div class="bar"><span class="home">⌂</span><span class="face"></span>Sam <span class="chip">Level 3</span><span style="margin-left:auto;white-space:nowrap">★ 42</span></div>
+    <div class="frame">your game<br>runs here<br><span style="font-size:15px;font-weight:500">(a frame inside the shell)</span></div>
+    <div class="panel"><div class="stars">★★★</div><div class="btns"><span>↻</span><span>▶</span><span>⌂</span></div><div class="cap">end-of-round panel: Again · Next · Home</div></div>
+  </div></div>
+
+  <div class="box folder"><h3>games/word-worm/</h3>
+    <div class="file"><b>game.json</b> · the manifest: title, colour, levels, settings, stars rule, word lists?</div>
+    <div class="file"><b>icon.svg</b> · the launcher tile picture</div>
+    <div class="file"><b>game.html</b> · the game page; also runs on its own</div>
+    <div class="file"><b>*.js · *.css</b> · the game's own code, art and sounds</div>
+    <div class="file shared"><b>../../shared/bridge.js</b> · the only shared file a game uses: sends and receives the messages</div>
+  </div>
+
+  <svg viewBox="0 0 1600 860">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3B2A4A"/></marker>
+      <marker id="p" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#E0457B"/></marker></defs>
+    <path d="M294 425 H336" stroke="#3B2A4A" stroke-width="4" marker-start="url(#a)" marker-end="url(#a)"/>
+    <path d="M604 425 H646" stroke="#3B2A4A" stroke-width="4" marker-end="url(#a)"/>
+    <path d="M958 250 C1060 250 1080 330 1176 330" stroke="#E0457B" stroke-width="4" fill="none" marker-end="url(#p)"/>
+    <path d="M1176 600 C1070 600 1060 400 958 400" stroke="#E0457B" stroke-width="4" fill="none" marker-end="url(#p)"/>
+  </svg>
+  <div class="lbl" style="left:236px;top:575px;width:160px;text-align:center">Apps Script, through the device outbox</div>
+  <div class="lbl" style="left:520px;top:600px;width:150px;text-align:center">opens<br>play.html?game=…<br>&amp;player=…</div>
+  <div class="lbl" style="left:1056px;top:112px;width:500px;color:#E0457B;background:none">fg:start<br><span style="color:#3B2A4A;font-weight:500">child, level, settings, word lists, sound on or off</span><br>fg:again · fg:next</div>
+  <div class="lbl" style="left:1056px;top:716px;width:500px;color:#E0457B;background:none">fg:ready · fg:round<br><span style="color:#3B2A4A;font-weight:500">stars, score, seconds, what was played, help used, is there a next one</span></div>
+</body></html>

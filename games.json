@@ -1,10 +1,13 @@
 {
   "games": [
-    { "id": "kriss-kross", "title": "Kriss Kross", "icon": "g-cross", "colour": "#1AA3C2", "folder": "games/kriss-kross/", "status": "ready", "settings": "word-lists" },
-    { "id": "bubble-pop", "title": "Bubble pop", "icon": "g-bubbles", "colour": "#2E8FD0", "folder": "games/bubble-pop/", "status": "soon" },
-    { "id": "memory-match", "title": "Memory match", "icon": "g-memory", "colour": "#E0457B", "status": "soon" },
-    { "id": "count-it", "title": "Count it", "icon": "g-count", "colour": "#E5533D", "status": "soon" },
-    { "id": "shape-sort", "title": "Shape sort", "icon": "g-shapes", "colour": "#7E4FC9", "status": "soon" },
-    { "id": "spot-it", "title": "Spot it", "icon": "g-spot", "colour": "#119C8F", "status": "soon" }
+    { "id": "kriss-kross", "title": "Kriss Kross", "icon": "g-cross", "colour": "#1AA3C2", "folder": "games/kriss-kross/", "status": "ready", "settings": "word-lists", "source": "Artifact game: https://claude.ai/artifact/9EWnpTj2guM2r1SKJ3iFXF, version 1793287247-d3a2, taken 2026-11-12" },
+    { "id": "space-explorer", "title": "Space Explorer", "icon": "g-planet", "colour": "#7E4FC9", "folder": "games/space-explorer/", "status": "ready", "source": "Artifact game: https://claude.ai/artifact/2tEDy8JUbbvwxxgFGH7tEb, version 1794262266-c545, taken 2026-11-12" },
+    { "id": "number-town", "title": "Number Town", "icon": "g-town", "colour": "#E5533D", "folder": "games/number-town/", "status": "ready", "source": "Artifact game: https://claude.ai/artifact/GcegF1iMZY6WtCtSssL5sv, version 1794406592-4005, taken 2026-11-12" },
+    { "id": "wrapper-check", "title": "Wrapper check", "icon": "g-star", "colour": "#2E8FD0", "folder": "games/wrapper-check/", "status": "testing", "source": "P-020 (Family Games Launcher), a launcher tool" },
+    { "id": "bubble-pop", "title": "Bubble pop", "icon": "g-bubbles", "colour": "#2E8FD0", "folder": "games/bubble-pop/", "status": "hidden" },
+    { "id": "memory-match", "title": "Memory match", "icon": "g-memory", "colour": "#E0457B", "status": "hidden" },
+    { "id": "count-it", "title": "Count it", "icon": "g-count", "colour": "#E5533D", "status": "hidden" },
+    { "id": "shape-sort", "title": "Shape sort", "icon": "g-shapes", "colour": "#7E4FC9", "status": "hidden" },
+    { "id": "spot-it", "title": "Spot it", "icon": "g-spot", "colour": "#119C8F", "status": "hidden" }
   ]
 }

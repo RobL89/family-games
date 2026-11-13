@@ -1,0 +1,7 @@
+{
+  "title": "Space Explorer",
+  "colour": "#7E4FC9",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}

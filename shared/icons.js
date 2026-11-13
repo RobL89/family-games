@@ -22,6 +22,8 @@ const SYMBOLS = `
 <symbol id="g-shapes" viewBox="0 0 48 48" fill="currentColor"><path d="M24 4l11 18H13z"/><circle cx="13" cy="34" r="9" opacity=".75"/><rect x="27" y="26" width="17" height="17" rx="3" opacity=".55"/></symbol>
 <symbol id="g-spot" viewBox="0 0 48 48"><circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="5"/><path d="M29 29l11 11" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></symbol>
 <symbol id="g-cross" viewBox="0 0 48 48" fill="currentColor"><rect x="4" y="17" width="40" height="11" rx="2.5"/><rect x="17" y="4" width="11" height="40" rx="2.5" opacity=".7"/><rect x="33" y="28" width="11" height="16" rx="2.5" opacity=".5"/><rect x="20" y="20" width="5" height="5" rx="1" fill="#fff" opacity=".9"/></symbol>
+<symbol id="g-planet" viewBox="0 0 48 48"><circle cx="9" cy="10" r="2" fill="currentColor" opacity=".6"/><circle cx="40" cy="38" r="1.6" fill="currentColor" opacity=".6"/><circle cx="24" cy="24" r="11.5" fill="currentColor"/><path d="M8.6 33.4c-3-3.6 5-10.6 17.7-15.6S46.4 11 46.4 15" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" opacity=".75"/></symbol>
+<symbol id="g-town" viewBox="0 0 48 48" fill="currentColor"><path fill-rule="evenodd" d="M24 6 4 24h6v18h28V24h6zM20 42V31h8v11zM14 26h6v5h-6zm14 0h6v5h-6z"/></symbol>
 <symbol id="g-star" viewBox="0 0 48 48" fill="currentColor"><path d="M24 4l5.6 11.8 12.8 1.6-9.4 8.8 2.4 12.8L24 32.8 12.6 39l2.4-12.8-9.4-8.8 12.8-1.6z"/></symbol>
 
 <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 4.5L7.5 12 15 19.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -32,6 +34,7 @@ const SYMBOLS = `
   <circle cx="12" cy="12" r="6.2" fill="none" stroke="currentColor" stroke-width="3.6"/>
 </symbol>
 <symbol id="i-lock" viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10" fill="none" stroke="currentColor" stroke-width="2.6"/><rect x="4.5" y="10" width="15" height="11" rx="2.5"/></symbol>
+<symbol id="i-brush" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.5C6.6 2.5 2.5 6.6 2.5 11.8c0 5 4 9.7 9.3 9.7 1.3 0 2.1-.8 2.1-1.9 0-.6-.3-1-.6-1.4-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8h2.2c2.9 0 4.7-2 4.7-4.6 0-4.6-4.3-8.1-9.5-8.1zM7.2 12.6a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM10.2 8.2a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM15 8.2a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2zM17.6 12a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2z"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 <symbol id="i-cloud" viewBox="0 0 24 24" fill="currentColor"><path d="M7 19a5 5 0 0 1-.6-10A6.5 6.5 0 0 1 19 9.6 4.7 4.7 0 0 1 18 19z"/></symbol>
 `;

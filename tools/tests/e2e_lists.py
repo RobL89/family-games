@@ -1,13 +1,18 @@
 """Browser test: grown-ups' question, skin preview toggle, Game setup word lists, Kriss Kross default list + Next.
 Runs against a stand-in for the Apps Script (no real Sheet is touched).
 From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
-then: GROWNUP_ANSWER='<the answer>' python3 tools/tests/e2e_lists.py <folder for screenshots>
+then: python3 -B tools/tests/e2e_lists.py <folder for screenshots>
 The answer is never stored in this repo."""
 import json, os, re, sys, uuid
 from playwright.sync_api import sync_playwright
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_config import TEST_ANSWER, route_config  # noqa: E402
+# Stage 2 switched these features off (P48, P49). This test checks they still work when switched
+# back on, so it serves config.js with every feature on, and with a test grown-ups' answer.
+
 OUT = sys.argv[1]
-ANSWER = os.environ['GROWNUP_ANSWER']
+ANSWER = TEST_ANSWER
 BASE = 'http://127.0.0.1:8123/'
 CODE = 'test-code'
 db = {
@@ -55,6 +60,7 @@ with sync_playwright() as pw:
     ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
     ctx.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
     ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda r: r.abort())
+    route_config(ctx, features=True)
     pg = ctx.new_page()
     pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}') if m.type == 'error' and 'ERR_FAILED' not in m.text else None)
@@ -98,31 +104,35 @@ with sync_playwright() as pw:
     pg.click('.corner [data-close]'); pg.wait_for_timeout(300)
 
     # Play Kriss Kross: default list, solve by hints, Next, ... last
-    pg.goto(BASE + 'games/kriss-kross/index.html?player=p_a'); pg.wait_for_selector('#play:not([hidden])', timeout=10000)
+    # Kriss Kross runs in the wrapper with its adapter (stage 3, P67).
+    pg.goto(BASE + 'play.html?game=kriss-kross&player=p_a'); pg.wait_for_selector('.wframe iframe')
+    kf = pg.frame_locator('.wframe iframe'); kf.locator('#play:not([hidden])').wait_for(timeout=10000)
     titles = []
     for round_no in range(4):
-        titles.append(pg.inner_text('#pTitle'))
+        titles.append(kf.locator('#pTitle').inner_text())
         for _ in range(40):
-            if pg.inner_text('#fgSaved').strip(): break
-            pg.click('#hintBtn'); pg.wait_for_timeout(60)
+            if 'solved' in (kf.locator('#grid').get_attribute('class') or ''): break
+            kf.locator('#hintBtn').click(); pg.wait_for_timeout(60)
         pg.wait_for_timeout(500)
-        nxt = pg.locator('#play .bar-right .btn.primary')
-        print(f'round {round_no + 1}:', titles[-1], '|', pg.inner_text('#fgSaved'), '| next:', nxt.inner_text() if nxt.is_visible() else '(none)')
+        nxt = kf.locator('[data-fg="next"]')
+        print(f'round {round_no + 1}:', titles[-1], '| next:', nxt.text_content() if nxt.is_visible() else '(none)')
         if round_no == 0: pg.screenshot(path=f'{OUT}/07-kk-next.png')
         if not nxt.is_visible(): break
         nxt.click(); pg.wait_for_timeout(1500)
     pg.screenshot(path=f'{OUT}/08-kk-last.png')
-    print('levels saved:', pg.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.level, r.stars])"))
+    print('rounds saved (level is always 1 now, P50):', pg.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.level, r.stars])"))
 
     # Alex has no lists: game shows its own word screen
-    pg.goto(BASE + 'games/kriss-kross/index.html?player=p_b'); pg.wait_for_timeout(2500)
-    print('Alex sees setup screen:', pg.is_visible('#setup'), '| play hidden:', not pg.is_visible('#play'))
+    pg.goto(BASE + 'play.html?game=kriss-kross&player=p_b'); pg.wait_for_timeout(2500)
+    kf = pg.frame_locator('.wframe iframe')
+    print('Alex sees setup screen:', kf.locator('#setup').is_visible(), '| play hidden:', not kf.locator('#play').is_visible())
 
     # Phone view of Game setup
     ph = br.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     ph.add_init_script(f"localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));")
     ph.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
     ph.route(re.compile(r'https://fonts\..*'), lambda r: r.abort())
+    route_config(ph, features=True)
     pp = ph.new_page(); pp.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     pp.goto(BASE + 'index.html'); pp.wait_for_selector('.player'); pp.wait_for_timeout(500)
     box = pp.locator('.gear').bounding_box()
@@ -131,7 +141,8 @@ with sync_playwright() as pw:
     pp.screenshot(path=f'{OUT}/09-phone-corner.png')
     pp.click('[data-setup="p_a"]'); pp.wait_for_selector('.gs-item'); pp.wait_for_timeout(300)
     pp.screenshot(path=f'{OUT}/10-phone-setup.png')
-    pp.goto(BASE + 'games/kriss-kross/index.html?player=p_a'); pp.wait_for_selector('#play:not([hidden])', timeout=10000); pp.wait_for_timeout(500)
+    pp.goto(BASE + 'play.html?game=kriss-kross&player=p_a'); pp.wait_for_selector('.wframe iframe')
+    pp.frame_locator('.wframe iframe').locator('#play:not([hidden])').wait_for(timeout=10000); pp.wait_for_timeout(500)
     pp.screenshot(path=f'{OUT}/11-phone-kk.png')
     br.close()
 print('\n'.join(errors) or 'no page errors')

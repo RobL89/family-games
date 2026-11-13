@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Kriss Kross Lab</title>
+<title>Kriss Kross Lab (Copy)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -170,6 +170,9 @@ input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--cy
 }
 .cell span { line-height: 1; text-shadow: 0 0 8px rgba(62, 232, 255, 0.9); }
 .cell.filled { border-color: var(--cyan); background: rgba(62, 232, 255, 0.16); box-shadow: 0 0 8px rgba(62, 232, 255, 0.45), inset 0 0 10px rgba(62, 232, 255, 0.2); cursor: grab; }
+.cell.given { position: relative; cursor: default; border-color: #9ff3ff; background: #15324f; box-shadow: 0 0 12px rgba(62, 232, 255, 0.6), inset 0 0 10px rgba(62, 232, 255, 0.25); }
+.cell.given span { color: #fff; text-shadow: 0 0 10px rgba(62, 232, 255, 1); }
+.cell.given::after { content: ""; position: absolute; top: 3px; right: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
 .cell.ok { border-color: var(--violet); box-shadow: 0 0 8px rgba(162, 135, 255, 0.55), inset 0 0 8px rgba(162, 135, 255, 0.25); }
 .cell.hot { border-color: #fff; background: rgba(162, 135, 255, 0.4); box-shadow: 0 0 14px rgba(162, 135, 255, 0.9); }
 .cell.clash { border-color: var(--bad); background: rgba(255, 92, 122, 0.2); box-shadow: 0 0 10px rgba(255, 92, 122, 0.7); }
@@ -295,7 +298,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
         <div class="meter" aria-hidden="true"><i id="countBar"></i></div>
         <div class="chips" id="chips"></div>
         <div class="opts">
-          <label class="toggle"><input type="checkbox" id="startWord"> Start with the longest word already placed</label>
+          <label class="toggle"><input type="checkbox" id="startLetters"> Start with a few letters already placed</label>
         </div>
         <p class="status" id="setupMsg" role="status"></p>
         <button type="button" class="btn primary big" id="buildBtn">Build puzzle</button>
@@ -518,7 +521,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   var savedWords = store.get('kk.words');
   wordInput.value = savedWords !== null ? savedWords : EXAMPLE.join('\n');
   puzzleTitle.value = store.get('kk.title') || 'Space Words';
-  $('startWord').checked = store.get('kk.start') === '1';
+  $('startLetters').checked = store.get('kk.letters') === '1';
 
   var STATUS_TEXT = {
     short: 'needs 2+ letters',
@@ -552,7 +555,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 
   wordInput.addEventListener('input', function () { $('notice').hidden = true; renderChips(); store.set('kk.words', wordInput.value); });
   puzzleTitle.addEventListener('input', function () { store.set('kk.title', puzzleTitle.value); });
-  $('startWord').addEventListener('change', function () { store.set('kk.start', this.checked ? '1' : '0'); });
+  $('startLetters').addEventListener('change', function () { store.set('kk.letters', this.checked ? '1' : '0'); });
   $('exampleBtn').addEventListener('click', function () { wordInput.value = EXAMPLE.join('\n'); puzzleTitle.value = 'Space Words'; store.set('kk.words', wordInput.value); store.set('kk.title', puzzleTitle.value); $('notice').hidden = true; renderChips(); });
   $('clearBtn').addEventListener('click', function () { wordInput.value = ''; store.set('kk.words', ''); $('notice').hidden = true; renderChips(); wordInput.focus(); });
 
@@ -601,18 +604,14 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     P = { title: puzzleTitle.value.trim() || 'Kriss Kross', words: words, rows: layout.rows, cols: layout.cols, slots: makeSlots(layout, words) };
     resetState();
     buildGrid();
+    P.given = pickGiven();
     buildBank();
     $('pTitle').textContent = P.title;
     $('keyChk').checked = false;
     refreshSheet();
     showView('play');
-    if ($('startWord').checked) {
-      var best = 0;
-      P.slots.forEach(function (s) { if (s.len > P.slots[best].len) best = s.id; });
-      placeWord(P.slots[best].wi, best, true);
-    }
     renderAll();
-    setMsg('Drag a word onto the grid, or tap a word and then a slot.');
+    setMsg(P.given.size ? 'Some letters are already in place. Drag a word onto the grid, or tap a word and then a slot.' : 'Drag a word onto the grid, or tap a word and then a slot.');
   }
 
   function resetState() {
@@ -620,8 +619,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
       placed: P.slots.map(function () { return -1; }),
       wordSlot: P.words.map(function () { return -1; }),
       stamp: P.slots.map(function () { return 0; }),
-      tick: 0, selected: -1, hot: -1, hints: 0, revealed: false, solved: false, flash: false, live: $('liveChk').checked,
-      t0: Date.now() // Family games: round timer
+      tick: 0, selected: -1, hot: -1, hints: 0, revealed: false, solved: false, flash: false, live: $('liveChk').checked
     };
   }
 
@@ -707,6 +705,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   function conflictCount(wi, si) {
     var chars = Array.from(P.words[wi]), n = 0;
     P.slots[si].cells.forEach(function (ci, k) {
+      if (P.given.has(ci) && P.given.get(ci) !== chars[k]) n++;
       (cellSlots.get(ci) || []).forEach(function (other) {
         if (other === si) return;
         var ow = S.placed[other];
@@ -730,6 +729,44 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
       return ea - eb || a - b;
     });
     return cands[0];
+  }
+
+  // Picks a few well-spread cells to show as fixed letters, at most one per word where possible.
+  function pickGiven() {
+    var given = new Map();
+    if (!$('startLetters').checked) return given;
+    var solution = new Map(), slotsOf = new Map();
+    P.slots.forEach(function (s) {
+      var chars = Array.from(P.words[s.wi]);
+      s.cells.forEach(function (ci, k) {
+        solution.set(ci, chars[k]);
+        if (!slotsOf.has(ci)) slotsOf.set(ci, []);
+        slotsOf.get(ci).push(s.id);
+      });
+    });
+    var all = Array.from(solution.keys());
+    var target = Math.min(Math.max(3, Math.round(all.length * 0.1)), 10, Math.max(1, Math.floor(all.length * 0.3)));
+    var covered = new Set(), chosen = [];
+    function pos(ci) { return [Math.floor(ci / P.cols), ci % P.cols]; }
+    function take(ci) {
+      chosen.push(ci); given.set(ci, solution.get(ci));
+      slotsOf.get(ci).forEach(function (si) { covered.add(si); });
+    }
+    take(all[Math.floor(Math.random() * all.length)]);
+    while (chosen.length < target) {
+      var pool = all.filter(function (ci) { return !given.has(ci) && slotsOf.get(ci).every(function (si) { return !covered.has(si); }); });
+      if (!pool.length) pool = all.filter(function (ci) { return !given.has(ci); });
+      if (!pool.length) break;
+      var best = -1, bestScore = -1;
+      pool.forEach(function (ci) {
+        var a = pos(ci), d = Infinity;
+        chosen.forEach(function (cj) { var b = pos(cj); d = Math.min(d, Math.hypot(a[0] - b[0], a[1] - b[1])); });
+        var sc = d + Math.random() * 1.5;
+        if (sc > bestScore) { bestScore = sc; best = ci; }
+      });
+      take(best);
+    }
+    return given;
   }
 
   function placeWord(wi, si, quiet) {
@@ -756,7 +793,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     var letters = lettersByCell();
     var clashCells = new Set();
     letters.forEach(function (arr, ci) {
-      var first = arr[0].ch;
+      var first = P.given.has(ci) ? P.given.get(ci) : arr[0].ch;
       if (arr.some(function (x) { return x.ch !== first; })) clashCells.add(ci);
     });
     var activeWi = drag && drag.started ? drag.wi : S.selected;
@@ -771,10 +808,11 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 
     cellEls.forEach(function (el, ci) {
       var arr = letters.get(ci);
-      var ch = '';
+      var ch = '', given = P.given.has(ci);
       if (arr) { arr.sort(function (a, b) { return b.stamp - a.stamp; }); ch = arr[0].ch; }
+      if (given) ch = P.given.get(ci);
       el.firstChild.textContent = ch;
-      el.className = 'cell' + (arr ? ' filled' : '') + (okCells.has(ci) ? ' ok' : '') + (hotCells.has(ci) ? ' hot' : '') + (showClash && clashCells.has(ci) ? ' clash' : '');
+      el.className = 'cell' + (given ? ' given' : (arr ? ' filled' : '')) + (okCells.has(ci) ? ' ok' : '') + (hotCells.has(ci) ? ' hot' : '') + (showClash && clashCells.has(ci) ? ' clash' : '');
     });
 
     var placedCount = S.placed.filter(function (x) { return x >= 0; }).length;
@@ -797,8 +835,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     grid.classList.toggle('solved', S.solved);
     if (S.solved && !wasSolved && !S.revealed) {
       setMsg('Puzzle complete. Every word fits.' + (S.hints ? ' Hints used: ' + S.hints + '.' : ' No hints used.'), 'good');
-      // Family games: tell the launcher kit (script at the bottom) that a round was solved.
-      document.dispatchEvent(new CustomEvent('kk:solved', { detail: { hints: S.hints, words: P.words.length, seconds: Math.round((Date.now() - S.t0) / 1000) } }));
     } else if (!S.solved && wasSolved) {
       setMsg('');
     }
@@ -999,19 +1035,13 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     S.revealed = true; S.selected = -1;
     renderAll();
     setMsg('Solution shown. Reset to try again.');
-    document.dispatchEvent(new CustomEvent('kk:revealed')); // Family games: lets the Next list button appear
   });
   $('newBtn').addEventListener('click', function () {
     var res = buildLayout(P.words, Math.floor(Math.random() * 4294967296), 700);
     if (res.unplaced.length) { setMsg('Could not find a different layout this time.', 'bad'); return; }
     var keepTitle = P.title;
     P = { title: keepTitle, words: P.words, rows: res.rows, cols: res.cols, slots: makeSlots(res, P.words) };
-    resetState(); buildGrid(); buildBank(); refreshSheet();
-    if ($('startWord').checked) {
-      var best = 0;
-      P.slots.forEach(function (s) { if (s.len > P.slots[best].len) best = s.id; });
-      placeWord(P.slots[best].wi, best, true);
-    }
+    resetState(); buildGrid(); P.given = pickGiven(); buildBank(); refreshSheet();
     renderAll();
     setMsg('New layout ready.');
   });
@@ -1044,7 +1074,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
     letters.forEach(function (ch, ci) {
       var r = Math.floor(ci / P.cols), c = ci % P.cols;
       out += '<rect x="' + c + '" y="' + r + '" width="1" height="1" fill="#fff" stroke="#111" stroke-width="0.07"/>';
-      if (answers) out += '<text x="' + (c + 0.5) + '" y="' + (r + 0.5) + '" text-anchor="middle" dominant-baseline="central" font-size="0.62" font-family="Arial,Helvetica,sans-serif" font-weight="700" fill="#111">' + esc(ch) + '</text>';
+      if (answers || P.given.has(ci)) out += '<text x="' + (c + 0.5) + '" y="' + (r + 0.5) + '" text-anchor="middle" dominant-baseline="central" font-size="0.62" font-family="Arial,Helvetica,sans-serif" font-weight="700" fill="#111">' + esc(ch) + '</text>';
     });
     var cs = Math.min(12, 182 / P.cols, 150 / P.rows);
     return '<svg class="ps-svg" viewBox="-0.1 -0.1 ' + (P.cols + 0.2) + ' ' + (P.rows + 0.2) + '" style="width:' + (P.cols * cs).toFixed(1) + 'mm;max-width:100%" role="img" aria-label="' + (answers ? 'Answer grid' : 'Puzzle grid') + '">' + out + '</svg>';
@@ -1059,7 +1089,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   }
 
   function sheetMarkup(withKey) {
-    var html = '<div class="ps-sheet"><section><h1 class="ps-title">' + esc(P.title) + '</h1><p class="ps-sub">' + P.words.length + ' words. Fit every word into the grid.</p>' + gridSvg(false) + wordsMarkup() + '</section>';
+    var html = '<div class="ps-sheet"><section><h1 class="ps-title">' + esc(P.title) + '</h1><p class="ps-sub">' + P.words.length + ' words. Fit every word into the grid.' + (P.given.size ? ' Some letters are already filled in.' : '') + '</p>' + gridSvg(false) + wordsMarkup() + '</section>';
     if (withKey) html += '<section class="ps-key"><h1 class="ps-title">' + esc(P.title) + ' (answers)</h1><p class="ps-sub">Answer key</p>' + gridSvg(true) + '</section>';
     return html + '</div>';
   }
@@ -1104,92 +1134,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 
   renderChips();
 })();
-</script>
-
-<!-- Family games: everything below this line was added to connect the game to the launcher. -->
-<p id="fgSaved" class="msg good" role="status" style="text-align:center;max-width:1180px;margin:0 auto"></p>
-<script type="module">
-  import { getPlayer, getGameId, homeButton, record } from '../../shared/game-kit.js';
-  import * as api from '../../shared/api.js';
-
-  const $ = (id) => document.getElementById(id);
-  homeButton({ style: { width: '46px', height: '46px', top: '10px', left: '10px', background: '#0d162b', color: '#3ee8ff', border: '2px solid #3ee8ff', boxShadow: '0 0 12px rgba(62,232,255,.55)' } });
-  document.querySelectorAll('.top, .bar').forEach((el) => { el.style.paddingLeft = '58px'; });
-
-  // ---- Stars (P30): no hints = 3, one or two hints = 2, more = 1. Showing the solution saves nothing.
-  const starsFor = (hints) => (hints === 0 ? 3 : hints <= 2 ? 2 : 1);
-  const player = getPlayer();
-  let lists = [];   // this player's lists from Game setup; the first is the default (P36)
-  let index = -1;   // which list is on screen, or -1 for words typed by hand
-
-  // ---- Next list button, at the front of the toolbar
-  const next = document.createElement('button');
-  next.type = 'button';
-  next.className = 'btn small primary';
-  next.hidden = true;
-  $('play').querySelector('.bar-right').prepend(next);
-  next.addEventListener('click', () => startList(index + 1));
-
-  function roundOver() {
-    if (index >= 0 && index + 1 < lists.length) {
-      next.textContent = `Next list: ${lists[index + 1].title}`;
-      next.hidden = false;
-      next.scrollIntoView({ block: 'nearest' });
-    } else if (index >= 0 && lists.length) {
-      $('fgSaved').textContent += (($('fgSaved').textContent ? ' ' : '') + 'That was the last list. Well done!');
-    }
-  }
-
-  document.addEventListener('kk:solved', async (e) => {
-    const { hints, words, seconds } = e.detail;
-    const stars = starsFor(hints);
-    await record({ score: words, level: index >= 0 ? index + 1 : 1, stars, seconds });
-    if (player && player.nickname) $('fgSaved').textContent = `${'★'.repeat(stars)} saved for ${player.nickname}!`;
-    roundOver();
-  });
-  document.addEventListener('kk:revealed', roundOver);
-
-  // ---- Load a list into the game's own word screen and build it.
-  function startList(i) {
-    const list = lists[i];
-    if (!list) return;
-    index = i;
-    next.hidden = true;
-    $('fgSaved').textContent = '';
-    $('puzzleTitle').value = list.title;
-    $('wordInput').value = list.words.join('\n');
-    $('puzzleTitle').dispatchEvent(new Event('input', { bubbles: true }));
-    $('wordInput').dispatchEvent(new Event('input', { bubbles: true }));
-    $('play').hidden = true;
-    $('setup').hidden = true;
-    $('notice').hidden = true;
-    $('buildBtn').click();
-    // If the words can't be built into a grid, show the word screen so a grown-up can see why.
-    const startedAt = Date.now();
-    const wait = setInterval(() => {
-      if (!$('play').hidden) return clearInterval(wait);
-      if (!$('notice').hidden || Date.now() - startedAt > 4000) {
-        clearInterval(wait);
-        $('setup').hidden = false;
-      }
-    }, 100);
-  }
-
-  // ---- On opening: fetch this player's lists (or use the last ones this device saw).
-  async function loadLists() {
-    if (!player) return [];
-    const gameId = getGameId();
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
-    try { await Promise.race([api.fetchProfile(player.profile_id), timeout]); } catch { /* offline: use the cache */ }
-    return api.getCachedLists(player.profile_id, gameId).filter((l) => l.words && l.words.length >= 2);
-  }
-
-  if (player) {
-    $('setup').hidden = true;
-    lists = await loadLists();
-    if (lists.length) startList(0);
-    else $('setup').hidden = false;
-  }
 </script>
 
 </body></html>

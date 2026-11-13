@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en-GB" data-skin="sticker">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E6CF9F">
+  <title>Family games</title>
+  <!-- The wrapper (P50, game contract 0.4 section 1): a slim bar with Home and the child's face and name (P60),
+       and the game in a frame underneath. Opened as play.html?game=<id>&player=<id>. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Patrick+Hand&family=Pixelify+Sans:wght@500;600;700&family=Sniglet:wght@400;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/theme.css">
+</head>
+<body class="wrapper">
+  <header class="wbar">
+    <a class="back" id="home" href="index.html" aria-label="Home"></a>
+    <span class="face" id="face" hidden></span>
+    <span class="wname" id="name"></span>
+  </header>
+  <!-- The cover (P83): the child's face hides the game while it opens, so the previous child's view never shows. -->
+  <div class="wframe" id="frame"><div class="wcover" id="cover" aria-label="Getting ready"><span class="face" id="cover-face"></span></div></div>
+  <noscript><p style="padding:1rem">The games need JavaScript turned on.</p></noscript>
+  <script type="module" src="shared/wrapper.js"></script>
+</body>
+</html>

@@ -54,6 +54,7 @@
 :root[data-skin="blocks"] .swatch,
 :root[data-skin="blocks"] .side,
 :root[data-skin="blocks"] .party-card,
+:root[data-skin="blocks"] .skin-card,
 :root[data-skin="blocks"] .big-btn {
   box-shadow: var(--bevel), var(--shadow);
 }

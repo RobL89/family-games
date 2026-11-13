@@ -2,8 +2,13 @@
 Needs Python Playwright. From the repo root: python3 -m http.server 8123 --bind 127.0.0.1
 then: python3 tools/tests/e2e_skins.py <folder for screenshots>
 """
-import json, sys, re
+import json, os, sys, re
 from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_config import TEST_ANSWER, route_config  # noqa: E402
+# Stage 2 switched these features off (P48, P49). This test checks they still work when switched
+# back on, so it serves config.js with every feature on, and with a test grown-ups' answer.
 
 OUT = sys.argv[1]
 BASE = 'http://127.0.0.1:8123/'
@@ -49,6 +54,7 @@ with sync_playwright() as pw:
         ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));" "localStorage.setItem('fg.debug', 'true');")
         ctx.route(re.compile(r'https://script\.google\.com/.*'), lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps(handle(json.loads(r.request.post_data or '{}')))))
         ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda r: r.abort())
+        route_config(ctx, features=True)
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
         pg.on('console', lambda m: errors.append(f'console {m.type}: {m.text}') if m.type == 'error' and 'ERR_FAILED' not in m.text else None)
@@ -81,17 +87,18 @@ with sync_playwright() as pw:
     # Kriss Kross: build the example puzzle, solve with hints, check stars are saved.
     kk = page(1280, 860)
     kk.goto(BASE + 'index.html?player=p_sam'); kk.wait_for_selector('.home'); kk.wait_for_timeout(800)
-    kk.goto(BASE + 'games/kriss-kross/index.html?player=p_sam'); kk.wait_for_selector('#buildBtn')
+    # Kriss Kross runs in the wrapper with its adapter (stage 3, P67); its adapter reports a solved round.
+    kk.goto(BASE + 'play.html?game=kriss-kross&player=p_sam'); kk.wait_for_selector('.wframe iframe')
+    kf = kk.frame_locator('.wframe iframe'); kf.locator('#buildBtn').wait_for()
     kk.screenshot(path=f'{OUT}/kk-setup.png')
-    kk.click('#buildBtn'); kk.wait_for_selector('#play:not([hidden])')
+    kf.locator('#buildBtn').click(); kf.locator('#play:not([hidden])').wait_for()
     for _ in range(40):
-        if kk.inner_text('#fgSaved').strip(): break
-        kk.click('#hintBtn'); kk.wait_for_timeout(120)
+        if 'solved' in (kf.locator('#grid').get_attribute('class') or ''): break
+        kf.locator('#hintBtn').click(); kk.wait_for_timeout(120)
     kk.wait_for_timeout(500)
-    print('kk saved line:', kk.inner_text('#fgSaved'))
     print('outbox:', kk.evaluate("JSON.parse(localStorage.getItem('fg.outbox')).results.map(r => [r.game_id, r.stars, r.score])"))
     kk.screenshot(path=f'{OUT}/kk-solved.png')
-    kk.click('button[aria-label="Back to games"]'); kk.wait_for_selector('.home'); kk.wait_for_timeout(1500)
+    kk.click('#home'); kk.wait_for_selector('.home'); kk.wait_for_timeout(1500)
     kk.screenshot(path=f'{OUT}/kk-back.png')
     print('synced:', [(r['game_id'], r['stars']) for r in synced])
     br.close()

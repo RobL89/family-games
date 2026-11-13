@@ -14,7 +14,12 @@
 // outbox first and reach the Sheet when the launcher next syncs (P6).
 
 import * as api from './api.js';
+import { CONFIG } from './config.js';
 import { playerStats, earnedIds, newlyEarned, CELEBRATE_KEY } from './achievements.js';
+
+// Feature switches (shared/config.js, P48). A missing switch counts as on.
+const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
+export const starsOn = () => on('stars');
 
 const LAUNCHER = new URL('../index.html', import.meta.url);
 const GAMES_LIST = new URL('../games.json', import.meta.url);
@@ -56,6 +61,8 @@ export async function finish(result = {}) {
 export async function record({ score = 0, level = 1, stars = 1, seconds = 0 } = {}) {
   const player = getPlayer();
   if (!player) return [];
+  // Stars switched off (P48): nothing is queued for the Scores tab, no stickers, no celebration.
+  if (!on('stars')) return [];
 
   const pid = player.profile_id;
   const gameId = getGameId();
@@ -79,7 +86,7 @@ export async function record({ score = 0, level = 1, stars = 1, seconds = 0 } = 
   const after = playerStats(profileData, api.getOutbox(), pid, await readyGameIds(), {
     beatBest: playedBefore && oldBest != null && cleanScore > oldBest,
   });
-  const fresh = newlyEarned(after, earnedIds(profileData, api.getOutbox(), pid));
+  const fresh = on('stickers') ? newlyEarned(after, earnedIds(profileData, api.getOutbox(), pid)) : [];
   fresh.forEach((a) => api.queueAchievement({ profile_id: pid, achievement_id: a.id }));
 
   // News for the launcher. Several rounds in a row add up into one celebration.
@@ -121,5 +128,5 @@ export function homeButton({ style = {} } = {}) {
 }
 
 if (typeof window !== 'undefined') {
-  window.FamilyGames = { getPlayer, getGameId, record, finish, goHome, homeButton };
+  window.FamilyGames = { getPlayer, getGameId, record, finish, goHome, homeButton, starsOn };
 }
