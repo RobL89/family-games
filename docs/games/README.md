@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.26 · 2026-11-12 |
+| **Version** | 1.27 · 2026-11-13 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.27:** stage 3 (D-120 to D-122): Rocket Lander is linked to P-020's wrapper through P-020's `shared/bridge.js` (`games/_common/rocket/link.js`, `round.js` 2.9), with a one-time track pick for a child with no progress (`trackpick.js`, D-121), no Home of its own inside the wrapper (D-118), and `game.json`, `icon.svg` and a README for the launcher. Its release check is `tools/tests/games/rocket-lander/check.py`, on P-020's `harness.py`; `origin/main` is merged into `claude/games` to test against the live wrapper. The doc check leaves `games.json` to P-020 and the contract pin is 0.4.2 (D-122); the close fetches main 500 deep (ER-010). New: `spike_rocket_lander_fit.py`, `make_rocket_icon.py`, `mutate_rocket_link.py`.
 
 **Changes at v1.26:** P-020 (Family Games Launcher) now hosts every game and publishes (D-112, D-113): the folder map, the branches and the section for other projects say so. `games.json`, `games/kriss-kross/` and `games/_template/` are P-020's; P-034 develops its games on `claude/` branches and releases each finished one to P-020 by a board note, as game contract 0.4 section 7 says. The games are built to contract 0.4 (D-114). `repo_check.py` 1.2 (with `test_checks.py` 1.2 and `mutate_checks.py` 1.2) and `pins.json` 1.1 follow; `measure_rocket_state_size.py` is new.
 
@@ -104,11 +106,15 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `measure_rocket_state_size.py` | A measurement, not a check: the largest progress Rocket Lander can save, as JSON, against contract 0.4's 20,000-character cap on `fg:state` (3,383 characters, 16.9%, on 12 Nov) |
 | `stand_in.py`, with `fixture_map_stand_in.js` | Not a check: the stand-in map (`map.js` 2.0, byte for byte, its sha256 checked before use) served in place of `map.js` to the older browser tests written for the stand-in levels (`test_rocket_lander_e2e.py`, `_levels.py`, `_sums_e2e.py`, `_map_e2e.py`, `test_rocket_hangar_e2e.py`), so their checks stay as they were (step 2c-3b) |
 | `plan_rocket_levels.py`, with `syllabus-notes.json` | The level plan (step 2c-2, decided: D-089 to D-092): its table of tracks, systems and levels, checked against Rob's syllabus notes (every level placed once, in the notes' order, 7 and a challenge a system), and the counts quoted in the plan. Run with the notes' path; `test_rocket_lander_core.py` runs it on `syllabus-notes.json`, Rob's notes without the children's ages (Q-033, D-095) |
+| `rocket-lander/check.py`, with P-020's `harness.py` | Rocket Lander's release check (contract 0.4.2, GC7), through P-020's wrapper (`play.html`) on a stand-in Sheet with made-up players: the three sizes under the bar, the one-time track pick, its own end of round, progress out with `fg:state` and back with `fg:start` (nothing kept on the device), a second child, sound off, a slow Sheet, two devices, and running on its own. About 3 minutes; serve the repo root on 127.0.0.1:8123 first. Until `games.json` lists the game, its browser is served a copy with a `testing` entry |
+| `spike_rocket_lander_fit.py` | A measurement, not a check: Rocket Lander under the wrapper's bar at the three sizes against on its own (Q-039: every number still written; a sideways phone's fall 93 px, not 147) |
+| `make_rocket_icon.py` | Not a check: writes `games/rocket-lander/icon.svg`, a one-colour 48 × 48 rocket drawn from the game's own (`scene.js`) |
 | `repo_check.py` | Nothing outside P-034's folders has changed on this branch (`games.json`, `games/kriss-kross/` and `games/_template/` are P-020's, D-113) |
-| `doc_check.py` | `games.json`, the docs here, and `pins.json` are well formed |
+| `doc_check.py` | The docs here and `pins.json` are well formed (`games.json` is P-020's to check, D-122) |
 | `pins_check.py` | Frozen files are unchanged byte for byte, and the contract and the games pack haven't changed on `work` since they were pinned |
 | `mutate_checks.py` | A bench, not part of the close: plants faults in the checks and counts how many the tests catch |
 | `mutate_rocket_lander.py`, `mutate_rocket_sums.py`, `mutate_rocket_hangar.py`, `mutate_rocket_map.py`, `mutate_rocket_years.py` | Benches, not part of the close: plant faults in the game (its number levels, its sums levels, its hangar, its map, Year 1's and Year 3's levels) and count how many its tests catch. Only the faults new in a step are run (D-057) |
+| `mutate_rocket_link.py` | A bench, not part of the close: plants faults in Rocket Lander's link to the wrapper and counts how many its release check catches, each on a copy of the site served on port 8123 |
 
 ```
 python3 -B tools/tests/games/close.py
@@ -118,7 +124,7 @@ python3 -B tools/tests/games/close.py
 
 ## For other projects
 
-**What's here:** P-034's workshop for the games it develops. They are built to the game contract (v0.4, on `work`: [docs/game-contract.md](https://github.com/RobL89/family-games/blob/work/docs/game-contract.md); D-114) and released to P-020 by a board note naming the commit (section 7).
+**What's here:** P-034's workshop for the games it develops. They are built to the game contract (v0.4.2, on `work`: [docs/game-contract.md](https://github.com/RobL89/family-games/blob/work/docs/game-contract.md); D-114, D-122) and released to P-020 by a board note naming the commit (section 7).
 
 **What's ready:**
 
@@ -126,7 +132,7 @@ python3 -B tools/tests/games/close.py
 |---|---|---|
 | `games/kriss-kross/`, `games.json`, `games/_template/` | P-020's (D-113, D-115); not changed on `claude/` branches | The launcher (P-020), the children |
 | `games/bubble-pop/` | Built; a "Soon" tile in P-020's list; P-034's to develop later (D-005) | Nobody yet |
-| `games/rocket-lander/` | On `claude/games`, one game with a map of solar systems (D-058) on two tracks (D-089: Reception then Year 1, Year 2 then Year 3; the track kept with the progress): number levels, sums levels, the questions and sums of Reception and Years 1 to 3 (48 levels a track) and challenge rounds, the map as home, running on its own as a plain page (built-in settings), its engine in `games/_common/rocket/`; in the grown-ups' trial (stage 2). Stage 3 links it to the wrapper (contract 0.4: it runs its own levels and hands its progress over with `fg:state`, Q-027 answered) and releases it to P-020 | Nobody yet |
+| `games/rocket-lander/` | On `claude/games`, one game with a map of solar systems (D-058) on two tracks (D-089: Reception then Year 1, Year 2 then Year 3; the track kept with the progress): number levels, sums levels, the questions and sums of Reception and Years 1 to 3 (48 levels a track) and challenge rounds, the map as home, running on its own as a plain page (built-in settings), its engine in `games/_common/rocket/`; in the grown-ups' trial (stage 2). Linked to P-020's wrapper at stage 3 through `shared/bridge.js` (it runs its own levels, takes the child's progress in `fg:start` and hands it back with `fg:state`; a one-time track pick per child, D-121), with its release check in `tools/tests/games/rocket-lander/`; released to P-020 by note | P-020 once released (`testing`, then `ready` on Rob's word) |
 | `games/rocket-sums/` | Retired at step 2c-build: its sums and levels are Rocket Lander's now (D-058); git keeps its history | Nobody |
 | Word Worm, Monster Café | Being brought over from `games-wip`, then built to the contract | Nobody yet |
 | This guide and the checks | On `claude/games` | P-034, and P-020 to see the folder map |
@@ -143,6 +149,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.27 | 2026-11-13 | Stage 3: Rocket Lander linked to the wrapper (`link.js`, `trackpick.js`, `round.js` 2.9), its release check, `game.json`, `icon.svg`, README; main merged in (D-120); doc check, pins and close after it (D-122, ER-010); new scripts |
 | 1.26 | 2026-11-12 | P-020 hosts every game (D-112, D-113): folder map, branches, section for other projects; contract 0.4 (D-114); `repo_check.py` 1.2, `pins.json` 1.1, `measure_rocket_state_size.py` |
 | 1.25 | 2026-11-11 | Ship prices halved (`fleet.js` 1.3, D-109), `count_rocket_ship_prices.py`; the checkpoint's full pass recorded (849c0b5) |
 | 1.24 | 2026-11-11 | Step 2c-3c: Year 1 and Year 3 (`map.js` 2.2, `asks.js`, `faces.js`, `sums.js`, `numbers.js`, `scene.js`, `round.js`), D-103 and D-104, `test_rocket_lander_year1_year3_e2e.py`, `mutate_rocket_years.py`, `close.py` 1.10 |
