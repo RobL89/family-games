@@ -18,6 +18,10 @@
 //   7. An artifact game's adapter (game.json "adapter", contract section 2): the maker's page is never
 //      edited, so the wrapper adds the adapter to the page in the frame as soon as its HTML has been
 //      read, and again if the page reloads (P67). The adapter then talks through bridge.js like any game.
+//   8. The cover (P83): while the game opens, the child's face covers it. A game's page first shows
+//      what it kept on this device (the previous child's explorer or puzzle) until fg:start says who
+//      is playing, and an adapter may reload the page once. So the cover lifts only SETTLE ms after
+//      fg:start reaches a page that isn't reloading, and goes back up if the page reloads.
 
 import { CONFIG } from './config.js';
 import * as api from './api.js';
@@ -31,6 +35,8 @@ const SEND_EVERY = 30000;  // ms: at most one send to the Sheet this often while
 const SEND_FIRST = 2000;   // ms: a first change waits this long, so a burst of changes goes as one
 const WAIT_FOR_SHEET = 3000; // ms: the most the game's start waits for that re-read; keep it well
                             // under the bridge's WAIT_MS (5 s), or games start on their own (P81)
+const SETTLE = 300;        // ms after fg:start before the cover lifts: time for the game to use it (P83)
+const MOST_COVERED = 6000; // ms: the most the cover stays up, whatever the game does (P83)
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // same key as the launcher's
 const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
 
@@ -115,6 +121,9 @@ async function start() {
   face.style.setProperty('--c', player.colour || '#F07A2A');
   face.hidden = false;
   document.getElementById('name').textContent = player.nickname || '';
+  const coverFace = document.getElementById('cover-face');
+  coverFace.innerHTML = face.innerHTML;
+  coverFace.style.setProperty('--c', player.colour || '#F07A2A');
 
   const folder = `games/${gameId}/`;
   const manifest = await loadJSON(`${folder}game.json`);
@@ -124,6 +133,43 @@ async function start() {
   const frame = document.createElement('iframe');
   frame.title = entry.title || 'Game';
   frame.allow = 'autoplay; fullscreen';
+
+  // ---- The cover (P83) ----
+  const cover = document.getElementById('cover');
+  let showTimer = null;
+  let mostTimer = null;
+  const coverGame = () => {
+    cover.hidden = false;
+    clearTimeout(showTimer);
+    clearTimeout(mostTimer);
+    mostTimer = setTimeout(showGame, MOST_COVERED);
+  };
+  function showGame() {
+    clearTimeout(showTimer);
+    clearTimeout(mostTimer);
+    if (cover.hidden) return;
+    cover.hidden = true;
+    frame.focus();
+  }
+  // The page is on its way out: an adapter is reloading it (freezeStorage marks it), or it's unloading.
+  const leaving = () => { try { return !!frame.contentWindow.fgLeaving; } catch { return false; } };
+  const currentDoc = () => { try { return frame.contentDocument; } catch { return null; } };
+  // After fg:start: lift the cover once the game has had time to use it, if it's still the same page.
+  const showSoon = () => {
+    const doc = currentDoc();
+    clearTimeout(showTimer);
+    showTimer = setTimeout(() => { if (currentDoc() === doc && !leaving()) showGame(); }, SETTLE);
+  };
+  // Each page that says fg:ready: if it unloads (a reload), the cover goes back up.
+  const watchPage = () => {
+    try {
+      const w = frame.contentWindow;
+      w.addEventListener('beforeunload', () => { w.fgLeaving = true; coverGame(); });
+    } catch { /* not ours to watch */ }
+  };
+  coverGame();
+  // Back to this page from the browser's history: the game is as it was left, so no cover.
+  window.addEventListener('pageshow', (e) => { if (e.persisted) showGame(); });
 
   // The game's saved state (P51, P78). Its progress may have been made on another device, so the
   // child's profile is re-read from the Sheet while the game opens.
@@ -160,6 +206,7 @@ async function start() {
     const m = e.data;
     if (!m || m.v !== VERSION) return;
     if (m.type === 'fg:ready') {
+      watchPage();
       startGame();
     } else if (m.type === 'fg:state') {
       // Kept at once; sent soon, or now if the page is being hidden (the game saved on its way out).
@@ -184,6 +231,7 @@ async function start() {
       state: api.getState(pid, gameId),
       level: null,
     }, location.origin);
+    showSoon();
   }
 
   frame.src = `${folder}${page}?player=${encodeURIComponent(pid)}`;

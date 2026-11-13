@@ -18,7 +18,8 @@
     <span class="face" id="face" hidden></span>
     <span class="wname" id="name"></span>
   </header>
-  <div class="wframe" id="frame"></div>
+  <!-- The cover (P83): the child's face hides the game while it opens, so the previous child's view never shows. -->
+  <div class="wframe" id="frame"><div class="wcover" id="cover" aria-label="Getting ready"><span class="face" id="cover-face"></span></div></div>
   <noscript><p style="padding:1rem">The games need JavaScript turned on.</p></noscript>
   <script type="module" src="shared/wrapper.js"></script>
 </body>

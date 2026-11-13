@@ -39,7 +39,10 @@ const time = (iso) => Date.parse(iso || '') || 0;
 
 // Ignores every write to this page's storage from now on. Used only just before a reload: many games
 // save their copy in memory as the page unloads, which would undo what was just written (P82).
+// It also marks the page as on its way out (window.fgLeaving), so the wrapper keeps its cover over
+// the game until the reloaded page has started (P83).
 export function freezeStorage() {
+  window.fgLeaving = true;
   const proto = Object.getPrototypeOf(window.localStorage);
   for (const name of ['setItem', 'removeItem', 'clear']) proto[name] = function () {};
 }
