@@ -1,4 +1,13 @@
-// The rocket game's round flow (D-027, D-058). Version 2.8.
+// The rocket game's round flow (D-027, D-058). Version 2.9.
+//
+// Changes at v2.9 (stage 3, D-120, D-121, D-118): linked to P-020's wrapper through shared/bridge.js
+// (link.js). runRocket starts the game when the bridge's start arrives: at once on its own, as before;
+// inside the wrapper once fg:start says who's playing. Inside the wrapper: sound follows fg:start's
+// `sound` (setMuted); the progress handed in is the child's (format 4), and every change goes back out
+// with fg:state, none of it kept on the device (D-042); a child with no progress is first asked which
+// track (trackpick.js, D-121), and the pick goes out at once; the game's own Home isn't made (the
+// wrapper's bar has one, D-118); the address's level and track aren't read, and a change of track
+// (which reloads the page) is refused. Test hooks: `linked` and `muted`.
 //
 // Changes at v2.8 (step 2c-3c): a landing's line may name the only marks to write (`label_at`: two unit
 // fractions on a line of their common parts), handed to the scene and part of the line's key, so a new pair
@@ -102,7 +111,7 @@
 //                              as fn(...args, { line, set(T) }).
 
 import { homeButton, report, reported, goHome, saveState, savedState, keepOnDevice, keptOnDevice } from './kit.js';
-import { play as playSound, speak, canSpeak, stopSpeaking, isMuted } from './sound.js';
+import { play as playSound, speak, canSpeak, stopSpeaking, isMuted, setMuted } from './sound.js';
 import { resolveSettings, fallSecondsFor } from './settings.js';
 import { makeLine, labelGap, nearness, starsFor, tidy } from './numbers.js';
 import { PLANETS } from './planets.js';
@@ -113,15 +122,34 @@ import { Hangar } from './hangar.js';
 import { StarMap } from './starmap.js';
 import { route, placeOf, fresh, tidy as tidyProgress, finish, rockLeft, goTo, levelGiven, bestOf, foundOf, systemStars, placeIn, ROCKS_PER_LEVEL, PASS_STARS } from './progress.js';
 import { unpack, pack, switchTrack, trackGiven } from './tracks.js';
+import { linkUp } from './link.js';
+import { pickTrack } from './trackpick.js';
 
+// Starts the game when the bridge's start arrives (link.js): on its own at once, as before; inside
+// the wrapper with the child's progress, after the one-time track pick if they have none (D-121).
 export function runRocket(mode) {
+  linkUp((start, fg) => {
+    setMuted(start.sound === false);
+    const linked = start.standalone ? null : fg;
+    const st = start.state;
+    const handed = linked && st && typeof st === 'object' && !Array.isArray(st) ? st : null;
+    const tracks = mode.tracks ? Object.keys(mode.tracks) : [];
+    if (linked && !handed && tracks.length > 1) pickTrack(mode.tracks, start.player, (track) => playRocket(mode, { linked, track }));
+    else playRocket(mode, { linked, state: handed });
+  });
+}
+
+// The game itself. `linked` is the bridge when inside the wrapper (null on its own), `state` the
+// child's progress handed in, `track` a track just picked for a child with none.
+function playRocket(mode, { linked = null, state = null, track = null } = {}) {
   const heard = []; // the last sounds played, by name, for the tests
   const sfx = (name) => { heard.push(name); if (heard.length > 200) heard.shift(); playSound(name); };
   const $ = (id) => document.getElementById(id);
   // The tracks (D-089): the one played is the address's, else this device's, else the game's first;
   // its map is the map for this visit. The other tracks' maps are kept as they were left (others).
   const TRACKS = mode.tracks || { one: { name: '', map: mode.map, edition: '' } };
-  const opening = unpack(TRACKS, keptOnDevice(mode.id), fromAddress('track'), mode.track);
+  const opening = linked ? unpack(TRACKS, state, track, mode.track) // the child's, from the wrapper
+    : unpack(TRACKS, keptOnDevice(mode.id), fromAddress('track'), mode.track);
   const TRACK = opening.track;
   const MAP = TRACKS[TRACK].map;
   let others = opening.others;
@@ -174,7 +202,9 @@ export function runRocket(mode) {
   let TR = null; // test hook: Bip's spot, frame by frame, while recording
   const DS = { id: null, S: null, P: new Parts() }; // the ship in the hangar door's doorway
 
-  const home = homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: '0 4px 0 rgba(10,6,40,.55)' } });
+  // Its own Home only on its own: inside the wrapper the bar has one (D-118), so a stand-in that's never shown.
+  const home = linked ? { hidden: true }
+    : homeButton({ style: { border: '4px solid #1B1446', color: '#1B1446', boxShadow: '0 4px 0 rgba(10,6,40,.55)' } });
 
   // ---------- Settings and the line ----------
 
@@ -367,8 +397,9 @@ export function runRocket(mode) {
     DS.P.draw(x, 'back'); drawShip(x, ship, S, t); DS.P.draw(x, 'front');
   }
 
-  // What's kept: in memory for the shell (GC8) and on this device until the shell keeps it (D-042), in
-  // format 4 (tracks.js): this track's map with the rocks and ships, and the other tracks' maps.
+  // What's kept, in format 4 (tracks.js): this track's map with the rocks and ships, and the other
+  // tracks' maps. In memory (for the tests), and out to the wrapper with fg:state inside it, or on this
+  // device on its own (D-042).
   function whole() {
     const mine = { at: progress.at, open: progress.open, levels: JSON.parse(JSON.stringify(progress.levels)), rocks: progress.rocks,
       landings: progress.landings, ship: progress.ship, ships: progress.ships.slice() };
@@ -377,7 +408,8 @@ export function runRocket(mode) {
   function keep() {
     const kept = whole();
     saveState(kept);
-    keepOnDevice(mode.id, kept);
+    if (linked) linked.saveState(kept);
+    else keepOnDevice(mode.id, kept);
   }
 
   function openHangar() {
@@ -1179,8 +1211,8 @@ export function runRocket(mode) {
       calm: () => scene.calm,
       covered: (on) => { home.hidden = !!on; },
     });
-    progress = tidyAll(opening.p); // D-042, D-058, D-089: this track's progress on this device, or afresh
-    useLevel(levelFromAddress());
+    progress = tidyAll(opening.p); // D-042, D-058, D-089: this track's progress, handed in or on this device, or afresh
+    useLevel(linked ? null : levelFromAddress());
     scene.setPlanet(MAP[level.s].planet);
     applySettings();
     resize();
@@ -1189,6 +1221,7 @@ export function runRocket(mode) {
     showMap({ intro: true });
     frame = requestAnimationFrame(loop);
     ready = true;
+    if (linked && track) keep(); // the track just picked goes out at once (D-121)
   }
 
   // The level, settings and saved state handed to the game (by a test or the preview's test
@@ -1199,13 +1232,17 @@ export function runRocket(mode) {
   function begin({ track = undefined, level: givenLevel = undefined, settings = {}, state = null } = {}) {
     if (G.phase !== 'map' || (hangar && hangar.isOpen)) return false;
     const to = trackGiven(TRACKS, track);
-    if (to && to !== TRACK) { changeTrack(to); return 'reload'; }
+    if (to && to !== TRACK) {
+      if (linked) { console.info(`${mode.name}: the track isn't changed inside the wrapper (D-121).`); return false; }
+      changeTrack(to); return 'reload';
+    }
     const r = resolveSettings(SCHEMA, settings);
     if (r.notes.length) console.info(`${mode.name} settings: ${r.notes.join('; ')}.`);
     S = r.values;
-    // the state handed in (by the shell, a test or the test panel), or else what this device kept
-    progress = readProgress(state && typeof state === 'object' ? state : keptOnDevice(mode.id));
-    useLevel(givenLevel === undefined ? levelFromAddress() : givenLevel);
+    // the state handed in (by a test or the test panel), or else what's kept: the progress so far
+    // inside the wrapper, this device's on its own
+    progress = readProgress(state && typeof state === 'object' ? state : linked ? whole() : keptOnDevice(mode.id));
+    useLevel(givenLevel === undefined ? (linked ? null : levelFromAddress()) : givenLevel);
     scene.setPlanet(MAP[level.s].planet);
     applySettings();
     resize();
@@ -1219,6 +1256,7 @@ export function runRocket(mode) {
 
   const api = {
     state: () => ({
+      linked: !!linked, muted: isMuted(),
       track: TRACK, tracks: Object.keys(TRACKS), kept: whole(), fall: G.T && G.fallV ? +((G.touchY - G.startY) / G.fallV).toFixed(3) : null, ask: G.T && G.T.ask || null, sub: G.T && G.T.sub !== undefined ? G.T.sub : null,
       phase: G.phase, target: G.T && G.T.value !== undefined ? G.T.value : null, rule: G.T && G.T.rule, parity: G.T && G.T.parity || null,
       sum: G.T && G.T.sum || null, beam: !!(V.shadow && V.shadow.beam), snap: V.shadow ? V.shadow.snap : null,

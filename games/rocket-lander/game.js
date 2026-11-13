@@ -1,5 +1,8 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.4.
+// One game with a map of solar systems (D-058). Version 3.5.
+//
+// Changes at v3.5 (stage 3, D-120): only this header: the game links to P-020's wrapper through the
+// engine (round.js 2.9, link.js), so begin() is no longer what a start message calls.
 //
 // Changes at v3.4 (step 2c-3c): Year 1 and Year 3 (map.js 2.2). Their questions (asks.js 1.2) land on the
 // line askLine gives each landing: a stretch (in its half, for numbers to 100; counting in 10s on a
@@ -38,8 +41,9 @@
 // 2.1 was Number mode's tile alone.
 //
 // Runs on its own (D-004, D-014; GC5): the map's place on this device, or the level in the
-// address (?level=, counted along the map: 1 to 8 on Moon, 9 to 16 on Red Dust). begin() is on
-// window.__test, and at stage 3 the contract's start message calls it.
+// address (?level=, counted along the map). Inside P-020's wrapper (stage 3): the child's progress from
+// fg:start, out again with fg:state, and a one-time track pick for a child with none (D-121). begin() is
+// on window.__test, for the tests and the preview's test panel.
 
 import { runRocket } from '../_common/rocket/round.js';
 import { SETTINGS } from '../_common/rocket/settings.js';

@@ -1,4 +1,6 @@
-/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.3.
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.4.
+   Changes at v2.4 (stage 3, D-121): the one-time track pick's card, its two buttons one above the other
+   (side by side on a sideways phone).
    Changes at v2.3 (step 2c-3c): Year 1's and Year 3's faces: groups as rows of dots in lilac boxes, half of a
    number, a place-value chart (H, T, O: coral hundreds, mint tens, sun ones, as the blocks' colours), which of
    two fractions is bigger, a count in tenths, an estimate (nearest 10 or 100), a fraction sum, and a mixed
@@ -411,6 +413,13 @@ button { font: inherit; color: inherit; }
 }
 .big.go.hyper { background: linear-gradient(90deg, #7C6CF0, #FF5D73); }
 
+/* The one-time track pick (D-121) */
+.track-pick { width: min(480px, calc(100% - 28px)); }
+.tp-note { margin: 2px 0 16px; font-size: 21px; line-height: 1.25; }
+.tp-row { flex-direction: column; align-items: stretch; }
+.tp-btn { font-size: clamp(19px, 5.6vw, 26px); padding: 8px 14px; }
+.tp-btn.go:not(:active) { animation: none; }
+
 @media (max-width: 560px) {
   .map-bar { grid-template-columns: auto 1fr auto; grid-template-areas: "gal . hangar" "sys sys sys"; row-gap: 6px; }
   .map-bar .hangar-btn { margin-top: 14px; }
@@ -429,4 +438,9 @@ button { font: inherit; color: inherit; }
   .slot { width: 28px; height: 28px; } .slot .rock-icon { width: 24px; height: 24px; }
   .rocks-p { margin: 2px 0 4px; font-size: 19px; }
   .end-done { font-size: 19px; }
+  .track-pick { width: min(640px, calc(100% - 24px)); padding: 10px 18px 14px; }
+  .track-pick .cheer { font-size: 32px; }
+  .tp-note { margin: 0 0 10px; font-size: 18px; }
+  .tp-row { flex-direction: row; }
+  .tp-btn { flex: 1; font-size: 21px; min-height: 56px; padding: 6px 12px; }
 }

@@ -1,4 +1,8 @@
-"""Build a game's private preview page (D-018). Version 1.6.
+"""Build a game's private preview page (D-018). Version 1.7.
+
+Changes at v1.7 (stage 3, D-120): a module may also import P-020's shared/bridge.js (contract 0.4 GC4),
+which goes into the bundle like the rest; in a preview no wrapper answers, so the game starts at once
+(link.js).
 
 Changes at v1.6 (step 2c-build, D-066): the map is home, so the stamp shows while the map does.
 
@@ -59,7 +63,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 
-IMPORT = re.compile(r"^import \{([^}]*)\} from '((?:\./|\.\./_common/[\w-]+/)[\w-]+)\.js';\s*$")
+IMPORT = re.compile(r"^import \{([^}]*)\} from '((?:\./|\.\./_common/[\w-]+/|(?:\.\./)+shared/)[\w-]+)\.js';\s*$")
 EXPORT = re.compile(r"^export (?:async )?(function\*?|const|let|class) (\w+)")
 CSS_LINK = re.compile(r'<link rel="stylesheet" href="([\w./-]+\.css)">')
 CSS_URL = re.compile(r'url\(([^)]*)\)')
@@ -96,8 +100,9 @@ def game_files(folder):
 
 
 def in_bounds(game, key):
-    """D-036: a game's bundle may hold its own folder's files and files in games/_common/, nothing else."""
-    return key.startswith(f'games/{game}/') or key.startswith('games/_common/')
+    """D-036, GC4: a game's bundle may hold its own folder's files, files in games/_common/ and P-020's
+    shared/bridge.js, nothing else."""
+    return key.startswith(f'games/{game}/') or key.startswith('games/_common/') or key == 'shared/bridge'
 
 
 def resolve(game, importer, spec):
