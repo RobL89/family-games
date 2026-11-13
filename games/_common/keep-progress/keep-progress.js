@@ -37,8 +37,9 @@ const store = (key, value) => { try { localStorage.setItem(key, JSON.stringify(v
 const text = (value) => (value === null || value === undefined ? null : JSON.stringify(value));
 const time = (iso) => Date.parse(iso || '') || 0;
 
-// Ignores every write to this page's storage from now on. Used only just before a reload.
-function freezeStorage() {
+// Ignores every write to this page's storage from now on. Used only just before a reload: many games
+// save their copy in memory as the page unloads, which would undo what was just written (P82).
+export function freezeStorage() {
   const proto = Object.getPrototypeOf(window.localStorage);
   for (const name of ['setItem', 'removeItem', 'clear']) proto[name] = function () {};
 }

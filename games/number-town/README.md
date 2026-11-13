@@ -14,6 +14,7 @@ An artifact game: a cosy explore-and-collect maths town. The child makes an expl
 **One explorer per child (P70):**
 - The adapter shows the game only this child's explorer. If the game's list of explorers has to change, the page reloads once as it opens.
 - A child without one makes it first, with their name filled in.
+- The swap happens as the page opens, before the Sheet answers, and never hands a child another child's explorer (P82).
 - "Switch explorer" is hidden. "Change my look" still edits everything.
 - Other children's explorers stay saved on the device.
 

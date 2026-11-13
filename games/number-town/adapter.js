@@ -23,7 +23,7 @@
 
 import { connect } from '../../shared/bridge.js';
 import { soundOff } from '../_common/sound-off/sound-off.js';
-import { keepProgress } from '../_common/keep-progress/keep-progress.js';
+import { keepProgress, freezeStorage } from '../_common/keep-progress/keep-progress.js';
 
 const ROSTER = 'numberTown.players.v1';            // the game's list of explorers: { current, ids }
 const SAVE = (id) => `numberTown.player.${id}`;    // one explorer's save
@@ -55,8 +55,18 @@ function useOnlyMine(mine) {
   } catch {
     return true; // storage blocked: the game can't save either, so play on as it is
   }
+  // The game still has the previous explorer in memory and saves it as the page unloads, which
+  // would put that explorer back in its list: ignore its saves until the reload (P82).
+  freezeStorage();
   location.reload();
   return false;
+}
+
+// Another child's explorer on this device, as noted by the adapter.
+function anotherChilds(id) {
+  try {
+    return Object.keys(localStorage).some((k) => k.startsWith('fg.numberTown.mine.') && k !== MINE && read(k) === id);
+  } catch { return false; }
 }
 
 // A new explorer: fill in the child's name when "Make your explorer" opens empty.
@@ -76,7 +86,8 @@ let playing = false;
 function myExplorer() {
   if (playing) {
     const r = read(ROSTER);
-    if (r && r.current && r.current !== mine && hasExplorer(r.current)) setMine(r.current);
+    // A new explorer the child just made becomes theirs; never one that is another child's (P82).
+    if (r && r.current && r.current !== mine && hasExplorer(r.current) && !anotherChilds(r.current)) setMine(r.current);
   }
   return hasExplorer(mine) ? mine : null;
 }
@@ -99,6 +110,11 @@ const progress = keepProgress(fg, {
     setMine(p.explorer);
   },
 });
+
+// Swap to this child's explorer as soon as the page opens, if this device already knows it, rather
+// than after fg:start (which can wait up to 3 seconds for the Sheet): a shorter flicker, and less
+// time playing as the previous child (P82). A child new to this device is handled in onStart.
+if (child && window.parent !== window && hasExplorer(read(MINE))) useOnlyMine(read(MINE));
 
 fg.onStart((start) => {
   if (start.standalone) return; // not in the wrapper: the page runs as its maker made it

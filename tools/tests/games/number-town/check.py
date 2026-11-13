@@ -1,6 +1,7 @@
 """Number Town release check (contract 0.4, GC7), through the wrapper with its adapter.
 See ../harness.py for how to run it. Ends "PASS n of n". It checks the start of the game: making
-an explorer, the Mayor's letter and walking into town; one explorer per child (P70); and the
+an explorer, the Mayor's letter and walking into town; one explorer per child (P70), also when the
+game saves as it reloads (P82); and the
 explorer following the child between two devices through a stand-in Sheet (P77, P78). Its 3D
 searches load three.js from cdnjs (set FG_THREE_JS to serve a local copy); the maker's own notes
 say phone fixes aren't built yet."""
@@ -85,6 +86,45 @@ with sync_playwright() as pw:
             fr.locator('#btnBackpack').is_visible() and not fr.locator('#players').is_visible() and roster['ids'] == [sam['explorer']], roster)
     pg.screenshot(path=f'{OUT}/4-sam-back.png')
     ctx.close()
+
+    # 2b. Switching children on one device (P82). The Sheet is slow to answer, so the swap to this
+    #     child's explorer must already have happened before it answers; and the game saves as the page
+    #     unloads (forced here). Each child gets their own explorer; neither takes over the other's.
+    c.script = '0.4.0'
+    ctx, pg = c.page(browser, 1366, 768)
+    ctx.add_init_script("addEventListener('beforeunload', () => dispatchEvent(new Event('blur')))")
+    fr, f = c.open_game(pg, wait=3000)
+    into_town(pg, fr, 'sam-b'); pg.wait_for_timeout(2500)
+    sam = progress(pg, 'p_sam')
+
+    def switch_to(pid):
+        pg.click('#home'); pg.wait_for_selector('.home')
+        pg.click('[data-back]'); pg.wait_for_selector('.player'); pg.click(f'[data-p="{pid}"]'); pg.wait_for_selector('.home'); pg.wait_for_timeout(800)
+        c.hold = True  # the Sheet hasn't answered yet
+        pg.click('[data-g="number-town"]'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(1500)
+        early = json.loads(pg.evaluate("localStorage.getItem('numberTown.players.v1')") or 'null')
+        c.release()
+        pg.wait_for_timeout(4000)
+        return pg.frame_locator('.wframe iframe'), early
+
+    fr, _ = switch_to('p_alex')
+    into_town(pg, fr, 'alex-b'); pg.wait_for_timeout(2500)
+    alex = progress(pg, 'p_alex')
+    for i, (pid, theirs) in enumerate([('p_sam', sam), ('p_alex', alex), ('p_sam', sam), ('p_alex', alex)], 1):
+        _, early = switch_to(pid)
+        c.check(f'switch {i}, to {pid}: their explorer is swapped in before the Sheet answers',
+                early and early['current'] == theirs['explorer'], early)
+        roster = json.loads(pg.frames[1].evaluate("localStorage.getItem('numberTown.players.v1')") or 'null')
+        c.check(f'switch {i}, to {pid}: their own explorer, though the game saves as it reloads',
+                roster and roster['current'] == theirs['explorer'] and roster['ids'] == [theirs['explorer']], roster)
+    mines = pg.evaluate("[localStorage.getItem('fg.numberTown.mine.p_sam'), localStorage.getItem('fg.numberTown.mine.p_alex')]")
+    c.check('each child still owns only their own explorer', mines == [json.dumps(sam['explorer']), json.dumps(alex['explorer'])], mines)
+    pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(2000)
+    in_sheet = [c.states.get((p, 'number-town'), {}).get('state', {}).get('progress', {}).get('explorer') for p in ('p_sam', 'p_alex')]
+    c.check("the Sheet holds each child's own explorer", in_sheet == [sam['explorer'], alex['explorer']], in_sheet)
+    ctx.close()
+    c.states.clear()
+    c.script = '0.3.0'
 
     # 3. The explorer follows the child (P77, P78), with a stand-in Sheet like script 0.4.0.
     #    Two browser contexts are two devices: their storage is separate, the Sheet is shared.

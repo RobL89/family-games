@@ -44,6 +44,7 @@ class Check:
         ]
         self.lists = lists or {}
         self.script = script
+        self.held = []
         self.states = {}  # (profile_id, game_id) -> {'state', 'at'}, script 0.4.0 only
         self.three = open(THREE_JS, encoding='utf-8').read() if THREE_JS else None
 
@@ -91,9 +92,7 @@ class Check:
                                   device_scale_factor=2 if mobile else 1)
         ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) {{ localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));"
                             f" localStorage.setItem('fg.testing', 'true'); localStorage.setItem('fg.muted', '{'true' if muted else 'false'}'); }}")
-        ctx.route(re.compile(r'https://script\.google\.com/.*'),
-                  lambda route: route.fulfill(status=200, content_type='application/json',
-                                              body=json.dumps(self.handle(json.loads(route.request.post_data or '{}')))))
+        ctx.route(re.compile(r'https://script\.google\.com/.*'), self._sheet)
         ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda route: route.abort())
         if self.three:
             ctx.route(THREE_URL, lambda route: route.fulfill(status=200, content_type='text/javascript', body=self.three))
@@ -103,6 +102,25 @@ class Check:
         pg.on('console', lambda m: self.errors.append(f'console {m.type}: {m.text}')
               if m.type == 'error' and 'ERR_FAILED' not in m.text and 'ERR_BLOCKED' not in m.text else None)
         return ctx, pg
+
+    # The stand-in Sheet. While `hold` is True its answers wait, like the live Sheet's 2.5 to 3 seconds
+    # (P81), until release() sends them.
+    hold = False
+
+    def _sheet(self, route):
+        if self.hold:
+            self.held.append(route)
+        else:
+            self._answer(route)
+
+    def _answer(self, route):
+        route.fulfill(status=200, content_type='application/json',
+                      body=json.dumps(self.handle(json.loads(route.request.post_data or '{}'))))
+
+    def release(self):
+        self.hold = False
+        while self.held:
+            self._answer(self.held.pop(0))
 
     def open_game(self, pg, player='p_sam', wait=2500):
         """Home first (fills the device's cache), then the game's tile, as a child would."""
