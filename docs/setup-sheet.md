@@ -73,3 +73,9 @@ Each new script version is pasted and deployed the same way. The handoff and the
 | 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
 | 0.3.0 | GameLists tab, header row only |
 | 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |
+
+## Checking a change to the Sheet
+
+Claude exports the Sheet through the Drive connector before and after any change, keeps the copies in `/tmp` (they hold the family's names), and runs `python3 -I tools/sheet_compare.py <before.xlsx> <after.xlsx>`: it lists, tab by tab, the rows that went or came, cell by cell. A change is previewed the same way on a local copy first.
+
+**Grown-up test rows cleared (Q13), 2026-11-13:** after Rob's backup (`family-games backup 2026-11-13 2035`, the same as the live Sheet cell by cell), Rob deleted Scores 2, Achievements 6, Daddy's GameLists test list, Daddy's wrapper-check row in Settings and the empty `Sheet1` tab. The live Sheet afterwards matched the preview cell by cell. The Scores and Achievements tabs stay, with their header rows (P48).

@@ -85,7 +85,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 
 ## From the review (Rob's answers, 2026-10-30)
 
-The review (`docs/review/REVIEW.md`, retired by P64; in git history up to `48c01aa`) asked Q4 to Q19. Still in force: Q4 push to `work`, publish = merge into `main` · Q9 one handoff, a project doc · Q10 every game runs in the wrapper · Q11 no kid mode for Kriss Kross · Q12 one general Settings tab, word lists in GameLists · Q13 clear the grown-up test rows after script 0.4.0 · Q14 Android phone (Chrome) and Windows PC · Q15 read aloud, behind the sound switch · Q17 Kriss Kross lists stay lists · Q18 an optional tips sheet for artifact-game makers. Replaced by P48: Q5 to Q7 (levels, sticker book, goals) and Q16 (everything a sticker).
+The review (`docs/review/REVIEW.md`, retired by P64; in git history up to `48c01aa`) asked Q4 to Q19. Still in force: Q4 push to `work`, publish = merge into `main` · Q9 one handoff, a project doc · Q10 every game runs in the wrapper · Q11 no kid mode for Kriss Kross · Q12 one general Settings tab, word lists in GameLists · Q13 clear the grown-up test rows after script 0.4.0 (done 2026-11-13, setup-sheet.md) · Q14 Android phone (Chrome) and Windows PC · Q15 read aloud, behind the sound switch · Q17 Kriss Kross lists stay lists · Q18 an optional tips sheet for artifact-game makers. Replaced by P48: Q5 to Q7 (levels, sticker book, goals) and Q16 (everything a sticker).
 
 ## Open questions
 
