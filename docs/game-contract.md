@@ -1,6 +1,6 @@
 # Game contract
 
-**Version 0.4, 2026-11-12.** What a game needs to run in the launcher, what the launcher can give it, and how a game gets in.
+**Version 0.4.1, 2026-11-13.** What a game needs to run in the launcher, what the launcher can give it, and how a game gets in.
 
 - **Owner:** P-020 (Family Games Launcher), the master host of every game (P53). Games are developed elsewhere, now in P-034 (Kids Games Development), and released to P-020 (section 7).
 - **Changes:** Rob agrees each change. P-020 tells every games project by board note before it changes this file.
@@ -83,7 +83,7 @@ Sent with `window.postMessage`, between pages on the same site only. Each one is
 | Plain HTML, CSS and JavaScript; no build step | P1 |
 | Works on an Android phone (Chrome), upright and sideways, and on a Windows PC, with the wrapper's bar at the top | Q14 |
 | **GC3. Levels:** the game runs its own levels and keeps them in its own state | P50 |
-| **GC5. Running on its own:** with no frame, or no `fg:start` within about 1.5 seconds, the game plays with its defaults and saves to the device only | |
+| **GC5. Running on its own:** with no frame, or no `fg:start` within about 5 seconds (P81), the game plays with its defaults and saves to the device only | |
 | **GC6. A Play button on the first screen,** so a child starts on purpose and the phone allows sound (TBC on the phone; Chrome's autoplay guidance, checked 2026-11-08) | |
 | Children appear by first name or nickname and a cartoon animal only | P9 |
 | The repo is public: no names or family details in any file | Project rule |
@@ -119,4 +119,5 @@ An update follows the same steps, and the new folders replace the old ones.
 | 0.1 | 2026-11-08 | The review's blueprint with Rob's shell changes of 2026-10-30 |
 | 0.2 | 2026-11-08 | GC1 to GC7 adopted |
 | 0.3 | 2026-11-08 | GC8: a game's own rewards saved as a state object per child per game |
+| 0.4.1 | 2026-11-13 | GC5: a framed game waits about 5 seconds for `fg:start`, not 1.5, because the wrapper may first wait up to 3 seconds for the Sheet (P81) |
 | 0.4 | 2026-11-12 | Rob's new direction (P48 to P54). The wrapper is a bar with Home and the child's face, with no panel, stars or levels. Games run their own levels (GC3) and show their own end of round. Services listed (section 4), with one set of word lists per child. Imports may include `games/_common/` (GC4). Each game has a one-page README. The release route to P-020 (section 7). GC7 updated |

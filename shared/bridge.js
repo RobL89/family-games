@@ -18,11 +18,12 @@
 //   fg.roundOver({ stars: 3, score: 12 });          // optional; the wrapper ignores it while stars are off (P48)
 //
 // Running on its own (GC5): the page isn't in a frame, or no start message arrives within
-// about 1.5 seconds. The game then gets no player, no lists, sound on and no saved state,
+// about 5 seconds (P81: the wrapper may wait up to 3 seconds for the Sheet before it sends one). The game then gets no player, no lists, sound on and no saved state,
 // and saveState() and roundOver() do nothing, so the game saves to the device itself.
 
 const VERSION = 1;
-const WAIT_MS = 1500; // how long to wait for the wrapper before running on its own
+const WAIT_MS = 5000; // how long to wait for the wrapper before running on its own (P81: more than
+                      // the wrapper's WAIT_FOR_SHEET of 3 s, plus time for the page to load)
 const MAX_STATE = 20000; // characters of JSON (contract section 5)
 
 export function connect({ wait = WAIT_MS } = {}) {

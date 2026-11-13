@@ -29,7 +29,8 @@ import * as sound from './sound.js';
 const VERSION = 1;
 const SEND_EVERY = 30000;  // ms: at most one send to the Sheet this often while playing (P78)
 const SEND_FIRST = 2000;   // ms: a first change waits this long, so a burst of changes goes as one
-const WAIT_FOR_SHEET = 3000; // ms: the most the game's start waits for that re-read
+const WAIT_FOR_SHEET = 3000; // ms: the most the game's start waits for that re-read; keep it well
+                            // under the bridge's WAIT_MS (5 s), or games start on their own (P81)
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // same key as the launcher's
 const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
 

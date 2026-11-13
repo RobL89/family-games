@@ -7,6 +7,7 @@ Needs Python Playwright. From the repo root:
 then:
     python3 -B tools/tests/e2e_wrapper.py <folder for screenshots>
     FG_SCRIPT=0.4.0 python3 -B tools/tests/e2e_wrapper.py <folder>   (the stand-in answers like script 0.4.0)
+Also run e2e_slow_sheet.py: the same stand-in, answering slowly like the live Sheet (P81).
 Ends with "PASS n of n" or lists what failed. Run it both ways: the launcher works with either script.
 """
 import json
