@@ -13,7 +13,7 @@
  * 0.3.0: GameLists tab: each player's word lists per game (set up in the
  *        launcher's Game setup), returned by `profile` and saved by `saveLists`.
  * 0.4.0: Settings tab: each game's saved state per player (P51), saved by `saveState`
- *        and returned by `profile` as `states`. One set of word lists per player for
+ *        and returned by `profile` as `states`; the newest save wins (P78). One set of word lists per player for
  *        every game (P56), returned by `profile` as `word_lists`. Skins no longer need
  *        stars (P49, P63). Tested in Node first: tools/tests/script/ (P75).
  */
@@ -322,21 +322,28 @@ function saveLists(body) {
   return { ok: true, lists: wordListsFor(profileId) };
 }
 
-/** Each game's saved state for one player: { game_id: state }. Empty until setup adds Settings. */
+/**
+ * Each game's saved state for one player, with when it was made:
+ *   { game_id: { state, at } }   at: ISO time. Empty until setup adds the Settings tab.
+ */
 function statesFor(profileId) {
   if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Settings')) return {};
   const out = {};
   rows('Settings').forEach(function (r) {
     if (r.profile_id !== profileId || r.key !== 'state' || !ID_PATTERN.test(String(r.game_id || ''))) return;
     // String() first: the Sheet turns JSON like 42 or true into a number or TRUE.
-    try { out[r.game_id] = JSON.parse(String(r.value)); } catch (err) { /* not JSON: skipped */ }
+    try { out[r.game_id] = { state: JSON.parse(String(r.value)), at: toIso(r.updated_at) }; } catch (err) { /* not JSON: skipped */ }
   });
   return out;
 }
 
 /**
- * Keeps one game's saved state for one player, replacing what was there (P51):
- *   { profile_id, game_id, state }   state: anything JSON can hold, up to MAX_STATE characters.
+ * Keeps one game's saved state for one player (P51):
+ *   { profile_id, game_id, state, at }   state: anything JSON can hold, up to MAX_STATE characters;
+ *                                        at: when the game made it (ISO time, from the device).
+ * The newest save wins (P78): one older than what the Sheet has is ignored (saved: false), so a
+ * device coming back online can't overwrite newer play from another device. A time in the future
+ * (a device clock running fast) counts as now, so it can't win for ever.
  */
 function saveState(body) {
   const profileId = String(body.profile_id || '');
@@ -346,12 +353,17 @@ function saveState(body) {
   const value = JSON.stringify(body.state === undefined ? null : body.state);
   if (value.length > MAX_STATE) return { ok: false, error: 'state_too_big' };
   if (!rows('Profiles').some(function (p) { return p.profile_id === profileId; })) return { ok: false, error: 'no_such_profile' };
-  setSetting(profileId, gameId, 'state', value);
-  return { ok: true };
+  const now = new Date();
+  const at = toDate(body.at, now) > now ? now : toDate(body.at, now);
+  const kept = setSetting(profileId, gameId, 'state', value, at);
+  return { ok: true, saved: kept.saved, at: toIso(kept.at) };
 }
 
-/** Writes one Settings row (player, game, key), changing it if it's there, adding it if not. */
-function setSetting(profileId, gameId, key, value) {
+/**
+ * Writes one Settings row (player, game, key) made at `at`: changes it if it's there and not
+ * newer, adds it if not. Returns { saved, at } with the time of what the row now holds.
+ */
+function setSetting(profileId, gameId, key, value, at) {
   const s = sheet('Settings');
   const values = s.getDataRange().getValues();
   const headers = values[0].map(String);
@@ -361,15 +373,16 @@ function setSetting(profileId, gameId, key, value) {
     return i;
   };
   const p = col('profile_id'), g = col('game_id'), k = col('key'), v = col('value'), u = col('updated_at');
-  const now = new Date();
   for (let i = 1; i < values.length; i++) {
     if (values[i][p] === profileId && values[i][g] === gameId && values[i][k] === key) {
+      if (toTime(values[i][u]) > at.getTime()) return { saved: false, at: values[i][u] };
       s.getRange(i + 1, v + 1).setValue(value);
-      s.getRange(i + 1, u + 1).setValue(now);
-      return;
+      s.getRange(i + 1, u + 1).setValue(at);
+      return { saved: true, at: at };
     }
   }
-  appendObjects('Settings', [{ profile_id: profileId, game_id: gameId, key: key, value: value, updated_at: now }]);
+  appendObjects('Settings', [{ profile_id: profileId, game_id: gameId, key: key, value: value, updated_at: at }]);
+  return { saved: true, at: at };
 }
 
 function starsTotalFor(profileId) {

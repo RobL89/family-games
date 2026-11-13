@@ -34,6 +34,8 @@ const rowsOf = (b, tab) => {
   return body.map((line) => Object.fromEntries(head.map((h, i) => [h, line[i]])));
 };
 const titles = (lists) => (lists || []).map((l) => [l.title, l.words.join(' ')]);
+const stateOnly = (states) => Object.fromEntries(Object.entries(states || {}).map(([g, x]) => [g, x && x.state]));
+const iso = (ms) => new Date(ms).toISOString();
 
 // ---- The test bed itself ------------------------------------------------------------
 
@@ -125,8 +127,9 @@ check("a game's state saved for a child comes back in profile, unchanged", () =>
   const b = bed();
   b.run('setup');
   const state = { lists: [{ title: 'Mine', words: ['cat', 'dog'] }], explorer: 'e_7', count: 3, done: true, code: '007' };
-  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'kriss-kross', state }), 'saveState');
-  eq(b.post('profile', { profile_id: 'p_sam' }).states, { 'kriss-kross': state }, 'states');
+  const at = iso(Date.now() - 60000);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'kriss-kross', state, at }), 'saveState');
+  eq(b.post('profile', { profile_id: 'p_sam' }).states, { 'kriss-kross': { state, at } }, 'states, with when each was made');
 });
 
 check('plain states come back as they went: a number, true, text of digits, null', () => {
@@ -134,7 +137,7 @@ check('plain states come back as they went: a number, true, text of digits, null
   b.run('setup');
   const plain = { 'g-num': 42, 'g-true': true, 'g-digits': '007', 'g-null': null };
   Object.entries(plain).forEach(([game, state]) => okReply(b.post('saveState', { profile_id: 'p_sam', game_id: game, state }), game));
-  eq(b.post('profile', { profile_id: 'p_sam' }).states, plain, 'states');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), plain, 'states');
 });
 
 check('saving again replaces it: one Settings row per child, game and key', () => {
@@ -146,7 +149,36 @@ check('saving again replaces it: one Settings row per child, game and key', () =
   eq(rows.length, 1, 'Settings rows');
   eq([rows[0].profile_id, rows[0].game_id, rows[0].key], ['p_sam', 'number-town', 'state'], 'row');
   ok(rows[0].updated_at instanceof Date, 'updated_at is a date');
-  eq(b.post('profile', { profile_id: 'p_sam' }).states, { 'number-town': { v: 2 } }, 'states');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'number-town': { v: 2 } }, 'states');
+});
+
+check('the newest save wins: an older one arriving later is ignored', () => {
+  const b = bed();
+  b.run('setup');
+  const t = Date.now() - 3600000;
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'number-town', state: { v: 'newer' }, at: iso(t + 60000) }), 'newer save');
+  const late = b.post('saveState', { profile_id: 'p_sam', game_id: 'number-town', state: { v: 'older' }, at: iso(t) });
+  eq([late.ok, late.saved, late.at], [true, false, iso(t + 60000)], 'reply to the older save');
+  eq(b.post('profile', { profile_id: 'p_sam' }).states['number-town'], { state: { v: 'newer' }, at: iso(t + 60000) }, 'state kept');
+});
+
+check('a save stamped in the future counts as now', () => {
+  const b = bed();
+  b.run('setup');
+  const before = Date.now();
+  const r = b.post('saveState', { profile_id: 'p_sam', game_id: 'number-town', state: 1, at: iso(before + 86400000) });
+  okReply(r, 'saveState');
+  ok(Date.parse(r.at) >= before && Date.parse(r.at) <= Date.now(), `stored time ${r.at} is not now`);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'number-town', state: 2, at: iso(Date.now() + 1) }), 'next save');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'number-town': 2 }, 'a later save still wins');
+});
+
+check('a save with no time counts as now', () => {
+  const b = bed();
+  b.run('setup');
+  const before = Date.now();
+  const r = b.post('saveState', { profile_id: 'p_sam', game_id: 'g', state: 'x' });
+  ok(r.saved === true && Date.parse(r.at) >= before, `reply ${JSON.stringify(r)}`);
 });
 
 check("one child's state is not shown to another child", () => {
