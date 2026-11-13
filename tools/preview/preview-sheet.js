@@ -34,7 +34,7 @@ function seed() {
       { list_id: 'l_demo1', profile_id: 'p_sam', game_id: '', position: 1, title: 'Animals', words: ['cat', 'dog', 'cow', 'pig', 'horse'] },
       { list_id: 'l_demo2', profile_id: 'p_sam', game_id: '', position: 2, title: 'Colours', words: ['red', 'blue', 'green', 'pink'] },
     ],
-    states: [], // { profile_id, game_id, state }
+    states: [], // { profile_id, game_id, state, at }: the newest save wins (P78)
   };
 }
 
@@ -57,7 +57,7 @@ function listsFor(db, pid) {
 
 function statesFor(db, pid) {
   const out = {};
-  (db.states || []).filter((x) => x.profile_id === pid).forEach((x) => { out[x.game_id] = x.state; });
+  (db.states || []).filter((x) => x.profile_id === pid).forEach((x) => { out[x.game_id] = { state: x.state, at: x.at }; });
   return out;
 }
 
@@ -132,8 +132,12 @@ function answer(db, action, body) {
       if (!db.profiles.some((p) => p.profile_id === pid)) return { ok: false, error: 'no_such_profile' };
       const state = body.state === undefined ? null : body.state;
       if (JSON.stringify(state).length > 20000) return { ok: false, error: 'state_too_big' };
-      db.states = (db.states || []).filter((x) => !(x.profile_id === pid && x.game_id === gid)).concat([{ profile_id: pid, game_id: gid, state }]);
-      return { ok: true };
+      const now = new Date().toISOString();
+      const at = body.at && Date.parse(body.at) && body.at < now ? new Date(body.at).toISOString() : now;
+      const had = (db.states || []).find((x) => x.profile_id === pid && x.game_id === gid);
+      if (had && had.at > at) return { ok: true, saved: false, at: had.at };
+      db.states = (db.states || []).filter((x) => x !== had).concat([{ profile_id: pid, game_id: gid, state, at }]);
+      return { ok: true, saved: true, at };
     }
     case 'sync': {
       const seen = new Set(db.scores.map((s) => s.event_id));
