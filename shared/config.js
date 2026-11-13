@@ -17,10 +17,11 @@ export const CONFIG = {
     tileStars: false,    // each tile's best stars (P48)
     celebration: false,  // the confetti card after a round, with new stickers and skins (P48)
     skinLocks: false,    // skins locked behind star totals from the Skins tab (P49: all skins free)
+    skinPreview: false,  // the grown-ups' "Debug skin" button and its tick-box in the corner (P34); off since skins are free and the picker tries them (P73)
   },
 
-  // The skin preview button is now switched on and off in the grown-ups' corner
-  // (saved on each device). This is only the starting value for a new device.
+  // Only used while features.skinPreview is on: the skin preview button is then switched on and
+  // off in the grown-ups' corner (saved on each device), and this is the starting value for a new device.
   debug: false,
 
   // The grown-ups' corner question. Only a one-way hash of the answer is kept here

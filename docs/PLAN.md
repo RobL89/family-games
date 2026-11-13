@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-12 (stage 3). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-13 (after stage 3). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -12,7 +12,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 - This repo is the master host of every game. Games are developed elsewhere and released here (P53, P54).
 - Plain HTML, CSS and JavaScript, no build step, served by GitHub Pages (P1, P2). It stays simple.
 
-**Switches (P48, P49, P52):** the `features` block in `shared/config.js` turns the old stars, stickers, "Last played", tile stars, celebration and skin locks off and on. All are off. Off means hidden and not run: no results are queued or sent to the Scores tab. Turning one back on restores the old behaviour (the old tests in `tools/tests/` check that).
+**Switches (P48, P49, P52):** the `features` block in `shared/config.js` turns the old stars, stickers, "Last played", tile stars, celebration, skin locks and the grown-ups' skin preview ("Debug skin") button off and on (P73). All are off. Off means hidden and not run: no results are queued or sent to the Scores tab. Turning one back on restores the old behaviour (the old tests in `tools/tests/` check that).
 
 ## Screens
 
@@ -25,7 +25,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
    - family code and Check connection
    - results waiting to sync
    - sound on or off
-   - Testing: "Games being tested" (shows `testing` tiles on this device only) and the skin preview switch (P34)
+   - Testing: "Games being tested" (shows `testing` tiles on this device only)
 
 ## Information flow (P6)
 

@@ -26,7 +26,7 @@ def config_js(features=None):
     if features is not None:
         value = 'true' if features else 'false'
         text, n = re.subn(r'(\n    \w+: )(true|false)(,\s+//)', lambda m: m.group(1) + value + m.group(3), text)
-        assert n == 6, f'config.js: expected the six feature switches, found {n}'
+        assert n == 7, f'config.js: expected the seven feature switches, found {n}'
     return text
 
 

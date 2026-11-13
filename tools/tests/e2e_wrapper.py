@@ -93,11 +93,12 @@ def run():
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
 
-        def new_page(w, h, mobile=False, testing=False):
+        def new_page(w, h, mobile=False, testing=False, debug=False):
             ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile,
                                       device_scale_factor=2 if mobile else 1)
             ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));"
-                                + ("localStorage.setItem('fg.testing', 'true');" if testing else ''))
+                                + ("localStorage.setItem('fg.testing', 'true');" if testing else '')
+                                + ("localStorage.setItem('fg.debug', 'true');" if debug else ''))
             ctx.route(re.compile(r'https://script\.google\.com/.*'),
                       lambda route: route.fulfill(status=200, content_type='application/json',
                                                   body=json.dumps(handle(json.loads(route.request.post_data or '{}')))))
@@ -110,10 +111,13 @@ def run():
             return ctx, pg
 
         # ---------- Home with the switches off (P48, P49) ----------
-        ctx, pg = new_page(390, 844, mobile=True)
-        pg.goto(BASE + 'index.html'); pg.wait_for_selector('.player')
+        # This device once had the skin preview button ticked (fg.debug): it must stay hidden (P73).
+        ctx, pg = new_page(390, 844, mobile=True, debug=True)
+        pg.goto(BASE + 'index.html'); pg.wait_for_selector('.player'); pg.wait_for_timeout(300)
+        check("no Debug skin button on Who's playing, though this device had it on (P73)", pg.locator('.debug').count() == 0)
         pg.click('[data-p="p_sam"]'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
         pg.screenshot(path=f'{OUT}/01-phone-home.png', full_page=True)
+        check('no Debug skin button on home (P73)', pg.locator('.debug').count() == 0)
         check('no star total', pg.locator('.total').count() == 0)
         check('no sticker slots', pg.locator('.slot').count() == 0)
         check('no "Last played"', pg.locator('.minis, .mini').count() == 0 and 'Last played' not in pg.inner_text('.home'))
@@ -169,6 +173,7 @@ def run():
         check('corner has the Testing switch', pg.locator('#tst').count() == 1)
         check('corner has no stars_needed line', 'stars_needed' not in corner)
         check('corner hides "Waiting to sync" when empty', 'Waiting to sync' not in corner)
+        check('corner has no skin preview tick-box (P73)', pg.locator('#dbg').count() == 0 and 'Skin preview' not in corner)
         pg.check('#tst'); pg.wait_for_timeout(200)
         pg.click('[data-close]'); pg.wait_for_timeout(600)
         check('testing game shows with the switch on', pg.locator('[data-g="wrapper-check"] .testing-tape').count() == 1)

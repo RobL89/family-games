@@ -39,7 +39,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P31 | Richer skins: scenery, pictures and tap effects for Fairy, Unicorn and Blocks | Adopted 2026-10-28 (Rob's request) |
 | P32 | Grown-ups' corner asks "Address of first house" instead of a sum | Adopted 2026-10-29 (Rob's request) |
 | P33 | Keep only a one-way hash of that answer in the public repo | Adopted 2026-11-12 (built 2026-10-29; closed in phase A) |
-| P34 | Skin preview switch lives in the grown-ups' corner, remembered per device | Adopted 2026-10-29 (Rob's request) |
+| P34 | Skin preview switch lives in the grown-ups' corner, remembered per device | Adopted 2026-10-29 (Rob's request); switched off 2026-11-13 (P73) |
 | P35 | Kriss Kross is the only live game; Bubble pop becomes a "Soon" tile | Adopted 2026-10-29 (Rob's request) |
 | P36 | Game setup per player per game; Kriss Kross word lists with a default and Next | Adopted 2026-10-29 (Rob's request) |
 | P37 | Lists stored in a GameLists tab, one row per list, script 0.3.0 | Adopted 2026-11-12 (built 2026-10-29; closed in phase A); lists become per child in script 0.4.0 (P56) |
@@ -71,6 +71,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P70 | Number Town: one explorer per child (on each device). The adapter shows the game only that child's explorer, keeps which one is theirs as the game's state (`fg:state`), and hides the game's "Who's playing?" and "Switch explorer". A child without one makes it first, with their name filled in; "Change my look" still edits everything | Adopted 2026-11-12 (Rob's direction) |
 | P71 | Space Explorer: "Find me" sets the place to London, England, and never asks for the device's location; the child can still pick another town | Adopted 2026-11-12 (Rob's direction) |
 | P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper (claude.ai blocks printing, so it's checked on the live site) | Adopted 2026-11-12 |
+| P73 | The grown-ups' "Debug skin" button (bottom right) and its tick-box in the corner are switched off for every device by `features.skinPreview`, whatever a device saved: skins are free and the picker already lets a child try them (P49, P62). Hidden, not deleted (P52) | Adopted 2026-11-13 (Rob's request after his live check of stage 3) |
 
 ## From the review (Rob's answers, 2026-10-30)
 

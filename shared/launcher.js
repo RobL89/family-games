@@ -641,8 +641,9 @@ function cornerMain(message = '', good = true) {
       <h3>Testing</h3>
       <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="tst" ${testingOn() ? 'checked' : ''}> Games being tested</label>
       <p class="small">Shows games marked "testing" as tiles on this device only, so a grown-up can try them before they go live.</p>
+      ${on('skinPreview') ? `
       <label class="row" style="margin:0;color:inherit;font-size:16px"><input type="checkbox" id="dbg" ${debugOn() ? 'checked' : ''}> Skin preview button</label>
-      <p class="small">Shows a button at the bottom right of the screens that switches skins without saving them. Remembered on this device.</p>
+      <p class="small">Shows a button at the bottom right of the screens that switches skins without saving them. Remembered on this device.</p>` : ''}
       ${on('skinLocks') ? `
       <h3>More</h3>
       <p class="small">Skins and their star targets are in the Sheet's Skins tab: change stars_needed there.</p>` : ''}
@@ -750,9 +751,11 @@ function openGameSetup(pid) {
 }
 
 // ---------- Skin preview ("debug") button: switched in the grown-ups' corner ----------
+// Switched off for every device by features.skinPreview (P73): the button and its tick-box are hidden,
+// whatever a device saved. A device's own choice is kept, for if the switch is ever turned back on.
 
 const DEBUG_KEY = 'fg.debug';
-const debugOn = () => !!api.loadLocal(DEBUG_KEY, !!CONFIG.debug);
+const debugOn = () => on('skinPreview') && !!api.loadLocal(DEBUG_KEY, !!CONFIG.debug);
 
 function setDebug(on) {
   api.saveLocal(DEBUG_KEY, !!on);
