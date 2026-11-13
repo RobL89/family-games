@@ -12,9 +12,13 @@
  *        on Profiles, star totals, and the updateProfile call.
  * 0.3.0: GameLists tab: each player's word lists per game (set up in the
  *        launcher's Game setup), returned by `profile` and saved by `saveLists`.
+ * 0.4.0: Settings tab: each game's saved state per player (P51), saved by `saveState`
+ *        and returned by `profile` as `states`. One set of word lists per player for
+ *        every game (P56), returned by `profile` as `word_lists`. Skins no longer need
+ *        stars (P49, P63). Tested in Node first: tools/tests/script/ (P75).
  */
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 const TABS = {
   Profiles: ['profile_id', 'nickname', 'avatar', 'colour', 'created_at', 'active', 'skin'],
@@ -22,6 +26,9 @@ const TABS = {
   Achievements: ['profile_id', 'achievement_id', 'earned_at'],
   Skins: ['skin_id', 'name', 'stars_needed', 'active'],
   GameLists: ['list_id', 'profile_id', 'game_id', 'position', 'title', 'words', 'updated_at'],
+  // One row per player, game and key (P51, Q12). Key "state" holds the game's own saved
+  // progress as JSON text, written by the launcher's wrapper, never typed by hand.
+  Settings: ['profile_id', 'game_id', 'key', 'value', 'updated_at'],
 };
 
 // Rows put into a brand-new Skins tab. Change stars_needed in the Sheet any time;
@@ -35,11 +42,16 @@ const DEFAULT_SKINS = [
 
 const RECENT_SCORES = 10;
 const MAX_BATCH = 200;
-const MAX_LISTS = 50;      // per player per game
+const MAX_LISTS = 50;      // per player (one set for every game, P56)
 const MAX_WORDS = 30;      // per list (Kriss Kross fits up to 30)
 const MAX_WORD_LENGTH = 20;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
 const COLOUR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+const MAX_STATE = 20000;   // characters of JSON per game per player (game contract, section 5)
+
+// Switched off (P49, P63): every skin is free. true brings back the old rule that a skin
+// needs the player's star total to reach its stars_needed in the Skins tab.
+const SKINS_NEED_STARS = false;
 
 // ---------------------------------------------------------------------------
 // Run by hand from the editor
@@ -158,6 +170,7 @@ function doPost(e) {
       case 'addProfile': return json(withLock(function () { return addProfile(body); }));
       case 'updateProfile': return json(withLock(function () { return updateProfile(body); }));
       case 'saveLists': return json(withLock(function () { return saveLists(body); }));
+      case 'saveState': return json(withLock(function () { return saveState(body); }));
       case 'sync': return json(withLock(function () { return sync(body); }));
       default: return json({ ok: false, error: 'unknown_action' });
     }
@@ -229,25 +242,33 @@ function getProfile(profileId) {
       days_played: Object.keys(days).sort(),
     },
     achievements: achievements,
-    lists: listsFor(profileId),
+    word_lists: wordListsFor(profileId),
+    states: statesFor(profileId),
   };
 }
 
-/** A player's lists grouped by game, in order (the first is the default): { game_id: [{list_id, title, words}] } */
-function listsFor(profileId) {
-  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GameLists')) return {};
-  const out = {};
-  rows('GameLists')
-    .filter(function (r) { return r.profile_id === profileId && ID_PATTERN.test(String(r.game_id || '')); })
+/**
+ * A player's word lists, one set for every game (P56), in order (the first is the default):
+ *   [{list_id, title, words}]
+ * Lists saved since 0.4.0 have no game_id. A player whose lists haven't been saved since
+ * then still has rows per game: their first game's lists (by game_id) stand in, as the
+ * launcher did before (P61), until Game setup next saves them.
+ */
+function wordListsFor(profileId) {
+  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('GameLists')) return [];
+  const mine = rows('GameLists').filter(function (r) { return r.profile_id === profileId; });
+  let pick = mine.filter(function (r) { return String(r.game_id || '') === ''; });
+  if (!pick.length) {
+    const games = mine.map(function (r) { return String(r.game_id || ''); })
+      .filter(function (g) { return ID_PATTERN.test(g); })
+      .sort();
+    pick = mine.filter(function (r) { return String(r.game_id) === games[0]; });
+  }
+  return pick
     .sort(function (a, b) { return (Number(a.position) || 0) - (Number(b.position) || 0); })
-    .forEach(function (r) {
-      (out[r.game_id] = out[r.game_id] || []).push({
-        list_id: String(r.list_id),
-        title: String(r.title || ''),
-        words: splitWords(r.words),
-      });
+    .map(function (r) {
+      return { list_id: String(r.list_id), title: String(r.title || ''), words: splitWords(r.words) };
     });
-  return out;
 }
 
 function splitWords(value) {
@@ -255,15 +276,15 @@ function splitWords(value) {
 }
 
 /**
- * Replaces one player's lists for one game, in the order given (the first is the default):
- *   { profile_id, game_id, lists: [ {list_id?, title, words: ['cat', 'dog']} ] }
- * An empty lists array removes them all.
+ * Replaces one player's word lists, in the order given (the first is the default):
+ *   { profile_id, lists: [ {list_id?, title, words: ['cat', 'dog']} ] }
+ * One set for every game (P56): a game_id sent by an older launcher is ignored, and all the
+ * player's rows are replaced, including any from before 0.4.0 kept per game. That is how
+ * the old lists move. An empty lists array removes them all.
  */
 function saveLists(body) {
   const profileId = String(body.profile_id || '');
-  const gameId = String(body.game_id || '');
   if (!ID_PATTERN.test(profileId)) return { ok: false, error: 'bad_profile_id' };
-  if (!ID_PATTERN.test(gameId)) return { ok: false, error: 'bad_game_id' };
   if (!rows('Profiles').some(function (p) { return p.profile_id === profileId; })) return { ok: false, error: 'no_such_profile' };
   if (!Array.isArray(body.lists)) return { ok: false, error: 'lists_required' };
   if (body.lists.length > MAX_LISTS) return { ok: false, error: 'too_many_lists' };
@@ -280,7 +301,7 @@ function saveLists(body) {
     fresh.push({
       list_id: ID_PATTERN.test(String(l.list_id || '')) ? String(l.list_id) : 'l_' + Utilities.getUuid().replace(/-/g, '').slice(0, 10),
       profile_id: profileId,
-      game_id: gameId,
+      game_id: '',
       position: i + 1,
       title: cleanText(l.title, 40) || 'List ' + (i + 1),
       words: words.join(', '),
@@ -288,17 +309,67 @@ function saveLists(body) {
     });
   }
 
-  // Keep every other player's and game's rows, swap in the new ones, and rewrite the tab body.
+  // Keep every other player's rows, swap in the new ones, and rewrite the tab body.
   const s = sheet('GameLists');
   const headers = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].map(String);
-  const keep = rows('GameLists').filter(function (r) { return !(r.profile_id === profileId && r.game_id === gameId); });
+  const keep = rows('GameLists').filter(function (r) { return r.profile_id !== profileId; });
   const all = keep.concat(fresh).map(function (o) {
     return headers.map(function (h) { return o[h] === undefined ? '' : o[h]; });
   });
   if (s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, headers.length).clearContent();
   if (all.length) s.getRange(2, 1, all.length, headers.length).setValues(all);
 
-  return { ok: true, lists: listsFor(profileId)[gameId] || [] };
+  return { ok: true, lists: wordListsFor(profileId) };
+}
+
+/** Each game's saved state for one player: { game_id: state }. Empty until setup adds Settings. */
+function statesFor(profileId) {
+  if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Settings')) return {};
+  const out = {};
+  rows('Settings').forEach(function (r) {
+    if (r.profile_id !== profileId || r.key !== 'state' || !ID_PATTERN.test(String(r.game_id || ''))) return;
+    // String() first: the Sheet turns JSON like 42 or true into a number or TRUE.
+    try { out[r.game_id] = JSON.parse(String(r.value)); } catch (err) { /* not JSON: skipped */ }
+  });
+  return out;
+}
+
+/**
+ * Keeps one game's saved state for one player, replacing what was there (P51):
+ *   { profile_id, game_id, state }   state: anything JSON can hold, up to MAX_STATE characters.
+ */
+function saveState(body) {
+  const profileId = String(body.profile_id || '');
+  const gameId = String(body.game_id || '');
+  if (!ID_PATTERN.test(profileId)) return { ok: false, error: 'bad_profile_id' };
+  if (!ID_PATTERN.test(gameId)) return { ok: false, error: 'bad_game_id' };
+  const value = JSON.stringify(body.state === undefined ? null : body.state);
+  if (value.length > MAX_STATE) return { ok: false, error: 'state_too_big' };
+  if (!rows('Profiles').some(function (p) { return p.profile_id === profileId; })) return { ok: false, error: 'no_such_profile' };
+  setSetting(profileId, gameId, 'state', value);
+  return { ok: true };
+}
+
+/** Writes one Settings row (player, game, key), changing it if it's there, adding it if not. */
+function setSetting(profileId, gameId, key, value) {
+  const s = sheet('Settings');
+  const values = s.getDataRange().getValues();
+  const headers = values[0].map(String);
+  const col = function (h) {
+    const i = headers.indexOf(h);
+    if (i === -1) throw new Error('missing_column_' + h + ' (run setup)');
+    return i;
+  };
+  const p = col('profile_id'), g = col('game_id'), k = col('key'), v = col('value'), u = col('updated_at');
+  const now = new Date();
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][p] === profileId && values[i][g] === gameId && values[i][k] === key) {
+      s.getRange(i + 1, v + 1).setValue(value);
+      s.getRange(i + 1, u + 1).setValue(now);
+      return;
+    }
+  }
+  appendObjects('Settings', [{ profile_id: profileId, game_id: gameId, key: key, value: value, updated_at: now }]);
 }
 
 function starsTotalFor(profileId) {
@@ -326,7 +397,7 @@ function addProfile(body) {
 /**
  * Changes one player. Send only the fields to change:
  *   { profile_id, nickname?, avatar?, colour?, skin? }
- * A skin is only accepted once the player has enough stars for it.
+ * Any active skin in the Skins tab is accepted; the star check is switched off (SKINS_NEED_STARS).
  */
 function updateProfile(body) {
   const profileId = String(body.profile_id || '');
@@ -361,9 +432,11 @@ function updateProfile(body) {
     if (!skins) return { ok: false, error: 'missing_tab_Skins (run setup)' };
     const skin = skins.filter(function (k) { return k.skin_id === String(body.skin); })[0];
     if (!skin) return { ok: false, error: 'no_such_skin' };
-    const total = starsTotalFor(profileId);
-    if (total < skin.stars_needed) {
-      return { ok: false, error: 'skin_locked', stars_needed: skin.stars_needed, stars_total: total };
+    if (SKINS_NEED_STARS) {
+      const total = starsTotalFor(profileId);
+      if (total < skin.stars_needed) {
+        return { ok: false, error: 'skin_locked', stars_needed: skin.stars_needed, stars_total: total };
+      }
     }
     changes.skin = skin.skin_id;
   }
