@@ -7,8 +7,9 @@
 //   3. Starts listening, then opens the game in the frame (listening first, so fg:ready is never missed).
 //   4. On fg:ready, sends fg:start: who's playing, sound on or off, word lists (if the game asks
 //      for "word-lists"), the game's saved state for this child, and level null (GC3).
-//   5. On fg:state, keeps the game's state for this child on this device (P51), until script 0.4.0
-//      saves it in the Sheet's Settings tab.
+//   5. On fg:state, keeps the game's state for this child on this device, then sends it to the
+//      Sheet's Settings tab (P51, script 0.4.0), so it follows the child to another device. A game
+//      marked "state": "device" in games.json keeps its state on each device only (P76).
 //   6. fg:round is ignored while stars are switched off (P48).
 //   7. An artifact game's adapter (game.json "adapter", contract section 2): the maker's page is never
 //      edited, so the wrapper adds the adapter to the page in the frame as soon as its HTML has been
@@ -22,8 +23,7 @@ import { DEFAULT_SKIN, applySkin } from './skins.js';
 import * as sound from './sound.js';
 
 const VERSION = 1;
-const MAX_STATE = 20000; // characters of JSON (contract section 5)
-const STATE_KEY = (pid, gameId) => `fg.state.${pid}.${gameId}`; // a game's saved state, per child (P51)
+const SEND_AFTER = 1000; // ms after the game's last fg:state before it goes to the Sheet
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // same key as the launcher's
 const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
 
@@ -31,19 +31,6 @@ const params = new URLSearchParams(location.search);
 const gameId = params.get('game') || '';
 const pid = params.get('player') || '';
 const launcher = () => `index.html${pid ? `?player=${encodeURIComponent(pid)}` : ''}`;
-
-// ---- Saved state per child (on this device until script 0.4.0) ----
-
-export function loadState(playerId, id) {
-  const saved = api.loadLocal(STATE_KEY(playerId, id), null);
-  return saved && 'state' in saved ? saved.state : null;
-}
-
-function saveState(playerId, id, state) {
-  const json = JSON.stringify(state ?? null);
-  if (json.length > MAX_STATE) return false; // too big: the game keeps its own copy (contract section 5)
-  return api.saveLocal(STATE_KEY(playerId, id), { state: JSON.parse(json), at: new Date().toISOString() });
-}
 
 // ---- The game and the child ----
 
@@ -90,22 +77,12 @@ function wantsLists(entry, manifest) {
   return s.includes('word-lists');
 }
 
-// The child's lists, default first, as [{ title, words }]. Until script 0.4.0 the Sheet keeps
-// them per game, so this game's own lists are used if it has any, otherwise the first set this
-// child has for any game: one set per child, as P56 will make it (P61).
+// The child's lists, default first, as [{ title, words }]: one set per child (P56; api.js says
+// how lists kept per game by script 0.3.0 are read).
 function listsFor(playerId, id) {
-  const clean = (lists) => (lists || [])
+  return api.getCachedLists(playerId, id)
     .filter((l) => l && Array.isArray(l.words) && l.words.length)
     .map((l) => ({ title: String(l.title || ''), words: l.words.map(String) }));
-  const own = clean(api.getCachedLists(playerId, id));
-  if (own.length) return own;
-  const cached = api.getCachedProfile(playerId);
-  const all = (cached && cached.lists) || {};
-  for (const key of Object.keys(all).sort()) {
-    const set = clean(all[key]);
-    if (set.length) return set;
-  }
-  return [];
 }
 
 async function start() {
@@ -137,6 +114,20 @@ async function start() {
   const page = manifest && safeFile(manifest.page) ? manifest.page : 'index.html';
   const adapter = manifest && safeFile(manifest.adapter) ? manifest.adapter : '';
 
+  // Where the game's state is kept (P51, P76). A state kept before states went to the Sheet is sent now.
+  const onDevice = entry.state === 'device';
+  if (!onDevice) api.markUnsent(pid, gameId);
+  let sendTimer = null;
+  const sendSoon = () => {
+    clearTimeout(sendTimer);
+    sendTimer = setTimeout(() => api.sendStates(), SEND_AFTER);
+  };
+  if (!onDevice) {
+    sendSoon();
+    // Leaving the game (⌂ Home, closing the tab): send what's waiting now.
+    window.addEventListener('pagehide', () => { clearTimeout(sendTimer); api.sendStates({ keepalive: true }); });
+  }
+
   const frame = document.createElement('iframe');
   frame.title = entry.title || 'Game';
   frame.allow = 'autoplay; fullscreen';
@@ -154,11 +145,11 @@ async function start() {
         sound: !sound.isMuted(),
         lists: wantsLists(entry, manifest) ? listsFor(pid, gameId) : [],
         settings: {},
-        state: loadState(pid, gameId),
+        state: api.getState(pid, gameId, onDevice),
         level: null,
       }, location.origin);
     } else if (m.type === 'fg:state') {
-      saveState(pid, gameId, m.state);
+      if (api.keepState(pid, gameId, m.state, onDevice) && !onDevice) sendSoon();
     } else if (m.type === 'fg:round' && on('stars')) {
       // Stars switched back on: the round goes into the outbox like the old game kit's.
       const stars = Math.max(1, Math.min(3, Math.round(Number(m.stars) || 1)));

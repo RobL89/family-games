@@ -1,8 +1,8 @@
-// Grown-ups' corner > Game setup: settings for one player in each game (P36).
-// For now the only kind of setting is "word-lists" (Kriss Kross): an ordered set of
-// lists, the first being the default. The game opens with the default list and a
-// Next button moves on to the following list. Every change is saved straight to
-// the Sheet's GameLists tab, so there's no separate Save step.
+// Grown-ups' corner > Game setup: settings for one player (P36).
+// For now the only kind of setting is "word-lists": an ordered set of lists, the first
+// being the default, one set per child shared by every word game (P56). Kriss Kross opens
+// with the default list and a Next button moves on to the following list. Every change is
+// saved straight to the Sheet's GameLists tab, so there's no separate Save step.
 
 import * as api from './api.js';
 
@@ -48,7 +48,7 @@ let activeUnwire = null;
 export async function openGameSetup(corner, player, games, back) {
   const withSettings = games.filter((g) => g.settings === 'word-lists');
   const ui = {
-    gameId: withSettings.length ? withSettings[0].id : null,
+    gameId: withSettings.length ? withSettings[0].id : null, // only for script 0.3.0, which keeps lists per game
     lists: [],
     editing: null,   // index being edited, or 'new'
     confirming: null, // index waiting for delete confirmation
@@ -89,11 +89,7 @@ export async function openGameSetup(corner, player, games, back) {
   }
 
   function render() {
-    const game = withSettings.find((g) => g.id === ui.gameId);
-    const picker = withSettings.length > 1
-      ? `<label for="gs-game">Game</label><select id="gs-game">${withSettings.map((g) =>
-          `<option value="${esc(g.id)}"${g.id === ui.gameId ? ' selected' : ''}>${esc(g.title)}</option>`).join('')}</select>`
-      : '';
+    const users = withSettings.map((g) => esc(g.title)).join(', ');
     const items = ui.lists.map((l, i) => {
       if (ui.editing === i) return `<li class="gs-item editing">${form(l)}</li>`;
       const tools = ui.confirming === i
@@ -115,9 +111,8 @@ export async function openGameSetup(corner, player, games, back) {
     }).join('');
 
     shell(`
-      ${picker}
-      <h3>${esc(game.title)}: word lists</h3>
-      <p class="small">The game opens with the default list (number 1). When ${esc(player.nickname)} finishes a puzzle, <strong>Next list</strong> loads the next one in this order. Changes save to the Sheet straight away.</p>
+      <h3>Word lists</h3>
+      <p class="small">One set for ${esc(player.nickname)}, used by every word game (now: ${users}). A game opens with the default list (number 1). When ${esc(player.nickname)} finishes a puzzle, <strong>Next list</strong> loads the next one in this order. Changes save to the Sheet straight away.</p>
       <p class="msg ${ui.good ? 'good' : 'bad'}" role="status">${esc(ui.message)}</p>
       ${ui.lists.length ? `<ol class="gs-lists">${items}</ol>` : `<p>No lists yet, so ${esc(player.nickname)} sees the game's own word screen.</p>`}
       ${ui.editing === 'new' ? `<div class="gs-item editing">${form({ title: '', words: [] })}</div>`
@@ -163,7 +158,7 @@ export async function openGameSetup(corner, player, games, back) {
     ui.good = true;
     render();
     try {
-      ui.lists = clone(await api.saveLists(player.profile_id, ui.gameId, next.map((l) => ({ list_id: l.list_id, title: l.title, words: l.words }))));
+      ui.lists = clone(await api.saveLists(player.profile_id, next.map((l) => ({ list_id: l.list_id, title: l.title, words: l.words })), ui.gameId));
       ui.message = done;
       ui.good = true;
     } catch (err) {
@@ -183,7 +178,6 @@ export async function openGameSetup(corner, player, games, back) {
     if (activeUnwire) activeUnwire();
     corner.addEventListener('click', onClick);
     corner.addEventListener('submit', onSubmit);
-    corner.addEventListener('change', onChange);
     corner.addEventListener('close', unwire);
     activeUnwire = unwire;
   }
@@ -191,18 +185,8 @@ export async function openGameSetup(corner, player, games, back) {
   function unwire() {
     corner.removeEventListener('click', onClick);
     corner.removeEventListener('submit', onSubmit);
-    corner.removeEventListener('change', onChange);
     corner.removeEventListener('close', unwire);
     if (activeUnwire === unwire) activeUnwire = null;
-  }
-
-  function onChange(e) {
-    if (e.target.id !== 'gs-game') return;
-    ui.gameId = e.target.value;
-    ui.lists = clone(api.getCachedLists(player.profile_id, ui.gameId));
-    ui.editing = ui.confirming = null;
-    ui.message = '';
-    render();
   }
 
   function onSubmit(e) {

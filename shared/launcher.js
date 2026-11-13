@@ -114,7 +114,7 @@ async function chooseSkin(pid, skinId) {
     state.profiles = api.getCachedProfiles();
     if (profile.skin === skinId) api.saveLocal(LOCAL_SKIN(pid), null); // the Sheet has it now
   } catch {
-    // Older script, offline, or stars not synced yet: keep the choice on this device.
+    // Offline, or script 0.3.0 (it still checks stars): keep the choice on this device (P63).
   }
 }
 
@@ -720,10 +720,10 @@ corner.addEventListener('click', async (e) => {
     api.setFamilyCode(corner.querySelector('#fcode').value);
     try {
       const r = await api.call('ping');
-      const current = atLeast(r.version, '0.2.0');
+      const current = atLeast(r.version, '0.4.0');
       return cornerMain(current
         ? `Connected. Apps Script version ${r.version}.`
-        : `Connected, but the Apps Script is version ${r.version}. Paste the new Code.gs and redeploy to save skins.`, current);
+        : `Connected, but the Apps Script is version ${r.version}. Paste the new Code.gs and redeploy so skins and game progress are saved in the Sheet.`, current);
     } catch (err) {
       return cornerMain(`Couldn't connect: ${err.message}`, false);
     }

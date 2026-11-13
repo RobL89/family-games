@@ -3,6 +3,11 @@
 // Results and achievements go into an outbox on the device first, then are
 // sent with flush(). If the device is offline, they wait and go next time.
 // Each result has a unique event_id, so sending twice never counts twice.
+//
+// Works with Apps Script 0.3.0 and 0.4.0, so the launcher can go live before the script:
+//   - word lists: 0.4.0 keeps one set per child (P56, `word_lists`); 0.3.0 keeps them per game.
+//   - a game's saved state: kept on the device first, then sent to the Sheet's Settings tab
+//     (P51, `saveState`). With 0.3.0 it just stays on the device until the new script is in.
 
 import { CONFIG } from './config.js';
 
@@ -12,7 +17,9 @@ const KEYS = {
   profiles: 'fg.cache.profiles',
   skins: 'fg.cache.skins',
   profilePrefix: 'fg.cache.profile.',
+  statePrefix: 'fg.state.', // + <child>.<game>: { state, at, sent } (P51)
 };
+const MAX_STATE = 20000; // characters of JSON (game contract, section 5)
 
 // ---- Device storage (wrapped: storage can be blocked or full) ----------------
 
@@ -53,7 +60,7 @@ export function isConfigured() {
 
 // ---- Calling the script ----------------------------------------------------------
 
-export async function call(action, data = {}) {
+export async function call(action, data = {}, { keepalive = false } = {}) {
   if (!CONFIG.appsScriptUrl.startsWith('https://')) {
     throw new Error('not_configured: set appsScriptUrl in shared/config.js');
   }
@@ -64,6 +71,7 @@ export async function call(action, data = {}) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ ...data, action, code: getFamilyCode() }),
     redirect: 'follow',
+    keepalive, // lets a last save finish while the page closes
   });
   if (!response.ok) throw new Error('http_' + response.status);
   const result = await response.json();
@@ -116,20 +124,100 @@ export async function updateProfile(profileId, changes) {
   return profile;
 }
 
-// ---- Per-player game lists (Game setup) --------------------------------------------
+// ---- Word lists (Game setup) --------------------------------------------------------
 
-// A player's lists for one game, from what this device last read: [{list_id, title, words}].
+// A child's word lists, default first, as this device last read them: [{list_id, title, words}].
+// Script 0.4.0 keeps one set per child (P56). With 0.3.0 they're kept per game, so it's the
+// lists of `gameId` if it has any, otherwise the first set the child has for any game (P61).
 export function getCachedLists(profileId, gameId) {
-  const cached = getCachedProfile(profileId);
-  return (cached && cached.lists && cached.lists[gameId]) || [];
+  const cached = getCachedProfile(profileId) || {};
+  if (Array.isArray(cached.word_lists)) return cached.word_lists;
+  const all = cached.lists || {};
+  if (gameId && Array.isArray(all[gameId]) && all[gameId].length) return all[gameId];
+  for (const key of Object.keys(all).sort()) {
+    if (Array.isArray(all[key]) && all[key].length) return all[key];
+  }
+  return [];
 }
 
-// Replaces a player's lists for one game. The first list is the default.
-export async function saveLists(profileId, gameId, lists) {
+// Replaces a child's word lists; the first is the default. `gameId` is only for script 0.3.0,
+// which keeps lists per game; 0.4.0 ignores it and keeps one set for every game.
+export async function saveLists(profileId, lists, gameId) {
   const result = await call('saveLists', { profile_id: profileId, game_id: gameId, lists });
   const cached = getCachedProfile(profileId) || { profile: { profile_id: profileId } };
-  save(KEYS.profilePrefix + profileId, { ...cached, lists: { ...(cached.lists || {}), [gameId]: result.lists } });
+  save(KEYS.profilePrefix + profileId, {
+    ...cached,
+    word_lists: result.lists,
+    lists: { ...(cached.lists || {}), ...(gameId ? { [gameId]: result.lists } : {}) },
+  });
   return result.lists;
+}
+
+// ---- A game's saved state, per child (P51) ----------------------------------------------
+
+const stateKey = (profileId, gameId) => `${KEYS.statePrefix}${profileId}.${gameId}`;
+
+// The state to hand a game in fg:start. A copy on this device that the Sheet hasn't got yet is the
+// newest, so it wins. Otherwise the Sheet's (it may come from another device), then the device's.
+// `onDevice` games keep their state on each device only (games.json "state": "device").
+export function getState(profileId, gameId, onDevice = false) {
+  const local = load(stateKey(profileId, gameId), null);
+  const mine = local && 'state' in local ? local : null;
+  if (onDevice || (mine && mine.sent !== true)) return mine ? mine.state : null;
+  const states = (getCachedProfile(profileId) || {}).states;
+  if (states && Object.prototype.hasOwnProperty.call(states, gameId)) return states[gameId];
+  return mine ? mine.state : null;
+}
+
+// Keeps a game's state on this device and marks it for the Sheet (unless `onDevice`).
+// Returns false if it's too big to keep (the game keeps its own copy, contract section 5).
+export function keepState(profileId, gameId, state, onDevice = false) {
+  const json = JSON.stringify(state ?? null);
+  if (json.length > MAX_STATE) return false;
+  const entry = { state: JSON.parse(json), at: new Date().toISOString() };
+  if (!onDevice) entry.sent = false;
+  return save(stateKey(profileId, gameId), entry);
+}
+
+// A state kept before the launcher could send states has no `sent` mark: mark it so it goes.
+export function markUnsent(profileId, gameId) {
+  const local = load(stateKey(profileId, gameId), null);
+  if (local && 'state' in local && !('sent' in local)) save(stateKey(profileId, gameId), { ...local, sent: false });
+}
+
+let sendingStates = null;
+
+// Sends every state the Sheet hasn't got yet. Never throws: with script 0.3.0, offline, or a
+// refusal, states stay on the device and go next time. Returns how many were sent.
+export function sendStates({ keepalive = false } = {}) {
+  if (sendingStates) return sendingStates;
+  sendingStates = (async () => {
+    if (!isConfigured()) return 0;
+    let keys = [];
+    try { keys = Object.keys(localStorage).filter((k) => k.startsWith(KEYS.statePrefix)); } catch { return 0; }
+    let sent = 0;
+    for (const key of keys) {
+      const local = load(key, null);
+      if (!local || local.sent !== false) continue;
+      const [profileId, ...rest] = key.slice(KEYS.statePrefix.length).split('.');
+      const gameId = rest.join('.');
+      try {
+        await call('saveState', { profile_id: profileId, game_id: gameId, state: local.state }, { keepalive });
+      } catch (err) {
+        if (/unknown_action|missing_tab_Settings|not_configured/.test(String(err && err.message))) return sent; // script 0.3.0
+        continue; // offline or refused: try again next time
+      }
+      const now = load(key, null);
+      if (now && now.at === local.at) save(key, { ...now, sent: true }); // unless it changed meanwhile
+      const cached = getCachedProfile(profileId);
+      if (cached) save(KEYS.profilePrefix + profileId, { ...cached, states: { ...(cached.states || {}), [gameId]: local.state } });
+      sent++;
+    }
+    return sent;
+  })().finally(() => {
+    sendingStates = null;
+  });
+  return sendingStates;
 }
 
 // ---- Outbox --------------------------------------------------------------------
@@ -177,6 +265,7 @@ let flushing = null;
 export function flush() {
   if (flushing) return flushing;
   flushing = (async () => {
+    await sendStates();
     const outbox = getOutbox();
     if (!outbox.results.length && !outbox.achievements.length) return { sent: 0 };
     if (!isConfigured()) return { sent: 0, waiting: true };

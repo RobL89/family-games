@@ -6,7 +6,8 @@ Needs Python Playwright. From the repo root:
     python3 -m http.server 8123 --bind 127.0.0.1
 then:
     python3 -B tools/tests/e2e_wrapper.py <folder for screenshots>
-Ends with "PASS n of n" or lists what failed.
+    FG_SCRIPT=0.4.0 python3 -B tools/tests/e2e_wrapper.py <folder>   (the stand-in answers like script 0.4.0)
+Ends with "PASS n of n" or lists what failed. Run it both ways: the launcher works with either script.
 """
 import json
 import os
@@ -23,8 +24,10 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/fg-wrapper-shots'
 BASE = 'http://127.0.0.1:8123/'
 CODE = 'test-code'
 os.makedirs(OUT, exist_ok=True)
+SCRIPT = os.environ.get('FG_SCRIPT', '0.3.0')
+V4 = SCRIPT == '0.4.0'
 
-# ---- Stand-in Sheet: the same answers as apps-script/Code.gs 0.3.0, skin check included ----
+# ---- Stand-in Sheet: the same answers as apps-script/Code.gs 0.3.0 (skin check included) or 0.4.0 ----
 db = {
     'profiles': [
         {'profile_id': 'p_sam', 'nickname': 'Sam', 'avatar': 'fox', 'colour': '#2E8FD0', 'skin': 'sticker'},
@@ -39,6 +42,7 @@ db = {
     'scores': [],
     'lists': {'p_sam': {'kriss-kross': [{'list_id': 'l1', 'title': 'Animals', 'words': ['cat', 'dog', 'hen']},
                                         {'list_id': 'l2', 'title': 'Colours', 'words': ['red', 'blue']}]}},
+    'states': {},  # 0.4.0: (profile_id, game_id) -> state
 }
 calls = []
 
@@ -49,20 +53,30 @@ def handle(body):
     a = body.get('action')
     calls.append(a)
     if a == 'ping':
-        return {'ok': True, 'version': '0.3.0'}
+        return {'ok': True, 'version': SCRIPT}
     if a == 'profiles':
-        return {'ok': True, 'version': '0.3.0', 'profiles': db['profiles'], 'skins': db['skins']}
+        return {'ok': True, 'version': SCRIPT, 'profiles': db['profiles'], 'skins': db['skins']}
     if a == 'profile':
         p = next(x for x in db['profiles'] if x['profile_id'] == body['profile_id'])
-        return {'ok': True, 'profile': p, 'recent': [], 'achievements': [], 'lists': db['lists'].get(p['profile_id'], {}),
-                'stats': {'total_plays': 0, 'stars_total': 0, 'games': {}, 'days_played': []}}
+        out = {'ok': True, 'profile': p, 'recent': [], 'achievements': [],
+               'stats': {'total_plays': 0, 'stars_total': 0, 'games': {}, 'days_played': []}}
+        if V4:  # one set of lists per child (here, the child's first game's) and each game's state
+            per_game = db['lists'].get(p['profile_id'], {})
+            out['word_lists'] = per_game[sorted(per_game)[0]] if per_game else []
+            out['states'] = {g: v for (pid, g), v in db['states'].items() if pid == p['profile_id']}
+        else:
+            out['lists'] = db['lists'].get(p['profile_id'], {})
+        return out
+    if a == 'saveState' and V4:
+        db['states'][(body['profile_id'], body['game_id'])] = body.get('state')
+        return {'ok': True}
     if a == 'updateProfile':
         p = next(x for x in db['profiles'] if x['profile_id'] == body['profile_id'])
         if 'skin' in body:
             sk = next((s for s in db['skins'] if s['skin_id'] == body['skin']), None)
             if not sk:
                 return {'ok': False, 'error': 'no_such_skin'}
-            if sk['stars_needed'] > 0:  # no stars any more, so only the free one passes the 0.3.0 check
+            if sk['stars_needed'] > 0 and not V4:  # no stars any more, so only the free one passes the 0.3.0 check
                 return {'ok': False, 'error': 'skin_locked'}
         for k in ('nickname', 'avatar', 'colour', 'skin'):
             if k in body:
@@ -93,7 +107,7 @@ def run():
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
 
-        def new_page(w, h, mobile=False, testing=False, debug=False):
+        def new_page(w, h, mobile=False, testing=False, debug=False, games_json=None):
             ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile,
                                       device_scale_factor=2 if mobile else 1)
             ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));"
@@ -103,6 +117,9 @@ def run():
                       lambda route: route.fulfill(status=200, content_type='application/json',
                                                   body=json.dumps(handle(json.loads(route.request.post_data or '{}')))))
             ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda route: route.abort())
+            if games_json is not None:
+                ctx.route(re.compile(r'.*/games\.json(\?.*)?$'),
+                          lambda route: route.fulfill(status=200, content_type='application/json', body=json.dumps(games_json)))
             route_config(ctx)  # the repo's switches as they are, with the test answer
             pg = ctx.new_page()
             pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
@@ -150,7 +167,11 @@ def run():
         check('tapping outside closes the picker', pg.locator('.skin-sheet').count() == 0)
         pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-sheet'); pg.keyboard.press('Escape'); pg.wait_for_timeout(300)
         check('Escape closes the picker', pg.locator('.skin-sheet').count() == 0)
-        check('unicorn kept on the device', 'unicorn' in (pg.evaluate("localStorage.getItem('fg.skin.p_sam')") or ''))
+        if V4:
+            check('0.4.0: unicorn saved in the Sheet, so not kept apart on the device', db['profiles'][0]['skin'] == 'unicorn'
+                  and 'unicorn' not in (pg.evaluate("localStorage.getItem('fg.skin.p_sam')") or ''), db['profiles'][0])
+        else:
+            check('unicorn kept on the device', 'unicorn' in (pg.evaluate("localStorage.getItem('fg.skin.p_sam')") or ''))
         pg.reload(); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
         check('unicorn still on after reload', pg.evaluate('document.documentElement.dataset.skin') == 'unicorn')
 
@@ -184,6 +205,7 @@ def run():
         # ---------- The wrapper at three sizes ----------
         for name, w, h, mobile in [('phone', 390, 844, True), ('sideways', 844, 390, True), ('pc', 1366, 768, False)]:
             ctx, pg = new_page(w, h, mobile=mobile, testing=True)
+            db['states'].clear()
             pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)  # fills the cache, lists included
             href = pg.get_attribute('[data-g="wrapper-check"]', 'href')
             check(f'{name}: tile opens the wrapper', href == 'play.html?game=wrapper-check&player=p_sam', href)
@@ -203,6 +225,9 @@ def run():
             fr.locator('#done').click(); pg.wait_for_timeout(300)
             stored = json.loads(pg.evaluate("localStorage.getItem('fg.state.p_sam.wrapper-check')") or 'null')
             check(f'{name}: fg:state kept per child', stored and stored['state'] == {'rounds': 1}, stored)
+            if V4:
+                pg.wait_for_timeout(1600)
+                check(f'{name}: 0.4.0: fg:state reaches the Sheet', db['states'].get(('p_sam', 'wrapper-check')) == {'rounds': 1}, db['states'])
             check(f'{name}: fg:round queues nothing', (pg.evaluate("localStorage.getItem('fg.outbox')") or 'null') in ('null', '{"results":[],"achievements":[]}'))
             pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(500)
             check(f'{name}: Home goes back to the child\'s games', 'player=p_sam' in pg.url)
@@ -221,6 +246,46 @@ def run():
         pg.click('.head [data-skins]'); pg.wait_for_selector('.skin-card'); pg.wait_for_timeout(400)
         pg.screenshot(path=f'{OUT}/05-pc-skin-picker.png')
         ctx.close()
+
+        if V4:
+            # Progress made on another device arrives through the Sheet (P51).
+            db['states'][('p_sam', 'wrapper-check')] = {'rounds': 5}
+            ctx, pg = new_page(1366, 768, testing=True)
+            pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
+            pg.goto(BASE + 'play.html?game=wrapper-check&player=p_sam'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(900)
+            fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
+            check('0.4.0: state saved on another device comes back', 'Rounds finished before: 5' in fr.locator('#facts').inner_text())
+            ctx.close()
+            # A state kept on the device by the earlier launcher (no "sent" mark) goes to the Sheet.
+            ctx, pg = new_page(1366, 768, testing=True)
+            pg.goto(BASE + 'index.html?player=p_alex'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
+            pg.evaluate("localStorage.setItem('fg.state.p_alex.wrapper-check', JSON.stringify({ state: { rounds: 3 }, at: '2026-11-12T10:00:00Z' }))")
+            pg.goto(BASE + 'play.html?game=wrapper-check&player=p_alex'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(2200)
+            check("0.4.0: a state kept before goes to the Sheet", db['states'].get(('p_alex', 'wrapper-check')) == {'rounds': 3}, db['states'])
+            fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
+            check('0.4.0: and the game still gets it', 'Rounds finished before: 3' in fr.locator('#facts').inner_text())
+            ctx.close()
+            del db['states'][('p_alex', 'wrapper-check')]
+            # A game marked "state": "device" in games.json keeps its state on the device only (P76).
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'games.json'), encoding='utf-8') as f:
+                gj = json.load(f)
+            for g in gj['games']:
+                if g['id'] == 'wrapper-check':
+                    g['state'] = 'device'
+            db['states'][('p_sam', 'wrapper-check')] = {'rounds': 9}
+            ctx, pg = new_page(1366, 768, testing=True, games_json=gj)
+            pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
+            pg.goto(BASE + 'play.html?game=wrapper-check&player=p_sam'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(900)
+            fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
+            check("0.4.0: a device game doesn't take the Sheet's state", 'Rounds finished before: 0' in fr.locator('#facts').inner_text())
+            before = calls.count('saveState')
+            fr.locator('#done').click(); pg.wait_for_timeout(1600)
+            pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)
+            check("0.4.0: a device game's state stays on the device", calls.count('saveState') == before
+                  and db['states'][('p_sam', 'wrapper-check')] == {'rounds': 9}
+                  and json.loads(pg.evaluate("localStorage.getItem('fg.state.p_sam.wrapper-check')"))['state'] == {'rounds': 1})
+            ctx.close()
+            db['states'].clear()
 
         # Another child has their own state.
         ctx, pg = new_page(1366, 768, testing=True)

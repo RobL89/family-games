@@ -43,8 +43,8 @@ STAND_INS = [
      "import { CONFIG } from './config.js';\n"
      "import { standIn } from './preview-sheet.js'; // Preview only (tools/preview): the stand-in Sheet\n"),
     ('shared/api.js',
-     "export async function call(action, data = {}) {\n",
-     "export async function call(action, data = {}) {\n"
+     "export async function call(action, data = {}, { keepalive = false } = {}) {\n",
+     "export async function call(action, data = {}, { keepalive = false } = {}) {\n"
      "  return standIn(action, { ...data, code: getFamilyCode() }); // Preview only: never the real Sheet\n"),
 ]
 

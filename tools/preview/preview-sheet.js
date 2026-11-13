@@ -1,11 +1,12 @@
 // Stand-in Sheet for the private preview (tools/preview/README.md). Not part of the live site.
 // The preview page can't reach the Apps Script (a claude.ai page may not call other sites), so
-// build_preview.py points shared/api.js's call() here instead. It answers like Code.gs 0.3.0,
-// skin check included, and keeps its made-up players in this browser's storage only.
+// build_preview.py points shared/api.js's call() here instead. It answers like Code.gs 0.4.0
+// (one set of word lists per child, each game's state, skins without stars) and keeps its
+// made-up players in this browser's storage only.
 // Nothing here ever reaches the real Sheet.
 
 const KEY = 'fg.preview.sheet';
-const VERSION = '0.3.0 (preview stand-in)';
+const VERSION = '0.4.0 (preview stand-in)';
 const ID = /^[A-Za-z0-9_-]{1,40}$/;
 const COLOUR = /^#[0-9A-Fa-f]{6}$/;
 
@@ -30,9 +31,10 @@ function seed() {
     scores: [],
     achievements: [],
     lists: [
-      { list_id: 'l_demo1', profile_id: 'p_sam', game_id: 'kriss-kross', position: 1, title: 'Animals', words: ['cat', 'dog', 'cow', 'pig', 'horse'] },
-      { list_id: 'l_demo2', profile_id: 'p_sam', game_id: 'kriss-kross', position: 2, title: 'Colours', words: ['red', 'blue', 'green', 'pink'] },
+      { list_id: 'l_demo1', profile_id: 'p_sam', game_id: '', position: 1, title: 'Animals', words: ['cat', 'dog', 'cow', 'pig', 'horse'] },
+      { list_id: 'l_demo2', profile_id: 'p_sam', game_id: '', position: 2, title: 'Colours', words: ['red', 'blue', 'green', 'pink'] },
     ],
+    states: [], // { profile_id, game_id, state }
   };
 }
 
@@ -47,10 +49,15 @@ const pub = (p) => ({ profile_id: p.profile_id, nickname: p.nickname, avatar: p.
 const starsTotal = (db, pid) => db.scores.filter((s) => s.profile_id === pid).reduce((n, s) => n + (Number(s.stars) || 0), 0);
 const newId = (prefix) => prefix + Math.random().toString(36).slice(2, 12);
 
+// One set per child (P56), as Code.gs 0.4.0's wordListsFor.
 function listsFor(db, pid) {
+  return db.lists.filter((l) => l.profile_id === pid).sort((a, b) => a.position - b.position)
+    .map((l) => ({ list_id: l.list_id, title: l.title, words: l.words.slice() }));
+}
+
+function statesFor(db, pid) {
   const out = {};
-  db.lists.filter((l) => l.profile_id === pid).sort((a, b) => a.position - b.position)
-    .forEach((l) => { (out[l.game_id] = out[l.game_id] || []).push({ list_id: l.list_id, title: l.title, words: l.words.slice() }); });
+  (db.states || []).filter((x) => x.profile_id === pid).forEach((x) => { out[x.game_id] = x.state; });
   return out;
 }
 
@@ -72,7 +79,8 @@ function profile(db, pid) {
     recent: sc.slice(0, 10),
     stats: { total_plays: sc.length, stars_total: starsTotal(db, pid), games, days_played: [...new Set(sc.map((s) => String(s.played_at).slice(0, 10)))].sort() },
     achievements: db.achievements.filter((a) => a.profile_id === pid).map((a) => ({ achievement_id: a.achievement_id, earned_at: a.earned_at })),
-    lists: listsFor(db, pid),
+    word_lists: listsFor(db, pid),
+    states: statesFor(db, pid),
   };
 }
 
@@ -94,9 +102,7 @@ function answer(db, action, body) {
       if (!p) return { ok: false, error: 'no_such_profile' };
       if (body.skin !== undefined) {
         const skin = db.skins.find((k) => k.skin_id === String(body.skin));
-        if (!skin) return { ok: false, error: 'no_such_skin' };
-        // As in Code.gs 0.3.0: the script still checks stars, so a skin without enough stars stays on the device.
-        if (starsTotal(db, p.profile_id) < skin.stars_needed) return { ok: false, error: 'skin_locked' };
+        if (!skin) return { ok: false, error: 'no_such_skin' }; // no star check, as Code.gs 0.4.0 (P63)
       }
       if (body.nickname !== undefined) p.nickname = String(body.nickname).trim().slice(0, 20) || p.nickname;
       if (body.avatar !== undefined && ID.test(String(body.avatar))) p.avatar = body.avatar;
@@ -105,7 +111,7 @@ function answer(db, action, body) {
       return { ok: true, profile: pub(p) };
     }
     case 'saveLists': {
-      const pid = String(body.profile_id || ''), gid = String(body.game_id || '');
+      const pid = String(body.profile_id || ''); // game_id ignored: one set per child (P56)
       if (!db.profiles.some((p) => p.profile_id === pid)) return { ok: false, error: 'no_such_profile' };
       if (!Array.isArray(body.lists)) return { ok: false, error: 'lists_required' };
       const fresh = [];
@@ -114,11 +120,20 @@ function answer(db, action, body) {
         const words = (Array.isArray(l.words) ? l.words : String(l.words || '').split(/[\s,;]+/)).map((w) => String(w).trim().slice(0, 20)).filter(Boolean);
         if (!words.length) return { ok: false, error: 'empty_list', position: i + 1 };
         if (words.length > 30) return { ok: false, error: 'too_many_words', position: i + 1 };
-        fresh.push({ list_id: ID.test(String(l.list_id || '')) ? l.list_id : newId('l_'), profile_id: pid, game_id: gid, position: i + 1,
+        fresh.push({ list_id: ID.test(String(l.list_id || '')) ? l.list_id : newId('l_'), profile_id: pid, game_id: '', position: i + 1,
           title: String(l.title || '').trim().slice(0, 40) || `List ${i + 1}`, words });
       }
-      db.lists = db.lists.filter((l) => !(l.profile_id === pid && l.game_id === gid)).concat(fresh);
-      return { ok: true, lists: listsFor(db, pid)[gid] || [] };
+      db.lists = db.lists.filter((l) => l.profile_id !== pid).concat(fresh);
+      return { ok: true, lists: listsFor(db, pid) };
+    }
+    case 'saveState': {
+      const pid = String(body.profile_id || ''), gid = String(body.game_id || '');
+      if (!ID.test(gid)) return { ok: false, error: 'bad_game_id' };
+      if (!db.profiles.some((p) => p.profile_id === pid)) return { ok: false, error: 'no_such_profile' };
+      const state = body.state === undefined ? null : body.state;
+      if (JSON.stringify(state).length > 20000) return { ok: false, error: 'state_too_big' };
+      db.states = (db.states || []).filter((x) => !(x.profile_id === pid && x.game_id === gid)).concat([{ profile_id: pid, game_id: gid, state }]);
+      return { ok: true };
     }
     case 'sync': {
       const seen = new Set(db.scores.map((s) => s.event_id));
