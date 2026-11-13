@@ -1,4 +1,7 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.9.
+"""Rocket Lander's pure core and its boundaries. Version 1.10.
+
+Changes at v1.10 (stage 3, D-120): the engine's link.js may import P-020's shared/bridge.js, exactly that
+and only there, as contract 0.4 GC4 allows; a check that it does. Everything else is as before.
 
 Changes at v1.9 (step 2c-3c): Year 1 on the lower track and Year 3 on the higher, so all six systems of
 both tracks hold 7 levels and a challenge, their ids the level plan's and their rows' numbers the notes'
@@ -1534,6 +1537,9 @@ OUTSIDE = {
 }
 # D-042: kit.js alone may keep a tile's progress on the device, in localStorage and nothing else.
 SAVER = os.path.join(COMMON, 'kit.js')
+# GC4, D-120: link.js alone may import from outside games/_common/, and only P-020's shared/bridge.js.
+LINK = os.path.join(COMMON, 'link.js')
+BRIDGE = "import { connect } from '../../../shared/bridge.js';"
 for folder, rx in OUTSIDE.items():
     where = os.path.relpath(folder, REPO)
     for f in sorted(os.listdir(folder)):
@@ -1541,6 +1547,9 @@ for folder, rx in OUTSIDE.items():
             continue
         raw = open(os.path.join(folder, f), encoding='utf-8').read()
         body = re.sub(r'(?m)^\s*//.*$', '', raw)
+        if os.path.join(folder, f) == LINK:  # GC4, D-120: the one import from outside, P-020's bridge
+            check(body.count(BRIDGE) == 1, f'{where}/{f} imports shared/bridge.js once (GC4): {body.count(BRIDGE)}')
+            body = body.replace(BRIDGE, '')
         hits = sorted({m.group(0) for m in rx.finditer(body)})
         if os.path.join(folder, f) == SAVER:
             check(hits == ['localStorage'], f'{where}/{f} stays in bounds and keeps only localStorage (D-042): {hits}')

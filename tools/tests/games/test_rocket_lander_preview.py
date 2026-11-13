@@ -1,4 +1,7 @@
-"""Rocket Lander's preview bundle (D-018). Version 1.10.
+"""Rocket Lander's preview bundle (D-018). Version 1.11.
+
+Changes at v1.11 (stage 3, D-120): the bundle also holds P-020's shared/bridge.js (GC4), so the stamp
+names shared/ among the shared files, and the bundle's files include it.
 
 Changes at v1.10 (step 2c-3b, D-100): a bundle carries the game's own map, and Year 2 now holds the
 higher track, so the panel's level check picks Year 2's Moon 7, tens that make 100 (0 to 100 in tens,
@@ -78,9 +81,10 @@ check(page == open(b, 'rb').read(), 'a rebuild gives the same bytes')
 src = bp.source_hash('rocket-lander')
 used = bp.used_files('rocket-lander')
 check('games/_common/rocket/scene.js' in used and 'games/_common/rocket/game.css' in used and 'games/rocket-lander/game.js' in used
-      and 'games/_common/fonts/fredoka.css' in used and 'games/_common/fonts/fredoka-latin-600-normal.woff2' in used,
+      and 'games/_common/fonts/fredoka.css' in used and 'games/_common/fonts/fredoka-latin-600-normal.woff2' in used
+      and 'shared/bridge.js' in used,
       f'the bundle is made from the game folder, the shared engine and the font ({len(used)} files)')
-check(f'games/_common/fonts, games/_common/rocket): {src}'.encode() in page, 'the stamp carries the sha256 of the game and the shared files')
+check(f'games/_common/fonts, games/_common/rocket, shared): {src}'.encode() in page, 'the stamp carries the sha256 of the game and the shared files')
 check(bp.commit_of('games/rocket-lander', 'games/_common/fonts', 'games/_common/rocket').encode() in page, 'the stamp carries their last commit')
 check(page.count(b'url(data:font/woff2;base64,') == 3 and b'fonts.googleapis' not in page and b'fonts.gstatic' not in page,
       'the three font files are inside the page, and Google Fonts is not named (D-043)')

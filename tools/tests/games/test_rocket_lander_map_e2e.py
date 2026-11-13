@@ -1,4 +1,7 @@
-"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.7.
+"""Browser test for Rocket Lander's map screens (step 2c-build, D-058, D-064 to D-068). Version 1.8.
+
+Changes at v1.8 (stage 3, D-120): the blank page standing in for the launcher lets P-020's shared/bridge.js
+through, which the game imports since stage 3 (GC4); the checks are as before.
 
 Changes at v1.7 (step 2c-3b, D-100): Year 2 replaced the stand-in levels on the higher track, so this
 test's pages are served the stand-in map it was written for (stand_in.py: map.js 2.0, byte for byte,
@@ -297,7 +300,7 @@ with sync_playwright() as pw:
     tap(pg, '#lc-play')
     pg.wait_for_function('__test.state().phase === "fly"', timeout=10000)
     # the launcher is P-020's page: a blank page stands in for it here, so its own fetches aren't counted as the game's
-    pg.route(lambda u: u.startswith(LOCAL) and '/games/' not in u, lambda r: r.fulfill(status=200, content_type='text/html', body='<!doctype html><title>launcher</title>'))
+    pg.route(lambda u: u.startswith(LOCAL) and '/games/' not in u and '/shared/bridge.js' not in u, lambda r: r.fulfill(status=200, content_type='text/html', body='<!doctype html><title>launcher</title>'))
     tap(pg, 'button[aria-label="Back to games"]')
     pg.wait_for_url(lambda u: 'rocket-lander' not in u, timeout=10000)  # home has left the game (ER-005)
     pg.wait_for_load_state()
