@@ -72,6 +72,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P71 | Space Explorer: "Find me" sets the place to London, England, and never asks for the device's location; the child can still pick another town | Adopted 2026-11-12 (Rob's direction) |
 | P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper (claude.ai blocks printing, so it's checked on the live site) | Adopted 2026-11-12 |
 | P73 | The grown-ups' "Debug skin" button (bottom right) and its tick-box in the corner are switched off for every device by `features.skinPreview`, whatever a device saved: skins are free and the picker already lets a child try them (P49, P62). Hidden, not deleted (P52) | Adopted 2026-11-13 (Rob's request after his live check of stage 3) |
+| P74 | When a child picks their picture, the launcher re-reads their profile and word lists from the Sheet, so lists set up on another device are there for their first game | Adopted 2026-11-13 (Rob's answer) |
 
 ## From the review (Rob's answers, 2026-10-30)
 

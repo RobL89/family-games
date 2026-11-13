@@ -460,6 +460,9 @@ function go(pid) {
   if (pid) url.searchParams.set('player', pid); else url.searchParams.delete('player');
   history.pushState({}, '', url);
   route();
+  // A child picking their picture re-reads their lists from the Sheet, so lists set up on another
+  // device are there for their first game (P74). The screen updates only if something changed.
+  if (pid) refresh();
 }
 
 function route() {
