@@ -81,12 +81,13 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 
 ## Games
 
-Live (stage 3, published 2026-11-13, P68): three artifact games, each with its own one-page README in `games/<id>/`:
+Live: four artifact games (the first three from stage 3, P68), each with its own one-page README in `games/<id>/`:
 - **Kriss Kross:** word lists from Game setup, plus the child's own lists (P66).
 - **Space Explorer:** a guide to space.
 - **Number Town:** a maths town. Each child's explorer follows them between devices (P77).
+- **Number Crossing** (published 2026-11-13): sums to cross a river, lava or the sky. Each child has their own setup, which follows them between devices (P84).
 
-Testing: **Number Crossing** (sums to cross a river, lava or the sky; each child has their own setup, P84) and Wrapper check, a launcher tool for trying the wrapper.
+Testing: Wrapper check, a launcher tool for trying the wrapper.
 
 Soon (P85): **Fairy village** and **Target number challenge**, Rob's wife's games in progress. A "Soon" tile says "Coming soon!" when tapped; its `source` in `games.json` is her link. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 
