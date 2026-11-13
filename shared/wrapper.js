@@ -8,8 +8,12 @@
 //   4. On fg:ready, sends fg:start: who's playing, sound on or off, word lists (if the game asks
 //      for "word-lists"), the game's saved state for this child, and level null (GC3).
 //   5. On fg:state, keeps the game's state for this child on this device, then sends it to the
-//      Sheet's Settings tab (P51, script 0.4.0), so it follows the child to another device. A game
-//      marked "state": "device" in games.json keeps its state on each device only (P76).
+//      Sheet's Settings tab (P51, script 0.4.0), so it follows the child to another device. When
+//      it's sent (P78): within 30 seconds of a change, never more often; and at once on ⌂ Home or
+//      when the page is hidden (screen off, another app, tab closed). The newest save wins, here
+//      and in the Sheet. There's no Save button (P79): saving needs nothing from the child.
+//      An artifact game whose adapter uses games/_common/keep-progress/ also gets its latest save
+//      taken on the way out, through the page's fgSaveNow() (P77).
 //   6. fg:round is ignored while stars are switched off (P48).
 //   7. An artifact game's adapter (game.json "adapter", contract section 2): the maker's page is never
 //      edited, so the wrapper adds the adapter to the page in the frame as soon as its HTML has been
@@ -23,7 +27,9 @@ import { DEFAULT_SKIN, applySkin } from './skins.js';
 import * as sound from './sound.js';
 
 const VERSION = 1;
-const SEND_AFTER = 1000; // ms after the game's last fg:state before it goes to the Sheet
+const SEND_EVERY = 30000;  // ms: at most one send to the Sheet this often while playing (P78)
+const SEND_FIRST = 2000;   // ms: a first change waits this long, so a burst of changes goes as one
+const WAIT_FOR_SHEET = 3000; // ms: the most the game's start waits for that re-read
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // same key as the launcher's
 const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
 
@@ -114,23 +120,38 @@ async function start() {
   const page = manifest && safeFile(manifest.page) ? manifest.page : 'index.html';
   const adapter = manifest && safeFile(manifest.adapter) ? manifest.adapter : '';
 
-  // Where the game's state is kept (P51, P76). A state kept before states went to the Sheet is sent now.
-  const onDevice = entry.state === 'device';
-  if (!onDevice) api.markUnsent(pid, gameId);
-  let sendTimer = null;
-  const sendSoon = () => {
-    clearTimeout(sendTimer);
-    sendTimer = setTimeout(() => api.sendStates(), SEND_AFTER);
-  };
-  if (!onDevice) {
-    sendSoon();
-    // Leaving the game (⌂ Home, closing the tab): send what's waiting now.
-    window.addEventListener('pagehide', () => { clearTimeout(sendTimer); api.sendStates({ keepalive: true }); });
-  }
-
   const frame = document.createElement('iframe');
   frame.title = entry.title || 'Game';
   frame.allow = 'autoplay; fullscreen';
+
+  // The game's saved state (P51, P78). Its progress may have been made on another device, so the
+  // child's profile is re-read from the Sheet while the game opens.
+  const reread = api.fetchProfile(pid).catch(() => {});
+  api.markUnsent(pid, gameId); // a state kept before states went to the Sheet goes now
+
+  let sendTimer = null;
+  let lastSend = 0; // when something last went to the Sheet
+  const send = (opts) => api.sendStates(opts).then((n) => { if (n) lastSend = Date.now(); });
+  const sendSoon = () => {
+    if (sendTimer) return;
+    const wait = Math.max(SEND_FIRST, lastSend + SEND_EVERY - Date.now());
+    sendTimer = setTimeout(() => { sendTimer = null; send(); }, wait);
+  };
+  // Leaving or hidden: take the game's latest save if its adapter offers one, and send now.
+  const sendNow = () => {
+    clearTimeout(sendTimer);
+    sendTimer = null;
+    try {
+      const latest = frame.contentWindow && typeof frame.contentWindow.fgSaveNow === 'function'
+        ? frame.contentWindow.fgSaveNow() : undefined;
+      if (latest !== undefined) api.keepState(pid, gameId, latest);
+    } catch { /* the game's page is gone or not ours: what was kept already goes */ }
+    send({ keepalive: true });
+  };
+  sendSoon();
+  homeLink.addEventListener('click', sendNow); // the launcher also sends anything still waiting
+  window.addEventListener('pagehide', sendNow);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) sendNow(); });
 
   // Listen before the game opens, so its fg:ready can't be missed.
   window.addEventListener('message', (e) => {
@@ -138,24 +159,31 @@ async function start() {
     const m = e.data;
     if (!m || m.v !== VERSION) return;
     if (m.type === 'fg:ready') {
-      frame.contentWindow.postMessage({
-        type: 'fg:start',
-        v: VERSION,
-        player: { name: player.nickname || '', animal: player.avatar || '', colour: player.colour || '' },
-        sound: !sound.isMuted(),
-        lists: wantsLists(entry, manifest) ? listsFor(pid, gameId) : [],
-        settings: {},
-        state: api.getState(pid, gameId, onDevice),
-        level: null,
-      }, location.origin);
+      startGame();
     } else if (m.type === 'fg:state') {
-      if (api.keepState(pid, gameId, m.state, onDevice) && !onDevice) sendSoon();
+      // Kept at once; sent soon, or now if the page is being hidden (the game saved on its way out).
+      if (api.keepState(pid, gameId, m.state)) (document.hidden ? sendNow : sendSoon)();
     } else if (m.type === 'fg:round' && on('stars')) {
       // Stars switched back on: the round goes into the outbox like the old game kit's.
       const stars = Math.max(1, Math.min(3, Math.round(Number(m.stars) || 1)));
       api.queueResult({ profile_id: pid, game_id: gameId, score: Number(m.score) || 0, level: 1, stars, seconds: Math.round(Number(m.seconds) || 0) });
     }
   });
+
+  // fg:start, once the child's profile has been re-read (or WAIT_FOR_SHEET has passed).
+  async function startGame() {
+    await Promise.race([reread, new Promise((r) => setTimeout(r, WAIT_FOR_SHEET))]);
+    frame.contentWindow.postMessage({
+      type: 'fg:start',
+      v: VERSION,
+      player: { name: player.nickname || '', animal: player.avatar || '', colour: player.colour || '' },
+      sound: !sound.isMuted(),
+      lists: wantsLists(entry, manifest) ? listsFor(pid, gameId) : [],
+      settings: {},
+      state: api.getState(pid, gameId),
+      level: null,
+    }, location.origin);
+  }
 
   frame.src = `${folder}${page}?player=${encodeURIComponent(pid)}`;
   document.getElementById('frame').appendChild(frame);

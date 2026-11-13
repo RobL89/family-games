@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import uuid
+from datetime import datetime, timezone
 
 from playwright.sync_api import sync_playwright
 
@@ -42,7 +43,7 @@ db = {
     'scores': [],
     'lists': {'p_sam': {'kriss-kross': [{'list_id': 'l1', 'title': 'Animals', 'words': ['cat', 'dog', 'hen']},
                                         {'list_id': 'l2', 'title': 'Colours', 'words': ['red', 'blue']}]}},
-    'states': {},  # 0.4.0: (profile_id, game_id) -> state
+    'states': {},  # 0.4.0: (profile_id, game_id) -> {'state', 'at'}, the newest save winning (P78)
 }
 calls = []
 
@@ -63,13 +64,18 @@ def handle(body):
         if V4:  # one set of lists per child (here, the child's first game's) and each game's state
             per_game = db['lists'].get(p['profile_id'], {})
             out['word_lists'] = per_game[sorted(per_game)[0]] if per_game else []
-            out['states'] = {g: v for (pid, g), v in db['states'].items() if pid == p['profile_id']}
+            out['states'] = {g: dict(v) for (pid, g), v in db['states'].items() if pid == p['profile_id']}
         else:
             out['lists'] = db['lists'].get(p['profile_id'], {})
         return out
     if a == 'saveState' and V4:
-        db['states'][(body['profile_id'], body['game_id'])] = body.get('state')
-        return {'ok': True}
+        now = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        at = min(body.get('at') or now, now)
+        key = (body['profile_id'], body['game_id'])
+        if key in db['states'] and db['states'][key]['at'] > at:
+            return {'ok': True, 'saved': False, 'at': db['states'][key]['at']}
+        db['states'][key] = {'state': body.get('state'), 'at': at}
+        return {'ok': True, 'saved': True, 'at': at}
     if a == 'updateProfile':
         p = next(x for x in db['profiles'] if x['profile_id'] == body['profile_id'])
         if 'skin' in body:
@@ -107,7 +113,7 @@ def run():
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
 
-        def new_page(w, h, mobile=False, testing=False, debug=False, games_json=None):
+        def new_page(w, h, mobile=False, testing=False, debug=False):
             ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=mobile, has_touch=mobile,
                                       device_scale_factor=2 if mobile else 1)
             ctx.add_init_script(f"if (!localStorage.getItem('fg.familyCode')) localStorage.setItem('fg.familyCode', JSON.stringify('{CODE}'));"
@@ -117,9 +123,6 @@ def run():
                       lambda route: route.fulfill(status=200, content_type='application/json',
                                                   body=json.dumps(handle(json.loads(route.request.post_data or '{}')))))
             ctx.route(re.compile(r'https://fonts\.(googleapis|gstatic)\.com/.*'), lambda route: route.abort())
-            if games_json is not None:
-                ctx.route(re.compile(r'.*/games\.json(\?.*)?$'),
-                          lambda route: route.fulfill(status=200, content_type='application/json', body=json.dumps(games_json)))
             route_config(ctx)  # the repo's switches as they are, with the test answer
             pg = ctx.new_page()
             pg.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
@@ -227,7 +230,8 @@ def run():
             check(f'{name}: fg:state kept per child', stored and stored['state'] == {'rounds': 1}, stored)
             if V4:
                 pg.wait_for_timeout(1600)
-                check(f'{name}: 0.4.0: fg:state reaches the Sheet', db['states'].get(('p_sam', 'wrapper-check')) == {'rounds': 1}, db['states'])
+                got = db['states'].get(('p_sam', 'wrapper-check'))
+                check(f'{name}: 0.4.0: fg:state reaches the Sheet', got and got['state'] == {'rounds': 1}, db['states'])
             check(f'{name}: fg:round queues nothing', (pg.evaluate("localStorage.getItem('fg.outbox')") or 'null') in ('null', '{"results":[],"achievements":[]}'))
             pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(500)
             check(f'{name}: Home goes back to the child\'s games', 'player=p_sam' in pg.url)
@@ -249,7 +253,7 @@ def run():
 
         if V4:
             # Progress made on another device arrives through the Sheet (P51).
-            db['states'][('p_sam', 'wrapper-check')] = {'rounds': 5}
+            db['states'][('p_sam', 'wrapper-check')] = {'state': {'rounds': 5}, 'at': '2026-11-13T09:00:00.000Z'}
             ctx, pg = new_page(1366, 768, testing=True)
             pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
             pg.goto(BASE + 'play.html?game=wrapper-check&player=p_sam'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(900)
@@ -261,29 +265,28 @@ def run():
             pg.goto(BASE + 'index.html?player=p_alex'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
             pg.evaluate("localStorage.setItem('fg.state.p_alex.wrapper-check', JSON.stringify({ state: { rounds: 3 }, at: '2026-11-12T10:00:00Z' }))")
             pg.goto(BASE + 'play.html?game=wrapper-check&player=p_alex'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(2200)
-            check("0.4.0: a state kept before goes to the Sheet", db['states'].get(('p_alex', 'wrapper-check')) == {'rounds': 3}, db['states'])
+            got = db['states'].get(('p_alex', 'wrapper-check'))
+            check("0.4.0: a state kept before goes to the Sheet", got and got['state'] == {'rounds': 3}, db['states'])
             fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
             check('0.4.0: and the game still gets it', 'Rounds finished before: 3' in fr.locator('#facts').inner_text())
             ctx.close()
             del db['states'][('p_alex', 'wrapper-check')]
-            # A game marked "state": "device" in games.json keeps its state on the device only (P76).
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'games.json'), encoding='utf-8') as f:
-                gj = json.load(f)
-            for g in gj['games']:
-                if g['id'] == 'wrapper-check':
-                    g['state'] = 'device'
-            db['states'][('p_sam', 'wrapper-check')] = {'rounds': 9}
-            ctx, pg = new_page(1366, 768, testing=True, games_json=gj)
+            # The newest save wins (P78): an older copy in the Sheet doesn't replace newer progress on the
+            # device, and a newer one from another device does.
+            ctx, pg = new_page(1366, 768, testing=True)
             pg.goto(BASE + 'index.html?player=p_sam'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1200)
-            pg.goto(BASE + 'play.html?game=wrapper-check&player=p_sam'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(900)
+            pg.evaluate("localStorage.setItem('fg.state.p_sam.wrapper-check', JSON.stringify({ state: { rounds: 8 }, at: '2026-11-13T12:00:00.000Z', sent: false }))")
+            db['states'][('p_sam', 'wrapper-check')] = {'state': {'rounds': 6}, 'at': '2026-11-13T11:00:00.000Z'}
+            pg.goto(BASE + 'play.html?game=wrapper-check&player=p_sam'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(1200)
             fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
-            check("0.4.0: a device game doesn't take the Sheet's state", 'Rounds finished before: 0' in fr.locator('#facts').inner_text())
-            before = calls.count('saveState')
-            fr.locator('#done').click(); pg.wait_for_timeout(1600)
-            pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)
-            check("0.4.0: a device game's state stays on the device", calls.count('saveState') == before
-                  and db['states'][('p_sam', 'wrapper-check')] == {'rounds': 9}
-                  and json.loads(pg.evaluate("localStorage.getItem('fg.state.p_sam.wrapper-check')"))['state'] == {'rounds': 1})
+            check("0.4.0: newer progress on the device beats an older copy in the Sheet", 'Rounds finished before: 8' in fr.locator('#facts').inner_text())
+            pg.wait_for_timeout(2500)
+            check("0.4.0: and replaces it there", db['states'][('p_sam', 'wrapper-check')]['state'] == {'rounds': 8}, db['states'])
+            db['states'][('p_sam', 'wrapper-check')] = {'state': {'rounds': 20}, 'at': '2099-01-01T00:00:00.000Z'}
+            pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(800)
+            pg.click('[data-g="wrapper-check"]'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(1200)
+            fr = pg.frame_locator('.wframe iframe'); fr.locator('#go').click(); pg.wait_for_timeout(200)
+            check("0.4.0: a newer save from another device beats this device's", 'Rounds finished before: 20' in fr.locator('#facts').inner_text())
             ctx.close()
             db['states'].clear()
 

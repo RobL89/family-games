@@ -7,7 +7,8 @@
 // Works with Apps Script 0.3.0 and 0.4.0, so the launcher can go live before the script:
 //   - word lists: 0.4.0 keeps one set per child (P56, `word_lists`); 0.3.0 keeps them per game.
 //   - a game's saved state: kept on the device first, then sent to the Sheet's Settings tab
-//     (P51, `saveState`). With 0.3.0 it just stays on the device until the new script is in.
+//     (P51, `saveState`), so it follows the child; the newest save wins (P78). With 0.3.0 it
+//     just stays on the device until the new script is in.
 
 import { CONFIG } from './config.js';
 
@@ -157,26 +158,26 @@ export async function saveLists(profileId, lists, gameId) {
 
 const stateKey = (profileId, gameId) => `${KEYS.statePrefix}${profileId}.${gameId}`;
 
-// The state to hand a game in fg:start. A copy on this device that the Sheet hasn't got yet is the
-// newest, so it wins. Otherwise the Sheet's (it may come from another device), then the device's.
-// `onDevice` games keep their state on each device only (games.json "state": "device").
-export function getState(profileId, gameId, onDevice = false) {
+// The state to hand a game in fg:start: the newest of this device's copy and the Sheet's, which
+// may come from another device (P78). Each carries `at`, when the game made it.
+export function getState(profileId, gameId) {
   const local = load(stateKey(profileId, gameId), null);
   const mine = local && 'state' in local ? local : null;
-  if (onDevice || (mine && mine.sent !== true)) return mine ? mine.state : null;
-  const states = (getCachedProfile(profileId) || {}).states;
-  if (states && Object.prototype.hasOwnProperty.call(states, gameId)) return states[gameId];
-  return mine ? mine.state : null;
+  const sheet = ((getCachedProfile(profileId) || {}).states || {})[gameId];
+  const theirs = sheet && typeof sheet === 'object' && 'state' in sheet ? sheet : null;
+  if (!mine || !theirs) return (mine || theirs || { state: null }).state;
+  return (Date.parse(theirs.at) || 0) > (Date.parse(mine.at) || 0) ? theirs.state : mine.state;
 }
 
-// Keeps a game's state on this device and marks it for the Sheet (unless `onDevice`).
-// Returns false if it's too big to keep (the game keeps its own copy, contract section 5).
-export function keepState(profileId, gameId, state, onDevice = false) {
+// Keeps a game's state on this device, made now, and marks it to go to the Sheet. The same state
+// as the one already kept changes nothing. Returns false if it's too big to keep (the game keeps
+// its own copy, contract section 5).
+export function keepState(profileId, gameId, state) {
   const json = JSON.stringify(state ?? null);
   if (json.length > MAX_STATE) return false;
-  const entry = { state: JSON.parse(json), at: new Date().toISOString() };
-  if (!onDevice) entry.sent = false;
-  return save(stateKey(profileId, gameId), entry);
+  const kept = load(stateKey(profileId, gameId), null);
+  if (kept && 'state' in kept && JSON.stringify(kept.state) === json) return true;
+  return save(stateKey(profileId, gameId), { state: JSON.parse(json), at: new Date().toISOString(), sent: false });
 }
 
 // A state kept before the launcher could send states has no `sent` mark: mark it so it goes.
@@ -201,16 +202,20 @@ export function sendStates({ keepalive = false } = {}) {
       if (!local || local.sent !== false) continue;
       const [profileId, ...rest] = key.slice(KEYS.statePrefix.length).split('.');
       const gameId = rest.join('.');
+      let reply;
       try {
-        await call('saveState', { profile_id: profileId, game_id: gameId, state: local.state }, { keepalive });
+        reply = await call('saveState', { profile_id: profileId, game_id: gameId, state: local.state, at: local.at }, { keepalive });
       } catch (err) {
         if (/unknown_action|missing_tab_Settings|not_configured/.test(String(err && err.message))) return sent; // script 0.3.0
         continue; // offline or refused: try again next time
       }
       const now = load(key, null);
       if (now && now.at === local.at) save(key, { ...now, sent: true }); // unless it changed meanwhile
+      // The Sheet now holds this save, unless it already had a newer one (saved: false).
       const cached = getCachedProfile(profileId);
-      if (cached) save(KEYS.profilePrefix + profileId, { ...cached, states: { ...(cached.states || {}), [gameId]: local.state } });
+      if (cached && reply.saved !== false) {
+        save(KEYS.profilePrefix + profileId, { ...cached, states: { ...(cached.states || {}), [gameId]: { state: local.state, at: local.at } } });
+      }
       sent++;
     }
     return sent;

@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -26,9 +27,11 @@ THREE_URL = re.compile(r'https://cdnjs\.cloudflare\.com/ajax/libs/three\.js/r128
 
 
 class Check:
-    """Stand-in Sheet with made-up players, pages, and the tally for one game's check."""
+    """Stand-in Sheet with made-up players, pages, and the tally for one game's check.
+    script='0.4.0' answers like apps-script/Code.gs 0.4.0: one set of lists per child and each game's
+    state with its time, the newest save winning (P78). The default answers like 0.3.0."""
 
-    def __init__(self, game_id, out, lists=None):
+    def __init__(self, game_id, out, lists=None, script='0.3.0'):
         self.game_id = game_id
         self.out = out
         os.makedirs(out, exist_ok=True)
@@ -40,20 +43,38 @@ class Check:
             {'profile_id': 'p_alex', 'nickname': 'Alex', 'avatar': 'bunny', 'colour': '#E0457B', 'skin': 'sticker'},
         ]
         self.lists = lists or {}
+        self.script = script
+        self.states = {}  # (profile_id, game_id) -> {'state', 'at'}, script 0.4.0 only
         self.three = open(THREE_JS, encoding='utf-8').read() if THREE_JS else None
 
     def handle(self, body):
         if body.get('code') != CODE:
             return {'ok': False, 'error': 'wrong_code'}
         a = body.get('action')
+        v4 = self.script == '0.4.0'
         if a == 'ping':
-            return {'ok': True, 'version': '0.3.0'}
+            return {'ok': True, 'version': self.script}
         if a == 'profiles':
-            return {'ok': True, 'version': '0.3.0', 'profiles': self.profiles, 'skins': []}
+            return {'ok': True, 'version': self.script, 'profiles': self.profiles, 'skins': []}
         if a == 'profile':
             p = next(x for x in self.profiles if x['profile_id'] == body['profile_id'])
-            return {'ok': True, 'profile': p, 'recent': [], 'achievements': [], 'lists': self.lists.get(p['profile_id'], {}),
-                    'stats': {'total_plays': 0, 'stars_total': 0, 'games': {}, 'days_played': []}}
+            out = {'ok': True, 'profile': p, 'recent': [], 'achievements': [],
+                   'stats': {'total_plays': 0, 'stars_total': 0, 'games': {}, 'days_played': []}}
+            if v4:
+                per_game = self.lists.get(p['profile_id'], {})
+                out['word_lists'] = per_game[sorted(per_game)[0]] if per_game else []
+                out['states'] = {g: dict(v) for (pid, g), v in self.states.items() if pid == p['profile_id']}
+            else:
+                out['lists'] = self.lists.get(p['profile_id'], {})
+            return out
+        if a == 'saveState' and v4:
+            now = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            at = min(body.get('at') or now, now)  # ISO times in UTC sort as text
+            key = (body['profile_id'], body['game_id'])
+            if key in self.states and self.states[key]['at'] > at:
+                return {'ok': True, 'saved': False, 'at': self.states[key]['at']}
+            self.states[key] = {'state': body.get('state'), 'at': at}
+            return {'ok': True, 'saved': True, 'at': at}
         if a == 'sync':
             self.scores += body.get('results', [])
             return {'ok': True, 'accepted': [r['event_id'] for r in body.get('results', [])], 'duplicates': [], 'rejected': [],
