@@ -23,4 +23,6 @@ Only what script 0.4.0 changes (P75):
 - `setup` only adding tabs, header rows and columns, with a backup first
 - the bed itself: the first check fails if `Code.gs` starts using a Google service or method the stand-ins don't cover
 
+**Dry run on a copy of the live Sheet** (stage 5): `node tools/tests/script/dry_run.js <copy.json>`, with the Sheet's tabs read through the Google Drive connector into a JSON file kept **outside the repo** (it has the children's names). It runs `setup` and the first calls, compares every cell before and after, and prints only ids and counts.
+
 Not checked (dropped by P75): calls that 0.4.0 doesn't change, the browser tests on the real script, and a run on a real Google copy.

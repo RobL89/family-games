@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-13 (after stage 3). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-13 (stage 5: script 0.4.0 written, not yet pasted). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -31,8 +31,8 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 
 1. **The launcher opens.** It shows players from the device's cache straight away, sends anything waiting, then refreshes from the Sheet.
 2. **Everything saves on the device first,** then goes to the Sheet. Each item has a unique ID, so a retry never counts twice.
-3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`), and will keep it in the Sheet's Settings tab once script 0.4.0 is live (P51).
-4. **Word lists** reach a game in `fg:start`: this game's lists for the child, or else the first set the child has for any game, as one set per child (P56) until script 0.4.0 stores them that way.
+3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`, with when it was made) and sends it to the Sheet's Settings tab (P51): within 30 seconds of a change, at once on ⌂ Home or when the page is hidden (P78). The newest save wins. As a game opens, the child's profile is re-read so progress from another device is there. There's no Save button (P79). An artifact game that saves in its own storage passes its progress on through `games/_common/keep-progress/` (P77). With script 0.3.0, progress just stays on the device.
+4. **Word lists** reach a game in `fg:start`: one set per child for every word game (P56). With script 0.3.0, which keeps them per game, it's this game's lists or else the first set the child has (P61).
 5. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview, Testing switch, game states). Games use their own keys, never clear-all (contract section 6).
 
 ## Sheet tabs
@@ -41,24 +41,27 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 |---|---|---|
 | Profiles | profile_id, nickname, avatar, colour, created_at, active, skin | In use |
 | Skins | skin_id, name, stars_needed, active | Names and `active` in use; `stars_needed` ignored (P49) |
-| GameLists | list_id, profile_id, game_id, position, title, words, updated_at | In use; per child from script 0.4.0 (P56) |
+| GameLists | list_id, profile_id, game_id, position, title, words, updated_at | In use. From 0.4.0 one set per child, `game_id` blank; a child's old per-game rows are read until their lists are next saved, which moves them (P56) |
 | Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48) |
 | Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48) |
-| Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state (P51, Q12) |
+| Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12) |
 
 The family code is kept in the script's settings, not the Sheet.
 
-## Calls the Apps Script answers (script 0.3.0)
+## Calls the Apps Script answers (script 0.4.0)
+
+0.4.0 is written and tested (`tools/tests/script/`, P75) but not yet pasted; 0.3.0 is live. The launcher works with both, so it goes live first.
 
 | Call | Does |
 |---|---|
 | `ping` | Checks the family code; returns the script version |
 | `profiles` | Active players, plus the Skins tab |
-| `profile` | One player: recent scores, per-game bests, star total, days played, badges, word lists per game |
+| `profile` | One player: recent scores, per-game bests, star total, days played, badges, `word_lists` (one set), `states` (each game's `{ state, at }`) |
 | `addProfile` | Adds a player |
-| `updateProfile` | Changes a player's name, animal, colour or skin |
+| `updateProfile` | Changes a player's name, animal, colour or skin; any active skin, no star check (P63) |
 | `sync` | Takes the device outbox: results and badges, duplicates skipped |
-| `saveLists` | Replaces one player's lists for one game, in order (the first is the default) |
+| `saveLists` | Replaces one player's word lists, in order (the first is the default); a `game_id` from an older launcher is ignored |
+| `saveState` | Keeps one game's state for one player, with when it was made; an older save than the Sheet's is ignored (P78) |
 
 ## Safety and privacy (P7, P9, P10)
 
@@ -81,11 +84,11 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 Live (stage 3, published 2026-11-13, P68): three artifact games, each with its own one-page README in `games/<id>/`:
 - **Kriss Kross:** word lists from Game setup, plus the child's own lists (P66).
 - **Space Explorer:** a guide to space.
-- **Number Town:** a maths town.
+- **Number Town:** a maths town. Each child's explorer follows them between devices (P77).
 
 Testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 
-**Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. Sound off is handled for them by `games/_common/sound-off/`. Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
+**Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. Shared helpers for adapters are in `games/_common/`: sound off (`sound-off/`) and progress kept in the game's own storage (`keep-progress/`, P77). Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
 
 ## Trying changes before publishing (P57)
 
