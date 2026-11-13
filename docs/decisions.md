@@ -73,6 +73,7 @@ Every decision for the launcher, numbered for good: a P-number is never reused o
 | P72 | Kriss Kross's adapter adds a Print button on its print screen, which prints just the game, not the whole wrapper (claude.ai blocks printing, so it's checked on the live site) | Adopted 2026-11-12 |
 | P73 | The grown-ups' "Debug skin" button (bottom right) and its tick-box in the corner are switched off for every device by `features.skinPreview`, whatever a device saved: skins are free and the picker already lets a child try them (P49, P62). Hidden, not deleted (P52) | Adopted 2026-11-13 (Rob's request after his live check of stage 3) |
 | P74 | When a child picks their picture, the launcher re-reads their profile and word lists from the Sheet, so lists set up on another device are there for their first game | Adopted 2026-11-13 (Rob's answer) |
+| P75 | Stage 4 (P55) cut further and done at the start of the stage 5 chat: the real `Code.gs` runs in Node, unchanged, against a small in-memory stand-in for the Google services it uses, with pass-or-fail checks of only what script 0.4.0 changes (game state, one set of lists per child and moving the old lists, skins without the star check, `setup` only adding). Dropped: checks of unchanged calls, moving the browser tests onto the real script, and a test on a real Google copy. The dry run on a local copy of the live Sheet happens in stage 5, before the change | Adopted 2026-11-13 (Rob's answer) |
 
 ## From the review (Rob's answers, 2026-10-30)
 
