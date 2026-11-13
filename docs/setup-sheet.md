@@ -71,5 +71,5 @@ Each new script version is pasted and deployed the same way. The handoff and the
 |---|---|
 | First version | Profiles, Scores and Achievements tabs |
 | 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
-| 0.3.0 (live) | GameLists tab, header row only |
-| 0.4.0 (ready, not pasted yet) | Settings tab, header row only. Nothing else changes when `setup` runs (dry run on a copy, 2026-11-13). Publish the launcher **before** pasting it: the launcher works with 0.3.0 and 0.4.0, but the old launcher would lose its word lists with 0.4.0 |
+| 0.3.0 | GameLists tab, header row only |
+| 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |

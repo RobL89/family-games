@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-13 (stage 5: script 0.4.0 written, not yet pasted). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-13 (stage 5: script 0.4.0 live). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -50,7 +50,7 @@ The family code is kept in the script's settings, not the Sheet.
 
 ## Calls the Apps Script answers (script 0.4.0)
 
-0.4.0 is written and tested (`tools/tests/script/`, P75) but not yet pasted; 0.3.0 is live. The launcher works with both, so it goes live first.
+0.4.0 is live (pasted 2026-11-13), tested first in `tools/tests/script/` (P75). The launcher also works with 0.3.0.
 
 | Call | Does |
 |---|---|
