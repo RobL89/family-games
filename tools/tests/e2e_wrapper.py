@@ -127,7 +127,8 @@ def run():
         check('the picker fits the phone', pg.evaluate("(() => { const r = document.querySelector('.skin-card').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })()"))
         check('testing game hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
         check('placeholder tiles hidden (P65)', pg.locator('.tile.soon').count() == 0)
-        check('games being tested hidden without the switch', pg.locator('[data-g="kriss-kross"]').count() == 0)
+        check('games being tested hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
+        check('the artifact games are on home', all(pg.locator(f'[data-g="{g}"]').count() == 1 for g in ('kriss-kross', 'space-explorer', 'number-town')))
         no_overflow = pg.evaluate('document.documentElement.scrollWidth <= innerWidth')
         check('home fits the phone width', no_overflow)
 

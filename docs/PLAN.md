@@ -78,12 +78,12 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 
 ## Games
 
-Testing on `work` (stage 3), for Rob to try before publishing (P68): three artifact games, each with its own one-page README in `games/<id>/`:
+Live (stage 3, published 2026-11-13, P68): three artifact games, each with its own one-page README in `games/<id>/`:
 - **Kriss Kross:** word lists from Game setup, plus the child's own lists (P66).
 - **Space Explorer:** a guide to space.
 - **Number Town:** a maths town.
 
-Also testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65). Live on `main` until the next publish: the old Kriss Kross on its own page.
+Testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 
 **Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. Sound off is handled for them by `games/_common/sound-off/`. Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
 
