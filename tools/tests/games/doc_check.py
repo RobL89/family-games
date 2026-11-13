@@ -1,10 +1,9 @@
-"""Doc check for P-034 (Kids Games Development)'s governing files. Version 1.0.
+"""Doc check for P-034 (Kids Games Development)'s governing files. Version 1.1.
+
+Changes at v1.1 (D-122): games.json is no longer checked: it is P-020 (Family Games Launcher)'s
+file (D-113), with P-020's own statuses and artifact games, and P-020 checks it.
 
 Run before every save of a governing file. Checks:
-- games.json: valid JSON; a "games" list; each game has an id (lower-case,
-  hyphens) and a title; ids are unique; status is ready, testing or soon
-  (game contract v0.3, section on games.json); a game that is ready or
-  testing has a folder; a folder named exists and holds index.html.
 - docs/games/*.md: a "Version" line, a "Change log" heading, and every
   relative link points to a file or folder that exists in the repo.
 - tools/tests/games/pins.json: valid JSON with format 1, and every frozen file
@@ -21,46 +20,7 @@ import os
 import re
 import sys
 
-STATUSES = {'ready', 'testing', 'soon'}
-ID_RE = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
 LINK_RE = re.compile(r'\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)')
-
-
-def check_games_json(repo):
-    errs = []
-    path = os.path.join(repo, 'games.json')
-    try:
-        with open(path, encoding='utf-8') as fh:
-            data = json.load(fh)
-    except (OSError, ValueError) as e:
-        return [f'games.json: cannot read: {e}']
-    games = data.get('games') if isinstance(data, dict) else None
-    if not isinstance(games, list):
-        return ['games.json: no "games" list']
-    seen = set()
-    for n, g in enumerate(games, 1):
-        where = f'games.json game {n}'
-        if not isinstance(g, dict):
-            errs.append(f'{where}: not an object')
-            continue
-        gid = g.get('id')
-        if not isinstance(gid, str) or not ID_RE.match(gid):
-            errs.append(f'{where}: bad id {gid!r}')
-        elif gid in seen:
-            errs.append(f'{where}: duplicate id {gid!r}')
-        seen.add(gid)
-        if not g.get('title'):
-            errs.append(f'{where} ({gid}): no title')
-        status = g.get('status')
-        if status not in STATUSES:
-            errs.append(f'{where} ({gid}): status {status!r} is not one of {sorted(STATUSES)}')
-        folder = g.get('folder')
-        if status in ('ready', 'testing') and not folder:
-            errs.append(f'{where} ({gid}): {status} but no folder')
-        if folder:
-            if not os.path.isfile(os.path.join(repo, folder, 'index.html')):
-                errs.append(f'{where} ({gid}): folder {folder!r} has no index.html')
-    return errs
 
 
 def check_docs(repo):
@@ -106,7 +66,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--repo', default='.')
     a = ap.parse_args(argv)
-    errs = check_games_json(a.repo) + check_docs(a.repo) + check_pins(a.repo)
+    errs = check_docs(a.repo) + check_pins(a.repo)
     for e in errs:
         print('  ' + e)
     print('docs:', 'PASS' if not errs else f'FAIL ({len(errs)})')

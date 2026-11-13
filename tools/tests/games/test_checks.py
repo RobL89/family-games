@@ -1,6 +1,9 @@
 """Tests for P-034 (Kids Games Development)'s checks: repo_check, doc_check and
-pins_check. Version 1.2.
+pins_check. Version 1.3.
 
+Changes at v1.3 (D-122): the doc check no longer checks games.json, P-020's file since D-113, so its
+seven games.json cases give way to one: P-020's statuses, an artifact game's folder and a broken file
+all pass the doc check.
 Changes at v1.2: games.json, games/kriss-kross/ and games/_template/ are P-020's, not
 P-034's (D-113): two cases check that a change to them fails the repo check.
 Changes at v1.1: the private-names cases are removed with the names check (D-017).
@@ -186,46 +189,16 @@ def case_docs_clean(repo):
     return check(repo, 'doc_check.py')[0] == 0
 
 
-def edit_games(repo, fn):
-    p = os.path.join(repo, 'games.json')
-    data = json.load(open(p))
-    fn(data['games'])
-    write(repo, 'games.json', json.dumps(data))
-
-
-def case_docs_duplicate_id(repo):
-    edit_games(repo, lambda g: g.append(dict(g[0])))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_bad_status(repo):
-    edit_games(repo, lambda g: g[0].update(status='live'))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_ready_no_folder(repo):
-    edit_games(repo, lambda g: g[2].update(status='testing'))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_folder_missing(repo):
-    edit_games(repo, lambda g: g[0].update(folder='games/nope/'))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_bad_id(repo):
-    edit_games(repo, lambda g: g[0].update(id='Rocket Lander'))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_no_title(repo):
-    edit_games(repo, lambda g: g[0].pop('title'))
-    return check(repo, 'doc_check.py')[0] == 1
-
-
-def case_docs_bad_json(repo):
+def case_docs_games_json_is_p020s(repo):
+    # D-122: games.json is P-020's (D-113), so the doc check leaves it to P-020: its own statuses
+    # ('hidden'), artifact games that open original.html, and even a broken file don't fail ours
+    write(repo, 'games/her-art/original.html', '<html>art</html>\n')
+    write(repo, 'games.json', json.dumps({'games': [
+        {'id': 'her-art', 'title': 'Art', 'folder': 'games/her-art/', 'status': 'ready'},
+        {'id': 'x', 'title': 'X', 'status': 'hidden'}]}))
+    ok_p020 = check(repo, 'doc_check.py')[0] == 0
     write(repo, 'games.json', '{"games": [')
-    return check(repo, 'doc_check.py')[0] == 1
+    return ok_p020 and check(repo, 'doc_check.py')[0] == 0
 
 
 def case_docs_broken_link(repo):

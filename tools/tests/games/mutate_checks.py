@@ -1,5 +1,6 @@
-"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.2.
+"""Mutation bench for P-034 (Kids Games Development)'s checks. Version 1.3.
 
+Changes at v1.3 (D-122): the doc check no longer checks games.json, so its three games.json mutants go.
 Changes at v1.2: repo_check 1.2's folders (D-113): the folder mutants follow its new lines.
 Changes at v1.1: the names mutants are removed with the names check (D-017).
 
@@ -29,9 +30,6 @@ MUTANTS = [
     ('repo_check.py', "'--untracked-files=all', '--no-renames'", "'--untracked-files=no', '--no-renames'", 'untracked files ignored'),
     ('repo_check.py', "    outside = sorted(p for p in committed | working if not owned(p))",
      "    outside = sorted(p for p in committed if not owned(p))", 'working tree ignored'),
-    ('doc_check.py', "        elif gid in seen:", "        elif False:", 'duplicate ids allowed'),
-    ('doc_check.py', "STATUSES = {'ready', 'testing', 'soon'}", "STATUSES = {'ready', 'testing', 'soon', 'live'}", 'unknown status allowed'),
-    ('doc_check.py', "        if status in ('ready', 'testing') and not folder:", "        if status == 'ready' and not folder:", 'testing without folder allowed'),
     ('doc_check.py', "            if not os.path.exists(dest):", "            if False:", 'broken links allowed'),
     ('doc_check.py', "        if not os.path.isfile(os.path.join(repo, item.get('path', ''))):", "        if False:", 'missing frozen file allowed'),
     ('pins_check.py', "digest = hashlib.sha256(fh.read()).hexdigest()",

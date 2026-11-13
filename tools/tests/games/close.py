@@ -1,4 +1,8 @@
-"""Close script for P-034 (Kids Games Development). Version 1.10.
+"""Close script for P-034 (Kids Games Development). Version 1.11.
+
+Changes at v1.11 (ER-010, stage 3): main is fetched 500 commits deep, not 1. Since D-120 merged main into
+claude/games, a main cut to one commit hid where the branch left it, so the repo check counted P-020's
+older commits as P-034's (33 paths "outside"); the fast checks are as before.
 
 Changes at v1.10 (step 2c-3c): the new browser test of Year 1's and Year 3's levels,
 test_rocket_lander_year1_year3_e2e.py, runs when Rocket Lander's own files change (as the Year 2 test does);
@@ -157,7 +161,7 @@ def main():
     fetch = '--no-fetch' not in sys.argv[1:]
     results = []
     if fetch:
-        r = subprocess.run(['git', 'fetch', '--depth=1', 'origin', '+refs/heads/main:refs/remotes/origin/main'],
+        r = subprocess.run(['git', 'fetch', '--depth=500', 'origin', '+refs/heads/main:refs/remotes/origin/main'],
                            cwd=REPO, capture_output=True, text=True)
         results.append(('fetch main', 'PASS' if r.returncode == 0 else 'FAIL'))
         if r.returncode != 0:
