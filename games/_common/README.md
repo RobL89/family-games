@@ -1,18 +1,42 @@
-# Taking in an artifact game: what to check (P80, proposed)
+# Taking in or updating an artifact game (P80)
 
-The route for taking one in is P69; this is what to look for in the game once it's here, and what each answer means. Learnt from Kriss Kross, Space Explorer and Number Town. The maker's page is never edited: everything below is done in the game's `adapter.js`, with the helpers in this folder.
+A short routine, learnt from Kriss Kross, Space Explorer and Number Town and the live bugs that followed (P81 to P83). The route for getting the page is P69; the maker's page is never edited, so everything here goes in the game's `adapter.js`, with the helpers in this folder.
 
-| Check in `original.html` | If yes |
+## 1. Scan (a minute)
+
+`python3 -I tools/scan_artifact.py games/<id>/original.html` lists its storage keys, when it saves, its own players, sound, permissions, buttons and other sites, with line numbers. Each finding names a row below. Then read its text for real names: Rob checks none are family names (P68).
+
+## 2. Adapter: what each finding means
+
+| Finding | In the adapter |
 |---|---|
-| **Keeps progress in its own storage?** Search for `localStorage` and list its keys. | Use `keep-progress/` (P77): `read()` and `write()` for this child's progress only. Pass the whole progress, never just an id: an id only means something on the device that made it (the Number Town lesson). Measure a fully played save; the most is 20,000 characters. |
-| **Saves on losing focus, on being hidden, or as the page unloads?** Search for `blur`, `visibilitychange`, `pagehide`, `unload`. | Expected and fine: `keep-progress` ignores the game's saves while it reloads to put progress back. In tests, change progress through the game itself while it's open: a change made straight to storage is overwritten by the game's copy in memory. |
-| **Reads its storage only as it opens?** (Most do.) | Putting progress back needs one reload; `keep-progress` does it, guarded so it never loops. |
-| **Has its own players or "Who's playing?"** | Show it only this child's (Number Town, P70): note on the device which one is theirs, set the game's list before it starts, hide its switch button. |
-| **Makes sound or speaks?** | `sound-off/` when sound is off (P67). |
-| **Has its own home, back, print or full-screen buttons?** | Hide or adapt them in the adapter (Kriss Kross print, P72). The wrapper's ⌂ Home is the way out (P50). |
-| **Asks for location, camera or other permissions?** | Answer for it without asking (Space Explorer's "Find me", P71). |
-| **Loads from other sites** (a CDN, fonts)? | Note it in its README; its release check needs a local copy to test (for example `FG_THREE_JS`). |
-| **Names of real people** in its text? | Rob checks none are family names (P68): the repo is public. |
-| **Word lists or other grown-up settings?** | `"settings": ["word-lists"]` in `game.json`; the adapter hands the lists over (Kriss Kross, P66). |
+| **Storage** (keeps progress) | `keep-progress/` (P77): `read()` and `write()` this child's progress only. Pass the whole progress, never just an id (an id means something only on the device that made it). A fully played save must be under 20,000 characters: measure one. |
+| **Saves on leaving** (blur, hiding, unload) | Expected. Before any reload the adapter makes, call `freezeStorage()`, or the game's copy in memory undoes the change (P82). |
+| **Own players** ("Who's playing?") | Show only this child's (P70, P82): note on the device which is theirs; swap to it **as the page opens**, not after `fg:start`, which waits up to 3 s for the Sheet; never adopt one another child has; hide its switch button. |
+| **Sound** or speech | `sound-off/` when sound is off (P67). |
+| **Permissions** (location, camera) | Answer for it without asking (Space Explorer's "Find me", P71). |
+| **Own buttons** (print, full screen, leaving) | Adapt or hide them; ⌂ Home is the way out (P50). Print: P72. |
+| **Other sites** | Fonts need nothing. Anything else (three.js) goes in its README, and its check needs a local copy (`FG_THREE_JS`). |
+| Word lists or grown-up settings | `"settings": ["word-lists"]` in `game.json` (P66). |
 
-**Its release check** (`tools/tests/games/<id>/check.py`, with `harness.py`): the three sizes, sound off, running on its own, and each adapter rule above. If it keeps progress, add two devices: two browser contexts with `Check(..., script='0.4.0')`, a change in the game, ⌂ Home straight after it, and the change arriving on the other device (Number Town's check is the example). Run a new check a few times: timing problems show up only now and then.
+What the child sees before `fg:start` (the last child's view) needs nothing: the wrapper covers it (P83).
+
+## 3. Prove it, then hand over
+
+- **Its release check** (`tools/tests/games/<id>/check.py`, with `harness.py`; Number Town's is the fullest example): the three sizes, sound off, running on its own, and each adapter rule used.
+- **Test with the Sheet as slow as the live one:** `c.hold = True`, open the game, then `c.release()`. Instant answers hid all three live bugs.
+- **If it keeps progress or has players:** switch children on one device (2b in Number Town's check), and two devices with `Check(..., script='0.4.0')`, a change, ⌂ Home straight after, and the change arriving on the other device.
+- **A new test must fail on the old code** before it's trusted: run it against `git show HEAD:<file>`.
+- Run one check per command and tell Rob first: they take minutes.
+- **Add the ids, classes and keys the adapter uses to `docs/maker-notes.md`,** so the maker's Claude keeps them.
+- **Saves already made at the artifact link** (the children played there first): copy them in.
+  1. Open the artifact in Chrome; right-click the game, Inspect, Console.
+  2. Check you're in the game's frame: `location.host + ' / ' + Object.keys(localStorage).length`.
+  3. `copy(JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('<prefix>')).map(k => [k, localStorage.getItem(k)]))))`, with the game's key prefix from the scan, and paste it in the chat.
+  4. Write those keys into the launcher's storage in Rob's Chrome, plus anything the adapter notes (Number Town: `fg.numberTown.mine.<child>`), then open the child's game once so it reaches the Sheet.
+
+## "Update <game>"
+
+Keep the old page, save the new one as `original.html`, then:
+`python3 -I tools/scan_artifact.py <old page> games/<id>/original.html games/<id>/adapter.js`.
+It says if storage keys changed (saved progress may not be read) or the adapter's ids and classes went (fix the adapter first), and exits 1 if so. Scan the new page alone for anything new, run its release check, and list it as `testing`.

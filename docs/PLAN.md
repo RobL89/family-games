@@ -88,7 +88,7 @@ Live (stage 3, published 2026-11-13, P68): three artifact games, each with its o
 
 Testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 
-**Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. Shared helpers for adapters are in `games/_common/`: sound off (`sound-off/`) and progress kept in the game's own storage (`keep-progress/`, P77). Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
+**Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. **Taking one in or updating one: follow [games/_common/README.md](../games/_common/README.md)** (P80): scan the page with `tools/scan_artifact.py`, build the adapter, prove it with the Sheet held back. Shared helpers for adapters are in `games/_common/`: sound off (`sound-off/`) and progress kept in the game's own storage (`keep-progress/`, P77). Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
 
 ## Trying changes before publishing (P57)
 
