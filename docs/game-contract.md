@@ -100,7 +100,7 @@ Sent with `window.postMessage`, between pages on the same site only. Each one is
 
 An update follows the same steps, and the new folders replace the old ones.
 
-**An artifact game:** Rob gives P-020 the link. P-020 saves the page unchanged as `original.html`, writes `game.json`, the README and, only if needed, `adapter.js`, and records the link, the date and, if readable, the artifact's version as `source` (TBC on first use). Then steps 4 and 5 above. When the maker updates her game, Rob gives P-020 the link again and the copy is retaken.
+**An artifact game:** Rob gives P-020 the link. P-020 saves the page unchanged as `original.html`, writes `game.json`, the README and, only if needed, `adapter.js`, and records the link, the date and, if readable, the artifact's version as `source` (TBC on first use). Then steps 4 and 5 above. When the maker updates her game, Rob gives P-020 the link again and the copy is retaken. What the maker's Claude should keep the same: `docs/maker-notes.md`.
 
 **GC7. Checklist before a game is released:**
 1. It plays in the fake wrapper at 390×844, 844×390 and 1366×768 with no errors, and nothing hides under the bar.
