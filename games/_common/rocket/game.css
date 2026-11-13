@@ -1,0 +1,446 @@
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.4.
+   Changes at v2.4 (stage 3, D-121): the one-time track pick's card, its two buttons one above the other
+   (side by side on a sideways phone).
+   Changes at v2.3 (step 2c-3c): Year 1's and Year 3's faces: groups as rows of dots in lilac boxes, half of a
+   number, a place-value chart (H, T, O: coral hundreds, mint tens, sun ones, as the blocks' colours), which of
+   two fractions is bigger, a count in tenths, an estimate (nearest 10 or 100), a fraction sum, and a mixed
+   number (1 3/10) in the chip and the bubble.
+   Changes at v2.2 (step 2c-3b, D-100): Year 2's faces in the target's chip (tens rods and ones, words, a
+   sign, a count, a shape cut in parts, a fraction of dots in groups), a dashed box for a number to find,
+   and fractions one number over the other in the chip and the bubble.
+   Changes at v2.1 (step 2c-3a, D-092; Rob): on a big screen the heads-up and the bubble grow (about 1.5 times on a
+   screen 1000 px high). Also: Reception's faces in the target's chip (white, coral dots in rows of
+   5, frames to fill, sweets and plates, a quick look that hides its dots), with "Land on" left to the voice
+   so they keep their size on an upright phone; the challenge round's chip on its card.
+   Changes at v2.0 (step 2c-build, D-058, D-066): the map is home: the start card, its title and the planet
+   picker go; the map's top bar (galaxy, systems, hangar door), its markers and Play bubble, the banner,
+   the galaxy view, the level card and the end card's rocks come. */
+:root {
+  --ink: #1B1446;
+  --paper: #FFFFFF;
+  --lilac: #EDE8FF;
+  --coral: #FF5D73;
+  --coral-dk: #C93A57;
+  --sun: #FFC93C;
+  --mint: #5FE3BD;
+  --mint-dk: #23A985;
+  --sky: #8CF5FF;
+  --night: #120C3A;
+  --even: #7FD8FF;  /* Number mode: even numbers, sky blue (D-035, E1) */
+  --odd: #FFC93C;   /* Number mode: odd numbers, sun yellow; with --even, a pair colour-blind eyes keep apart */
+  --font: "Fredoka", "Baloo 2", "Nunito", "Arial Rounded MT Bold", "Segoe UI Rounded", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  overflow: hidden; overscroll-behavior: none; background: var(--night); color: var(--ink);
+  font-family: var(--font); font-weight: 600;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+.stage { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
+.layer { position: absolute; inset: 0; display: block; }
+.fx { pointer-events: none; z-index: 30; }
+
+/* ---------- Heads-up: the target, landings so far, moon rocks ---------- */
+.hud {
+  position: absolute; z-index: 10; left: 0; right: 0; top: 0; pointer-events: none;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(80px, calc(env(safe-area-inset-left) + 80px));
+  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "ask trail"; align-items: start; gap: 10px;
+}
+.ask { grid-area: ask; display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 0; }
+.trail { grid-area: trail; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.target {
+  display: inline-flex; align-items: center; gap: .32em; pointer-events: none;
+  padding: .12em .2em .12em .62em; border-radius: 999px;
+  background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 5px 0 rgba(10, 6, 40, .55);
+  font-size: clamp(28px, 5.8vh, 56px); line-height: 1; white-space: nowrap;
+  transform-origin: 50% 40%;
+}
+.target-lbl { color: var(--ink); }
+.chip {
+  display: inline-grid; place-items: center; min-width: 1.5em; padding: .1em .32em .14em; border-radius: 999px;
+  background: var(--sun); border: 3px solid var(--ink); font-weight: 700; font-size: 1.32em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.chip.word { font-size: 1em; padding: .14em .5em .18em; }
+.chip.even, .bubble b.even { background: var(--even); }
+.chip.odd, .bubble b.odd { background: var(--odd); }
+.chip.dice { padding: .08em .22em; }
+.chip .die { display: block; width: 1.05em; height: 1.05em; }
+.chip .die rect { fill: var(--paper); stroke: var(--ink); stroke-width: 2.6; }
+.chip .die circle { fill: var(--ink); }
+/* Reception's faces (step 2c-3a): a picture or a phrase asks for the number (asks.js, faces.js) */
+.target.is-face { padding-left: .2em; }
+.target.is-face .target-lbl { display: none; }
+.chip.face { display: inline-flex; align-items: center; gap: .2em; padding: .14em .34em; border-radius: .45em; background: var(--paper); font-size: 1.15em; }
+.chip.face svg { display: block; height: .7em; width: auto; overflow: visible; }
+.chip.face svg.r2 { height: 1.36em; }
+.chip.face svg.r3 { height: 1.4em; }
+.chip.face svg.plates { height: .62em; }
+.chip .d-on { fill: var(--coral); stroke: var(--ink); stroke-width: 1.5; }
+.chip .d-empty { fill: var(--paper); stroke: #8F87C9; stroke-width: 1.2; stroke-dasharray: 1.7 1.3; }
+.chip .d-gone { fill: #E3E0F5; stroke: #8F87C9; stroke-width: 1.2; }
+.chip .d-x { fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; }
+.chip .f-cell { fill: var(--lilac); stroke: var(--ink); stroke-width: 1; }
+.chip .fw { font-size: .46em; font-weight: 700; line-height: 1; text-align: center; max-width: 3.4em; white-space: normal; }
+.chip .fn { display: inline-grid; place-items: center; min-width: 1.1em; padding: 0 .16em; border-radius: .38em; background: var(--sun); border: 2px solid var(--ink); font-size: .82em; line-height: 1.12; }
+.chip .pc { display: inline-flex; flex-direction: column; align-items: center; gap: .08em; }
+.chip .pc svg { height: .56em; }
+.chip .pc .d-none { display: block; height: .56em; }
+.chip.face-sum .fn, .chip.face-double .fn { font-size: .74em; }
+.chip .op { font-size: .82em; }
+.chip .pair { display: inline-flex; gap: .22em; }
+.chip .sw { stroke: var(--ink); stroke-width: 1.1; }
+.chip .sw-end { stroke: var(--ink); stroke-width: .8; stroke-linejoin: round; }
+.chip .plate { fill: var(--paper); stroke: var(--ink); stroke-width: 1.3; }
+.chip .plate-in { fill: none; stroke: #C9C4E6; stroke-width: .9; }
+/* a quick look: the dots show for show_ms (--show), then a question mark takes their place */
+.chip.face-flash .fl { display: inline-grid; place-items: center; }
+.chip.face-flash .fl > * { grid-area: 1 / 1; }
+.chip.face-flash .fl-q { opacity: 0; font-size: .9em; line-height: 1; }
+.target .chip.face-flash .fl-dots { animation: fl-hide .3s ease var(--show, 1500ms) forwards; }
+.target .chip.face-flash .fl-q { animation: fl-show .35s cubic-bezier(.3, 1.6, .5, 1) var(--show, 1500ms) forwards; }
+@keyframes fl-hide { to { opacity: 0; transform: scale(.5); } }
+@keyframes fl-show { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+/* Year 2's faces (step 2c-3b, D-100): tens rods and ones, a number in words, "47 < ?", a count to go on, a
+   shape cut in equal parts, a fraction of some dots; a box (dashed) for the number to find; fractions one over the other */
+.chip.face svg.blocks { height: 1.42em; }
+.chip .pv-ten { fill: var(--mint); stroke: var(--ink); stroke-width: .7; }
+.chip .pv-l { stroke: var(--ink); stroke-width: .35; opacity: .5; }
+.chip .pv-one { fill: var(--sun); stroke: var(--ink); stroke-width: .7; }
+.chip.face-words .wd { font-size: .6em; font-weight: 700; padding: .06em .14em; white-space: nowrap; }
+.chip .fq, .chip.sum .q { display: inline-grid; place-items: center; min-width: 1.1em; padding: 0 .16em; border-radius: .38em; background: var(--paper);
+  border: 2px dashed var(--ink); font-size: .82em; line-height: 1.12; }
+.chip.sum .q { min-width: .9em; font-size: 1em; padding: 0 .1em; line-height: 1; border-radius: .3em; }
+.chip.sum .sm { white-space: nowrap; display: inline-flex; align-items: center; gap: .18em; }
+.chip.face-sign .fn, .chip.face-sign .fq, .chip.face-seq .fn, .chip.face-seq .fq { font-size: .7em; }
+.chip.face-seq { gap: .14em; }
+.chip.face svg.shape { height: 1.3em; }
+.chip .fs-on { fill: var(--coral); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.chip .fs-off { fill: var(--paper); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.chip .fs-edge { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.chip .fr, .bubble .fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.02; font-weight: 700; }
+.chip .fr { font-size: .62em; }
+.bubble .fr { font-size: .72em; margin: 0 .08em; }
+.chip .fr b, .bubble .fr b { display: block; padding: 0 .14em; background: none; border-radius: 0; }
+.chip .fr b:first-child, .bubble .fr b:first-child { border-bottom: .13em solid currentColor; padding-bottom: .05em; }
+.chip .fr b + b, .bubble .fr b + b { padding-top: .05em; }
+.chip .fo-group { fill: var(--lilac); stroke: var(--ink); stroke-width: .9; }
+.chip.face-fracof .fn { font-size: .7em; }
+/* Year 1's and Year 3's faces (step 2c-3c): groups of, half of, a place-value chart, which fraction is bigger,
+   tenths, an estimate, a fraction sum; a whole number before a fraction (1 3/10) */
+.chip.face svg.array { height: 1.3em; }
+.chip.face svg.array.r1 { height: .62em; }
+.chip.face svg.array.r2 { height: 1em; }
+.chip .gr-row { fill: var(--lilac); stroke: var(--ink); stroke-width: .9; }
+.chip.face-groups .fn, .chip.face-half .fn { font-size: .7em; }
+.chip.face svg.chart { height: 1.42em; }
+.chip .pc-col { fill: var(--paper); stroke: var(--ink); stroke-width: .9; }
+.chip .pc-hd { font-family: var(--font); font-weight: 700; font-size: 8.4px; fill: var(--ink); text-anchor: middle; }
+.chip .pc-h { fill: var(--coral); stroke: var(--ink); stroke-width: 1; }
+.chip .pc-t { fill: var(--mint); stroke: var(--ink); stroke-width: 1; }
+.chip .pc-o { fill: var(--sun); stroke: var(--ink); stroke-width: 1; }
+.chip .mx, .bubble .mx { display: inline-flex; align-items: center; gap: .08em; vertical-align: middle; }
+.chip.face-seq .fx { padding: .04em .14em; }
+.chip.face-fcmp .fr { font-size: .74em; }
+.chip.sum.frac { display: inline-flex; align-items: center; gap: .16em; }
+.chip.sum.frac .fr { font-size: .62em; }
+.chip.face-est .fw { max-width: 4.2em; }
+/* a challenge round (D-091): its card's chip */
+.chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
+.chip.challenge svg { width: .9em; height: .9em; }
+.target.pop { animation: pop .55s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes pop { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 60% { transform: scale(1.08) rotate(2deg); opacity: 1; } 100% { transform: none; } }
+
+.round {
+  pointer-events: auto; display: grid; place-items: center; width: 60px; height: 60px; padding: 0; flex: none;
+  border-radius: 50%; border: 4px solid var(--ink); cursor: pointer;
+  background: var(--mint); color: var(--ink); box-shadow: 0 5px 0 rgba(10, 6, 40, .55);
+}
+.round svg { width: 60%; height: 60%; }
+.round:active { translate: 0 3px; box-shadow: 0 2px 0 rgba(10, 6, 40, .55); }
+.round:focus-visible, .big:focus-visible, .play-bubble:focus-visible, .hangar-btn:focus-visible { outline: 4px solid var(--sun); outline-offset: 3px; }
+.say.talking svg { animation: talk .5s ease-in-out 3; }
+@keyframes talk { 50% { transform: scale(1.18); } }
+
+.dots { display: flex; gap: 5px; margin: 0; padding: 7px 9px; list-style: none; border-radius: 999px; background: rgba(13, 8, 48, .55); border: 2px solid rgba(255, 255, 255, .18); }
+.dots li { width: 15px; height: 15px; border-radius: 50%; background: rgba(255, 255, 255, .16); border: 2px solid rgba(255, 255, 255, .35); }
+.dots li.now { background: rgba(255, 255, 255, .55); border-color: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, .8); }
+.dots li.yes { background: var(--mint); border-color: var(--ink); }
+.dots li.yes.perfect { background: var(--sun); box-shadow: 0 0 8px var(--sun); }
+.dots li.no { background: #8F87C9; border-color: var(--ink); }
+
+.rocks {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 14px 3px 5px; border-radius: 999px;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 4px 0 rgba(10, 6, 40, .5);
+  font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.rock-icon { width: 30px; height: 30px; }
+.rocks.bump { animation: bump .45s cubic-bezier(.3, 1.8, .5, 1); }
+@keyframes bump { 40% { transform: scale(1.3); } }
+
+/* Speech bubble ("That's 6. 7 is over here!") */
+.bubble {
+  position: absolute; z-index: 12; width: max-content; max-width: min(calc(100vw - 24px), 440px); pointer-events: none;
+  padding: .45em .8em; border-radius: 22px; background: var(--paper); border: 4px solid var(--ink);
+  box-shadow: 0 5px 0 rgba(10, 6, 40, .5); font-size: clamp(22px, 3.4vh, 30px); line-height: 1.15; text-align: center;
+  transform: translate(-50%, -100%); animation: bubble .4s cubic-bezier(.3, 1.6, .5, 1);
+}
+.bubble::after {
+  content: ""; position: absolute; left: var(--tail, 50%); bottom: -14px; width: 22px; height: 22px; translate: -50% 0;
+  background: var(--paper); border: 4px solid var(--ink); border-top: 0; border-left: 0; rotate: 45deg; border-radius: 0 0 6px 0;
+}
+.bubble b { display: inline-block; padding: 0 .28em; border-radius: 10px; background: var(--sun); }
+.bubble .no-n { background: #DCD7F7; }
+@keyframes bubble { from { opacity: 0; transform: translate(-50%, -80%) scale(.6); } }
+
+/* ---------- Cards ---------- */
+.card {
+  position: absolute; z-index: 20; inset: 0; margin: auto; height: max-content; max-height: calc(100% - 24px); overflow: auto;
+  width: min(560px, calc(100% - 28px)); padding: 22px 22px 24px; text-align: center;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--lilac) 100%);
+  border: 5px solid var(--ink); border-radius: 34px; box-shadow: 0 10px 0 rgba(10, 6, 40, .55), 0 0 0 10px rgba(255, 255, 255, .08);
+  animation: card-in .5s cubic-bezier(.3, 1.5, .5, 1);
+}
+@keyframes card-in { from { opacity: 0; transform: translateY(30px) scale(.9); } }
+
+/* The hangar door (D-052: option D2 of the step 2a-4b mock-ups, sketch_rocket_door.py 1.2): the
+   moon-rocks counter is a purple button with a big hangar door standing on its left end; the doorway
+   shows the ship flown (drawn by round.js). The beacon blinks and the shutter lifts a little now and
+   then, to invite a tap. Since step 2c-build it sits on the map's top bar. */
+.hangar-btn {
+  position: relative; display: inline-flex; align-items: center; min-height: 66px; padding: 4px 8px 4px 92px; cursor: pointer;
+  border: 4px solid var(--ink); border-radius: 999px; background: #7C6CF0; box-shadow: 0 6px 0 var(--ink); font: inherit; color: var(--ink);
+}
+.hangar-btn:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
+.hangar-btn .big-rocks { box-shadow: none; }
+.big-rocks { font-size: 28px; padding: 4px 16px 4px 6px; }
+.big-rocks .rock-icon { width: 38px; height: 38px; }
+.door-wrap { position: absolute; left: -6px; bottom: -6px; width: 96px; height: 115px; }
+.door-wrap .door-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.door-ship { position: absolute; left: 29%; top: 44%; width: 42%; height: 47.5%; }
+.door-svg .beacon { animation: beacon 1.4s steps(1) infinite; }
+.door-svg .shutter { transform-box: fill-box; transform-origin: 50% 0; animation: shutter 5s ease-in-out infinite; }
+@keyframes beacon { 50% { fill: #FFE066; } }
+@keyframes shutter { 0%, 78%, 100% { transform: scaleY(1); } 86% { transform: scaleY(0.6); } }
+
+/* The showroom (hangar.js): a canvas over the whole stage while it's open. */
+.hangar-room { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 40; display: block; }
+.hangar-room[hidden] { display: none; }
+
+.big {
+  display: inline-flex; align-items: center; justify-content: center; gap: .25em; min-height: 66px;
+  font-size: 30px; font-weight: 700; padding: 8px 30px; cursor: pointer; color: var(--paper);
+  border: 4px solid var(--ink); border-radius: 999px; background: var(--coral); box-shadow: 0 6px 0 var(--ink);
+  paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink);
+}
+.big svg { width: 1em; height: 1em; -webkit-text-stroke: 0; stroke: var(--ink); stroke-width: 3px; paint-order: stroke fill; }
+.big.go { background: var(--coral); }
+.big.go:not(:active) { animation: breathe 2.2s ease-in-out infinite; }
+.big.alt { background: #7C6CF0; }
+.big:active { translate: 0 4px; box-shadow: 0 2px 0 var(--ink); }
+@keyframes breathe { 50% { transform: scale(1.05); } }
+
+/* End card */
+.cheer { margin: 4px 0 6px; font-size: clamp(36px, 9vw, 50px); line-height: 1.05; color: var(--sun); paint-order: stroke fill; -webkit-text-stroke: 9px var(--ink); text-shadow: 0 5px 0 var(--ink); rotate: -2deg; }
+.stars { display: flex; justify-content: center; align-items: flex-end; gap: 8px; margin: 6px 0 4px; }
+.stars svg { width: 76px; height: 76px; overflow: visible; }
+.stars svg:nth-child(2) { width: 92px; height: 92px; translate: 0 -10px; }
+.stars .on { animation: star-in .6s cubic-bezier(.3, 1.8, .5, 1) backwards; }
+.stars svg:nth-child(2).on { animation-delay: .25s; }
+.stars svg:nth-child(3).on { animation-delay: .5s; }
+@keyframes star-in { from { transform: scale(0) rotate(-40deg); } }
+.did { margin: 4px 0 14px; font-size: 24px; line-height: 1.25; }
+.did .ic { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -.25em; }
+.row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+
+.unlock {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 auto 16px; padding: 8px 18px 8px 10px; width: fit-content;
+  border-radius: 999px; background: #2A1F6B; border: 4px solid var(--ink); color: #fff;
+  animation: unlock-in .8s .7s cubic-bezier(.3, 1.6, .5, 1) backwards;
+}
+.unlock canvas { width: 76px; height: 76px; animation: spin-bob 2.4s ease-in-out infinite; }
+.unlock p { margin: 0; font-size: 24px; text-align: left; line-height: 1.1; }
+.unlock span { color: var(--sun); }
+.unlock b { display: block; font-size: 30px; }
+@keyframes unlock-in { from { opacity: 0; transform: scale(.3) rotate(-10deg); } }
+
+/* Landscape phones: side by side so nothing scrolls */
+@media (orientation: landscape) and (max-height: 520px) {
+  .card { width: min(780px, calc(100% - 24px)); padding: 12px 18px 14px; border-radius: 28px; }
+  .end { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 16px; }
+  .end-main { grid-row: span 2; }
+  .end .row { flex-direction: column; }
+  .unlock { margin: 0 auto 8px; }
+  .unlock canvas { width: 56px; height: 56px; }
+  .stars svg { width: 58px; height: 58px; } .stars svg:nth-child(2) { width: 70px; height: 70px; }
+  .cheer { font-size: 38px; }
+  .did { margin-bottom: 0; font-size: 22px; }
+  .big { min-height: 60px; font-size: 26px; }
+  .hud { grid-template-columns: 1fr auto; }
+  .target { font-size: 30px; }
+  .bubble { font-size: 22px; }
+}
+/* A big screen (a PC): the question, its pictures, the voice button, the trail and the bubble grow too,
+   about 1.5 times the phone sizes on a screen 1000 px high (Rob, 10 Nov; scene.js's `big` does the rest). */
+@media (min-width: 900px) and (min-height: 560px) {
+  .target { font-size: clamp(36px, 7.4vh, 84px); }
+  .chip.face { font-size: 1.04em; } /* pictures a little smaller than numbers, so two rows stay under a fifth of the screen */
+  .round { width: clamp(60px, 7.6vh, 86px); height: clamp(60px, 7.6vh, 86px); }
+  .dots li { width: clamp(15px, 2vh, 22px); height: clamp(15px, 2vh, 22px); }
+  .rocks { font-size: clamp(24px, 3.2vh, 34px); }
+  .rock-icon { width: clamp(30px, 4vh, 42px); height: clamp(30px, 4vh, 42px); }
+  .bubble { font-size: clamp(26px, 4vh, 42px); max-width: min(calc(100vw - 24px), 640px); }
+}
+@media (max-width: 480px) {
+  .hud { grid-template-columns: 1fr; grid-template-areas: "trail" "ask"; padding-left: max(12px, env(safe-area-inset-left)); gap: 12px; }
+  .trail { flex-direction: row-reverse; align-items: center; justify-content: space-between; padding-left: 70px; min-height: 56px; }
+  .dots { padding: 6px 7px; gap: 4px; }
+  .dots li { width: 13px; height: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .big.go:not(:active), .play-bubble:not(:active), .unlock canvas, .door-svg .beacon, .door-svg .shutter { animation: none; }
+  .card, .target.pop, .bubble, .stars .on, .unlock, .banner.pop, .slot.new, .nb { animation-duration: .01s; animation-delay: 0s; }
+}
+
+/* ---------- The map: home (D-066) ---------- */
+.starmap { z-index: 14; pointer-events: none; }
+.map { position: absolute; inset: 0; z-index: 16; pointer-events: none; }
+.map-bar {
+  position: absolute; left: 0; right: 0; top: 0; pointer-events: none;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(80px, calc(env(safe-area-inset-left) + 80px));
+  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "gal sys hangar"; align-items: center; gap: 10px;
+}
+.map-bar > * { pointer-events: auto; }
+.galaxy-btn { grid-area: gal; width: 56px; height: 56px; background: #7C6CF0; }
+.galaxy-btn svg { width: 74%; height: 74%; }
+.sys { grid-area: sys; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; pointer-events: none; }
+.sys > button { pointer-events: auto; }
+.step-btn { width: 46px; height: 46px; background: var(--paper); }
+.step-btn[aria-disabled="true"] { opacity: .35; box-shadow: none; }
+.sys-title { margin: 0; display: flex; flex-direction: column; align-items: center; line-height: 1; min-width: 0; }
+.sys-name {
+  font-size: clamp(28px, 5.4vh, 44px); font-weight: 700; color: var(--sys, var(--sky)); white-space: nowrap;
+  paint-order: stroke fill; -webkit-text-stroke: 8px var(--ink); text-shadow: 0 4px 0 var(--ink);
+}
+.sys-of { margin-top: 5px; font-size: 14px; color: #fff; opacity: .9; paint-order: stroke fill; -webkit-text-stroke: 4px var(--ink); white-space: nowrap; }
+.map-bar .hangar-btn { grid-area: hangar; justify-self: end; min-height: 58px; padding: 3px 8px 3px 70px; margin-top: 16px; }
+.map-bar .door-wrap { left: 0; bottom: -3px; width: 66px; height: 79px; }
+.map-bar .big-rocks { font-size: 24px; padding: 3px 13px 3px 5px; }
+.map-bar .big-rocks .rock-icon { width: 32px; height: 32px; }
+.marks { position: absolute; inset: 0; pointer-events: none; }
+.mk { position: absolute; pointer-events: auto; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.mk[data-state="locked"] { cursor: default; }
+.mk:focus-visible { outline: 4px solid var(--sun); outline-offset: 2px; }
+.play-bubble {
+  position: absolute; z-index: 2; pointer-events: auto; transform-origin: 50% 100%;
+  display: inline-flex; align-items: center; gap: .22em; min-height: 54px; padding: 4px 22px 6px 16px; white-space: nowrap;
+  font-size: 26px; font-weight: 700; color: var(--paper); paint-order: stroke fill; -webkit-text-stroke: 5px var(--ink);
+  border: 4px solid var(--ink); border-radius: 999px; background: var(--coral); box-shadow: 0 5px 0 var(--ink); cursor: pointer;
+}
+.play-bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -12px; width: 18px; height: 18px; translate: -50% 0; rotate: 45deg;
+  background: var(--coral); border: 4px solid var(--ink); border-top: 0; border-left: 0; border-radius: 0 0 5px 0;
+}
+.play-bubble[data-side="below"] { transform-origin: 50% 0; }
+.play-bubble[data-side="below"]::after { bottom: auto; top: -12px; rotate: 225deg; }
+.play-bubble[data-side="right"] { transform-origin: 0 50%; }
+.play-bubble[data-side="right"]::after { left: -12px; bottom: auto; top: 50%; translate: 0 -50%; rotate: 135deg; }
+.play-bubble[data-side="left"] { transform-origin: 100% 50%; }
+.play-bubble[data-side="left"]::after { left: auto; right: -12px; bottom: auto; top: 50%; translate: 0 -50%; rotate: -45deg; }
+.play-bubble svg { width: 1em; height: 1em; -webkit-text-stroke: 0; stroke: var(--ink); stroke-width: 3px; paint-order: stroke fill; }
+.play-bubble:not(:active) { animation: breathe-bubble 2.2s ease-in-out infinite; }
+.play-bubble:active { translate: 0 3px; box-shadow: 0 2px 0 var(--ink); }
+@keyframes breathe-bubble { 50% { scale: 1.07; } }
+.banner {
+  position: absolute; left: 50%; top: 30%; z-index: 3; margin: 0; transform: translate(-50%, 0); pointer-events: none;
+  padding: .28em .9em .34em; border-radius: 999px; background: var(--sun); border: 5px solid var(--ink); box-shadow: 0 6px 0 rgba(10, 6, 40, .6);
+  font-size: clamp(22px, min(4.8vh, 7vw), 42px); font-weight: 700; line-height: 1.1; color: var(--ink); text-align: center;
+  width: max-content; max-width: calc(100% - 32px);
+}
+.banner.pop { animation: banner-in .6s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes banner-in { from { opacity: 0; transform: translate(-50%, 0) scale(.4) rotate(-6deg); } }
+
+/* ---------- The galaxy (D-065) ---------- */
+.galaxy-view { position: absolute; inset: 0; z-index: 16; pointer-events: none; }
+.gx-head {
+  position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  padding: max(10px, env(safe-area-inset-top)) 76px 0;
+}
+.gx-head .round { position: absolute; left: max(12px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top)); background: var(--paper); pointer-events: auto; }
+.gx-title { margin: 6px 0 0; white-space: nowrap; font-size: clamp(26px, min(5.6vh, 8.6vw), 48px); font-weight: 700; color: var(--sun); paint-order: stroke fill; -webkit-text-stroke: 8px var(--ink); text-shadow: 0 4px 0 var(--ink); }
+.gx-orbs { position: absolute; inset: 0; pointer-events: none; }
+.gx { position: absolute; pointer-events: auto; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.gx:focus-visible { outline: 4px solid var(--sun); outline-offset: 2px; }
+
+/* ---------- A level's card (sketches 1, section 2) ---------- */
+.lc-back { position: absolute; inset: 0; z-index: 19; background: rgba(8, 5, 30, .55); }
+.level-card { width: min(430px, calc(100% - 28px)); padding: 16px 20px 22px; }
+.lc-close { position: absolute; z-index: 2; right: 12px; top: 12px; width: 50px; height: 50px; background: var(--paper); }
+.lc-sys { margin: 0; font-size: 18px; color: #5B4CC4; }
+.lc-title {
+  margin: 0 0 2px; font-size: clamp(38px, 8vw, 50px); line-height: 1.05; color: var(--sun); rotate: -2deg;
+  paint-order: stroke fill; -webkit-text-stroke: 9px var(--ink); text-shadow: 0 5px 0 var(--ink);
+}
+.lc-about { margin: 6px 0 10px; font-size: 21px; line-height: 1.2; }
+.lc-sample {
+  display: inline-flex; align-items: center; gap: .3em; margin: 0 0 6px; padding: .1em .16em .1em .6em; border-radius: 999px;
+  background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(10, 6, 40, .4); font-size: 26px; line-height: 1;
+}
+.lc-stars svg { width: 54px; height: 54px; } .lc-stars svg:nth-child(2) { width: 66px; height: 66px; translate: 0 -8px; }
+.lc-stars.none { opacity: .55; }
+.lc-note { margin: 6px 0 14px; font-size: 19px; }
+.slots { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin: 6px 0 2px; }
+.slot { width: 32px; height: 32px; border-radius: 50%; border: 3px dashed #A9A2DC; display: grid; place-items: center; background: rgba(255, 255, 255, .5); }
+.slot.on { border: 3px solid var(--ink); background: #F4F1FF; }
+.slot .rock-icon { width: 28px; height: 28px; }
+.slot.new { animation: star-in .55s cubic-bezier(.3, 1.8, .5, 1) backwards; }
+.rocks-p { margin: 4px 0 12px; font-size: 21px; }
+.rocks-p b { color: #5B4CC4; }
+.end-done {
+  margin: 0 auto 6px; width: fit-content; padding: .18em .8em .22em; border-radius: 999px; background: var(--mint); border: 4px solid var(--ink);
+  font-size: 22px; font-weight: 700; animation: unlock-in .8s .3s cubic-bezier(.3, 1.6, .5, 1) backwards;
+}
+.nb {
+  align-self: center; margin-left: 4px; padding: .12em .5em; border-radius: 999px; background: var(--mint); border: 3px solid var(--ink);
+  font-size: 18px; font-weight: 700; rotate: 10deg; animation: star-in .6s .8s cubic-bezier(.3, 1.8, .5, 1) backwards;
+}
+.big.go.hyper { background: linear-gradient(90deg, #7C6CF0, #FF5D73); }
+
+/* The one-time track pick (D-121) */
+.track-pick { width: min(480px, calc(100% - 28px)); }
+.tp-note { margin: 2px 0 16px; font-size: 21px; line-height: 1.25; }
+.tp-row { flex-direction: column; align-items: stretch; }
+.tp-btn { font-size: clamp(19px, 5.6vw, 26px); padding: 8px 14px; }
+.tp-btn.go:not(:active) { animation: none; }
+
+@media (max-width: 560px) {
+  .map-bar { grid-template-columns: auto 1fr auto; grid-template-areas: "gal . hangar" "sys sys sys"; row-gap: 6px; }
+  .map-bar .hangar-btn { margin-top: 14px; }
+  .sys-name { font-size: 32px; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .map-bar { gap: 8px; }
+  .sys-name { font-size: 30px; -webkit-text-stroke-width: 7px; }
+  .sys-of { font-size: 12px; margin-top: 3px; }
+  .step-btn { width: 42px; height: 42px; }
+  .level-card { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 0 16px; width: min(640px, calc(100% - 24px)); padding: 12px 18px 14px; }
+  .level-card > .lc-sys, .level-card > .lc-title, .level-card > .lc-about { grid-column: 1; }
+  .level-card > .lc-sample, .level-card > .lc-stars, .level-card > .slots, .level-card > .lc-note, .level-card > #lc-play { grid-column: 2; justify-self: center; }
+  .level-card > .lc-sample { grid-row: 1; } .level-card > .lc-stars { grid-row: 2; } .level-card > .slots { grid-row: 3; } .level-card > .lc-note { grid-row: 4; margin: 2px 0 8px; } .level-card > #lc-play { grid-row: 5; }
+  .level-card > .lc-sys { grid-row: 1; } .level-card > .lc-title { grid-row: 2; } .level-card > .lc-about { grid-row: 3 / span 2; align-self: start; }
+  .slot { width: 28px; height: 28px; } .slot .rock-icon { width: 24px; height: 24px; }
+  .rocks-p { margin: 2px 0 4px; font-size: 19px; }
+  .end-done { font-size: 19px; }
+  .track-pick { width: min(640px, calc(100% - 24px)); padding: 10px 18px 14px; }
+  .track-pick .cheer { font-size: 32px; }
+  .tp-note { margin: 0 0 10px; font-size: 18px; }
+  .tp-row { flex-direction: row; }
+  .tp-btn { flex: 1; font-size: 21px; min-height: 56px; padding: 6px 12px; }
+}

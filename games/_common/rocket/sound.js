@@ -1,0 +1,172 @@
+// Rocket Lander's own sounds, made in the browser (no sound files to download), and
+// words said out loud with the device's own voice. Version 1.4.
+//
+// Changes at v1.4 (step 2d-2, D-077, D-078): the five new ships' own landing sounds ('splosh',
+// 'jackPop', 'bzzz', 'spinClunk', 'tada'), moved unchanged from the step 2d-1 mock-ups
+// (tools/tests/games/sketch_rocket_new_ships.js 1.0).
+// Changes at v1.3 (Rob, 10 Nov): 'warp' lasts as long as the longer hyperspace (≈5.6 s): a low
+// charge, the rush and a rising shimmer, then the chime; the old short one is 'warpCalm', for less motion.
+//
+// Changes at v1.2 (step 2c-build, D-058): 'warp', hyperspace's rising whoosh and shimmer.
+//
+// Changes at v1.1 (step 2a-4b): the hangar's sounds (the door, the glass, the fanfares) and the
+// ships' touchdown sounds (D-046, D-049), moved here from the step 2a-4a mock-ups
+// (tools/tests/games/sketch_rocket_hangar.js 1.0, its SYN table) and written with this file's
+// tone() and noise(); fleet.js names each ship's sound.
+//
+// Copied from the old launcher's shared/sound.js (games-wip, 7ef1ff0) so the game runs
+// on its own (D-004): the import of shared/api.js is gone, and with it the mute saved on
+// the device. Sound is on unless setMuted(true) is called; at stage 2a the game contract's
+// start message will say whether sound is off.
+//
+//   import { play, speak } from './sound.js';
+//   play('ding');             // names are the keys of SOUNDS below
+//   speak('seven');           // returns false if the device can't speak or sound is off
+
+let ctx = null;
+let noiseBuffer = null;
+let muted = false;
+
+export const isMuted = () => muted;
+export const setMuted = (m) => { muted = !!m; if (muted) stopSpeaking(); };
+
+function tone(freq, start, length, type = 'sine', volume = 0.16, slideTo = null) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + length);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + length + 0.02);
+}
+
+// A burst of filtered noise: whooshes, puffs and thuds.
+function noise(start, length, { from = 1200, to = 300, type = 'bandpass', volume = 0.2, q = 0.8 } = {}) {
+  if (!noiseBuffer) {
+    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = type;
+  filter.Q.value = q;
+  filter.frequency.setValueAtTime(from, start);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(20, to), start + length);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+  src.connect(filter).connect(gain).connect(ctx.destination);
+  src.start(start);
+  src.stop(start + length + 0.05);
+}
+
+const SOUNDS = {
+  // Launcher
+  tap: (t) => tone(660, t, 0.09, 'triangle'),
+  hello: (t) => { tone(523, t, 0.12); tone(784, t + 0.1, 0.16); },
+  soon: (t) => { tone(392, t, 0.12, 'triangle'); tone(330, t + 0.11, 0.16, 'triangle'); },
+  peel: (t) => { tone(700, t, 0.08, 'triangle'); tone(1050, t + 0.07, 0.12, 'triangle'); },
+  yay: (t) => [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.22, 'triangle')),
+
+  // Games
+  pop: (t) => { tone(900, t, 0.06); tone(1300, t + 0.03, 0.05, 'sine', 0.08); },
+  chomp: (t) => { noise(t, 0.07, { from: 2500, to: 900, volume: 0.22 }); tone(420, t + 0.02, 0.1, 'square', 0.05, 260); },
+  ding: (t) => { tone(1047, t, 0.25, 'sine', 0.14); tone(1568, t + 0.06, 0.3, 'sine', 0.08); },
+  oops: (t) => tone(420, t, 0.32, 'triangle', 0.16, 160),
+  hiccup: (t) => { tone(500, t, 0.07, 'square', 0.06, 900); tone(600, t + 0.12, 0.07, 'square', 0.06, 1100); },
+  coin: (t) => { tone(988, t, 0.08, 'square', 0.07); tone(1319, t + 0.08, 0.22, 'square', 0.07); },
+  whoosh: (t) => noise(t, 0.35, { from: 400, to: 2400, volume: 0.16 }),
+  puff: (t) => noise(t, 0.4, { from: 900, to: 200, type: 'lowpass', volume: 0.25 }),
+  thud: (t) => { tone(140, t, 0.22, 'sine', 0.3, 60); noise(t, 0.18, { from: 600, to: 150, type: 'lowpass', volume: 0.18 }); },
+  sparkle: (t) => [1319, 1568, 1976, 2637].forEach((f, i) => tone(f, t + i * 0.05, 0.18, 'sine', 0.07)),
+  levelup: (t) => [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, t + i * 0.07, 0.25, 'triangle', 0.12)),
+  unlock: (t) => { [784, 988, 1175, 1568].forEach((f, i) => tone(f, t + i * 0.08, 0.35, 'sine', 0.1)); noise(t + 0.3, 0.5, { from: 3000, to: 6000, type: 'highpass', volume: 0.05 }); },
+  boop: (t) => tone(330, t, 0.1, 'sine', 0.14, 520),
+  slurp: (t) => tone(300, t, 0.25, 'sawtooth', 0.04, 900),
+
+  // The hangar (step 2a-4b): the door, the glass or force field, and the ships' touchdowns
+  rumble: (t) => { noise(t, 1.1, { from: 160, to: 70, type: 'lowpass', volume: 0.4 }); tone(52, t, 1.1, 'sawtooth', 0.04, 46); for (let i = 0; i < 6; i++) noise(t + i * 0.17, 0.06, { from: 900, to: 500, volume: 0.06 }); },
+  clunk: (t) => { tone(170, t, 0.12, 'square', 0.06, 90); noise(t, 0.08, { from: 1800, to: 600, volume: 0.18 }); },
+  crack: (t) => { noise(t, 0.14, { from: 5000, to: 2500, type: 'highpass', volume: 0.22 }); tone(2400, t, 0.05, 'square', 0.03); },
+  shatter: (t) => { for (let i = 0; i < 8; i++) tone(1800 + Math.random() * 2800, t + i * 0.028, 0.18, 'triangle', 0.045); noise(t, 0.4, { from: 7000, to: 3000, type: 'highpass', volume: 0.16 }); },
+  boing: (t) => { tone(200, t, 0.4, 'sine', 0.18, 560); tone(400, t + 0.05, 0.25, 'triangle', 0.05, 900); },
+  toot: (t) => { tone(523, t, 0.38, 'square', 0.05); tone(784, t, 0.38, 'triangle', 0.05); noise(t, 0.6, { from: 3000, to: 1400, volume: 0.12 }); },
+  clunkLock: (t) => { SOUNDS.clunk(t); tone(988, t + 0.1, 0.3, 'sine', 0.08); tone(1319, t + 0.18, 0.35, 'sine', 0.06); },
+  hum: (t) => { tone(110, t, 0.7, 'sawtooth', 0.035, 170); tone(880, t + 0.15, 0.35, 'sine', 0.05, 660); tone(660, t + 0.35, 0.4, 'sine', 0.04, 990); },
+  chime: (t) => [1568, 2093, 2637, 3136, 2637].forEach((f, i) => tone(f, t + i * 0.07, 0.7, 'sine', 0.05)),
+  harp: (t) => [523, 659, 784, 988, 1175, 1319, 1568, 2093].forEach((f, i) => tone(f, t + i * 0.045, 0.6, 'triangle', 0.05)),
+  aurora: (t) => { [523, 659, 784, 1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, t + i * 0.06, 1.0, 'sine', 0.045)); tone(262, t, 1.5, 'triangle', 0.06); tone(392, t + 0.2, 1.3, 'triangle', 0.04); },
+  warp: (t) => { noise(t, 1.0, { from: 120, to: 600, volume: 0.1, q: 2 }); tone(70, t, 1.0, 'sawtooth', 0.04, 160); noise(t + 0.8, 4.6, { from: 300, to: 5600, volume: 0.16, q: 1.2 }); tone(110, t + 0.8, 4.4, 'sawtooth', 0.035, 1320); tone(220, t + 0.9, 4.2, 'triangle', 0.05, 2400); for (let k = 0; k < 7; k++) [523, 659, 784, 1047].forEach((f, i) => tone(f * (1 + k * 0.06), t + 1.2 + k * 0.5 + i * 0.07, 0.25, 'sine', 0.022)); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 4.9 + i * 0.06, 0.8, 'sine', 0.045)); },
+  warpCalm: (t) => { noise(t, 2.6, { from: 200, to: 4200, volume: 0.16, q: 1.4 }); tone(110, t, 2.4, 'sawtooth', 0.035, 880); tone(220, t + 0.3, 2.1, 'triangle', 0.05, 1760); [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 2.2 + i * 0.06, 0.6, 'sine', 0.04)); },
+  fanLegend: (t) => { [392, 523, 659, 784].forEach((f, i) => tone(f, t + i * 0.12, 0.3, 'square', 0.04)); [1047, 1319, 1568].forEach((f) => tone(f, t + 0.5, 1.1, 'triangle', 0.05)); SOUNDS.aurora(t + 0.6); },
+  splosh: (t) => { noise(t, 0.45, { from: 2200, to: 180, type: 'lowpass', volume: 0.38 }); tone(190, t, 0.3, 'sine', 0.16, 70); noise(t + 0.05, 0.3, { from: 3500, to: 900, volume: 0.1 }); tone(1500, t + 0.32, 0.09, 'square', 0.045, 1900); tone(1650, t + 0.46, 0.12, 'square', 0.045, 2100); },
+  jackPop: (t) => { [1047, 1319, 1568, 1319].forEach((f, i) => { tone(f, t + i * 0.075, 0.22, 'sine', 0.07); tone(f * 2, t + i * 0.075, 0.12, 'sine', 0.02); }); noise(t + 0.33, 0.06, { from: 3000, to: 1200, volume: 0.2 }); tone(190, t + 0.33, 0.42, 'sine', 0.18, 620); tone(380, t + 0.38, 0.26, 'triangle', 0.05, 950); },
+  bzzz: (t) => { tone(170, t, 0.42, 'sawtooth', 0.04, 55); noise(t, 0.42, { from: 1100, to: 200, volume: 0.1 }); tone(215, t + 0.3, 0.55, 'sawtooth', 0.04, 245); tone(222, t + 0.3, 0.55, 'square', 0.018, 236); tone(430, t + 0.3, 0.5, 'sawtooth', 0.012, 470); },
+  spinClunk: (t) => { tone(320, t, 0.36, 'sawtooth', 0.035, 70); noise(t, 0.36, { from: 900, to: 160, volume: 0.13 }); tone(150, t + 0.32, 0.14, 'square', 0.08, 70); noise(t + 0.32, 0.1, { from: 1600, to: 500, volume: 0.24 }); tone(1319, t + 0.55, 0.12, 'sine', 0.07); tone(1319, t + 0.72, 0.12, 'sine', 0.07); },
+  tada: (t) => { for (let i = 0; i < 6; i++) { noise(t + i * 0.055, 0.07, { from: 7000, to: 9000, type: 'highpass', volume: 0.07 }); tone(2637 + (i % 2) * 500, t + i * 0.055, 0.06, 'sine', 0.025); } [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, t + 0.36 + i * 0.07, 0.5, 'sine', 0.055)); tone(523, t + 0.36, 0.6, 'triangle', 0.05); tone(784, t + 0.36, 0.6, 'triangle', 0.04); },
+};
+
+export const SOUND_NAMES = Object.keys(SOUNDS);
+
+export function play(name) {
+  if (isMuted() || !SOUNDS[name]) return;
+  try {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    SOUNDS[name](ctx.currentTime + 0.01);
+  } catch {
+    // No sound on this device; carry on silently.
+  }
+}
+
+// ---------- Spoken words (speechSynthesis, Baseline "widely available") ----------
+// Voices differ between devices and some have none; games must still work without it.
+
+let voice = null;
+
+function pickVoice() {
+  try {
+    const voices = window.speechSynthesis.getVoices();
+    voice = voices.find((v) => v.lang === 'en-GB' && /female|serena|kate|martha|libby|sonia/i.test(v.name))
+      || voices.find((v) => v.lang === 'en-GB')
+      || voices.find((v) => /^en/i.test(v.lang))
+      || null;
+  } catch {
+    voice = null;
+  }
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  pickVoice();
+  try { window.speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch { /* older browsers */ }
+}
+
+export const canSpeak = () => typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+// Says text out loud. Interrupts anything still being said. Slightly slow and bright for children.
+export function speak(text, { rate = 0.85, pitch = 1.1 } = {}) {
+  if (isMuted() || !canSpeak() || !text) return false;
+  try {
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.lang = 'en-GB';
+    if (voice) u.voice = voice;
+    u.rate = rate;
+    u.pitch = pitch;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function stopSpeaking() {
+  try { if (canSpeak()) window.speechSynthesis.cancel(); } catch { /* ignore */ }
+}
