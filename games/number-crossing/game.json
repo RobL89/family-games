@@ -1,0 +1,7 @@
+{
+  "title": "Number Crossing",
+  "colour": "#119C8F",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}

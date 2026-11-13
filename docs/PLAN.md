@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -86,7 +86,9 @@ Live (stage 3, published 2026-11-13, P68): three artifact games, each with its o
 - **Space Explorer:** a guide to space.
 - **Number Town:** a maths town. Each child's explorer follows them between devices (P77).
 
-Testing: Wrapper check, a launcher tool for trying the wrapper. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
+Testing: **Number Crossing** (sums to cross a river, lava or the sky; each child has their own setup, P84) and Wrapper check, a launcher tool for trying the wrapper.
+
+Soon (P85): **Fairy village** and **Target number challenge**, Rob's wife's games in progress. A "Soon" tile says "Coming soon!" when tapped; its `source` in `games.json` is her link. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 
 **Artifact games** come in by the route in P69. Each has the maker's page as `original.html`, never edited, and an `adapter.js`. **Taking one in or updating one: follow [games/_common/README.md](../games/_common/README.md)** (P80): scan the page with `tools/scan_artifact.py`, build the adapter, prove it with the Sheet held back. Shared helpers for adapters are in `games/_common/`: sound off (`sound-off/`) and progress kept in the game's own storage (`keep-progress/`, P77). Their release checks are in `tools/tests/games/<id>/`. How any game gets in: [game-contract.md](game-contract.md), section 7.
 
