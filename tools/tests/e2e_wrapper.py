@@ -153,10 +153,12 @@ def run():
         check('tapping the face opens the skin picker', pg.locator('.skin-card button[data-skin]').count() == 4)
         check('the picker fits the phone', pg.evaluate("(() => { const r = document.querySelector('.skin-card').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; })()"))
         check('testing game hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
-        # P65 hides the old placeholder tiles (status hidden, never drawn); P85's Soon tiles (the wife's games in progress) are the only Soon tiles.
+        # P65 hides the old placeholder tiles (status hidden, never drawn); the Soon tiles (P85, the wife's games in progress) are
+        # exactly games.json's "soon" games, so this follows games.json as games leave Soon (Fairy village, P87).
         check('placeholder tiles hidden (P65)', all(pg.locator(f'[data-g="{g}"]').count() == 0 for g in ('bubble-pop', 'memory-match', 'count-it', 'shape-sort', 'spot-it')))
-        check('only the Soon tiles of P85 show as soon', sorted(pg.locator('.tile.soon .tile-t').all_inner_texts()) == ['Fairy village', 'Target number challenge'])
-        check('games being tested hidden without the switch', pg.locator('[data-g="wrapper-check"]').count() == 0)
+        soon = sorted(g['title'] for g in json.load(open('games.json', encoding='utf-8'))['games'] if g['status'] == 'soon')
+        check('only games.json\'s Soon games show as soon', soon and sorted(pg.locator('.tile.soon .tile-t').all_inner_texts()) == soon, soon)
+        check('games being tested hidden without the switch', all(pg.locator(f'[data-g="{g}"]').count() == 0 for g in ('wrapper-check', 'fairy-village')))
         check('the artifact games are on home', all(pg.locator(f'[data-g="{g}"]').count() == 1 for g in ('kriss-kross', 'space-explorer', 'number-town')))
         no_overflow = pg.evaluate('document.documentElement.scrollWidth <= innerWidth')
         check('home fits the phone width', no_overflow)

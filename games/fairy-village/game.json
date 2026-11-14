@@ -1,0 +1,7 @@
+{
+  "title": "Fairy village",
+  "colour": "#E0457B",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}

@@ -19,6 +19,9 @@ game, please:
    - Space Explorer: xFind, and the town buttons in xPlaces (one says London).
    - Number Crossing: its setup key gingerbread-river-v1, with ops in the setup; and the
      setup is saved when Start the journey is pressed.
+   - Fairy village: its save key fairy-village-v1 as { explorers, current, sound }, each
+     explorer with an id and a look; s-who, who-list and its .who-card and .who-new cards,
+     f-name, m-who and make-remove.
 3. Keep sound and speech going through the browser's normal audio, so the launcher's sound-off
    switch still works.
 4. Don't use real family names in the game's text (the launcher's copy is public).

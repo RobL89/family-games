@@ -2,9 +2,13 @@
 
 A short routine, learnt from Kriss Kross, Space Explorer and Number Town and the live bugs that followed (P81 to P83). The route for getting the page is P69; the maker's page is never edited, so everything here goes in the game's `adapter.js`, with the helpers in this folder.
 
+## 0. The copy (P69, P87)
+
+claude.ai's Export now gives a ZIP (no HTML). Unzip it in a new folder. Her `index.html` becomes `games/<id>/original.html`; any other files (a game of several files, like Fairy village) go beside it with their own names and folders, all byte for byte. Record her version (the `v=` in the viewer's frame address) in `games.json`'s `source`.
+
 ## 1. Scan (a minute)
 
-`python3 -I tools/scan_artifact.py games/<id>/original.html` lists its storage keys, when it saves, its own players, sound, permissions, buttons and other sites, with line numbers. Each finding names a row below. Then read its text for real names: Rob checks none are family names (P68).
+`python3 -I tools/scan_artifact.py games/<id>/original.html` (and each of its `.js` files, for a game of several files) lists its storage keys, when it saves, its own players, sound, permissions, buttons and other sites, with line numbers. Each finding names a row below. Then read its text for real names: Rob checks none are family names (P68).
 
 ## 2. Adapter: what each finding means
 
