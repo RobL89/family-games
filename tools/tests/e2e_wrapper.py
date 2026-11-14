@@ -158,7 +158,8 @@ def run():
         check('placeholder tiles hidden (P65)', all(pg.locator(f'[data-g="{g}"]').count() == 0 for g in ('bubble-pop', 'memory-match', 'count-it', 'shape-sort', 'spot-it')))
         soon = sorted(g['title'] for g in json.load(open('games.json', encoding='utf-8'))['games'] if g['status'] == 'soon')
         check('only games.json\'s Soon games show as soon', soon and sorted(pg.locator('.tile.soon .tile-t').all_inner_texts()) == soon, soon)
-        check('games being tested hidden without the switch', all(pg.locator(f'[data-g="{g}"]').count() == 0 for g in ('wrapper-check', 'fairy-village')))
+        testing = [g['id'] for g in json.load(open('games.json', encoding='utf-8'))['games'] if g['status'] == 'testing']
+        check('games being tested hidden without the switch', 'wrapper-check' in testing and all(pg.locator(f'[data-g="{g}"]').count() == 0 for g in testing), testing)
         check('the artifact games are on home', all(pg.locator(f'[data-g="{g}"]').count() == 1 for g in ('kriss-kross', 'space-explorer', 'number-town')))
         no_overflow = pg.evaluate('document.documentElement.scrollWidth <= innerWidth')
         check('home fits the phone width', no_overflow)
