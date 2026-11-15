@@ -1,10 +1,12 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.0.1 (15 Nov; renamed with the game, D-146). Built like mutate_rocket_map.py 1.0.
+tests catch (project rules: test the tests). Version 1.1 (15 Nov, step 2). Built like mutate_rocket_map.py 1.0.
+Changes at v1.1 (step 2): nine more faults, in the saved progress (progress.js), level 4's tray, and saving and
+the wrapper link (game.js). Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
-error, not a catch. Ten faults in the rules (core.js), caught or not by the core test (seconds each), and
-two in the screens (game.js), by the browser test (about a minute each).
+error, not a catch. Sixteen faults caught or not by the core test (seconds each), in the rules (core.js), the
+progress (progress.js) and the levels; five in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
 --fast skips the faults that need the browser test.
@@ -28,6 +30,15 @@ FAULTS = [
     ('a placed gadget stays in the tray', G + 'core.js', 'n[kind] = (n[kind] || 0) - 1;', 'n[kind] = (n[kind] || 0) - 0;', CORE),
     ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
+    ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),
+    ('a seed is kept on a level not done', G + 'progress.js', 'if (seeds[id] === true && p.done[id])', 'if (seeds[id] === true)', CORE),
+    ('any format is read', G + 'progress.js', '  if (!isMap(raw) || raw.v !== FORMAT) return p;', '  if (!isMap(raw)) return p;', CORE),
+    ('no format version saved', G + 'progress.js', 'export const pack = (p) => ({ v: FORMAT, ...copy(p) });', 'export const pack = (p) => ({ ...copy(p) });', CORE),
+    ('the house always opens at level 1', G + 'progress.js', '  return i < 0 ? Math.max(0, ids.length - 1) : i;', '  return 0;', CORE),
+    ('level 4 has no spare bridge', G + 'levels.js', 'tray: { bridge: 2, floater: 1 }', 'tray: { bridge: 1, floater: 1 }', CORE),
+    ('nothing kept on the device', G + 'game.js', '  try { localStorage.setItem(ENTRY, JSON.stringify(st)); }', '  try { void st; }', E2E),
+    ('the wrapper is not told', G + 'game.js', '  if (S.linked) { S.linked.saveState(st); return; }', '  if (S.linked) { return; }', E2E),
+    ('the wrapper\'s sound off is ignored', G + 'game.js', '  if (start.sound === false) { setMuted(true); S.soundLocked = true; }', '  if (start.sound === false) { S.soundLocked = true; }', E2E),
 ]
 
 

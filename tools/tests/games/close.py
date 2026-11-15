@@ -1,4 +1,7 @@
-"""Close script for P-034 (Kids Games Development). Version 1.14.
+"""Close script for P-034 (Kids Games Development). Version 1.15.
+
+Changes at v1.15 (15 Nov, Hamster Highway step 2): solve_ scripts (the level solver) are design tools the
+run never uses, like the sketches: a change to one runs the fast checks only with --changed.
 
 Changes at v1.14 (D-146): Hamster Highway's id is hamster-highway, so its tests are
 test_hamster_highway_core.py and test_hamster_highway_e2e.py, run as v1.13 says.
@@ -113,7 +116,7 @@ COVERS = {
     'test_rocket_ship_hooks_e2e.py': [],
 }
 # Changes the fast checks cover (docs, the games list), or files the run never uses (benches, sketches).
-FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_', T + 'move_', T + 'close_pass.txt']
+FAST_ONLY = ['docs/games/', 'games.json', T + 'mutate_', T + 'sketch_', T + 'measure_', T + 'move_', T + 'solve_', T + 'close_pass.txt']
 
 
 def pick_tests(changed, tests):

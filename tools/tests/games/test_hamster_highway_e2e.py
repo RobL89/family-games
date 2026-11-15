@@ -1,6 +1,9 @@
 """Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.1 (15 Nov, step 2).
 
-Changes at v1.1 (step 2, D-147): saving and the wrapper link. On its own, the progress is kept in the
+Changes at v1.1 (step 2): levels 4 and 5 (D-145): the house shows five levels and five places for later; on
+level 4 the bridge alone ends in a funny fall, and the floater with the spare bridge floats them down past
+the seed; on level 5 three tubes take them up and home without the seed, then a fourth on top takes it;
+each with its own backdrop (D-149). And (D-147) saving and the wrapper link. On its own, the progress is kept in the
 device's entry and comes back after a reload, and a broken entry starts afresh. In a stand-in wrapper (a
 page served to the test browser only, framing the game and answering fg:ready with fg:start the way
 shared/bridge.js expects): the child's progress handed in opens the house where they were; each change
@@ -181,7 +184,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 3 and locked == 2 and future == 7, f'PC: the house shows levels 1 to 3, two locked, and 7 places for later ({n_markers}, {locked}, {future})')
+    check(n_markers == 5 and locked == 4 and future == 5, f'PC: the house shows levels 1 to 5, four locked, and 5 places for later ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -291,13 +294,56 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and s['progress']['seeds'].get('L3'), 'PC: level 3 with the spare ramp where they land: the seed, and a party')
+
+    # level 4: the floater
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L4"')
+    check(pg.locator('#bg [data-back="living"]').count() == 1, 'PC: level 4 has the living room for its backdrop (D-149)')
+    place(pg, 'bridge', 3, 2)
+    go_and_wait(pg, 'build')
+    check(all(x in state(pg)['heard'] for x in ('flump', 'dizzy')), 'PC: level 4 with just the bridge: a drop of 4, a funny fall')
+    place(pg, 'floater', 5, 1)
+    place(pg, 'bridge', 6, 2)
+    pg.evaluate('__test.speed(1)')
+    tap(pg, '[data-btn="go"]')
+    pg.wait_for_timeout(3000)
+    pg.screenshot(path=os.path.join(OUT, 'pc-11-level4-float.png'))
+    pg.evaluate('__test.speed(8)')
+    pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and 'wheee' in s['heard'], 'PC: level 4 with the floater and the spare bridge: they float down past the seed, and home')
+
+    # level 5: the tube
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L5"')
+    check(pg.locator('#bg [data-back="bedroom"]').count() == 1, 'PC: level 5 has the bedroom for its backdrop (D-149)')
+    place(pg, 'bridge', 3, 6)
+    for rr in (5, 4, 3):
+        place(pg, 'tube', 6, rr)
+    pg.screenshot(path=os.path.join(OUT, 'pc-12-level5-built.png'))
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(s['home'] == 5 and not s['seedTaken'], 'PC: level 5 with three tubes: up and home, without the seed')
+    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
+    tap(pg, '#party [data-act="again"]')
+    pg.wait_for_function('__test.state().mode === "build"')
+    place(pg, 'tube', 6, 2)
+    pg.evaluate('__test.speed(1)')
+    tap(pg, '[data-btn="go"]')
+    pg.wait_for_timeout(2400)
+    pg.screenshot(path=os.path.join(OUT, 'pc-13-level5-tube.png'))
+    pg.evaluate('__test.speed(8)')
+    pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and s['progress']['seeds'].get('L5'), 'PC: level 5 with a fourth tube on top: out beside the seed, and home with it')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
-    want = {'v': 1, 'done': {'L1': True, 'L2': True, 'L3': True}, 'seeds': {'L1': True, 'L2': True, 'L3': True}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3}}
-    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 3 done, their seeds, and the GO presses until each was first done (1, 2, 3; the replay for level 3\'s seed not counted) ({kept(pg)})')
+    ids = ['L1', 'L2', 'L3', 'L4', 'L5']
+    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1}}
+    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 5 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')
     tap(pg, '#play')

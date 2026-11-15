@@ -1,4 +1,6 @@
-"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.8.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.9.
+
+Changes at v1.9 (15 Nov, Hamster Highway step 2): a level solver (solve_) is a design tool: the fast checks only.
 
 Changes at v1.8 (D-146): Hamster Highway's tests and folder by their new names; the cases are as v1.7.
 
@@ -93,6 +95,7 @@ check([T + 'close_pass.txt'], 'some', FAST, 'the full pass kept in the repo: the
 check([T + 'close_pass.txt', T + 'sketch_rocket_new_ships.js'], 'some', FAST, 'the pass record and a sketch: the fast checks only')
 check(['games/hamster-highway/game.js'], 'some', FAST + ['test_hamster_highway_e2e.py'], 'Hamster Highway\'s own files: its browser test, no rocket tests')
 check([T + 'sketch_bridge_builder.py', T + 'mutate_hamster_highway.py'], 'some', FAST, 'Hamster Highway\'s sketches and bench: the fast checks only')
+check([T + 'solve_hamster_highway.py'], 'some', FAST, 'Hamster Highway\'s level solver, a design tool: the fast checks only')
 
 import tempfile  # noqa: E402
 with tempfile.TemporaryDirectory() as d:

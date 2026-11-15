@@ -1,4 +1,8 @@
-// Hamster Highway's drawings, as SVG text. Version 1.0.
+// Hamster Highway's drawings, as SVG text. Version 1.1.
+//
+// Changes at v1.1 (step 2, D-145, D-149): the living room and bedroom backdrops for levels 4 and 5, with
+// things that answer a tap (the clock, the lamp, the moon, the star mobile, the wheel); each backdrop sits in a
+// group named data-back. Tubes on the board join up with their neighbours (tubePiece).
 //
 // Original art (D-010), moved from the agreed mock-ups (tools/tests/games/sketch_bridge_builder.py,
 // theme A, Hamster Highway, D-133) and drawn the same way: the Nibbles, their five gadgets, the wooden
@@ -157,6 +161,17 @@ export function gadget(kind, count = 1) {
   return tube(TUBE_ICON, '#A8ECFF', '#6CCBE8');
 }
 
+// A tube square on the board, joined to its neighbours: dirs is a string of the sides it opens to, of
+// 'u', 'd', 'l', 'r' (game.js works them out). Two sides make a straight or an elbow; one side a stub.
+export function tubePiece(dirs) {
+  const E = { u: [50, 0], d: [50, 100], l: [0, 50], r: [100, 50] };
+  const ends = [...new Set(dirs.split(''))].filter((k) => E[k]);
+  let d;
+  if (ends.length === 1) d = `M 50 50 L ${E[ends[0]].join(' ')}`;
+  else d = ends.slice(1).map((k) => `M ${E[ends[0]].join(' ')} Q 50 50 ${E[k].join(' ')}`).join(' ');
+  return tube(d, '#A8ECFF', '#6CCBE8');
+}
+
 // ---------------------------------------------------------------- the board's pieces (board units)
 export function block(c, r, top) {
   const x = c * CELL;
@@ -213,7 +228,49 @@ function jar(x, h, col, lid = '#E8505B') {
     + rect(x + 7, -h + 10, 8, h - 20, WHITE, 4, 0, INK, ' opacity="0.35"'), '', ` class="poke jar" data-poke="jar"`);
 }
 
+// Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn.
 export function backdrop(name) {
+  return g(backdropArt(name), '', ` data-back="${['pantry', 'living', 'bedroom'].includes(name) ? name : 'kitchen'}"`);
+}
+
+// The living room (level 4, D-149): striped wallpaper, a sunflower picture, a cuckoo clock and a hanging lamp.
+function livingArt() {
+  let s = bands(['#E6F1E3', '#DEECDA', '#D6E7D1', '#CEE2C8']);
+  for (let x = 20; x < W; x += 40) s += line(x, 0, x, H, '#D3E6CD', 8, ' opacity="0.7"');
+  let d = ellipse(600, 150, 80, 56, '#FFF3B0', 0, INK, 0, ' opacity="0.5"');
+  d += g(rect(300, 40, 80, 70, '#FFF8EE', 4, 3) + circle(340, 70, 14, SUN, 2.2) + circle(340, 70, 6, '#8B5A3C', 0)
+    + path('M 340 84 L 340 102', 'none', 2.4, '#3E9B4F') + path('M 340 96 q 10 -6 14 -2', 'none', 2, '#3E9B4F'), '', ' class="poke picture" data-poke="picture"');
+  d += g(rect(456, 32, 52, 58, '#B57A44', 6, 2.6) + path('M 448 36 L 482 10 L 516 36 Z', '#8B5A3C', 2.6) + rect(474, 18, 16, 12, '#5A3A22', 3, 1.6)
+    + circle(482, 60, 16, '#FFF8EE', 2) + line(482, 60, 482, 49, INK, 2) + line(482, 60, 490, 62, INK, 2)
+    + line(476, 90, 476, 120, '#8B5A3C', 1.6) + line(488, 90, 488, 110, '#8B5A3C', 1.6) + ellipse(476, 124, 4, 7, SUN, 1.4) + ellipse(488, 114, 4, 7, SUN, 1.4),
+  '', ' class="poke clock" data-poke="clock"');
+  d += g(line(600, 0, 600, 64, '#8B5A3C', 3) + path('M 568 106 L 632 106 L 616 64 L 584 64 Z', '#FFE08A', 2.6)
+    + circle(600, 112, 7, '#FFF8EE', 1.8), '', ' class="poke lamp" data-poke="lamp"');
+  return s + g(d, '', ' opacity="0.85"');
+}
+
+// The bedroom at night (level 5, D-149): a window with the moon, a star mobile, the cage's bars and its wheel.
+function bedroomArt() {
+  let s = bands(['#5B5598', '#6661A3', '#716CAE', '#7C77B9']);
+  for (let x = 432; x < W; x += 18) s += line(x, 0, x, 230, '#9C97D6', 2.4, ' opacity="0.45"');
+  s += line(420, 230, W, 230, '#9C97D6', 4, ' opacity="0.45"');
+  let d = g(rect(40, 28, 160, 116, '#272463', 4, 0)
+    + [[70, 56, 4], [110, 44, 3], [170, 70, 4], [92, 110, 3], [150, 118, 3]].map(([x, y, r], i) =>
+      g(star(x, y, r, '#FFF3B0', 0), '', ` class="twinkle" style="animation-delay:${(i * 0.3).toFixed(1)}s"`)).join('')
+    + g(circle(140, 80, 20, '#FFF3B0', 2, '#E8D98A') + circle(132, 74, 4, '#F2E4A0', 0) + circle(146, 88, 3, '#F2E4A0', 0)
+      + path('M 130 86 q 6 5 12 0', 'none', 1.6, '#B8A65A'), '', ' class="poke moon" data-poke="moon"')
+    + rect(40, 28, 160, 116, 'none', 4, 7, WHITE) + line(120, 28, 120, 144, WHITE, 5) + line(40, 86, 200, 86, WHITE, 5), 'translate(0 66)');
+  d += g(line(330, 0, 330, 24, '#E9E4FF', 2) + line(290, 24, 370, 24, '#E9E4FF', 2.4)
+    + [[290, 52, SUN], [330, 44, '#FFB3C7'], [370, 56, '#9FE3CF']].map(([x, y, col]) => line(x, 24, x, y - 9, '#E9E4FF', 1.6) + star(x, y, 9, col, 1.8)).join(''),
+  '', ' class="poke mobile" data-poke="mobile"');
+  d += g(circle(560, 150, 46, 'none', 5, '#A8ECFF') + circle(560, 150, 6, '#A8ECFF', 2) + line(560, 104, 560, 196, '#A8ECFF', 2.4)
+    + line(514, 150, 606, 150, '#A8ECFF', 2.4) + line(527, 117, 593, 183, '#A8ECFF', 2) + line(593, 117, 527, 183, '#A8ECFF', 2), '', ' class="poke wheel" data-poke="wheel"');
+  return s + g(d, '', ' opacity="0.9"');
+}
+
+function backdropArt(name) {
+  if (name === 'living') return livingArt();
+  if (name === 'bedroom') return bedroomArt();
   if (name === 'pantry') {
     let s = bands(['#F7DDB5', '#F2D3A6', '#ECC897', '#E5BD88']);
     s += Array.from({ length: 12 }, (_, i) => line(i * 60 + 30, 0, i * 60 + 30, H, '#DDB27C', 1.6, ' opacity="0.6"')).join('');

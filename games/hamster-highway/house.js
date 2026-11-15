@@ -1,4 +1,8 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.0.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.1.
+//
+// Changes at v1.1 (step 2, D-145): level 4 by the living room's bookshelf (a hamster floats down to the sofa on a
+// dandelion) and level 5 at the bedroom's hamster cage (up its tube); both rooms drawn in full now. Five soft
+// places are left for levels 6 to 10.
 //
 // Each level sits in a place drawn like its level (the kitchen sink for level 1, the bread bin step for
 // level 2, the pantry's tins and marshmallow for level 3). The other rooms and the garden wait for later
@@ -13,9 +17,9 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668] };
-// Places kept for levels 4 to 10, drawn softly without numbers.
-export const FUTURE = [[1196, 492], [512, 300], [1420, 712], [1600, 712], [1862, 548], [2100, 724], [2322, 352]];
+export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [512, 300] };
+// Places kept for levels 6 to 10, drawn softly without numbers.
+export const FUTURE = [[1420, 712], [1600, 712], [1862, 548], [2100, 724], [2322, 352]];
 
 const KITCH = '#FFE9C7';
 const WOOD = '#E2A867';
@@ -111,7 +115,10 @@ function living() {
   }
   s += rect(990, 700, 120, 60, '#FF9BB3', 18, 3) + rect(990, 676, 26, 84, '#FF9BB3', 12, 3) + rect(1084, 676, 26, 84, '#FF9BB3', 12, 3);
   s += g(ellipse(1050, 690, 18, 12, '#F6E7C8', 2) + path('M 1040 682 q 10 -8 20 0', 'none', 1.6), '', ' class="poke cushion" data-poke="cushion"');
-  return g(s, '', ' class="later"');
+  // level 4 in small: a hamster floating down from the top shelf to the sofa on a dandelion clock
+  s += g(line(1160, 600, 1160, 624, '#3E9B4F', 2.4) + circle(1160, 592, 13, WHITE, 1.8, '#B9B4D6') + mini(1160, 650, 'float', 0.3), '', ' class="bob"');
+  s += place(g(seedArt(), '', ' class="twinkle"'), 1124, 640, 0.6);
+  return g(s, '', ' class="room"');
 }
 
 function bedroom() {
@@ -124,7 +131,9 @@ function bedroom() {
   s += g(circle(470, 404, 24, 'none', 4, '#5FA8C9') + line(470, 380, 470, 428, '#5FA8C9', 2) + line(446, 404, 494, 404, '#5FA8C9', 2), '', ' class="poke wheel" data-poke="wheel"');
   s += path('M 560 360 C 600 300 520 260 600 240 C 640 230 640 300 620 330', 'none', 16, INK) + path('M 560 360 C 600 300 520 260 600 240 C 640 230 640 300 620 330', 'none', 11, '#A8ECFF');
   s += mini(530, 434, 'walk1', 0.3);
-  return g(s, '', ' class="later"');
+  // level 5 in small: the tube goes up, and a seed waits at its top
+  s += place(g(seedArt(), '', ' class="twinkle"'), 636, 236, 0.6);
+  return g(s, '', ' class="room"');
 }
 
 function bathroom() {

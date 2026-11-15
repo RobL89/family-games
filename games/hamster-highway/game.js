@@ -14,7 +14,7 @@
 
 import { COLS, ROWS, GADGETS, key, parseLevel, fits, fitCells, left, walk, terrain } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
@@ -153,9 +153,26 @@ function renderGadgets() {
   layer('gads').innerHTML = Object.entries(S.placed).map(([k, kind]) => {
     const [c, r] = k.split(',').map(Number);
     const hit = rect(0, 0, 100, 100, 'rgba(0,0,0,0)', 0, 0, 'none');   // the whole square answers a click, not just the drawing
-    return place(hit + g(gadget(kind), '', k === S.justPlaced ? ' class="drop"' : ''), c * CELL, r * CELL, CELL / 100, 0, ` data-placed="${k}"`);
+    const art = kind === 'tube' ? tubePiece(tubeSides(c, r)) : gadget(kind);
+    return place(hit + g(art, '', k === S.justPlaced ? ' class="drop"' : ''), c * CELL, r * CELL, CELL / 100, 0, ` data-placed="${k}"`);
   }).join('');
   S.justPlaced = null;
+}
+
+// Which sides a placed tube opens to: its tube neighbours, and at each end of a chain an open mouth, on the
+// left at the lower (or left) end, where a hamster walks in, and on the right at the other, where it comes out.
+function tubeSides(c, r) {
+  const isTube = (cc, rr) => S.placed[key(cc, rr)] === 'tube';
+  const n = [['u', 0, -1], ['d', 0, 1], ['l', -1, 0], ['r', 1, 0]].filter(([, dc, dr]) => isTube(c + dc, r + dr));
+  let s = n.map(([k]) => k).join('');
+  if (n.length === 0) return 'lr';
+  if (n.length === 1) {
+    const [k] = n[0];
+    const lowerEnd = k === 'u' || k === 'r';   // the chain goes up or right from here
+    const mouth = lowerEnd ? 'l' : 'r';
+    s += s.includes(mouth) ? (mouth === 'l' ? 'r' : 'l') : mouth;
+  }
+  return s;
 }
 
 function renderFits() {
@@ -674,7 +691,7 @@ const POKES = {
   duck: ['hop', 'quack'], jar: ['wobble', 'clink'], tin: ['wobble', 'clink'], picture: ['wobble', 'clink'], peek: ['hop', 'squeak'],
   sun: ['wink', 'chirp'], cloud: ['squish', 'whoosh'], smoke: ['squish', 'poof'], bird: ['hop', 'chirp'], frog: ['hop', 'ribbit'],
   future: ['wobble', 'soon'], wheel: ['spin', 'squeak'], cushion: ['squish', 'poof'], mallow: ['squish', 'boing'], tube: ['wobble', 'squeak'],
-  hero: ['hop', 'squeak'],
+  hero: ['hop', 'squeak'], clock: ['wobble', 'chirp'], lamp: ['wobble', 'clink'], moon: ['hop', 'whoosh'], mobile: ['wobble', 'clink'],
 };
 function poke(el) {
   const [cls, snd] = POKES[el.dataset.poke] || ['wobble', 'tap'];

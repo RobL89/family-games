@@ -28,7 +28,7 @@ export const LEVELS = [
   },
   {
     id: 'L2', name: 'Step up', room: 'kitchen', spot: 'breadbin', back: 'kitchen', new: 'ramp',
-    tray: { bridge: 1, ramp: 2 },
+    tray: { bridge: 1, ramp: 2 }, spare: 'ramp',
     rows: [
       '............',
       '............',
@@ -41,7 +41,7 @@ export const LEVELS = [
   },
   {
     id: 'L3', name: 'Boing!', room: 'pantry', spot: 'tins', back: 'pantry', new: 'bouncer',
-    tray: { bridge: 1, bouncer: 1, ramp: 1 },
+    tray: { bridge: 1, bouncer: 1, ramp: 1 }, spare: 'ramp',
     rows: [
       '............',
       '............',
@@ -50,6 +50,32 @@ export const LEVELS = [
       '......###..G',
       'S.....######',
       '##.#########',
+    ],
+  },
+  {
+    id: 'L4', name: 'Gentle landing', room: 'living', spot: 'bookshelf', back: 'living', new: 'floater',
+    tray: { bridge: 2, floater: 1 }, spare: 'bridge',
+    rows: [
+      '............',
+      'S...........',
+      '###.##......',
+      '.......*....',
+      '............',
+      '..........G.',
+      '....########',
+    ],
+  },
+  {
+    id: 'L5', name: 'Tube trip', room: 'bedroom', spot: 'cage', back: 'bedroom', new: 'tube',
+    tray: { bridge: 1, tube: 4 }, spare: 'tube',
+    rows: [
+      '............',
+      '............',
+      '.......*....',
+      '.........G..',
+      '.......####.',
+      'S...........',
+      '###.########',
     ],
   },
 ];

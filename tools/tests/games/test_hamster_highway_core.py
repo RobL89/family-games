@@ -1,6 +1,8 @@
 """Hamster Highway's pure core, its levels and its boundaries. Version 1.1 (15 Nov, step 2).
 
-Changes at v1.1 (step 2, D-147): progress.js, the saved progress (format 1): fresh, unpack (what the device or
+Changes at v1.1 (step 2): levels 4 and 5 (the floater and the tube, D-145) with their golden seeds, each
+needing the level's spare gadget (`spare` in levels.js; the counts from solve_hamster_highway.py 1.0, 15 Nov);
+and (D-147) progress.js, the saved progress (format 1): fresh, unpack (what the device or
 the wrapper hands back, made safe), tried (a GO counts until the level is first done), finished, pack and
 nextAt; and progress.js is pure and imports nothing. Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
@@ -91,7 +93,7 @@ out.levels = LEVELS.map((d) => {
   const lv = core.parseLevel(d);
   const fitsBy = {};
   for (const k of core.GADGETS) fitsBy[k] = core.fitCells(lv, {}, k);
-  return { id: lv.id, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy };
+  return { id: lv.id, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back };
 });
 // placing in order, each where it fits
 const placeAll = (lv, list) => {
@@ -106,6 +108,8 @@ const SOL = {
   L1: { solve: [['bridge', 5, 6]], seed: [] },
   L2: { solve: [['bridge', 3, 6], ['ramp', 7, 5]], seed: [['ramp', 4, 5]] },
   L3: { solve: [['bridge', 2, 6], ['bouncer', 5, 5]], seed: [['ramp', 9, 4]] },
+  L4: { solve: [['bridge', 3, 2], ['floater', 5, 1]], seed: [['bridge', 6, 2]] },
+  L5: { solve: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3]], seed: [['tube', 6, 2]] },
 };
 out.play = {};
 for (const d of LEVELS) {
@@ -116,11 +120,11 @@ for (const d of LEVELS) {
   const withoutNew = Object.fromEntries(Object.entries(a.placed || {}).filter(([, k]) => k !== d.new));
   const ra = a.placed ? core.walk(lv, a.placed) : null;
   const rb = b.placed ? core.walk(lv, b.placed) : null;
-  // every square the spare ramp fits, with the level solved: which take the seed home?
+  // every square the spare gadget fits, with the level solved: which take the seed home?
   const spare = [];
   if (a.placed && s.seed.length) {
-    for (const [c, r] of core.fitCells(lv, a.placed, 'ramp')) {
-      const res = core.walk(lv, { ...a.placed, [core.key(c, r)]: 'ramp' });
+    for (const [c, r] of core.fitCells(lv, a.placed, d.spare)) {
+      const res = core.walk(lv, { ...a.placed, [core.key(c, r)]: d.spare });
       if (res.outcome === 'home' && res.seed) spare.push([c, r]);
     }
   }
@@ -155,6 +159,9 @@ if r.returncode != 0:
     check(False, 'node ran core.js and levels.js')
     sys.exit(1)
 out = json.loads(r.stdout)
+LV_ROWS = {}
+for _line in open(os.path.join(GAME, 'levels.js'), encoding='utf-8').read().split("id: '")[1:]:
+    LV_ROWS[_line[:2]] = re.findall(r"'([.#SG*]{12})'", _line)[:7]
 
 # the sketch model's outcomes
 for name, (_, _, new, no_new) in SKETCH.items():
@@ -179,8 +186,18 @@ for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows
 
 # levels.js
 lv = {x['id']: x for x in out['levels']}
-check(list(lv) == ['L1', 'L2', 'L3'], f'levels.js holds levels 1 to 3, in order ({list(lv)})')
-check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3], 'each level has its golden seed where levels.js says')
+check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5'], f'levels.js holds levels 1 to 5, in order ({list(lv)})')
+check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2],
+      'each level has its golden seed where levels.js says')
+check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube'], 'each level brings in one new gadget, in the agreed order (D-136, D-145)')
+check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube'], 'levels 2 to 5 each name the spare gadget their seed needs')
+check(lv['L4']['tray'] == {'bridge': 2, 'floater': 1} and lv['L5']['tray'] == {'bridge': 1, 'tube': 4},
+      'the trays: level 4 has 2 bridges and a floater; level 5 a bridge and 4 tubes (one of each a spare for the seed)')
+check([(lv[i]['room'], lv[i]['spot'], lv[i]['back']) for i in ('L4', 'L5')] == [('living', 'bookshelf', 'living'), ('bedroom', 'cage', 'bedroom')],
+      'level 4 is by the living room\'s bookshelf, level 5 at the bedroom\'s hamster cage, each with its own backdrop (D-140, D-149)')
+# the sketch model's boards for levels 4 and 5, with only the golden seed added
+check(all(SKETCH[f'level {n}'][0][r] == ''.join('.' if ch == '*' else ch for ch in LV_ROWS[f'L{n}'][r]) for n in (4, 5) for r in range(7)),
+      'levels 4 and 5 are the sketch model\'s boards, with only the golden seed added')
 check(lv['L3']['home'] == [11, 4], 'level 3\'s home moved to 11,4 for its seed')
 check(lv['L1']['tray'] == {'bridge': 1} and lv['L2']['tray'] == {'bridge': 1, 'ramp': 2} and lv['L3']['tray'] == {'bridge': 1, 'bouncer': 1, 'ramp': 1},
       'the trays: 1 bridge; 1 bridge and 2 ramps; 1 bridge, 1 bouncer and 1 ramp')
@@ -201,7 +218,9 @@ for i, (lid, p) in enumerate(out['play'].items(), 1):
     check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
     check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
 check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
-check(out['play']['L2']['solvedSeed'] is False and out['play']['L3']['solvedSeed'] is False, 'levels 2 and 3: the seed needs the spare ramp')
+check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5')), 'levels 2 to 5: the seed needs the spare gadget')
+check(out['play']['L4']['spare'] == [[6, 2]], f'level 4: the spare bridge takes the seed home only beside the ledge, at 6,2, so they float down past it ({out["play"]["L4"]["spare"]})')
+check(out['play']['L5']['spare'] == [[6, 2]], f'level 5: the spare tube takes the seed home only on top of the others, at 6,2 ({out["play"]["L5"]["spare"]})')
 check(out['play']['L2']['spare'] == [[4, 5], [5, 5]], f'level 2: the spare ramp takes the seed home from 4,5 or 5,5 only ({out["play"]["L2"]["spare"]})')
 check(out['play']['L3']['spare'] == [[9, 4], [10, 4]], f'level 3: the spare ramp takes the seed home from 9,4 or 10,4 only ({out["play"]["L3"]["spare"]})')
 check(out['play']['L2']['leftAfter'] == {'bridge': 0, 'ramp': 1}, f'left(): level 2 with its two gadgets down leaves one ramp ({out["play"]["L2"]["leftAfter"]})')
