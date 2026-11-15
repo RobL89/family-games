@@ -1,5 +1,6 @@
 """Rocket Lander's Year 1 levels on the lower track and Year 3 levels on the higher, in a browser (step 2c-3c).
-Version 1.0.
+Version 1.1. Changes at v1.1 (D-123): Year 1's Sharing is between 2 or 5, up to 10, so its made-up question
+is 10 between 5 (was 15). The rest is unchanged.
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
@@ -74,7 +75,7 @@ ASKS = {
         'ice-5': ({'ask': 'words', 'n': 14, 'value': 14}, 'face-words', 'fourteen is 14', None),
         'ice-6': ({'ask': 'more-less', 'dir': 'less', 'n': 60, 'value': 59}, 'face-more-less', '1 less than 60 is 59', None),
         'ringed-1': ({'ask': 'groups', 'groups': 3, 'size': 5, 'value': 15}, 'face-groups', '3 groups of 5 make 15', (0, 25, 5)),
-        'ringed-2': ({'ask': 'share', 'total': 15, 'groups': 5, 'value': 3}, 'face-share', '3 on each plate', (0, 10, 1)),
+        'ringed-2': ({'ask': 'share', 'total': 10, 'groups': 5, 'value': 2}, 'face-share', '2 on each plate', (0, 10, 1)),
         'ringed-4': ({'ask': 'frac-shape', 'num': 1, 'den': 4, 'look': 1, 'parts': 4, 'value': 1}, 'face-shape', 'is shaded', (0, 4, 1)),
         'ringed-5': ({'ask': 'frac-of', 'num': 1, 'den': 2, 'total': 12, 'value': 6}, 'face-fracof', 'of 12 is 6', (0, 10, 1)),
         'ringed-6': ({'ask': 'half', 'n': 14, 'value': 7}, 'face-half', 'Half of 14 is 7', None),

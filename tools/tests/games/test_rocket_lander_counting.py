@@ -21,7 +21,10 @@ The step's own test (D-086). Two parts.
    sums 26, Doubles 20, Share it out 20, Half of 20, Fractions of numbers 18, Groups of a box 30 tall,
    Tens and ones' ones 12, the place-value chart 16; sideways, 12 for every one and 24 for How many
    dots?. And the picture fits: no sideways scroll, the box inside the screen, and the rocket still
-   falls at least 250 px upright and 60 px sideways.
+   falls at least 250 px upright and 60 px sideways. The fall is measured under the box as it is drawn: a
+   round's first landing starts the rocket below its question's box (the engine measured the fall before
+   drawing the question, so a taller picture covered the rocket's start: round.js 2.10), and a question
+   set by the hook measures it again.
 
 Stand-ins: headless Chromium (Playwright), system fonts for any not shipped; the wrapper's frame stood in
 for by the page's size.
@@ -94,7 +97,7 @@ check(sorted((a[1], a[2], a[4]) for a in asks['Y1-13']) == want13, f"Sharing: 2 
 check(sorted(a[1] for a in asks['Y1-15']) == [2, 4, 6, 8, 10, 12], f"Half of 2 to 12: {[a[1] for a in asks['Y1-15']]}")
 want20 = sorted([(t, 2, 1) for t in range(2, 13, 2)] + [(t, 3, 1) for t in (3, 6, 9, 12)] + [(t, 4, 1) for t in (4, 8, 12)] + [(t, 4, 3) for t in (4, 8, 12)])
 check(sorted((a[1], a[2], a[3]) for a in asks['Y2-20']) == want20, f"Fractions of numbers to 12 ({len(want20)}): {len(asks['Y2-20'])}")
-check(sorted((a[2], a[1]) for a in asks['Y1-12']) == sorted((g, s) for s in (2, 5, 10) for g in range(1, 6)), f"Groups of 2, 5 and 10, 1 to 5 groups, kept: {len(asks['Y1-12'])}")
+check(sorted((a[1], a[3]) for a in asks['Y1-12']) == sorted((g, s) for s in (2, 5, 10) for g in range(1, 6)), f"Groups of 2, 5 and 10, 1 to 5 groups, kept: {len(asks['Y1-12'])}")
 check(rows['X-doubles20'].get('pictures') is False and rows['R11'].get('pictures') is not False, 'Doubles and halves to 20 says no pictures; Reception\'s Doubles does not')
 
 # Rows of 3: dot k (0 first) sits in column k % 3 and row k // 3, 10 units a cell
@@ -173,6 +176,37 @@ with sync_playwright() as pw:
         ctx.route('**/*', lambda rt: (asked.append(rt.request.url), rt.continue_() if rt.request.url.startswith(LOCAL) or rt.request.url.startswith('data:') else rt.abort()))
         pg = ctx.new_page()
         pg.on('pageerror', lambda e: errors.append(str(e)))
+        # A round's first landing, as played (no hook): the rocket starts below the question's box
+        into_level(pg, 'reception', 3)
+        pg.wait_for_timeout(700)  # the box has popped in (.55 s)
+        pg.evaluate('__test.freeze(true)')
+        st = pg.evaluate("() => { const t = __test.state(), b = document.getElementById('target').getBoundingClientRect(); return { start: Math.round(t.startY), box: Math.round(b.bottom), n: t.target, touch: Math.round(t.touchY) }; }")
+        check(st['start'] > st['box'], f"{size}: How many dots? ({st['n']}), first landing: the rocket starts at {st['start']} px, below the box's foot at {st['box']} px")
+        pg.evaluate('__test.freeze(false)')
+        # ... and on each landing after it, whatever the last one's box was: 1 dot (a short box), then landings
+        # played right one after another, each next question drawn by the game
+        pg.evaluate("__test.aimAsk({ ask: 'dots', n: 1, value: 1 })")
+        late = []
+        for k in range(5):
+            idx = pg.evaluate('__test.state().idx')
+            pg.evaluate('__test.speed(8); __test.right()')
+            for _ in range(60):
+                s2 = pg.evaluate('__test.state()')
+                if s2['idx'] > idx and s2['phase'] == 'fly':
+                    break
+                pg.wait_for_timeout(100)
+            pg.evaluate('__test.speed(1)')
+            pg.wait_for_timeout(700)
+            pg.evaluate('__test.freeze(true)')
+            late.append(pg.evaluate("() => { const t = __test.state(), b = document.getElementById('target').getBoundingClientRect(); return [t.target, Math.round(t.startY), Math.round(b.bottom), Math.round(t.touchY)]; }"))
+            pg.evaluate('__test.freeze(false)')
+        # each start is the box's foot and the same gap, or, where that leaves too short a fall, the lowest start the
+        # engine allows (one rocket above the ground: measureFall), the same for every such landing
+        pts = [(st0, box, tch) for _, st0, box, tch in late] + [(st['start'], st['box'], st['touch'])]
+        gaps = [st0 - box for st0, box, _ in pts]
+        lowest = max(st0 for st0, _, _ in pts)
+        check(all(g > 0 for g in gaps) and all(abs(g - max(gaps)) <= 2 or abs(st0 - lowest) <= 1 for g, (st0, _, _) in zip(gaps, pts)),
+              f"{size}: How many dots?, the first and next 5 landings: the rocket starts the same way below each landing's own box (gaps {gaps} px; [dots, start, box's foot] {late})")
         for name, track, level, hook, args, mark, floor in CASES:
             if not into_level(pg, track, level):
                 check(False, f'{size}: {name}: a round starts')

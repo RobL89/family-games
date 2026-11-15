@@ -1,5 +1,6 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.4. Changes at v1.4 (step 2c-3c): Year 1 filled the lower track, so its Ice, Jungle and Ringed are
+Version 1.5. Changes at v1.5 (D-123): How many dots? asks 1 to 6, so its made-up question is 5 dots, not 7
+(7 is off its 0 to 6 line). Changes at v1.4 (step 2c-3c): Year 1 filled the lower track, so its Ice, Jungle and Ringed are
 no longer coming soon and the preview's test panel offers its 48 levels, not 24; the rest is unchanged.
 Changes at v1.3 (step 2c-3b, D-100): Year 2 replaced the stand-in levels, so no track is the
 stand-in any more: a format 3 entry (made on the stand-ins) now plays the lower track from Moon 1 with its
@@ -57,7 +58,7 @@ LOCAL = serve(REPO)
 BASE = f'{LOCAL}games/rocket-lander/index.html'
 # A made-up question for each face, set with the test hook so the picture is known (aimAsk)
 FACES = {
-    'moon-3': ({'ask': 'dots', 'n': 7, 'value': 7}, 7),
+    'moon-3': ({'ask': 'dots', 'n': 5, 'value': 5}, 5),
     'moon-5': ({'ask': 'flash', 'n': 4, 'value': 4, 'look': 2, 'ms': 1500}, 4),
     'moon-6': ({'ask': 'compare', 'rel': 'fewer', 'n': 6}, 6),
     'moon-7': ({'ask': 'more-less', 'dir': 'less', 'n': 6, 'value': 5}, 0),

@@ -1,4 +1,11 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.10.
+"""Rocket Lander's pure core and its boundaries. Version 1.11.
+
+Changes at v1.11 (trial feedback item 1, D-123, D-125): the checks D-123's cuts change, each now saying
+the cut and still reading the notes' own number: How many dots? 1 to 6 on 0 to 6 (notes 10), More or
+fewer at most 6 dots (notes 10), Share it out 6 sweets (notes 10), Sharing up to 10 between 2 or 5 (notes
+20, and 10 plates), Half of up to 12 (notes 20), Fractions of numbers up to 12 (notes 24); the counts,
+lines and shares that follow from them; How many dots? in rows of 3; Groups of as boxes with its size, no
+dots. Everything else is as before. The cuts' own test is test_rocket_lander_counting.py.
 
 Changes at v1.10 (stage 3, D-120): the engine's link.js may import P-020's shared/bridge.js, exactly that
 and only there, as contract 0.4 GC4 allows; a check that it does. Everything else is as before.
@@ -374,7 +381,7 @@ const FC = await import(process.argv[2] + '/faces.js');
 const chip = (T) => FC.faceChip(T).html;
 const n = (html, cls) => (html.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
 out.faces = {
-  dots: [1, 5, 6, 10].map((k) => [dotsOn(chip({ ask: 'dots', n: k })), n(chip({ ask: 'dots', n: k }), 'fd r' + (k > 5 ? 2 : 1))]),
+  dots: [1, 3, 4, 6].map((k) => [dotsOn(chip({ ask: 'dots', n: k })), n(chip({ ask: 'dots', n: k }), 'fd r' + (k > 3 ? 2 : 1))]),
   flash: [0, 1, 2].map((look) => [1, 3, 5].map((k) => dotsOn(chip({ ask: 'flash', n: k, look, ms: 1500 })))),
   flashMs: chip({ ask: 'flash', n: 3, look: 0, ms: 1500 }).includes('--show:1500ms'),
   compare: ['more', 'fewer', 'same'].map((rel) => { const h = chip({ ask: 'compare', rel, n: 4 }); return [dotsOn(h), /more than|fewer than|the same as/.exec(h)[0]]; }),
@@ -862,9 +869,10 @@ byplan = {pl: (k, r) for x in lo['systems'][:3] for pl, (k, _), r in zip(x['plan
 P = lambda i: notes[i]  # noqa: E731
 row = lambda i: byplan[i][1]  # noqa: E731
 want_rows = [
-    ('R03', row('R03')['ask'] == 'dots' and [row('R03')['min'], row('R03')['max']] == [P('R03')['min'], P('R03')['max']]),
+    ('R03', row('R03')['ask'] == 'dots' and [row('R03')['min'], row('R03')['max']] == [P('R03')['min'], 6] and P('R03')['max'] == 10),  # cut to 6 (D-123)
     ('R04', row('R04')['ask'] == 'flash' and [row('R04')['min'], row('R04')['max'], row('R04')['show_ms']] == [P('R04')['min'], P('R04')['max'], P('R04')['show_ms']]),
-    ('R05', row('R05')['ask'] == 'compare' and [row('R05')['min'], row('R05')['max']] == [P('R05')['min'], P('R05')['max']] and row('R05')['rels']['same'] > 0 and P('R05')['include_same']),
+    ('R05', row('R05')['ask'] == 'compare' and [row('R05')['min'], row('R05')['max']] == [P('R05')['min'], 6] and P('R05')['max'] == 10 and row('R05')['to'] == 10  # cut to 6 dots (D-123)
+     and row('R05')['rels']['same'] > 0 and P('R05')['include_same']),
     ('R06', row('R06')['ask'] == 'more-less' and [row('R06')['min'], row('R06')['max']] == [P('R06')['min'], P('R06')['max']]),
     ('R07', row('R07')['pick'] == [P('R07')['min'], P('R07')['max']] and row('R07')['from'] <= P('R07')['min'] and row('R07')['to'] == P('R07')['max']),
     ('R08', row('R08')['ask'] == 'bond' and row('R08')['whole'] == P('R08')['target'] and P('R08')['show_objects']),
@@ -872,7 +880,7 @@ want_rows = [
     ('R10', [row('R10')['minus_from'], row('R10')['minus_max']] == P('R10')['start'] and row('R10')['pictures'] == P('R10')['show_objects'] and row('R10')['ops'] == ['−']),
     ('R11', row('R11')['ask'] == 'double' and row('R11')['max'] == P('R11')['max_base']),
     ('R12', row('R12')['ask'] == 'bond' and row('R12')['whole'] == P('R12')['target'] and P('R12')['show_objects']),
-    ('R16', row('R16')['ask'] == 'share' and row('R16')['total_max'] == P('R16')['total_max'] and [row('R16')['groups']] == P('R16')['groups']),
+    ('R16', row('R16')['ask'] == 'share' and row('R16')['total_max'] == 6 and P('R16')['total_max'] == 10 and [row('R16')['groups']] == P('R16')['groups']),  # cut to 6 (D-123)
     ('X-dice6', row('X-dice6')['labels'] == 'dice' and [row('X-dice6')['from'], row('X-dice6')['to']] == [0, 6] and row('X-dice6')['mix'] == {'any': 1}),
     ('X-dice12', row('X-dice12')['labels'] == 'dice' and [row('X-dice12')['from'], row('X-dice12')['to']] == [0, 12] and row('X-dice12')['mix'] == {'any': 1}),
 ]
@@ -909,7 +917,7 @@ want_y2 = [
     ('Y2-17', yr('Y2-17')['forms'] == ['divide'] and yr('Y2-17')['tables'] == P('Y2-17')['tables'] and yr('Y2-17')['times_max'] == P('Y2-17')['max_multiplier']),
     ('Y2-18', yr('Y2-18')['ask'] == 'parity' and [yr('Y2-18')['min'], yr('Y2-18')['max']] == [P('Y2-18')['min'], P('Y2-18')['max']]),
     ('Y2-19', yr('Y2-19')['ask'] == 'frac-shape' and yr('Y2-19')['fractions'] == P('Y2-19')['fractions']),
-    ('Y2-20', yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == P('Y2-20')['total_max']),
+    ('Y2-20', yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == 12 and P('Y2-20')['total_max'] == 24),  # cut to 12 (D-123)
 ]
 check(all(ok for _, ok in want_y2), f"Year 2's rows' numbers are the notes' params (tables to × 12, D-099; the timed level's 6 s): {[i for i, ok in want_y2 if not ok]}")
 # Year 1 (lower track) and Year 3 (higher track), Ice, Jungle and Ringed: their rows' numbers are the notes' params (step 2c-3c)
@@ -942,9 +950,9 @@ want_y13 = [
      and q('Y1-11')['blanks'] == P('Y1-11')['blank_positions'] and q('Y1-11')['flip'] is True and Y1S['missing_number']['example'] == '7 = ? - 9'),
     ('Y1-12', q('Y1-12')['ask'] == 'groups' and q('Y1-12')['sizes'] == P('Y1-12')['group_sizes'] == Y1S['multiplication']['group_sizes'] and q('Y1-12')['max_groups'] == P('Y1-12')['max_groups']
      and P('Y1-12')['show_array']),
-    ('Y1-13', q('Y1-13')['ask'] == 'share' and q('Y1-13')['total_max'] == P('Y1-13')['total_max'] and q('Y1-13')['groups'] == P('Y1-13')['groups']),
+    ('Y1-13', q('Y1-13')['ask'] == 'share' and q('Y1-13')['total_max'] == 10 and P('Y1-13')['total_max'] == 20 and q('Y1-13')['groups'] == [2, 5] and P('Y1-13')['groups'] == [2, 5, 10]),  # cut (D-123)
     ('Y1-14', q('Y1-14')['ask'] == 'frac-shape' and q('Y1-14')['fractions'] == P('Y1-14')['fractions'] == Y1S['fractions']),
-    ('Y1-15', q('Y1-15')['ask'] == 'frac-of' and q('Y1-15')['fractions'] == P('Y1-15')['fractions'] and q('Y1-15')['total_max'] == P('Y1-15')['total_max']),
+    ('Y1-15', q('Y1-15')['ask'] == 'frac-of' and q('Y1-15')['fractions'] == P('Y1-15')['fractions'] and q('Y1-15')['total_max'] == 12 and P('Y1-15')['total_max'] == 20),  # cut to 12 (D-123)
     ('X-doubles20', q('X-doubles20')['ask'] == 'double' and q('X-doubles20')['halves'] is True and 2 * q('X-doubles20')['max'] == 20 and 'doubles and halves to 20' in Y1S['other']),
     ('Y3-01', q('Y3-01')['ask'] == 'find' and [q('Y3-01')['min'], q('Y3-01')['max']] == [P('Y3-01')['min'], P('Y3-01')['max']]),
     ('Y3-02', q('Y3-02')['ask'] == 'place' and q('Y3-02')['digits'] == P('Y3-02')['digits'] and [q('Y3-02')['min'], q('Y3-02')['max']] == [100, 999]),
@@ -1036,13 +1044,13 @@ check(rt['putBy'] == {'track': 'year2', 'p': {'rocks': 7}, 'others': {'reception
 # ---------- Reception's questions (asks.js, level plan section 5) ----------
 ak = o['asks']
 check(ak['ASKS'][:7] == ['dots', 'flash', 'compare', 'more-less', 'bond', 'double', 'share'], f"Reception's seven kinds of question, first (Year 2's seven follow, checked whole below): {ak['ASKS']}")
-# dots 1 to 10: 10; a quick look 1 to 5, three ways each: 15; more than 1 to 9: 9; fewer than 1 to 10: 10; the same as 1 to 10: 10;
-# one more than 0 to 9: 10; one less than 1 to 10: 10; make 5 from 1 to 4: 4; make 10 from 1 to 9: 9; double 1 to 5: 5; 2 to 10 shared by 2: 5
-check(ak['counts'] == {'dots': 10, 'flash': 15, 'more': 9, 'fewer': 10, 'same': 10, 'oneMore': 10, 'oneLess': 10, 'bond5': 4, 'bond10': 9, 'double': 5, 'share': 5},
+# dots 1 to 6 (D-123): 6; a quick look 1 to 5, three ways each: 15; more than 1 to 6 (7 to 10 on the line): 6; fewer than 1 to 6: 6; the same as 1 to 6: 6;
+# one more than 0 to 9: 10; one less than 1 to 10: 10; make 5 from 1 to 4: 4; make 10 from 1 to 9: 9; double 1 to 5: 5; 2 to 6 shared by 2 (D-123): 3
+check(ak['counts'] == {'dots': 6, 'flash': 15, 'more': 6, 'fewer': 6, 'same': 6, 'oneMore': 10, 'oneLess': 10, 'bond5': 4, 'bond10': 9, 'double': 5, 'share': 3},
       f"what each can ask (worked out by hand): {ak['counts']}")
-want_rng = [['dots', 1, 10, 0, 10], ['flash', 1, 5, 0, 5], ['compare', 1, 10, 0, 10], ['more-less', 0, 10, 0, 10],
-            ['bond', 1, 4, 0, 5], ['double', 2, 10, 0, 10], ['bond', 1, 9, 0, 10], ['share', 1, 5, 0, 5]]
-check(ak['ranges'] == want_rng, f"every answer is on its level's line: dots 1 to 10; a quick look 1 to 5; one more or less 0 to 10; make 5: 1 to 4; doubles 2 to 10; shares 1 to 5: {ak['ranges']}")
+want_rng = [['dots', 1, 6, 0, 6], ['flash', 1, 5, 0, 5], ['compare', 1, 6, 0, 10], ['more-less', 0, 10, 0, 10],
+            ['bond', 1, 4, 0, 5], ['double', 2, 10, 0, 10], ['bond', 1, 9, 0, 10], ['share', 1, 3, 0, 5]]
+check(ak['ranges'] == want_rng, f"every answer is on its level's line: dots 1 to 6 on 0 to 6; a quick look 1 to 5; one more or less 0 to 10; make 5: 1 to 4; doubles 2 to 10; shares 1 to 3: {ak['ranges']}")
 check(ak['rangeFits'], 'every "more than" and "fewer than" has a number on the line that fits')
 # 2:2:1 of 8 is 3.2, 3.2, 1.6: floors 3 + 3 + 1 = 7, the one left to the biggest remainder (.6, same): 3, 3, 2.
 # Of 5: 2, 2, 1 exactly. Of 3: 1.2, 1.2, .6: floors 1 + 1 + 0, one left to .6: 1, 1, 1.
@@ -1069,7 +1077,7 @@ check(len(ch[2]) == 3 and len(set(ch[2])) == 3 and len(ch[3]) == 20 and min(ch[3
 
 # ---------- Their faces (faces.js): the dots drawn ----------
 fc = o['faces']
-check(fc['dots'] == [[1, 1], [5, 1], [6, 1], [10, 1]], f"dots to count: 1, 5, 6 and 10 dots, 6 and 10 in two rows of 5 (a ten frame's order): {fc['dots']}")
+check(fc['dots'] == [[1, 1], [3, 1], [4, 1], [6, 1]], f"dots to count: 1, 3, 4 and 6 dots, 4 and 6 in two rows of 3 (D-125): {fc['dots']}")
 check(fc['flash'] == [[1, 3, 5]] * 3 and fc['flashMs'], f"a quick look shows its dots every way (dice, row, scatter) and hides them after 1500 ms: {fc['flash']}")
 check(fc['compare'] == [[4, 'more than'], [4, 'fewer than'], [4, 'the same as']], f"more, fewer or the same as 4 dots: {fc['compare']}")
 check(fc['moreLess'] == [['1 more than', True, 0], ['1 less than', True, 0]], f"one more or less than 6, in words and the number: {fc['moreLess']}")
@@ -1127,12 +1135,14 @@ check(ch2['parity'] == [['range', 'even'], ['range', 'odd']], f"odd or even: any
 SH = {'1/2': 4, '1/3': 3, '1/4': 4, '2/4': 4, '3/4': 4}  # halves on a line of quarters (Claude's reading: three numbers inside, not one)
 want_shape = [[int(f[0]), int(f[2]), look, SH[f], int(f[0]) * SH[f] // int(f[2])] for f in ['1/2', '1/3', '1/4', '2/4', '3/4'] for look in (0, 1)]
 check(ch2['shape'] == want_shape, f"fractions of shapes: the notes' five, each as a circle and a bar, landing on a line of quarters (thirds for 1/3): {ch2['shape']}")
-want_of = [[int(f[0]), int(f[2]), t, t * int(f[0]) // int(f[2])] for f in ['1/2', '1/3', '1/4', '3/4'] for t in range(int(f[2]), 25, int(f[2]))]
-check(ch2['fracOf'] == want_of and len(want_of) == 32, f"fractions of numbers: whole answers only, totals to 24: 12 + 8 + 6 + 6 = 32: {len(ch2['fracOf'])}")
-WIN = {'place': (10, 99), 'words': (1, 100), 'sign': (0, 100), 'seq3': (0, 60), 'seq10': (0, 100), 'parity': (1, 100), 'fracOf': (0, 18)}
+want_of = [[int(f[0]), int(f[2]), t, t * int(f[0]) // int(f[2])] for f in ['1/2', '1/3', '1/4', '3/4'] for t in range(int(f[2]), 13, int(f[2]))]
+check(ch2['fracOf'] == want_of and len(want_of) == 16, f"fractions of numbers: whole answers only, totals to 12 (D-123; the notes say 24): 6 + 4 + 3 + 3 = 16: {len(ch2['fracOf'])}")
+# fractions of numbers to 12 (D-123) answer 1 to 9, so their one stretch is 0 to 10, every answer in it
+WIN = {'place': (10, 99), 'words': (1, 100), 'sign': (0, 100), 'seq3': (0, 60), 'seq10': (0, 100), 'parity': (1, 100), 'fracOf': (0, 10)}
 for k, (wlo, whi) in WIN.items():
     w2 = yv['windows'][k]
-    check(w2['n'] == 300 and w2['spans'] == [10] and w2['steps'] == [1] and w2['lo'] >= wlo and w2['hi'] <= whi and w2['holds'] and w2['starts'] > 5 and not w2['twice'],
+    check(w2['n'] == 300 and w2['spans'] == [10] and w2['steps'] == [1] and w2['lo'] >= wlo and w2['hi'] <= whi and w2['holds']
+          and (w2['starts'] > 5 if k != 'fracOf' else w2['starts'] == 1) and not w2['twice'],
           f"{k}: 300 landings, each on a stretch of 10 marks inside {wlo} to {whi} with its answer in it, starting in {w2['starts']} places; never the same question twice running: {w2}")
 check(yv['windows']['sign']['sides'] and yv['windows']['sign']['fits'] and yv['windows']['parity']['fits'],
       '<, > and =: the number with 3 marks each side; odd or even: every stretch has numbers that fit')
@@ -1242,10 +1252,10 @@ check(y3['oneMore'] == [[['more', 1, n, n + 1] for n in range(0, 100)], [['less'
 check(y3['groups'] == [[g, sz, g * sz] for sz in (2, 5, 10) for g in range(1, 6)], f"groups of 2, 5 and 10, 1 to 5 groups: {len(y3['groups'])}")
 check(y3['groupLines'] == [{'from': 0, 'to': 5 * sz, 'step': sz, 'label_every': sz} for sz in (2, 5, 10)],
       f"each group size lands on its own line, 0 to 5 lots in its steps: {y3['groupLines']}")
-want_share = [[t, g, t // g] for g in (2, 5, 10) for t in range(g, 21, g)]
-check(y3['share'] == want_share and len(want_share) == 16, f"share 20 or fewer between 2, 5 or 10 plates, whole shares: {len(y3['share'])} (10 + 4 + 2)")
+want_share = [[t, g, t // g] for g in (2, 5) for t in range(g, 11, g)]
+check(y3['share'] == want_share and len(want_share) == 7, f"share 10 or fewer between 2 or 5 plates (D-123), whole shares: {len(y3['share'])} (5 + 2)")
 check(y3['halves1'] == [[1, 2, lk, 4, 2] for lk in (0, 1)] + [[1, 4, lk, 4, 1] for lk in (0, 1)], f"halves and quarters of shapes, on a line of quarters: {y3['halves1']}")
-check(y3['half20'] == [[1, 2, t, t // 2] for t in range(2, 21, 2)], f"half of 2 to 20: {len(y3['half20'])}")
+check(y3['half20'] == [[1, 2, t, t // 2] for t in range(2, 13, 2)], f"half of 2 to 12 (D-123; the notes say 20): {len(y3['half20'])}")
 check(y3['doubles'] == [['double', n, 2 * n] for n in range(1, 11)] + [['half', 2 * n, n] for n in range(1, 11)],
       f"doubles of 1 to 10 and halves of 2 to 20: {len(y3['doubles'])}")
 check(all(len(x) == 8 and set(x) == {'double', 'half'} and all(x[i] != x[i + 1] for i in range(7)) for x in y3['planDoubles']),
@@ -1308,7 +1318,7 @@ check(set(sh3['count1']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh
 check(set(sh3['count3']) == {'4', '8', '50', '100'} and all(110 <= v <= 190 for v in sh3['count3'].values()), f"600 counts: 4s, 8s, 50s and 100s about a quarter each: {sh3['count3']}")
 check(set(sh3['more1000']) == {'10', '100'} and all(240 <= v <= 360 for v in sh3['more1000'].values()), f"600 questions: 10 or 100 more or less, about half each: {sh3['more1000']}")
 check(set(sh3['groups']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh3['groups'].values()), f"600 groups: of 2, 5 and 10 about a third each: {sh3['groups']}")
-check(set(sh3['share']) == {'2', '5', '10'} and all(150 <= v <= 250 for v in sh3['share'].values()), f"600 shares: 2, 5 and 10 plates about a third each: {sh3['share']}")
+check(set(sh3['share']) == {'2', '5'} and all(240 <= v <= 360 for v in sh3['share'].values()), f"600 shares: 2 and 5 plates about half each (D-123): {sh3['share']}")
 check(set(sh3['amounts']) == {'2', '3', '4', '5', '8', '10'} and all(60 <= v <= 140 for v in sh3['amounts'].values()),
       f"600 fractions of amounts: each denominator about a sixth (picked first, so fifths, eighths and tenths don't swamp halves): {sh3['amounts']}")
 # Year 1's and Year 3's sums
@@ -1425,8 +1435,8 @@ check(y3s['twice'] == [0, 0, 0, 0], f"never the same sum twice running (missing 
 check(y3s['fall'] == [6, None], f"mixed tables fall in 6 s (the notes); the rest as the speed says: {y3s['fall']}")
 yf3 = o['y13faces']
 check(yf3['find'] == [['', '37'], ['', '347']], f"find the number: the number itself, as Number mode's chip: {yf3['find']}")
-check(yf3['groups'] == [['face face-groups', 6, 3, '3 groups of 2'], ['face face-groups', 50, 5, '5 groups of 10'], ['face face-groups', 5, 1, '1 group of 5']],
-      f"groups of: each group a row of dots (an array, the notes' show_array): {yf3['groups']}")
+check(yf3['groups'] == [['face face-groups', 0, 0, '3 groups of 2 2 2 2'], ['face face-groups', 0, 0, '5 groups of 10 10 10 10 10 10'], ['face face-groups', 0, 0, '1 group of 5 5']],
+      f"groups of: the words, then a box per group with its size, no dots (D-123, D-125; the notes' show_array left out): {yf3['groups']}")
 check(yf3['half'] == [['face face-half', 14, 2, 'half of 14'], ['face face-half', 2, 2, 'half of 2']], f"half of: the dots in two groups: {yf3['half']}")
 check(yf3['double10'] == 20, f"double 10: 10 dots twice: {yf3['double10']}")
 check(yf3['place'] == [['face face-place', 3, 4, 7, 'H T O'], ['face face-place', 9, 0, 5, 'H T O'], ['face face-place', 1, 0, 0, 'H T O']] and yf3['place34'] == [3, 4, 0],
