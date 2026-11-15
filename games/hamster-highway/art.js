@@ -1,4 +1,11 @@
-// Hamster Highway's drawings, as SVG text. Version 1.3.
+// Hamster Highway's drawings, as SVG text. Version 1.4.
+//
+// Changes at v1.4 (step 4, D-157, D-161): the teacup lift: a red-and-white string looped round two cotton reels
+// (liftArt), up on the right and down on the left (LOOP), and its teacups, white with pink spots on a saucer, drawn
+// in two parts so a hamster rides inside (teacupBack behind it, teacupFront in front). The shed backdrop for level 9
+// (plank walls, a cobwebbed window, a shelf of flowerpots, hanging tools and a watering can) and the treehouse for
+// level 10 (sky, a big tree, its leaves, a rope swing, the treehouse with bunting for the party, and a bird), each as
+// wide as its board.
 //
 // Changes at v1.3 (step 4, D-156, D-158): the veg patch backdrop for level 8, as wide as its board (a sky with a sun
 // and clouds that answer a tap, a picket fence, sunflowers, a scarecrow made of a broom and a flowerpot hat); the
@@ -255,6 +262,8 @@ function jar(x, h, col, lid = '#E8505B') {
 // width (the backdrops for 12-square boards are drawn 720 wide).
 export function backdrop(name, w = W) {
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
+  if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
+  if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
   return g(backdropArt(name), '', ` data-back="${['pantry', 'living', 'bedroom', 'bathroom', 'loft'].includes(name) ? name : 'kitchen'}"`);
 }
 
@@ -294,11 +303,90 @@ export function seesawArt() {
     + circle(-L / 2 + 10, 8, 2.4, '#8B5A3C', 0) + circle(L / 2 - 10, 8, 2.4, '#8B5A3C', 0) + circle(0, 8, 7, '#8B5A3C', 2.2);
 }
 
+// The teacup lift (D-157, D-161: look B): a string looped round two cotton reels, from the top reel at y0 to the
+// bottom one at y1, in the column centred on x. A cup going up rides LOOP right of the middle, one coming down LOOP
+// left; at each end it swings round its reel to the middle, where a hamster steps in or out (game.js).
+export const LOOP = 16;
+function reel(x, y) {
+  return rect(x - 16, y - 7, 32, 14, '#E8505B', 3, 2) + line(x - 12, y - 2, x + 12, y - 2, '#FFB3C0', 1.6) + line(x - 12, y + 3, x + 12, y + 3, '#FFB3C0', 1.6)
+    + rect(x - 23, y - 12, 8, 24, '#E7B26F', 3, 2.4) + rect(x + 15, y - 12, 8, 24, '#E7B26F', 3, 2.4) + circle(x, y, 3.4, INK, 0);
+}
+export function liftArt(x, y0, y1) {
+  const o = LOOP;
+  const loop = `M ${x - o} ${y0} L ${x - o} ${y1} A ${o} ${o} 0 0 0 ${x + o} ${y1} L ${x + o} ${y0} A ${o} ${o} 0 0 0 ${x - o} ${y0} Z`;
+  return path(loop, 'none', 4, WHITE) + path(loop, 'none', 4, '#E8505B', ' stroke-dasharray="10 6" class="loop"') + reel(x, y0) + reel(x, y1);
+}
+// A teacup, drawn about its floor line (0,0), where a riding hamster's feet go: the inside behind the hamster ...
+export function teacupBack() {
+  return ellipse(0, -16, 25, 6, '#B98A7A', 2.5);
+}
+// ... and the bowl, its spots, its handle and the saucer in front.
+export function teacupFront() {
+  return ellipse(0, 12, 30, 5, '#FFD6E0', 2.2)
+    + path('M -26 -16 Q -25 8 -12 10 L 12 10 Q 25 8 26 -16 Q 0 -9 -26 -16 Z', '#FFF8EE', 2.6)
+    + [[-14, -4], [0, 2], [14, -4], [-6, -10], [8, -10]].map(([x, y]) => circle(x, y, 3, PINK, 0)).join('')
+    + path('M 24 -10 q 13 2 6 14 q -3 3 -8 1', 'none', 2.6);
+}
+
 // The flowerpot the see-saw stands on: x its middle, from y0 (just under the plank's middle) down to y1 (the ground).
 export function potArt(x, y0, y1) {
   return path(`M ${x - 26} ${y0 + 12} L ${x + 26} ${y0 + 12} L ${x + 18} ${y1} L ${x - 18} ${y1} Z`, '#D9774B', 2.6)
     + rect(x - 30, y0 + 4, 60, 14, '#E98C60', 4, 2.6) + path(`M ${x - 12} ${y0 + 34} q 12 8 24 0`, 'none', 2, '#B85F38')
     + path(`M ${x} ${y0 + 4} L ${x - 8} ${y0 - 4} L ${x + 8} ${y0 - 4} Z`, '#8B5A3C', 2);
+}
+
+// The shed (level 9, D-151), w wide: plank walls, a cobwebbed window, a shelf of flowerpots, tools on hooks and a
+// watering can. Things that answer a tap: the flowerpots, the watering can and the trowel.
+function shedArt(w) {
+  let s = rect(0, 0, w, H, '#D9B98C', 0, 0);
+  for (let x = 0; x < w; x += 40) s += rect(x, 0, 40, H, x % 80 ? '#D4B283' : '#DDBF93', 0, 1.4, '#C29B68');
+  s += rect(0, 0, w, 26, '#B57A44', 0, 0);
+  let d = '';
+  for (let x = 140; x < w; x += 520) {
+    d += g(rect(x, 60, 120, 90, '#BFE6F7', 4, 5, '#8B5A3C') + line(x + 60, 60, x + 60, 150, '#8B5A3C', 4) + line(x, 105, x + 120, 105, '#8B5A3C', 4)
+      + path(`M ${x + 120} 60 l -34 0 M ${x + 120} 60 l -28 22 M ${x + 120} 60 l 0 32 M ${x + 104} 60 q 6 14 16 18 M ${x + 94} 60 q 10 24 26 30`, 'none', 1.2, WHITE, ' opacity="0.9"'),
+    '', ' class="poke picture" data-poke="skylight"');
+  }
+  for (let x = 330; x < w; x += 520) {
+    d += rect(x, 92, 150, 10, '#8B5A3C', 3, 2.4);
+    d += [0, 52, 104].map((dx, i) => g(path(`M ${x + dx + 4} 92 L ${x + dx + 40} 92 L ${x + dx + 34} 56 L ${x + dx + 10} 56 Z`, '#D9774B', 2.2)
+      + rect(x + dx + 6, 50, 32, 9, '#E98C60', 3, 2.2) + (i === 1 ? path(`M ${x + dx + 22} 50 q -10 -16 -2 -26 m 2 26 q 6 -18 14 -20`, 'none', 2.6, '#3E9B4F') : ''),
+    '', ' class="poke pot" data-poke="pot"')).join('');
+  }
+  for (let x = 40; x < w; x += 520) {
+    d += circle(x + 20, 190, 4, '#5A3A22', 0) + g(line(x + 20, 190, x + 20, 250, '#8B5A3C', 5) + path(`M ${x + 8} 250 L ${x + 32} 250 L ${x + 26} 290 Q ${x + 20} 300 ${x + 14} 290 Z`, '#9AA7B5', 2.4), '', ' class="poke trowel" data-poke="trowel"');
+    d += circle(x + 64, 190, 4, '#5A3A22', 0) + line(x + 64, 190, x + 64, 250, '#8B5A3C', 5) + path(`M ${x + 52} 250 L ${x + 76} 250 M ${x + 54} 250 L ${x + 54} 284 M ${x + 64} 250 L ${x + 64} 286 M ${x + 74} 250 L ${x + 74} 284`, 'none', 3.4, '#9AA7B5');
+  }
+  const wx = Math.max(560, w - 140);
+  d += g(path(`M ${wx - 40} 300 L ${wx + 40} 300 L ${wx + 34} 236 L ${wx - 34} 236 Z`, '#5FA8C9', 2.6) + path(`M ${wx + 34} 250 L ${wx + 76} 220 L ${wx + 80} 228 L ${wx + 38} 262`, '#5FA8C9', 2.4)
+    + ellipse(wx + 80, 222, 8, 5, '#4A8FB0', 2) + path(`M ${wx - 34} 244 q -26 -10 -14 -40 q 14 -16 30 -6`, 'none', 4, '#3E7F9E'), '', ' class="poke can" data-poke="can"');
+  return s + g(d, '', ' opacity="0.9"');
+}
+
+// The treehouse (level 10, D-151), w wide: sky, a big tree with its leaves, a rope swing, and the treehouse at the
+// right with bunting for the party at the end. Things that answer a tap: the swing, the clouds and a bird.
+function treehouseArt(w) {
+  let s = ['#BFE6FA', '#CDEBFA', '#DBF1FB', '#E7F6FC'].map((c, i) => rect(0, i * 80, w, 82, c, 0, 0)).join('');
+  s += rect(0, 320, w, H - 320, '#CDEFB9', 0, 0);
+  let d = '';
+  for (let x = 160; x < w; x += 480) {
+    d += g(g(ellipse(x, 70, 50, 20, WHITE, 2.4, '#B9D6E6') + ellipse(x + 32, 60, 30, 18, WHITE, 0) + ellipse(x - 28, 62, 24, 14, WHITE, 0), '', ' class="cloud"'), '', ' class="poke" data-poke="cloud"');
+  }
+  const tx = w - 210;
+  d += path(`M ${tx - 50} ${H} Q ${tx - 30} 300 ${tx - 36} 150 L ${tx + 36} 150 Q ${tx + 30} 300 ${tx + 50} ${H} Z`, '#8B5A3C', 3);
+  d += [[-150, 70, 90], [-40, 40, 110], [80, 60, 100], [-250, 110, 70], [150, 120, 70]].map(([dx, y, r]) => circle(tx + dx, y, r, '#7DC95E', 3)).join('');
+  d += [[-120, 60], [-10, 30], [100, 70], [-220, 100]].map(([dx, y]) => circle(tx + dx, y, 22, '#8FD46E', 0)).join('');
+  const sx = w - 80;   // a rope swing under the treehouse, clear of the lift
+  d += g(line(sx - 22, 180, sx - 22, 300, '#C48A4C', 3) + line(sx + 22, 180, sx + 22, 300, '#C48A4C', 3) + rect(sx - 32, 298, 64, 12, '#E7B26F', 4, 2.4), '', ' class="poke swing" data-poke="swing"');
+  d += rect(w - 320, 40, 250, 82, '#E7B26F', 6, 3) + path(`M ${w - 334} 46 L ${w - 195} 4 L ${w - 56} 46 Z`, '#E8505B', 3)
+    + rect(w - 160, 60, 40, 36, '#BFE6F7', 4, 3) + line(w - 140, 60, w - 140, 96, '#8B5A3C', 2.4);
+  d += path(`M ${w - 330} 100 Q ${w - 200} 140 ${w - 60} 100`, 'none', 2, INK)
+    + [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => { const x = w - 316 + i * 30; const y = 100 + 34 * Math.sin((Math.PI * (i + 0.5)) / 9.2);
+      return path(`M ${x} ${y} l 8 16 l 8 -16 z`, [CORAL, SUN, '#5FE3BD', '#B9A7FF', PINK][i % 5], 1.4); }).join('');
+  const bx = Math.round(w * 0.45);   // a bird on its own in the open sky
+  d += g(ellipse(bx, 176, 14, 11, '#7FB3E8', 2.2) + circle(bx + 8, 170, 7, '#7FB3E8', 2) + circle(bx + 10, 168, 1.6, INK, 0)
+    + path(`M ${bx + 14} 170 l 6 2 l -6 2 z`, SUN, 1.2), '', ' class="poke bird" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
 }
 
 // The living room (level 4, D-149): striped wallpaper, a sunflower picture, a cuckoo clock and a hanging lamp.

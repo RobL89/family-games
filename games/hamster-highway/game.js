@@ -1,4 +1,10 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.4 (15 Nov, step 4).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.5 (15 Nov, step 4).
+//
+// Changes at v1.5 (step 4, D-157, D-161): the teacup lift: its string and cotton reels behind (art.js liftArt), its
+// two cups moving with the run's clock (core.js cupRow), a cup going up a little right of the middle and one coming
+// down a little left, swinging to the middle at each end; a hamster rides inside its cup (the cup's front is drawn
+// over it, in the cupfront layer), happy, and steps in with a clink; the string's stripes run while the cups move.
+// Tapping a cup makes it wobble and clink. Levels 9 (the shed) and 10 (the treehouse).
 //
 // Changes at v1.4 (step 4, D-156, D-158): a board wider than the screen (level 8 is 18 squares) shows through a
 // window 12 squares wide that slides: while building, swipe the board or tap the big arrows at its sides, and a
@@ -28,9 +34,9 @@
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
 // Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
-import { COLS, ROWS, GADGETS, TIP, key, parseLevel, fits, fitCells, left, run, terrain } from './core.js';
+import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, LOOP, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
@@ -186,6 +192,7 @@ function renderLevel() {
     while (ground < ROWS && lv.rows[ground][p.c + 1] !== '#') ground += 1;
     bg += potArt((p.c + 1.5) * CELL, (p.r + 1) * CELL, ground * CELL);
   }
+  for (const p of lv.parts.filter((q) => q.kind === 'lift')) bg += liftArt((p.c + 0.5) * CELL, (p.top - 1) * CELL - 20, (p.bottom + 0.6) * CELL);
   layer('bg').innerHTML = bg;
   renderParts();
   renderSeed();
@@ -196,6 +203,47 @@ function renderLevel() {
 function renderParts() {
   layer('parts').innerHTML = S.level.parts.filter((p) => p.kind === 'seesaw')
     .map((p, i) => `<g data-saw="${i}" data-at="${p.c},${p.r}" transform="${sawTurn(p, -SLANT)}">${seesawArt()}</g>`).join('');
+  // the teacup lift's cups (D-157, D-161): the inside behind the hamsters, the bowl in front of them
+  let back = '';
+  let front = '';
+  S.level.parts.forEach((p, pi) => {
+    if (p.kind !== 'lift') return;
+    for (let k = 0; k < (p.cups || 1); k++) {
+      const { x, y } = cupXY(p, k, 0);
+      const tr = `translate(${x.toFixed(1)} ${y.toFixed(1)})`;
+      back += `<g data-cup="${pi},${k}" transform="${tr}">${teacupBack()}</g>`;
+      front += `<g data-cupf="${pi},${k}" transform="${tr}"><g class="poke cup" data-poke="cup">${rect(-30, -24, 60, 42, 'rgba(0,0,0,0)', 0, 0, 'none')}${teacupFront()}</g></g>`;
+    }
+  });
+  layer('parts').innerHTML += back;
+  layer('cupfront').innerHTML = front;
+  for (const el of layer('bg').querySelectorAll('.loop')) el.removeAttribute('stroke-dashoffset');
+}
+// Where cup k of a lift is at tick t: its row from core.js; a little right going up, left coming down, and in the
+// middle when stopped, swinging over as it leaves or reaches an end (look B, D-161).
+function cupXY(p, k, t) {
+  const row = cupRow(p, t, k);
+  const dir = cupRow(p, t + 0.05, k) - row;
+  const f = Math.min(1, Math.min(row - p.top, p.bottom - row) * 1.5);
+  return { x: (p.c + 0.5) * CELL + (dir < 0 ? LOOP : dir > 0 ? -LOOP : 0) * f, y: row * CELL };
+}
+function moveCups(R) {
+  const t = R.t / TICK;
+  for (const el of [...layer('parts').querySelectorAll('[data-cup]'), ...layer('cupfront').querySelectorAll('[data-cupf]')]) {
+    const [pi, k] = (el.dataset.cup || el.dataset.cupf).split(',').map(Number);
+    const { x, y } = cupXY(S.level.parts[pi], k, t);
+    el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  }
+  // the string's stripes run with cup 0 (as far as it has travelled, in board units)
+  for (const el of layer('bg').querySelectorAll('.loop')) {
+    const p = S.level.parts.find((q) => q.kind === 'lift');
+    if (!p) break;
+    const run = (p.bottom - p.top) * LIFT_MOVE;
+    const all = 2 * (LIFT_STOP + run);
+    const u = t % all;
+    const moved = Math.floor(t / all) * 2 * run + Math.max(0, Math.min(run, u - LIFT_STOP)) + Math.max(0, Math.min(run, u - 2 * LIFT_STOP - run));
+    el.setAttribute('stroke-dashoffset', (-moved * CELL / LIFT_MOVE).toFixed(1));
+  }
 }
 function sawTurn(p, deg) {
   return `translate(${((p.c + 1.5) * CELL).toFixed(1)} ${((p.r + 1) * CELL).toFixed(1)}) rotate(${deg.toFixed(1)})`;
@@ -499,7 +547,8 @@ function segmentsOf(st) {
       const p1 = feet(b.c, b.r);
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
       const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
-      add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'climb' ? 'climb' : null });
+      add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed,
+        sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
       add({ kind: 'bounce', p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
@@ -516,7 +565,8 @@ function segmentsOf(st) {
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
     } else {
-      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' ? 'wheee' : null });   // tube, ride, tilt
+      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+        lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup });
     }
   }
   return segs;
@@ -599,6 +649,7 @@ function tick(now) {
   R.drawn = [];
   for (const w of R.walkers) if (!w.done) moveWalker(R, w);
   turnSaws(R);
+  moveCups(R);
   follow(R, dt);
   if (R.walkers.every((w) => w.done) && !R.finishing) {
     R.finishing = true;
@@ -691,6 +742,9 @@ function moveWalker(R, w) {
       x = s.p0.x + 4 * Math.sin(f * Math.PI * 3);
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       pose = 'float';
+    } else if (s.kind === 'ride' && s.lift) {
+      ({ x, y } = cupXY(s.lift, s.cup || 0, local / TICK));   // inside its cup, wherever the cup is
+      pose = 'home';
     } else {
       x = s.p0.x + (s.p1.x - s.p0.x) * f;
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
@@ -867,6 +921,7 @@ const POKES = {
   future: ['wobble', 'soon'], wheel: ['spin', 'squeak'], cushion: ['squish', 'poof'], mallow: ['squish', 'boing'], tube: ['wobble', 'squeak'],
   hero: ['hop', 'squeak'], clock: ['wobble', 'chirp'], lamp: ['wobble', 'clink'], moon: ['hop', 'whoosh'], mobile: ['wobble', 'clink'],
   mirror: ['wink', 'clink'], towel: ['wobble', 'whoosh'], skylight: ['wink', 'chirp'], spider: ['hop', 'squeak'], scarecrow: ['wobble', 'squeak'],
+  cup: ['wobble', 'clink'], pot: ['wobble', 'tap'], trowel: ['wobble', 'clink'], can: ['wobble', 'splash'], swing: ['wobble', 'wheee'],
 };
 function poke(el) {
   const [cls, snd] = POKES[el.dataset.poke] || ['wobble', 'tap'];

@@ -1,4 +1,13 @@
-// Hamster Highway's levels. Version 1.3. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.4. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.4 (step 4, D-157, D-158, D-160): level 9, Teacup ride, at the shed, 20 squares wide: a bridge over
+// water and a ramp up a step, then the teacup lift with two cups (a part: `new` names it) up to the potting bench, and
+// a big drop off its end that needs a floater; its seed hangs just past the bench, reached by the spare bridge at
+// 15,2 (the bench made one longer), as solve_hamster_highway.py 1.3 found. Level 10, Treehouse party, the finale,
+// 24 wide, with every gadget but the worn stick (D-154) and both parts: a bridge over water, a bouncer over a wall,
+// a floater off it, three tubes up a ledge, a ramp onto the see-saw's raised end (over water, as level 8), then the
+// lift up to the treehouse; its seed sits above the treehouse floor, reached by the spare ramp at 19,1 or 20,1. It
+// brings in nothing new (`new` null). Too big to try every placement: the solver checks it near its answer.
 //
 // Changes at v1.3 (step 4, D-156, D-158): level 8, Two to tip, at the veg patch: the first wide level, 18 squares,
 // and the see-saw (a part, not a gadget: `new` names it for the house and the tests). A bridge over a gap and a ramp
