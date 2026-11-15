@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.28 · 2026-11-15 |
+| **Version** | 1.29 · 2026-11-15 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.29:** a new game's first sketches (15 Nov, working name Bridge & Ramp Builder, working id `bridge-builder`): `sketch_bridge_builder.py` draws three themes, the sample level's fit on each device and five first levels for Rob to choose from; there are no game files yet. The change log gets its missing 1.28 row.
 
 **Changes at v1.28:** Rocket Lander is live and `ready` on the launcher (P-020 published ef5c2e8, 14 Nov). Trial feedback item 1 (D-123 to D-127): fewer, bigger counting pictures (`map.js` 2.3, `faces.js` 1.3, `asks.js` 1.3, `game.css` 2.5), and the rocket's fall measured after its question is drawn (`round.js` 2.10). New: `test_rocket_lander_counting.py` (the cuts and each picture's smallest dot, by size), `measure_rocket_faces.py` and `sketch_rocket_counting.py`; `close.py` 1.12 can run the browser tests two at a time (`--jobs 2`).
 
@@ -107,6 +109,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `count_rocket_ship_prices.py` | A count, not a check: the ship prices in `fleet.js` against a school year's moon rocks, at a few scalings (D-109) |
 | `measure_rocket_faces.py` | A measurement, not a check: each counting picture's smallest dot (or sweet, block, counter) and how many it shows, at the launcher's three sizes, with a sheet of the worst (trial feedback item 1, 14 Nov) |
 | `sketch_rocket_counting.py` | Not a check: mock-ups of How many dots? and Groups of on the real game, for Rob to pick from (D-125) |
+| `sketch_bridge_builder.py` | Not a check: SVG sketches for a new game, working name Bridge & Ramp Builder (15 Nov): three themes on one sample level with the tray, GO button and the hero's poses, the level's fit on each device, and five first levels. Its walker model of the proposed rules checks each level is solved with its gadgets and not without its new one; then it checks the page at phone and PC sizes, light and dark. Original art (D-010); no game files change |
 | `measure_rocket_state_size.py` | A measurement, not a check: the largest progress Rocket Lander can save, as JSON, against contract 0.4's 20,000-character cap on `fg:state` (3,383 characters, 16.9%, on 12 Nov) |
 | `stand_in.py`, with `fixture_map_stand_in.js` | Not a check: the stand-in map (`map.js` 2.0, byte for byte, its sha256 checked before use) served in place of `map.js` to the older browser tests written for the stand-in levels (`test_rocket_lander_e2e.py`, `_levels.py`, `_sums_e2e.py`, `_map_e2e.py`, `test_rocket_hangar_e2e.py`), so their checks stay as they were (step 2c-3b) |
 | `plan_rocket_levels.py`, with `syllabus-notes.json` | The level plan (step 2c-2, decided: D-089 to D-092): its table of tracks, systems and levels, checked against Rob's syllabus notes (every level placed once, in the notes' order, 7 and a challenge a system), and the counts quoted in the plan. Run with the notes' path; `test_rocket_lander_core.py` runs it on `syllabus-notes.json`, Rob's notes without the children's ages (Q-033, D-095) |
@@ -153,6 +156,8 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.29 | 2026-11-15 | `sketch_bridge_builder.py`: a new game's first sketches; the missing 1.28 row |
+| 1.28 | 2026-11-15 | Rocket Lander live and `ready`; trial feedback item 1 (D-123 to D-127): fewer, bigger counting pictures; `test_rocket_lander_counting.py`, `measure_rocket_faces.py`, `sketch_rocket_counting.py`; `close.py` 1.12 with `--jobs 2` |
 | 1.27 | 2026-11-13 | Stage 3: Rocket Lander linked to the wrapper (`link.js`, `trackpick.js`, `round.js` 2.9), its release check, `game.json`, `icon.svg`, README; main merged in (D-120); doc check, pins and close after it (D-122, ER-010); new scripts |
 | 1.26 | 2026-11-12 | P-020 hosts every game (D-112, D-113): folder map, branches, section for other projects; contract 0.4 (D-114); `repo_check.py` 1.2, `pins.json` 1.1, `measure_rocket_state_size.py` |
 | 1.25 | 2026-11-11 | Ship prices halved (`fleet.js` 1.3, D-109), `count_rocket_ship_prices.py`; the checkpoint's full pass recorded (849c0b5) |
