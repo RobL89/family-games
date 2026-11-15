@@ -1,4 +1,10 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.3 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.4 (15 Nov).
+
+Changes at v1.4 (step 3's spike, D-144): the timed model, run() and cupRow(): on boards with nothing that moves,
+five hamsters go walk()'s way 6 ticks apart and only the first takes the seed; a teacup lift on a test board
+(stops 6 ticks, moves a row in 3) carries them one at a time at times worked out by hand, and never takes
+on a hamster too late to step in before it moves; the same build
+always gives the same result; nothing fits in a lift's shaft; parseLevel refuses a bad part.
 
 Changes at v1.3 (D-151, plan A of the house routes): the whole planned route (levels 1 to 5's places, then
 house.js's PLAN for levels 6 to 10 and two places kept for later, with its bends over the roof and down the
@@ -338,6 +344,115 @@ else:
     check(h['plan'] == [['bath', 6], ['rafters', 7], ['suitcases', None], ['veg', 8], ['shed', 9], ['pond', None], ['treehouse', 10]],
           f'the plan (D-151, plan A): 6 the bath, 7 the loft\'s rafters, a later place by the suitcases, 8 the veg patch, 9 the shed, a later place at the pond, 10 the treehouse ({h["plan"]})')
     check(h['future'] == h['planAt'], 'the soft places in the house are the plan\'s places, in its order')
+
+# the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
+# What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
+#   - on boards with nothing that moves or wears out, run() gives each of the five hamsters exactly walk()'s route,
+#     the first starting at tick 0 and each next RELEASE (6) ticks later; only the first takes the golden seed;
+#   - each step lasts its act's ticks (walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1);
+#   - a teacup lift (a test board, not a game level) stops 6 ticks at each end and moves a row every 3 ticks
+#     (a loop of 30 ticks): the cup's row at ticks 0, 5, 6, 7.5, 15, 20, 21, 30 is 5, 5, 5, 4.5, 2, 2, 2, 5;
+#     the hamsters queue at its edge and ride it one at a time, stepping on at ticks 30, 60, 90, 120 and 150 and
+#     home at 51, 81, 111, 141 and 171; never two on the cup; without the lift every one is stuck;
+#   - the same build always gives the same result.
+TJS = r"""
+const [coreUrl, levelsUrl, sketchJson] = process.argv.slice(1);
+const core = await import(coreUrl);
+const { LEVELS } = await import(levelsUrl);
+const o = { consts: [core.WALKERS, core.RELEASE, core.TICKS, core.LIFT_STOP, core.LIFT_MOVE] };
+const strip = (steps) => steps.map((s) => [s.c, s.r, s.act, !!s.seed, s.land || 0]);
+const cases = [];
+for (const [name, s] of Object.entries(JSON.parse(sketchJson))) {
+  const lv = core.parseLevel({ id: name, rows: s.rows, tray: {} });
+  const without = Object.fromEntries(Object.entries(s.sol).filter(([, k]) => k !== s.new));
+  cases.push([name + ' solved', lv, s.sol], [name + ' bare', lv, {}], [name + ' without its new gadget', lv, without]);
+}
+const SOL = {
+  L1: [['bridge', 5, 6]], L2: [['bridge', 3, 6], ['ramp', 7, 5], ['ramp', 4, 5]], L3: [['bridge', 2, 6], ['bouncer', 5, 5], ['ramp', 9, 4]],
+  L4: [['bridge', 3, 2], ['floater', 5, 1], ['bridge', 6, 2]], L5: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3], ['tube', 6, 2]],
+};
+for (const d of LEVELS) {
+  const lv = core.parseLevel(d);
+  const placed = {};
+  for (const [k, c, r] of SOL[d.id]) placed[core.key(c, r)] = k;
+  cases.push([d.id + ' with its seed', lv, placed]);
+}
+o.same = cases.map(([name, lv, placed]) => {
+  const run = core.run(lv, placed);
+  const w0 = core.walk(lv, placed, true);
+  const w1 = core.walk(lv, placed, false);
+  const bad = [];
+  if (run.hamsters.length !== 5) bad.push('not five hamsters');
+  run.hamsters.forEach((h, i) => {
+    if (JSON.stringify(strip(h.steps)) !== JSON.stringify(strip((i ? w1 : w0).steps))) bad.push(`hamster ${i + 1}'s route`);
+    if (h.outcome !== w0.outcome) bad.push(`hamster ${i + 1}'s outcome ${h.outcome}`);
+    if (h.seed !== (i === 0 && w0.seed)) bad.push(`hamster ${i + 1}'s seed`);
+    if (h.steps[0].t0 !== i * core.RELEASE) bad.push(`hamster ${i + 1} comes out at ${h.steps[0].t0}`);
+    h.steps.forEach((s, j) => {
+      if (j && s.t0 !== h.steps[j - 1].t1) bad.push(`hamster ${i + 1} step ${j} starts late`);
+      if (s.t1 - s.t0 !== (j ? core.TICKS[s.act] : 0)) bad.push(`hamster ${i + 1} step ${j} (${s.act}) lasts ${s.t1 - s.t0}`);
+    });
+    if (h.end !== h.steps[h.steps.length - 1].t1) bad.push(`hamster ${i + 1} ends at ${h.end}`);
+  });
+  return [name, w0.outcome, bad];
+});
+// the teacup lift test board
+const LIFT = { id: 'lift', tray: {}, parts: [{ kind: 'lift', c: 5, top: 2, bottom: 5 }], rows: [
+  '............',
+  '........G...',
+  '......######',
+  '......######',
+  'S.....######',
+  '#####.######',
+  '############',
+] };
+const lv = core.parseLevel(LIFT);
+o.cup = [0, 5, 6, 7.5, 15, 20, 21, 30].map((t) => core.cupRow(lv.parts[0], t));
+const a = core.run(lv, {});
+const b = core.run(core.parseLevel(LIFT), {});
+o.same2 = JSON.stringify(a) === JSON.stringify(b);
+o.lift = a.hamsters.map((h) => {
+  const on = h.steps.findIndex((s) => s.c === 5);
+  const off = h.steps.findIndex((s, j) => j > on && s.c !== 5);
+  return { outcome: h.outcome, end: h.end, on: on < 0 ? null : h.steps[on].t0, off: off < 0 ? null : h.steps[off].t0,
+           acts: [...new Set(h.steps.map((s) => s.act))] };
+});
+o.ticks = a.ticks;
+// a lone hamster reaching the edge one tick before the cup leaves (a fall of 1, then 2 walks: tick 5) waits for the next stop
+const late = core.parseLevel({ ...LIFT, rows: LIFT.rows.map((row, r) => (r === 3 ? '..S...######' : r === 4 ? '......######' : row)) });
+o.late = core.run(late, {}, 1).hamsters.map((h) => [h.outcome, h.steps.find((s) => s.c === 5).t0]);
+o.bare = core.run(core.parseLevel({ ...LIFT, parts: [] }), {}).hamsters.map((h) => h.outcome);
+o.fitShaft = [core.fits(lv, {}, 'tube', 5, 3), core.fits(lv, {}, 'tube', 5, 0), core.fits(lv, {}, 'ramp', 4, 4)];
+const refuse = (parts) => { try { core.parseLevel({ ...LIFT, parts }); return 'parsed'; } catch (e) { return e.message; } };
+o.refuse = [refuse([{ kind: 'swing', c: 5, top: 2, bottom: 5 }]), refuse([{ kind: 'lift', c: 6, top: 2, bottom: 5 }]),
+            refuse([{ kind: 'lift', c: 5, top: 5, bottom: 2 }]), refuse([{ kind: 'lift', c: 5, top: 0, bottom: 5 }])];
+console.log(JSON.stringify(o));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', TJS, 'file://' + os.path.join(GAME, 'core.js'),
+                    'file://' + os.path.join(GAME, 'levels.js'), json.dumps(sketch_in)], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-2000:], r.stderr[-2000:])
+    check(False, 'node ran the timed model (run, cupRow)')
+else:
+    o = json.loads(r.stdout)
+    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3}, 6, 3],
+          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3; the cup stops 6, moves a row in 3 ({o["consts"]})')
+    bad = [(n, b) for n, _, b in o['same'] if b]
+    check(not bad and len(o['same']) == 23, f'timed model: on the 18 sketch boards and levels 1 to 5 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
+    check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
+    L = o['lift']
+    check([h['outcome'] for h in L] == ['home'] * 5, f'teacup lift: all five get home ({[h["outcome"] for h in L]})')
+    check([h['on'] for h in L] == [30, 60, 90, 120, 150] and [h['end'] for h in L] == [51, 81, 111, 141, 171],
+          f'teacup lift: they ride one at a time, on at 30, 60, 90, 120, 150, home at 51, 81, 111, 141, 171, by hand ({[(h["on"], h["end"]) for h in L]})')
+    spans = sorted((h['on'], h['off']) for h in L)
+    check(all(x[1] is not None and x[1] <= y[0] for x, y in zip(spans, spans[1:])), f'teacup lift: never two hamsters on the cup ({spans})')
+    check(all('wait' in h['acts'] and 'ride' in h['acts'] for h in L), 'teacup lift: each hamster waits at the edge, then rides')
+    check(o['late'] == [['home', 30]], f'teacup lift: a hamster at the edge one tick before the cup leaves waits for the next stop (tick 30), never steps onto a cup about to move ({o["late"]})')
+    check(o['ticks'] == 171, f'teacup lift: the run lasts 171 ticks ({o["ticks"]})')
+    check(o['same2'], 'timed model: the same build always gives the same result')
+    check(o['bare'] == ['stuck'] * 5, f'teacup lift: without it, every hamster drops into the shaft and is stuck ({o["bare"]})')
+    check(o['fitShaft'] == [False, True, True], f'teacup lift: nothing fits in its shaft; above it and beside it they do ({o["fitShaft"]})')
+    check(all('part' in x for x in o['refuse']), f'parseLevel refuses an unknown part, a shaft through ground, a lift upside down, a lift off the top ({o["refuse"]})')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

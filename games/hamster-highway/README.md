@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.5 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 5, the house picker, saving and the wrapper link.
+Version 1.6 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 5, the house picker, saving and the wrapper link.
 
+Changes at v1.6 (step 3's spike, D-144): `core.js` 1.1 moves all five hamsters together, tick by tick (`run()`), so a moving part can matter; a teacup lift is ready in the rules, not yet in a level.
 Changes at v1.5 (D-151): every stop planned (house.js's PLAN): bath, loft, roof and drainpipe, garden; a simple loft and drainpipe drawn.
 Changes at v1.4 (D-150): the bedroom is upstairs right, so the house's path never doubles back.
 Changes at v1.3 (step 2, D-145, D-149): levels 4 (the floater, in the living room) and 5 (the tube, in the
@@ -43,7 +44,7 @@ all made in code (D-010).
 
 | File | What |
 |---|---|
-| `core.js` | The rules: the board, where gadgets fit, and each hamster's trip. Pure |
+| `core.js` | The rules: the board, where gadgets fit, each hamster's trip, and all five together, tick by tick, with any teacup lift (`run()`). Pure |
 | `levels.js` | The levels, as text boards with their trays. Data only |
 | `art.js` | The drawings, as SVG text. Pure |
 | `house.js` | The house-and-garden picker and the title card, as SVG text. Pure |
@@ -68,6 +69,7 @@ and the page at PC and phone sizes).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.6 | 2026-11-15 | The timed model (D-144) |
 | 1.5 | 2026-11-15 | Every stop planned; the loft and drainpipe (D-151) |
 | 1.4 | 2026-11-15 | The house's path one way (D-150) |
 | 1.3 | 2026-11-15 | Levels 4 and 5, their backdrops (D-145, D-149); joined tubes |

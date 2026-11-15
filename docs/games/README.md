@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.35 · 2026-11-15 |
+| **Version** | 1.36 · 2026-11-15 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.36:** Hamster Highway step 3's spike (D-144): `core.js` 1.1's timed model (`run()`: five hamsters moving together, tick by tick; a teacup lift on a loop); `test_hamster_highway_core.py` 1.4 checks it on a test board, against times worked out by hand; `mutate_hamster_highway.py` 1.2 plants five more faults.
 
 **Changes at v1.35:** Hamster Highway's stops all planned (D-151, plan A): `house.js` 1.3's `PLAN`, a loft and a drainpipe; `test_hamster_highway_core.py` 1.3 checks the whole route never crosses itself, `test_hamster_highway_e2e.py` 1.2 the seven soft places; `sketch_hamster_house_routes.py` 0.1 drew the two plans.
 
@@ -121,9 +123,9 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `count_rocket_ship_prices.py` | A count, not a check: the ship prices in `fleet.js` against a school year's moon rocks, at a few scalings (D-109) |
 | `measure_rocket_faces.py` | A measurement, not a check: each counting picture's smallest dot (or sweet, block, counter) and how many it shows, at the launcher's three sizes, with a sheet of the worst (trial feedback item 1, 14 Nov) |
 | `sketch_rocket_counting.py` | Not a check: mock-ups of How many dots? and Groups of on the real game, for Rob to pick from (D-125) |
-| `test_hamster_highway_core.py` | Hamster Highway's rules (`core.js`), levels 1 to 5 (`levels.js`) and saved progress (`progress.js`), against the sketch model's outcomes; where gadgets fit (D-139); the golden seeds and the spares they need (D-138); the pure files and the imports. Fast (Node) |
+| `test_hamster_highway_core.py` | Hamster Highway's rules (`core.js`, with the timed model: five hamsters together and a teacup lift on a test board), levels 1 to 5 (`levels.js`) and saved progress (`progress.js`), against the sketch model's outcomes; where gadgets fit (D-139); the golden seeds and the spares they need (D-138); the pure files and the imports. Fast (Node) |
 | `test_hamster_highway_e2e.py` | Hamster Highway in Chromium (the stand-in for the PC and phone): the house, placing by click, drag and touch, levels 1 to 5 with runs that end home, stuck, in a splash and in a funny fall, the parties and seeds; saving on its own and after a reload; a stand-in wrapper (progress in with `fg:start`, out with `fg:state`, sound off); the page at PC and phone sizes. About two minutes |
-| `mutate_hamster_highway.py` | A bench, not in the run: plants 21 faults in Hamster Highway's rules, progress, levels and screens and counts what the two tests catch (12 of 12 on 15 Nov at 1.0; 1.1: see the step 2 commit) |
+| `mutate_hamster_highway.py` | A bench, not in the run: plants 26 faults in Hamster Highway's rules, progress, levels and screens and counts what the two tests catch (12 of 12 on 15 Nov at 1.0; 1.1: see the step 2 commit; 1.2: see the step 3 commits) |
 | `solve_hamster_highway.py` | Not a check: a design tool. Tries every way to put each level's tray down and counts the solutions, those without the new gadget (0), those with the seed, and those with one fewer of the spare (0 with the seed) |
 | `sketch_bridge_builder.py` | Not a check: SVG sketches for a new game, working name Bridge & Ramp Builder (15 Nov): three themes on one sample level with the tray, GO button and the hero's poses, the level's fit on each device, and five first levels. Its walker model of the proposed rules checks each level is solved with its gadgets and not without its new one; then it checks the page at phone and PC sizes, light and dark. Original art (D-010); no game files change. Version 0.2 adds sketches 2 (`--sketches 2`, the default; `--sketches 1` still builds the first page): three ways to place gadgets on level 2 and six ideas, in Hamster Highway's style (D-133) |
 | `sketch_hamster_house_routes.py` | Not a check: two plans for every Hamster Highway stop, drawn on `house.js`'s art (A up and over the roof, B under the house in a burrow); checks neither path crosses itself and the page at phone and PC widths, light and dark. Rob picked A (D-151) |
@@ -173,6 +175,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.36 | 2026-11-15 | Hamster Highway's timed model and teacup lift (D-144) |
 | 1.35 | 2026-11-15 | Hamster Highway's stops planned (D-151); the route sketch |
 | 1.34 | 2026-11-15 | Hamster Highway's house path one way (D-150) |
 | 1.33 | 2026-11-15 | Hamster Highway step 2: levels 4 and 5, saving and the wrapper link, the level solver; `close.py` 1.15 |

@@ -1,11 +1,13 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.1 (15 Nov, step 2). Built like mutate_rocket_map.py 1.0.
+tests catch (project rules: test the tests). Version 1.2 (15 Nov, step 3).
+Changes at v1.2 (step 3's spike): the seed-on-foot fault follows core.js 1.1's new text; five faults in the timed model (core.js 1.1): the cup shared, stepped onto too
+late, left before it moves, all five out at once, and the seed taken by every hamster. Built like mutate_rocket_map.py 1.0.
 Changes at v1.1 (step 2): nine more faults, in the saved progress (progress.js), level 4's tray, and saving and
 the wrapper link (game.js). Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
-error, not a catch. Sixteen faults caught or not by the core test (seconds each), in the rules (core.js), the
+error, not a catch. Twenty-one faults caught or not by the core test (seconds each), in the rules (core.js), the
 progress (progress.js) and the levels; five in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
@@ -25,9 +27,14 @@ FAULTS = [
     ('a ramp fits in mid-air', G + 'core.js', '  return FLOOR.has(below);\n}', '  return below !== null;\n}', CORE),
     ('a wall does not stop them', G + 'core.js', "if (next === null || next === '#') return done('stuck');", "if (next === null) return done('stuck');", CORE),
     ('a ramp does not lift', G + 'core.js', '      c += 1;\n      r -= 1;\n', '      c += 1;\n', CORE),
-    ('the seed is missed on foot', G + 'core.js', "      steps.push({ c, r, act: 'walk' });\n    }\n    touch(c, r);", "      steps.push({ c, r, act: 'walk' });\n    }", CORE),
+    ('the seed is missed on foot', G + 'core.js', "    yield touch(st, c, r);\n  }\n  return done('stuck');", "    yield st;\n  }\n  return done('stuck');", CORE),
     ('an empty tray entry is allowed', G + 'core.js', 'n < 1) throw', 'n < 0) throw', CORE),
     ('a placed gadget stays in the tray', G + 'core.js', 'n[kind] = (n[kind] || 0) - 1;', 'n[kind] = (n[kind] || 0) - 0;', CORE),
+    ('two hamsters share the cup', G + 'core.js', 'return !riders.has(s.part) && !!cs', 'return !!cs', CORE),
+    ('a hamster steps onto a cup about to move', G + 'core.js', 'cs.leaves - t >= TICKS.walk', 'cs.leaves - t >= 0', CORE),
+    ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now() };\n", '', CORE),
+    ('all five come out at once', G + 'core.js', 'next: i * RELEASE,', 'next: 0,', CORE),
+    ('the seed is taken by every hamster', G + 'core.js', '        seed = false;\n        return true;', '        return true;', CORE),
     ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
     ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),
