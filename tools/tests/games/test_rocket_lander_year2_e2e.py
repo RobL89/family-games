@@ -1,4 +1,6 @@
-"""Rocket Lander's Year 2 levels on the higher track, in a browser (step 2c-3b). Version 1.1.
+"""Rocket Lander's Year 2 levels on the higher track, in a browser (step 2c-3b). Version 1.2.
+Changes at v1.2 (D-129): Moon 1 is sums, + and − within 20 with no timer, in place of Tens and ones;
+Fractions of numbers shows the numbers only.
 Changes at v1.1 (D-127): a question's box may be a quarter of the screen high, not a fifth, as the bigger
 counting pictures need (D-124); the rest is unchanged.
 
@@ -58,7 +60,6 @@ BASE = PLAIN + '?track=year2'
 # A made-up question for each level, set with the test hook so the picture and the words are known:
 # (hook, question, chip class wanted, words the bubble must hold after a miss, the line wanted or None)
 ASKS = {
-    'moon-1': ({'ask': 'place', 'n': 34, 'value': 34}, 'face-place', '3 tens and 4 ones make 34'),
     'moon-2': ({'ask': 'words', 'n': 47, 'value': 47}, 'face-words', 'forty-seven is 47'),
     'moon-3': ({'ask': 'sign', 'rel': 'more', 'n': 47}, 'face-sign', '47 < '),
     'moon-4': ({'ask': 'seq', 'step': 3, 'dir': 'forward', 'terms': [9, 12, 15], 'value': 18}, 'face-seq', '9, 12, 15, 18'),
@@ -68,6 +69,7 @@ ASKS = {
     'candy-7': ({'ask': 'frac-of', 'num': 3, 'den': 4, 'total': 12, 'value': 9}, 'face-fracof', 'of 12 is 9'),
 }
 SUMS = {
+    'moon-1': ({'a': 8, 'op': '+', 'b': 5}, '8 + 5 = 13', None),
     'moon-6': ({'a': 13, 'op': '+', 'b': 5}, '13 + 5 = 18', None),
     'moon-7': ({'a': 30, 'op': '+', 'b': 70, 'result': 100, 'missing': 'b'}, '30 + 70 = 100', (0, 100, 10)),
     'dust-1': ({'a': 34, 'op': '+', 'b': 5}, '34 + 5 = 39', None),

@@ -1,4 +1,10 @@
-"""Rocket Lander's pure core and its boundaries. Version 1.11.
+"""Rocket Lander's pure core and its boundaries. Version 1.12.
+
+Changes at v1.12 (trial feedback item 2, D-129): no counting pictures on the Year 2 track. Its first
+level (the Y2-01 slot, Moon 1) is sums, + and − within 20 with no timer, in place of Tens and ones; a
+number's hundreds, tens and ones are shown as a sum, 300 + 40 + 7 (Year 3's chart of counters gone);
+Fractions of numbers (Y2-20) and of amounts (Y3-16) say `pictures: false`, numbers only. The engine's
+2-digit place ask is still checked, on a row of its own.
 
 Changes at v1.11 (trial feedback item 1, D-123, D-125): the checks D-123's cuts change, each now saying
 the cut and still reading the notes' own number: How many dots? 1 to 6 on 0 to 6 (notes 10), More or
@@ -407,6 +413,8 @@ out.realTracks = { f3: TK.unpack(TRR, F3, null, 'reception'), standIn4: TK.unpac
 // Year 2's rows (map.js 2.1)
 const Y2 = MP.TRACKS.year2.systems;
 const yRow = (s, n) => Y2[s].levels[n - 1].row;
+// The engine's 2-digit place ask, no longer on any level since D-129 (Moon 1 is sums), kept checked on its old row
+const PLACE2 = { ask: 'place', digits: 2, min: 10, max: 99, span: 10, label_every: 1 };
 const valuesOf = (list) => list.filter((T) => T.value !== undefined).map((T) => T.value);
 const span = (list) => (list.length ? [Math.min(...list), Math.max(...list)] : null);
 // 300 landings (seeded) of a windowed level: each landing's question and the stretch of line it is shown
@@ -428,7 +436,7 @@ out.y2 = {
   fall: [S.fallSecondsFor(3, true, 6), S.fallSecondsFor(1, false, 6), S.fallSecondsFor(3, true, null), S.fallSecondsFor(3, true, 0), S.fallSecondsFor(5, false, undefined)],
   ASKS: AK.ASKS,
   choices: {
-    place: AK.choices(yRow(0, 1)).map((T) => [T.n, T.value, T.rule]),
+    place: AK.choices(PLACE2).map((T) => [T.n, T.value, T.rule]),
     words: AK.choices(yRow(0, 2)).map((T) => [T.n, T.value]),
     sign: ['more', 'fewer', 'same'].map((k) => AK.choices(yRow(0, 3), k).map((T) => [T.rule, T.rel, T.n, T.value ?? null])),
     seq3: ['forward', 'backward'].map((k) => AK.choices(yRow(0, 4), k).map((T) => [T.step, T.dir, T.terms, T.value])),
@@ -438,7 +446,7 @@ out.y2 = {
     fracOf: AK.choices(yRow(2, 7)).map((T) => [T.num, T.den, T.total, T.value]),
   },
   seqAllOk: [yRow(0, 4), yRow(0, 5)].every((r) => AK.choices(r).every(seqOk)),
-  windows: { place: winSum(yRow(0, 1), 21), words: winSum(yRow(0, 2), 22), sign: winSum(yRow(0, 3), 23), seq3: winSum(yRow(0, 4), 24),
+  windows: { place: winSum(PLACE2, 21), words: winSum(yRow(0, 2), 22), sign: winSum(yRow(0, 3), 23), seq3: winSum(yRow(0, 4), 24),
     seq10: winSum(yRow(0, 5), 25), parity: winSum(yRow(2, 5), 26), fracOf: winSum(yRow(2, 7), 27) },
   shapeLines: [2, 4, 3].map((den) => { const T = AK.choices(yRow(2, 6)).find((x) => x.den === den); return AK.shapeLine(T); }),
   planSign: AK.planAsks(yRow(0, 3), 8, seeded(5)),
@@ -462,7 +470,7 @@ out.y2 = {
 const has = (html, cls) => (html.match(new RegExp(`class="${cls}"`, 'g')) || []).length;
 const txt = (html) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 out.y2faces = {
-  place: [34, 70, 19, 99].map((k) => { const c2 = FC.faceChip({ ask: 'place', n: k, value: k }); return [has(c2.html, 'pv-ten'), has(c2.html, 'pv-one'), c2.cls]; }),
+  place: [34, 70, 19, 99].map((k) => { const c2 = FC.faceChip({ ask: 'place', n: k, value: k }); return [has(c2.html, 'pv-ten'), has(c2.html, 'pv-one'), c2.cls, txt(c2.html)]; }),
   words: [47, 100, 13, 60, 1].map((k) => { const c2 = FC.faceChip({ ask: 'words', n: k, value: k }); return [txt(c2.html), c2.cls]; }),
   sign: [['more', '&lt;'], ['fewer', '&gt;'], ['same', '=']].map(([rel, sym]) => { const h = FC.faceChip({ ask: 'sign', rel, n: 47 }).html; return [h.includes(sym), txt(h)]; }),
   seq: [{ step: 2, dir: 'forward', terms: [6, 8, 10] }, { step: 10, dir: 'backward', terms: [83, 73, 63] }].map((T) => txt(FC.faceChip({ ask: 'seq', ...T }).html)),
@@ -893,7 +901,8 @@ y2 = {pl: r for x in hi['systems'][:3] for pl, r in zip(x['plan'], x['rows'])}
 Y2S = json.load(open(NOTES, encoding='utf-8'))['stages']['year2']
 yr = lambda i: y2[i]  # noqa: E731
 want_y2 = [
-    ('Y2-01', yr('Y2-01')['ask'] == 'place' and yr('Y2-01')['digits'] == P('Y2-01')['digits'] and [yr('Y2-01')['min'], yr('Y2-01')['max']] == [10, 99]),
+    ('Y2-01', yr('Y2-01').get('ops') == ['+', '−'] and yr('Y2-01').get('forms') == ['facts'] and yr('Y2-01').get('max') == 20 and 'fall_s' not in yr('Y2-01')
+     and 'ask' not in yr('Y2-01')),  # Tens and ones replaced by sums to 20, no timer (D-129)
     ('X-words100', yr('X-words100')['ask'] == 'words' and [yr('X-words100')['min'], yr('X-words100')['max']] == Y2S['number_words']),
     ('Y2-02', yr('Y2-02')['ask'] == 'sign' and [yr('Y2-02')['min'], yr('Y2-02')['max']] == [P('Y2-02')['min'], P('Y2-02')['max']]
      and P('Y2-02')['symbols'] == ['<', '>', '='] and all(yr('Y2-02')['rels'][k] > 0 for k in ('more', 'fewer', 'same'))),
@@ -917,7 +926,7 @@ want_y2 = [
     ('Y2-17', yr('Y2-17')['forms'] == ['divide'] and yr('Y2-17')['tables'] == P('Y2-17')['tables'] and yr('Y2-17')['times_max'] == P('Y2-17')['max_multiplier']),
     ('Y2-18', yr('Y2-18')['ask'] == 'parity' and [yr('Y2-18')['min'], yr('Y2-18')['max']] == [P('Y2-18')['min'], P('Y2-18')['max']]),
     ('Y2-19', yr('Y2-19')['ask'] == 'frac-shape' and yr('Y2-19')['fractions'] == P('Y2-19')['fractions']),
-    ('Y2-20', yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == 12 and P('Y2-20')['total_max'] == 24),  # cut to 12 (D-123)
+    ('Y2-20', yr('Y2-20').get('pictures') is False and yr('Y2-20')['ask'] == 'frac-of' and yr('Y2-20')['fractions'] == P('Y2-20')['fractions'] and yr('Y2-20')['total_max'] == 12 and P('Y2-20')['total_max'] == 24),  # cut to 12 (D-123)
 ]
 check(all(ok for _, ok in want_y2), f"Year 2's rows' numbers are the notes' params (tables to × 12, D-099; the timed level's 6 s): {[i for i, ok in want_y2 if not ok]}")
 # Year 1 (lower track) and Year 3 (higher track), Ice, Jungle and Ringed: their rows' numbers are the notes' params (step 2c-3c)
@@ -978,7 +987,7 @@ want_y13 = [
      and q('Y3-14')['fall_s'] == P('Y3-14')['timed_seconds']),
     ('Y3-15', sums_row('Y3-15', ['TO*O'], ['×']) and P('Y3-15')['form'] == 'TO*O' and q('Y3-15')['a'] == P('Y3-15')['a'] and q('Y3-15')['b'] == P('Y3-15')['b']),
     ('X-TOdivO', sums_row('X-TOdivO', ['TO/O'], ['÷']) and q('X-TOdivO')['divisors'] == [d for d in Y3S['division']['times_tables'] if d < 10] and Y3S['division']['exact_only']),
-    ('Y3-16', q('Y3-16')['ask'] == 'frac-of' and q('Y3-16')['fractions'] == [f'{n}/{d}' for d in P('Y3-16')['denominators'] for n in range(1, d) if gcd(n, d) == 1]
+    ('Y3-16', q('Y3-16').get('pictures') is False and q('Y3-16')['ask'] == 'frac-of' and q('Y3-16')['fractions'] == [f'{n}/{d}' for d in P('Y3-16')['denominators'] for n in range(1, d) if gcd(n, d) == 1]
      and q('Y3-16')['total_max'] == P('Y3-16')['total_max'] and P('Y3-16')['non_unit'] and q('Y3-16')['pick'] == 'den'),
     ('Y3-17', q('Y3-17')['ask'] == 'seq' and q('Y3-17')['den'] == 10 and P('Y3-17')['fraction_step'] == '1/10' and q('Y3-17')['max'] == P('Y3-17')['max'] * 10
      and q('Y3-17')['steps'] == [1] and q('Y3-17')['dirs'] == ['forward', 'backward']),
@@ -1165,8 +1174,8 @@ check(yv['right'] == [[True, False, False, True, False], [True, False, False, Tr
       f"right or wrong: 47 < ?: 48 and 57 yes, 47, 46 and 47.5 no; 47 > ?: 46 and 37; 47 = ?: 47; even: 48, 0, 100; odd: 47, 1, 99: {yv['right']}")
 check(yv['goal'] == [45, 43, 46, 47], f"after a miss, on 40 to 50: more than 44 from 41.2: 45; fewer than 44 from 49: 43; even from 46.6: 46; odd from 46.2: 47: {yv['goal']}")
 yf = o['y2faces']
-check(yf['place'] == [[3, 4, 'face face-place'], [7, 0, 'face face-place'], [1, 9, 'face face-place'], [9, 9, 'face face-place']],
-      f"tens and ones: 34 as 3 tens rods and 4 ones, 70, 19 and 99: {yf['place']}")
+check(yf['place'] == [[0, 0, 'face face-place', '30 + 4'], [0, 0, 'face face-place', '70 + 0'], [0, 0, 'face face-place', '10 + 9'], [0, 0, 'face face-place', '90 + 9']],
+      f"tens and ones as a sum, nothing to count (D-129): 34, 70, 19 and 99: {yf['place']}")
 check(yf['words'] == [['forty-seven', 'face face-words'], ['one hundred', 'face face-words'], ['thirteen', 'face face-words'], ['sixty', 'face face-words'], ['one', 'face face-words']],
       f"number words: {yf['words']}")
 check(yf['sign'] == [[True, '47 &lt; ?'], [True, '47 &gt; ?'], [True, '47 = ?']], f"<, > and = with 47: {yf['sign']}")
@@ -1439,8 +1448,8 @@ check(yf3['groups'] == [['face face-groups', 0, 0, '3 groups of 2 2 2 2'], ['fac
       f"groups of: the words, then a box per group with its size, no dots (D-123, D-125; the notes' show_array left out): {yf3['groups']}")
 check(yf3['half'] == [['face face-half', 14, 2, 'half of 14'], ['face face-half', 2, 2, 'half of 2']], f"half of: the dots in two groups: {yf3['half']}")
 check(yf3['double10'] == 20, f"double 10: 10 dots twice: {yf3['double10']}")
-check(yf3['place'] == [['face face-place', 3, 4, 7, 'H T O'], ['face face-place', 9, 0, 5, 'H T O'], ['face face-place', 1, 0, 0, 'H T O']] and yf3['place34'] == [3, 4, 0],
-      f"hundreds, tens and ones: counters in a place-value chart (H, T, O); 2-digit numbers keep their rods and ones: {yf3['place']}, {yf3['place34']}")
+check(yf3['place'] == [['face face-place', 0, 0, 0, '300 + 40 + 7'], ['face face-place', 0, 0, 0, '900 + 0 + 5'], ['face face-place', 0, 0, 0, '100 + 0 + 0']] and yf3['place34'] == [0, 0, 0],
+      f"hundreds, tens and ones as a sum, no counters to count (D-129): {yf3['place']}, {yf3['place34']}")
 check(yf3['moreLess'] == ['100 more than 347', '10 less than 347', '1 more than 6'], f"10 or 100 more or less, and one more as before: {yf3['moreLess']}")
 check(yf3['tenths'] == [[3, '7 10 8 10 9 10 ?'], [3, '1 3 10 1 2 10 1 1 10 ?']], f"counting in tenths: three tenths written one over the other, then the box: {yf3['tenths']}")
 check(yf3['compare'] == [2, 'Which is bigger? 1 3 or 1 5'], f"which is bigger: the two fractions: {yf3['compare']}")

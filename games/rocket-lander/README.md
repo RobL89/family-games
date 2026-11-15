@@ -1,6 +1,8 @@
 # Rocket Lander
 
-**Version 1.1** · 2026-11-15 · from P-034 (Kids Games Development), released to P-020 (Family Games Launcher) by board note.
+**Version 1.2** · 2026-11-15 · from P-034 (Kids Games Development), released to P-020 (Family Games Launcher) by board note.
+
+**What's new in 1.2** (trial feedback item 2: the first level of the Year 2 track was too hard): nothing to count on the Year 2 track. Its first level is now adding and taking away to 20, with no timer; hundreds, tens and ones is a sum to work out (300 + 40 + 7); Fractions of numbers and of amounts show the numbers only.
 
 **What's new in 1.1** (trial feedback item 1: "the dots are too small and there can be too many"): fewer things to count and bigger pictures. How many dots? asks 1 to 6, in rows of 3, on a line from 0 to 6; More or fewer shows 6 dots at most; the sharing levels, Half of a number and Fractions of numbers go up to 6, 10 or 12; Groups of shows a box for each group with its size in it; Doubles and halves to 20 uses the numbers alone; every counting picture is drawn bigger, and the rocket starts below the question's box however tall it is.
 
@@ -31,3 +33,4 @@ It imports only `shared/bridge.js` from outside its folders (GC4). No word lists
 |---|---|---|
 | 1.0 | 2026-11-13 | First release to the launcher (stage 3, D-120, D-121) |
 | 1.1 | 2026-11-15 | Fewer, bigger counting pictures, and the rocket's start below the question's box (feedback item 1, D-123 to D-127) |
+| 1.2 | 2026-11-15 | Nothing to count on the Year 2 track: first level sums to 20, place value as a sum, fractions as numbers (feedback item 2, D-129) |

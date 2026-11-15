@@ -1,5 +1,6 @@
 """Rocket Lander's Year 1 levels on the lower track and Year 3 levels on the higher, in a browser (step 2c-3c).
-Version 1.2. Changes at v1.2 (D-127): a question's box may be a quarter of the screen high, not a fifth, as
+Version 1.3. Changes at v1.3 (D-129): hundreds, tens and ones is shown as a sum, 300 + 40 + 7, and
+its bubble says so. Changes at v1.2 (D-127): a question's box may be a quarter of the screen high, not a fifth, as
 the bigger counting pictures need (D-124). Changes at v1.1 (D-123): Year 1's Sharing is between 2 or 5, up to 10, so its made-up question
 is 10 between 5 (was 15). The rest is unchanged.
 
@@ -83,7 +84,7 @@ ASKS = {
     },
     'year2': {
         'ice-1': ({'ask': 'find', 'n': 347, 'value': 347}, '', '347 is over here', ('span', 6, 1)),
-        'ice-2': ({'ask': 'place', 'n': 347, 'value': 347}, 'face-place', '3 hundreds, 4 tens and 7 ones make 347', ('span', 6, 1)),
+        'ice-2': ({'ask': 'place', 'n': 347, 'value': 347}, 'face-place', '300 + 40 + 7 = 347', ('span', 6, 1)),
         'ice-3': ({'ask': 'sign', 'rel': 'fewer', 'n': 452}, 'face-sign', '452 > ', ('span', 6, 1)),
         'ice-4': ({'ask': 'more-less', 'dir': 'more', 'by': 100, 'n': 347, 'value': 447}, 'face-more-less', '100 more than 347 is 447', ('span', 6, 1)),
         'ice-5': ({'ask': 'seq', 'step': 100, 'dir': 'forward', 'terms': [100, 200, 300], 'value': 400}, 'face-seq', '100, 200, 300, 400', ('span', 6, 50)),

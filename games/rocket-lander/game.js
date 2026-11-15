@@ -1,5 +1,8 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.6.
+// One game with a map of solar systems (D-058). Version 3.7.
+//
+// Changes at v3.7 (trial feedback item 2, D-129): hundreds, tens and ones is a sum to work out (300 + 40 + 7),
+// so the voice says "Add them up" and a miss shows the sum and its answer.
 //
 // Changes at v3.6 (trial feedback item 1, D-123): a picture level's chip is drawn with the level's row, so a
 // row that says `pictures: false` (Doubles and halves to 20) asks with the numbers alone.
@@ -58,7 +61,7 @@ import { LEVELS as SUMS_LEVELS } from './sums-levels.js';
 import { TRACKS as MAP_TRACKS, FIRST_TRACK } from './map.js';
 import { lineFor, planRound, pickTarget, isRight, goalOf } from './rules.js';
 import { planAsks, askTarget, isRight as askRight, goalOf as askGoal, planChallenge, askLine, askPart } from './asks.js';
-import { faceChip, picturedSum, fracHtml, numberWords, partsHtml, fracSumHtml } from './faces.js';
+import { faceChip, picturedSum, fracHtml, numberWords, partsHtml, fracSumHtml, placeParts } from './faces.js';
 import { OP_WORDS, OPS_OPTIONS, opsFor, makeSum, lineForSum, roundLine, partsOf, planParts, sumText, isRight as sumRight, goalOf as sumGoal } from './sums.js';
 
 // ---------- The map: each system's look and name from planets.js, each level's row by its kind ----------
@@ -229,7 +232,7 @@ const ASK_SAY = {
   double: (T) => `Land on double ${n$(T.n)}!`,
   share: (T) => `Share ${n$(T.total)} sweets between ${n$(T.groups)} plates. How many on each?`,
   // Year 2's: a number the child is to read (blocks, words) isn't said
-  place: (T) => (T.n >= 100 ? 'Count the hundreds, tens and ones. Land on that number!' : 'Count the tens and ones. Land on that number!'),
+  place: () => 'Add them up. Land on the answer!', // the sum isn't said: the child reads it (D-129)
   words: () => 'Read the number. Land on it!',
   sign: (T) => (T.rel === 'same' ? `Land on a number equal to ${n$(T.n)}!` : `Land on a number ${T.rel === 'more' ? 'bigger' : 'smaller'} than ${n$(T.n)}!`),
   seq: (T) => (T.den ? `Count ${T.dir === 'backward' ? 'back ' : ''}in ${tenthsWord(T.den)}: ${T.terms.map((v) => partsSay(v, T.den)).join(', ')}. What comes next?`
@@ -242,13 +245,6 @@ const ASK_SAY = {
   groups: (T) => `${cap(n$(T.groups))} group${T.groups === 1 ? '' : 's'} of ${n$(T.size)}. How many altogether?`,
   half: (T) => `Land on half of ${n$(T.n)}!`,
   'frac-compare': (T) => `Which is bigger, ${fracSay(1, T.first)} or ${fracSay(1, T.second)}? Land on it!`,
-};
-// A number's tens and ones (and hundreds), written and said: "3 tens and 4 ones", "3 hundreds, 4 tens and 7 ones".
-const PLACE = (n) => {
-  const h = Math.floor(n / 100), t = Math.floor(n / 10) % 10, o = n % 10;
-  const p = (k, word, f) => `${f(k)} ${word}${k === 1 ? '' : 's'}`;
-  const mk = (f) => (h ? `${p(h, 'hundred', f)}, ${p(t, 'ten', f)} and ${p(o, 'one', f)}` : `${p(t, 'ten', f)} and ${p(o, 'one', f)}`);
-  return [mk(String), mk(n$)];
 };
 // After a miss: { speech, html }, the right number (or the nearest that fits) as `goal`; a spot on a line
 // counted in parts (tenths) said and written as counted.
@@ -267,7 +263,7 @@ function askMiss(T, spot, goal) {
     case 'bond': return say2(`${n$(T.part)} and ${n$(goal)} make ${n$(T.whole)}!`, `${T.part} and <b>${goal}</b> make ${T.whole}!`);
     case 'double': return say2(`Double ${n$(T.n)} is ${n$(goal)}!`, `Double ${T.n} is <b>${goal}</b>!`);
     case 'share': return say2(`${n$(goal)} on each plate!`, `<b>${goal}</b> on each plate!`);
-    case 'place': { const [w, s] = PLACE(T.n); return say2(`${s} make ${n$(T.n)}!`, `${w} make <b>${T.n}</b>!`); }
+    case 'place': { const ps = placeParts(T.n); return say2(`${ps.map(n$).join(' plus ')} is ${n$(T.n)}!`, `${ps.join(' + ')} = <b>${T.n}</b>!`); }
     case 'words': return say2(`The words say ${n$(T.n)}. Over here!`, `${numberWords(T.n)} is <b>${T.n}</b>!`);
     case 'sign':
       return T.rel === 'same' ? say2(`${n$(T.n)} equals ${n$(T.n)}!`, `<b>${T.n}</b> = ${T.n}!`)

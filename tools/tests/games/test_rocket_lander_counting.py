@@ -1,5 +1,8 @@
 """Rocket Lander's counting pictures, fewer and bigger (trial feedback item 1: D-123, D-124, D-125).
-Version 1.0.
+Version 1.1. Changes at v1.1 (trial feedback item 2, D-129): no counting pictures on the Year 2 track.
+Its first level is sums (not measured here); hundreds, tens and ones are a sum (300 + 40 + 7) and
+Fractions of numbers and of amounts are numbers only, so their rows measure the numbers (at least 20 px,
+16 sideways), and the core part checks they draw no dots.
 
 The step's own test (D-086). Two parts.
 
@@ -58,7 +61,7 @@ const FC = await import(g + '/faces.js');
 const lv = (track, plan) => MP.TRACKS[track].systems.flatMap((s) => s.levels).find((l) => l.plan === plan);
 const rows = {};
 for (const [t, p] of [['reception', 'R03'], ['reception', 'R05'], ['reception', 'R11'], ['reception', 'R16'], ['reception', 'Y1-12'], ['reception', 'Y1-13'],
-  ['reception', 'Y1-15'], ['reception', 'X-doubles20'], ['year2', 'Y2-20']]) rows[p] = lv(t, p).row;
+  ['reception', 'Y1-15'], ['reception', 'X-doubles20'], ['year2', 'Y2-20'], ['year2', 'Y3-16']]) rows[p] = lv(t, p).row;
 const asks = Object.fromEntries(Object.entries(rows).map(([p, r]) => [p, AK.choices(r)]));
 const cxs = (h) => [...h.matchAll(/class="d-on" cx="([\d.]+)" cy="([\d.]+)"/g)].map((m) => [Number(m[1]), Number(m[2])]);
 const count = (h, c) => (h.match(new RegExp(`class="${c}"`, 'g')) || []).length;
@@ -72,6 +75,8 @@ const out = {
     return [c.cls, count(c.html, 'd-on'), count(c.html, 'gb'), [...c.html.matchAll(/class="gb">(\d+)</g)].map((m) => Number(m[1])), txt(c.html)]; }),
   doubles20: [{ ask: 'double', n: 7, value: 14 }, { ask: 'half', n: 18, value: 9 }].map((T) => { const c = FC.faceChip(T, rows['X-doubles20']); return [count(c.html, 'd-on'), txt(c.html)]; }),
   doublesR: count(FC.faceChip({ ask: 'double', n: 3, value: 6 }, rows['R11']).html, 'd-on'),
+  y2plain: [[{ ask: 'frac-of', num: 3, den: 4, total: 12, value: 9 }, 'Y2-20'], [{ ask: 'frac-of', num: 3, den: 5, total: 20, value: 12 }, 'Y3-16'],
+    [{ ask: 'place', n: 347, value: 347 }, null]].map(([T, p]) => { const c = FC.faceChip(T, p ? rows[p] : null); return [count(c.html, 'd-on') + count(c.html, 'pc-h') + count(c.html, 'pc-t') + count(c.html, 'pc-o'), txt(c.html)]; }),
 };
 console.log(JSON.stringify(out));
 """
@@ -115,6 +120,8 @@ for (gr, size), (cls, dots, boxes, nums, words) in zip([[3, 5], [5, 10], [1, 2]]
 check([d for d, _ in core['doubles20']] == [0, 0] and 'double 7' in core['doubles20'][0][1] and 'half of 18' in core['doubles20'][1][1],
       f"Doubles and halves to 20: numbers only: {core['doubles20']}")
 check(core['doublesR'] == 6, f"Reception's Doubles keeps its dots: double 3 draws 6: {core['doublesR']}")
+check(core['y2plain'] == [[0, '3 4 of 12'], [0, '3 5 of 20'], [0, '300 + 40 + 7']],  # a fraction is drawn stacked, 3 over 4, so its text reads '3 4'
+      f"the Year 2 track has nothing to count (D-129): fractions of numbers and amounts are numbers only, hundreds, tens and ones a sum: {core['y2plain']}")
 
 # ---------- 2. In a browser ----------
 BAR = 56
@@ -133,12 +140,11 @@ CASES = [
     ('5 groups of 10', 'reception', 41, 'aimAsk', [{'ask': 'groups', 'groups': 5, 'size': 10, 'value': 50}], 'box', 30),
     ('Share 10 by 5', 'reception', 42, 'aimAsk', [{'ask': 'share', 'total': 10, 'groups': 5, 'value': 2}], 'sweet', 20),
     ('Half of 12', 'reception', 45, 'aimAsk', [{'ask': 'frac-of', 'num': 1, 'den': 2, 'total': 12, 'value': 6}], 'dot', 20),
-    ('Tens and ones 99', 'year2', 1, 'aimAsk', [{'ask': 'place', 'n': 99, 'value': 99}], 'one', 12),
-    ('Quarter of 12', 'year2', 23, 'aimAsk', [{'ask': 'frac-of', 'num': 1, 'den': 4, 'total': 12, 'value': 3}], 'dot', 18),
-    ('999 chart', 'year2', 26, 'aimAsk', [{'ask': 'place', 'n': 999, 'value': 999}], 'counter', 16),
+    ('Quarter of 12', 'year2', 23, 'aimAsk', [{'ask': 'frac-of', 'num': 1, 'den': 4, 'total': 12, 'value': 3}], 'number', 20),
+    ('999 as a sum', 'year2', 26, 'aimAsk', [{'ask': 'place', 'n': 999, 'value': 999}], 'number', 20),
 ]
-SIDE = {'How many dots? 6': 24, 'Tens and ones 99': 8}  # tens and ones sideways: 8, not 12 (D-126: 12 would leave the rocket under 60 px to fall)
-MARK = {'dot': 'circle.d-on', 'sweet': 'circle.sw', 'box': '.gb', 'one': 'rect.pv-one', 'counter': 'circle.pc-h, circle.pc-t, circle.pc-o'}
+SIDE = {'How many dots? 6': 24, 'Quarter of 12': 16, '999 as a sum': 16}  # numbers only on the Year 2 track (D-129): 16 sideways
+MARK = {'number': 'b.fn', 'dot': 'circle.d-on', 'sweet': 'circle.sw', 'box': '.gb', 'one': 'rect.pv-one', 'counter': 'circle.pc-h, circle.pc-t, circle.pc-o'}
 MEASURE = """(sel) => { const c = document.getElementById('target-n'), r = c.getBoundingClientRect(), t = __test.state();
   const ms = [...c.querySelectorAll(sel)].map((m) => { const b = m.getBoundingClientRect(); return Math.min(b.width, b.height); });
   return { n: ms.length, min: ms.length ? Math.round(Math.min(...ms) * 10) / 10 : 0, left: r.left, right: r.right, top: r.top, bottom: r.bottom,

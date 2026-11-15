@@ -1,7 +1,10 @@
 // Reception's target faces (level plan 0.3, section 5; D-092): the pictures and phrases at the top
 // that ask for a number: dots to count, a quick look, more or fewer than some dots, one more or one
 // less, a frame to fill to make 5 or 10, sums with dots under each number (Q-033), doubles and
-// sharing sweets. Version 1.3. Changes at v1.3 (trial feedback item 1: D-123 to D-125): How many dots? and
+// sharing sweets. Version 1.4. Changes at v1.4 (trial feedback item 2, D-129): nothing to count on the
+// Year 2 track: a number's hundreds, tens and ones is shown as a sum, 300 + 40 + 7 (placeSvg and chartSvg
+// are kept but no longer drawn), and a fraction of a number whose row says `pictures: false` shows the
+// numbers alone. Changes at v1.3 (trial feedback item 1: D-123 to D-125): How many dots? and
 // More, fewer or the same draw their 1 to 6 dots in rows of 3 (6 is 3 and 3); Groups of keeps its words and
 // draws a box per group with its size written in it, no dots; a level whose row says `pictures: false`
 // (Doubles and halves to 20) asks double and half with the numbers alone. faceChip takes the level's row
@@ -64,6 +67,10 @@ export const bondSvg = (whole, part) => cells([...many(part), ...many(whole - pa
 // A number with its dots under it; for a take-away, the first number's last `gone` dots crossed out.
 const column = (n, hows) => `<span class="pc"><b class="fn">${esc(n)}</b>${hows.length ? cells(hows) : '<span class="d-none"></span>'}</span>`;
 
+// A number's hundreds, tens and ones as a sum to work out (D-129): 300 + 40 + 7, or 30 + 4.
+export const placeParts = (n) => (n >= 100 ? [Math.floor(n / 100) * 100, Math.floor(n / 10) % 10 * 10, n % 10] : [Math.floor(n / 10) * 10, n % 10]);
+const placeSum = (n) => placeParts(n).map((k) => `<b class="fn">${k}</b>`).join('<span class="op">+</span>');
+
 // The chip for a target: { cls, html } (game.js puts it in the target's chip). `row` is the level's row:
 // with `pictures: false`, double and half are asked with the numbers alone (D-123).
 export function faceChip(T, row = null) {
@@ -86,7 +93,7 @@ export function faceChip(T, row = null) {
     case 'share':
       return { cls: 'face face-share', html: `${sweetsSvg(T.total)}${fw('shared by')}${platesSvg(T.groups)}` };
     case 'place':
-      return { cls: 'face face-place', html: T.n >= 100 ? chartSvg(T.n) : placeSvg(T.n) };
+      return { cls: 'face face-place', html: placeSum(T.n) };
     case 'words':
       return { cls: 'face face-words', html: `<span class="wd">${esc(numberWords(T.n))}</span>` };
     case 'sign':
@@ -96,7 +103,7 @@ export function faceChip(T, row = null) {
     case 'frac-shape':
       return { cls: 'face face-shape', html: shapeSvg(T.num, T.den, T.look) };
     case 'frac-of':
-      return { cls: 'face face-fracof', html: `${fracHtml(T.num, T.den)}${fw('of')}<b class="fn">${esc(T.total)}</b>${groupsSvg(T.total, T.den)}` };
+      return { cls: 'face face-fracof', html: `${fracHtml(T.num, T.den)}${fw('of')}<b class="fn">${esc(T.total)}</b>${pictures ? groupsSvg(T.total, T.den) : ''}` };
     case 'find':
       return { cls: '', html: esc(T.n) };
     case 'groups':
