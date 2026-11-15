@@ -1,4 +1,10 @@
-// Hamster Highway's levels. Version 1.0. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.1. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.1 (step 2, D-145, D-149): level 4, Gentle landing (the floater), by the living room's bookshelf,
+// and level 5, Tube trip (the tube), at the bedroom's cage, each on the sketch model's board with a golden seed
+// that needs the level's spare (a second bridge beside the ledge; a fourth tube on top), and its own backdrop.
+// `spare` names the gadget a level's seed needs (levels 2 to 5); tools/tests/games/solve_hamster_highway.py
+// tries every placement to show the seed needs it.
 //
 // Source: levels 1 to 3 of the five first levels Rob agreed (D-136, brief 0.3), their boards
 // copied from tools/tests/games/sketch_bridge_builder.py 0.1's LEVELS, with a golden seed each

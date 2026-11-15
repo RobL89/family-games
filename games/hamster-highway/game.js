@@ -1,4 +1,7 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.1 (15 Nov, step 2).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.2 (15 Nov, step 2).
+//
+// Changes at v1.2 (step 2, D-145): tubes on the board join up with their neighbours (art.js tubePiece), with an
+// open mouth at each end of a chain; the clock, lamp, moon and star mobile answer a tap.
 //
 // Changes at v1.1 (step 2, D-147): progress is saved (progress.js, format 1): on its own, in this browser's
 // entry "family-games:hamster-highway:progress"; inside P-020's wrapper, handed in with fg:start and out with
