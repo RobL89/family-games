@@ -1,5 +1,10 @@
 // Rocket Lander's maps of solar systems: one map for each track, on the same six systems (D-058,
-// D-065, D-066, D-089). Version 2.3 (trial feedback item 1).
+// D-065, D-066, D-089). Version 2.4 (trial feedback item 2).
+//
+// Changes at v2.4 (D-129): nothing to count on the higher track. Its Moon 1 (the Y2-01 slot) is sums, + and −
+// within 20 with no timer, in place of Tens and ones; Fractions of numbers (Y2-20) and of amounts (Y3-16)
+// say `pictures: false`; hundreds, tens and ones (Y3-02) is shown as a sum (faces.js 1.4). Level ids keep
+// their places, so stars and rocks are kept.
 //
 // Changes at v2.3 (D-123, D-125): fewer things to count. How many dots? asks 1 to 6 on a line from 0 to 6;
 // More, fewer or the same shows 6 dots at most; Share it out 6 sweets at most; Year 1's Sharing up to 10
@@ -170,8 +175,9 @@ const LOWER = [
 // line in steps. Tables go to × 12 (D-099). Y2-11 and Y2-12 play in two halves (D-094).
 const HIGHER = [
   { id: 'moon', levels: [
-    { kind: 'ask', plan: 'Y2-01', row: { ask: 'place', digits: 2, min: 10, max: 99, span: 10, label_every: 1, source: 'Y2-01: tens and ones, 2 digits' },
-      about: 'Tens and ones', sample: { rule: 'ask', ask: 'place', n: 34, value: 34 } },
+    { kind: 'sums', plan: 'Y2-01', row: { ops: ['+', '−'], forms: ['facts'], max: 20, ...STRETCH,
+      source: "Y2-01's place: + and − within 20, no timer, in place of Tens and ones (D-129: counting the rods and ones was too hard)" },
+      about: 'Add and take away to 20', sample: { rule: 'sum', sum: '8 + 5', value: 13 } },
     { kind: 'ask', plan: 'X-words100', row: { ask: 'words', min: 1, max: 100, span: 10, label_every: 1, source: 'notes: year2 number_words 1 to 100' },
       about: 'Number words to 100', sample: { rule: 'ask', ask: 'words', n: 47, value: 47 } },
     { kind: 'ask', plan: 'Y2-02', row: { ask: 'sign', min: 0, max: 100, rels: { more: 2, fewer: 2, same: 1 }, span: 10, label_every: 1, source: 'Y2-02: <, > and = to 100' },
@@ -226,7 +232,7 @@ const HIGHER = [
       about: 'Odd or even to 100', sample: { rule: 'range', ask: 'parity', rel: 'even' } },
     { kind: 'ask', plan: 'Y2-19', row: { ask: 'frac-shape', fractions: ['1/2', '1/3', '1/4', '2/4', '3/4'], source: 'Y2-19: fractions of shapes' },
       about: 'Fractions of shapes', sample: { rule: 'ask', ask: 'frac-shape', num: 3, den: 4, look: 0, parts: 4, value: 3 } },
-    { kind: 'ask', plan: 'Y2-20', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '1/4', '3/4'], total_max: 12, span: 10, label_every: 1, source: 'Y2-20: fractions of numbers to 24, whole answers; cut to 12 (D-123)' },
+    { kind: 'ask', plan: 'Y2-20', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '1/4', '3/4'], total_max: 12, span: 10, label_every: 1, pictures: false, source: 'Y2-20: fractions of numbers to 24, whole answers; cut to 12 (D-123); numbers only (D-129)' },
       about: 'Fractions of numbers', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 4, total: 12, value: 9 } },
     CHALLENGE,
   ] },
@@ -284,7 +290,7 @@ const HIGHER = [
       source: "notes: year3 division 'extended': TO ÷ O with no remainder, by Year 3's 1-digit tables" },
       about: '2-digit divided by 1-digit', sample: { rule: 'sum', sum: '48 ÷ 4', value: 12 } },
     { kind: 'ask', plan: 'Y3-16', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '2/3', '1/4', '3/4', '1/5', '2/5', '3/5', '4/5', '1/8', '3/8', '5/8', '7/8', '1/10', '3/10', '7/10', '9/10'],
-      pick: 'den', total_max: 40, span: 10, label_every: 1, source: 'Y3-16: unit and non-unit fractions (simplest form) of amounts to 40, denominators 2, 3, 4, 5, 8, 10, whole answers' },
+      pick: 'den', total_max: 40, span: 10, label_every: 1, pictures: false, source: 'Y3-16 (numbers only, D-129): unit and non-unit fractions (simplest form) of amounts to 40, denominators 2, 3, 4, 5, 8, 10, whole answers' },
       about: 'Fractions of amounts', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 5, total: 20, value: 12 } },
     { kind: 'ask', plan: 'Y3-17', row: { ask: 'seq', steps: [1], den: 10, start: 'any', min: 0, max: 20, dirs: ['forward', 'backward'], span: 6, label_every: 1,
       source: 'Y3-17: count up and down in tenths, 0 to 2 (0 to 20 tenths); 7 marks (D-103)' },
