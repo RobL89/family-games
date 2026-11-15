@@ -1,4 +1,8 @@
-"""Close script for P-034 (Kids Games Development). Version 1.12.
+"""Close script for P-034 (Kids Games Development). Version 1.13.
+
+Changes at v1.13 (15 Nov, Hamster Highway's first build, D-133): its core test,
+test_bridge_builder_core.py, is one of the fast checks; its browser test, test_bridge_builder_e2e.py,
+runs when games/bridge-builder/ changes. Everything else is as before.
 
 Changes at v1.12 (15 Nov, Rob's pick of a quicker full run before the counting release): --jobs N runs the
 browser tests N at a time (1 unless asked, 4 at most), each one's output printed whole when it ends, in
@@ -86,11 +90,12 @@ T = 'tools/tests/games/'
 STAMP = os.path.join(REPO, '.git', 'p034-close-pass')
 PASS_FILE = os.path.join(HERE, 'close_pass.txt')  # the last full pass, committed (D-081)
 # Fast checks (no browser): always run.
-FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py'}
+FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py', 'test_bridge_builder_core.py'}
 # Browser tests, and the paths whose change re-runs each. The hangar test has none of its own:
 # it covers the shared engine, and a change there runs everything.
 STAND = [T + 'stand_in.py', T + 'fixture_map_stand_in.js']  # the stand-in map the older browser tests play (step 2c-3b)
 COVERS = {
+    'test_bridge_builder_e2e.py': ['games/bridge-builder/'],
     'test_rocket_hangar_e2e.py': STAND,
     'test_rocket_lander_counting.py': ['games/rocket-lander/'],
     'test_rocket_lander_e2e.py': ['games/rocket-lander/'] + STAND,

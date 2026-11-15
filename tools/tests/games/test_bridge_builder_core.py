@@ -1,0 +1,240 @@
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.0 (15 Nov, the first build).
+
+Fast, no browser: node runs games/bridge-builder/core.js and levels.js. It checks:
+  - every function in core.js: key, parseLevel (and the boards it refuses), terrain, holds, fits,
+    fitCells, left and walk;
+  - walk() against the sketch model's own outcomes (tools/tests/games/sketch_bridge_builder.py 0.1,
+    run 15 Nov, hand-checked then): the sample level and the five first levels (D-136) solved with
+    their gadgets, not without any, and not without the level's new gadget (splash, stuck, stuck,
+    bonk, stuck), and level 3's route square by square;
+  - levels.js: levels 1 to 3 parse, each is solved with its gadgets (put down in an order where each
+    fits, D-139) and not without its new one, and each golden seed (D-138) is taken: level 1's on the
+    way, level 2's and level 3's only with the spare ramp in a square that fits, the level still solved;
+  - placing anywhere it fits (D-139): where each gadget fits on levels 1 to 3, by hand;
+  - the boundaries (project rules): core.js, levels.js, art.js and house.js touch no page, clock or
+    randomness; core.js, levels.js and art.js import nothing and house.js only art.js; every module
+    imports only from its own folder or games/_common/.
+
+Usage, from the repo root:
+    python3 -B tools/tests/games/test_bridge_builder_core.py
+Exits 1 if a check fails.
+"""
+import json, os, re, subprocess, sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+GAME = os.path.join(REPO, 'games', 'bridge-builder')
+problems = []
+
+
+def check(ok, what):
+    print(('ok   ' if ok else 'FAIL ') + what)
+    if not ok:
+        problems.append(what)
+
+
+# The sketch model's levels and its outcomes (sketch_bridge_builder.py 0.1, 15 Nov). Its letters:
+# B bridge, R ramp, P bouncer, U floater, T tube.
+SKETCH = {
+    'sample': (['............', '............', '........###.', '............', '............', 'S......#...G', '###..#######'],
+               {(3, 6): 'B', (4, 6): 'B', (6, 5): 'R', (7, 4): 'P', (10, 1): 'U'}, None, 'splash'),
+    'level 1': (['............', '............', '............', '............', '............', 'S.........G.', '#####.######'],
+                {(5, 6): 'B'}, 'B', 'splash'),
+    'level 2': (['............', '............', '............', '............', '..........G.', 'S.......####', '###.########'],
+                {(3, 6): 'B', (7, 5): 'R'}, 'R', 'stuck'),
+    'level 3': (['............', '............', '............', '......###...', '......###.G.', 'S.....######', '##.#########'],
+                {(2, 6): 'B', (5, 5): 'P'}, 'P', 'stuck'),
+    'level 4': (['............', 'S...........', '###.##......', '............', '............', '..........G.', '....########'],
+                {(3, 2): 'B', (5, 1): 'U'}, 'U', 'bonk'),
+    'level 5': (['............', '............', '............', '.........G..', '.......####.', 'S...........', '###.########'],
+                {(3, 6): 'B', (6, 5): 'T', (6, 4): 'T', (6, 3): 'T'}, 'T', 'stuck'),
+}
+KIND = {'B': 'bridge', 'R': 'ramp', 'P': 'bouncer', 'U': 'floater', 'T': 'tube'}
+sketch_in = {name: {'rows': rows, 'sol': {f'{c},{r}': KIND[k] for (c, r), k in sol.items()},
+                    'new': KIND[new] if new else None} for name, (rows, sol, new, _) in SKETCH.items()}
+
+JS = r'''
+const [coreUrl, levelsUrl, sketchJson] = process.argv.slice(1);
+const core = await import(coreUrl);
+const { LEVELS } = await import(levelsUrl);
+const out = {};
+const P = (rows, id = 'x', tray = {}) => core.parseLevel({ id, rows, tray });
+// the sketch model's levels
+out.sketch = {};
+for (const [name, s] of Object.entries(JSON.parse(sketchJson))) {
+  const lv = P(s.rows);
+  const without = Object.fromEntries(Object.entries(s.sol).filter(([, k]) => k !== s.new));
+  out.sketch[name] = { with: core.walk(lv, s.sol).outcome, none: core.walk(lv, {}).outcome,
+                       noNew: s.new ? core.walk(lv, without).outcome : null,
+                       noNewEnd: s.new ? (({ steps }) => [steps[steps.length - 1].c, steps[steps.length - 1].r])(core.walk(lv, without)) : null,
+                       route: core.walk(lv, s.sol).steps.map((st) => [st.c, st.r, st.act]) };
+}
+// parseLevel refusals
+const refuse = (rows, tray) => { try { core.parseLevel({ id: 'bad', rows, tray }); return 'parsed'; } catch (e) { return e.message; } };
+const ok7 = LEVELS[0].rows;
+out.refuse = {
+  short: refuse(ok7.slice(1)),
+  narrow: refuse(ok7.map((r) => r.slice(1))),
+  mark: refuse(ok7.map((r, i) => (i === 0 ? 'x' + r.slice(1) : r))),
+  twoStarts: refuse(ok7.map((r, i) => (i === 0 ? 'S' + r.slice(1) : r))),
+  noHome: refuse(ok7.map((r) => r.replace('G', '.'))),
+  twoSeeds: refuse(ok7.map((r, i) => (i === 0 ? '*' + r.slice(1) : r))),
+  badTray: refuse(ok7, { rocket: 1 }),
+  zeroTray: refuse(ok7, { bridge: 0 }),
+};
+// levels.js
+out.levels = LEVELS.map((d) => {
+  const lv = core.parseLevel(d);
+  const fitsBy = {};
+  for (const k of core.GADGETS) fitsBy[k] = core.fitCells(lv, {}, k);
+  return { id: lv.id, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy };
+});
+// placing in order, each where it fits
+const placeAll = (lv, list) => {
+  const placed = {};
+  for (const [k, c, r] of list) {
+    if (!core.fits(lv, placed, k, c, r)) return { error: `${k} does not fit at ${c},${r}` };
+    placed[core.key(c, r)] = k;
+  }
+  return { placed };
+};
+const SOL = {
+  L1: { solve: [['bridge', 5, 6]], seed: [] },
+  L2: { solve: [['bridge', 3, 6], ['ramp', 7, 5]], seed: [['ramp', 4, 5]] },
+  L3: { solve: [['bridge', 2, 6], ['bouncer', 5, 5]], seed: [['ramp', 9, 4]] },
+};
+out.play = {};
+for (const d of LEVELS) {
+  const lv = core.parseLevel(d);
+  const s = SOL[lv.id];
+  const a = placeAll(lv, s.solve);
+  const b = placeAll(lv, [...s.solve, ...s.seed]);
+  const withoutNew = Object.fromEntries(Object.entries(a.placed || {}).filter(([, k]) => k !== d.new));
+  const ra = a.placed ? core.walk(lv, a.placed) : null;
+  const rb = b.placed ? core.walk(lv, b.placed) : null;
+  // every square the spare ramp fits, with the level solved: which take the seed home?
+  const spare = [];
+  if (a.placed && s.seed.length) {
+    for (const [c, r] of core.fitCells(lv, a.placed, 'ramp')) {
+      const res = core.walk(lv, { ...a.placed, [core.key(c, r)]: 'ramp' });
+      if (res.outcome === 'home' && res.seed) spare.push([c, r]);
+    }
+  }
+  out.play[lv.id] = {
+    errA: a.error || null, errB: b.error || null,
+    solved: ra && ra.outcome, solvedSeed: ra && ra.seed,
+    withSeed: rb && rb.outcome, seedTaken: rb && rb.seed,
+    noNew: a.placed ? core.walk(lv, withoutNew).outcome : null,
+    seedGone: rb ? core.walk(lv, b.placed, false).seed : null,
+    leftAfter: a.placed ? core.left(lv, a.placed) : null,
+    spare,
+  };
+}
+// terrain, holds, key on level 1
+const l1 = core.parseLevel(LEVELS[0]);
+const pl = { [core.key(5, 6)]: 'bridge' };
+out.terrain = [core.terrain(l1, pl, 5, 6), core.terrain(l1, {}, 5, 6), core.terrain(l1, {}, -1, 0), core.terrain(l1, {}, 0, 7),
+               core.terrain(l1, {}, 0, -1), core.terrain(l1, {}, 8, 5), core.terrain(l1, {}, 0, 5), core.terrain(l1, {}, 10, 5)];
+out.holds = [core.holds(l1, pl, 5, 6), core.holds(l1, {}, 5, 6), core.holds(l1, {}, 0, 6), core.holds(l1, {}, 8, 5)];
+out.key = core.key(3, 6);
+out.consts = [core.COLS, core.ROWS, core.GADGETS, core.BIG_FALL, core.BOUNCE];
+// no gadget on a gadget, the start, the home or the seed
+out.noStack = [core.fits(l1, pl, 'bridge', 5, 6), core.fits(l1, {}, 'ramp', 0, 5), core.fits(l1, {}, 'ramp', 10, 5),
+               core.fits(l1, {}, 'ramp', 8, 5), core.fits(l1, {}, 'rocket', 3, 5), core.fits(l1, {}, 'ramp', 12, 5)];
+console.log(JSON.stringify(out));
+'''
+
+r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(GAME, 'core.js'),
+                    'file://' + os.path.join(GAME, 'levels.js'), json.dumps(sketch_in)], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr)
+    check(False, 'node ran core.js and levels.js')
+    sys.exit(1)
+out = json.loads(r.stdout)
+
+# the sketch model's outcomes
+for name, (_, _, new, no_new) in SKETCH.items():
+    o = out['sketch'][name]
+    check(o['with'] == 'home', f'{name} (sketch model): solved with its gadgets ({o["with"]})')
+    check(o['none'] == 'splash', f'{name} (sketch model): without any gadget, a splash, as the model ({o["none"]})')
+    if new:
+        check(o['noNew'] == no_new, f'{name} (sketch model): without its new gadget, {no_new}, as the model ({o["noNew"]})')
+want3 = [[0, 5, 'start'], [1, 5, 'walk'], [2, 5, 'walk'], [3, 5, 'walk'], [4, 5, 'walk'], [5, 5, 'walk'], [6, 2, 'bounce'],
+         [7, 2, 'walk'], [8, 2, 'walk'], [9, 2, 'walk'], [9, 3, 'fall'], [9, 4, 'fall'], [10, 4, 'walk']]
+for name, end in (('level 2', [7, 5]), ('level 3', [5, 5]), ('level 4', [6, 5]), ('level 5', [11, 5])):
+    got = out['sketch'][name]['noNewEnd']
+    check(got == end, f'{name} (sketch model): without its new gadget they end at {end}, by hand: before the step or wall, where they fall, at the edge ({got})')
+check(out['sketch']['level 3']['route'] == want3, 'level 3 (sketch model): the route square by square, by hand (up 3 off the bouncer, one on, a drop of 2)')
+
+# parseLevel refusals
+ref = out['refuse']
+for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows of 12'), ('mark', 'unknown mark'),
+                   ('twoStarts', 'one start and one home'), ('noHome', 'one start and one home'), ('twoSeeds', 'at most one golden seed'),
+                   ('badTray', 'bad tray entry'), ('zeroTray', 'bad tray entry')):
+    check(frag in ref[name], f'parseLevel refuses a board or tray that is {name} ({ref[name]})')
+
+# levels.js
+lv = {x['id']: x for x in out['levels']}
+check(list(lv) == ['L1', 'L2', 'L3'], f'levels.js holds levels 1 to 3, in order ({list(lv)})')
+check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3], 'each level has its golden seed where levels.js says')
+check(lv['L3']['home'] == [11, 4], 'level 3\'s home moved to 11,4 for its seed')
+check(lv['L1']['tray'] == {'bridge': 1} and lv['L2']['tray'] == {'bridge': 1, 'ramp': 2} and lv['L3']['tray'] == {'bridge': 1, 'bouncer': 1, 'ramp': 1},
+      'the trays: 1 bridge; 1 bridge and 2 ramps; 1 bridge, 1 bouncer and 1 ramp')
+# where each gadget fits (D-139), by hand
+check(lv['L1']['fitsBy']['bridge'] == [[5, 6]], f'level 1: the bridge fits only over the gap ({lv["L1"]["fitsBy"]["bridge"]})')
+check(lv['L2']['fitsBy']['bridge'] == [[3, 6]], f'level 2: the bridge fits only over the gap ({lv["L2"]["fitsBy"]["bridge"]})')
+check(sorted(lv['L3']['fitsBy']['bridge']) == [[2, 6], [5, 3], [5, 4], [9, 3]],
+      f'level 3: a bridge fits over the gap and beside the wall where a hamster would fall ({lv["L3"]["fitsBy"]["bridge"]})')
+ramp1 = sorted(lv['L1']['fitsBy']['ramp'])
+check(ramp1 == sorted([[c, 5] for c in range(1, 10) if c not in (5, 8)] + [[11, 5]]),
+      f'level 1: a ramp fits on every floor square but the start, the home and the seed ({ramp1})')
+check(lv['L1']['fitsBy']['ramp'] == lv['L1']['fitsBy']['bouncer'] == lv['L1']['fitsBy']['floater'], 'level 1: a ramp, a bouncer and a floater fit the same squares')
+check(len(lv['L1']['fitsBy']['tube']) == 12 * 7 - 11 - 3, f'level 1: a tube fits any empty square: 84 less 11 ground, the start, home and seed ({len(lv["L1"]["fitsBy"]["tube"])})')
+for i, (lid, p) in enumerate(out['play'].items(), 1):
+    check(p['errA'] is None and p['errB'] is None, f'level {i}: each gadget put down where it fits ({p["errA"] or p["errB"] or "ok"})')
+    check(p['solved'] == 'home', f'level {i}: solved with its gadgets ({p["solved"]})')
+    check(p['noNew'] != 'home', f'level {i}: not solved without its new gadget ({p["noNew"]})')
+    check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
+    check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
+check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
+check(out['play']['L2']['solvedSeed'] is False and out['play']['L3']['solvedSeed'] is False, 'levels 2 and 3: the seed needs the spare ramp')
+check(out['play']['L2']['spare'] == [[4, 5], [5, 5]], f'level 2: the spare ramp takes the seed home from 4,5 or 5,5 only ({out["play"]["L2"]["spare"]})')
+check(out['play']['L3']['spare'] == [[9, 4], [10, 4]], f'level 3: the spare ramp takes the seed home from 9,4 or 10,4 only ({out["play"]["L3"]["spare"]})')
+check(out['play']['L2']['leftAfter'] == {'bridge': 0, 'ramp': 1}, f'left(): level 2 with its two gadgets down leaves one ramp ({out["play"]["L2"]["leftAfter"]})')
+
+# small functions
+check(out['terrain'] == ['bridge', '.', None, None, '.', '.', 'S', 'G'], f'terrain(): a bridge, air, off the side, below the bottom, above the top, a seed\'s square, start, home ({out["terrain"]})')
+check(out['holds'] == [True, False, True, False], 'holds(): a bridge and ground hold a hamster; air and a seed\'s square do not')
+check(out['key'] == '3,6', 'key(3, 6) is "3,6"')
+check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube'], 3, 3], 'the board is 12 x 7; five gadgets; a fall of 3 bonks; a bounce is 3 up')
+check(out['noStack'] == [False, False, False, False, False, False], 'nothing fits on a gadget, the start, the home or the seed, nor an unknown gadget, nor off the board')
+
+# boundaries
+IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'
+                    r'performance|setTimeout|setInterval|requestAnimationFrame|eval|Function|AudioContext|navigator)\b')
+
+
+def code_only(text):
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    return '\n'.join(re.sub(r'(^|[^:])//.*$', r'\1', line) for line in text.split('\n'))
+
+
+for f in ('core.js', 'levels.js', 'art.js', 'house.js'):
+    p = os.path.join(GAME, f)
+    if not os.path.exists(p):
+        check(False, f'{f} exists')
+        continue
+    code = code_only(open(p, encoding='utf-8').read())
+    hits = sorted({m.group(0) for m in IMPURE.finditer(code)})
+    check(not hits, f'{f} is pure: no page, clock or randomness ({hits})')
+    specs = re.findall(r"^\s*import\s.*?from\s+'([^']+)'", code, re.M) + re.findall(r'^\s*import\s+[\'"]([^\'"]+)', code, re.M)
+    allowed = ['./art.js'] if f == 'house.js' else []
+    check(all(sp in allowed for sp in specs), f'{f} imports {"only art.js" if allowed else "nothing"} ({specs})')
+for f in sorted(os.listdir(GAME)):
+    if f.endswith('.js'):
+        specs = re.findall(r"^\s*import\s.*?from\s+'([^']+)'", open(os.path.join(GAME, f), encoding='utf-8').read(), re.M)
+        bad = [s for s in specs if not (s.startswith('./') and '/' not in s[2:]) and not s.startswith('../_common/')]
+        check(not bad, f'{f} imports only from its own folder or games/_common/ (GC4) ({bad})')
+
+print('All good.' if not problems else f'{len(problems)} problem(s)')
+sys.exit(1 if problems else 0)
