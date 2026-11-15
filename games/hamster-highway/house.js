@@ -32,7 +32,7 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150], veg: [1480, 712] };
+export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150], veg: [1480, 712], shed: [1862, 560], treehouse: [2322, 352] };
 // The plan for the stops after level 5 (D-151), in route order: name, place, the level planned there (null: kept
 // for a level after v1), and any bends before it. Levels 6 to 10 follow D-145. Drawn softly without numbers until
 // a level's spot takes the place's name; test_hamster_highway_core.py checks the whole route never crosses itself.

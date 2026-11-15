@@ -137,4 +137,32 @@ export const LEVELS = [
       '###.#######.#.####',
     ],
   },
+  {
+    id: 'L9', name: 'Teacup ride', room: 'garden', spot: 'shed', back: 'shed', new: 'lift',
+    tray: { bridge: 2, ramp: 1, floater: 1 }, spare: 'bridge',
+    parts: [{ kind: 'lift', c: 8, top: 2, bottom: 5, cups: 2 }],
+    rows: [
+      '....................',
+      '................*...',
+      '.........######.....',
+      '.........######.....',
+      'S.....#..######.....',
+      '###.####.######...G.',
+      '###.################',
+    ],
+  },
+  {
+    id: 'L10', name: 'Treehouse party', room: 'garden', spot: 'treehouse', back: 'treehouse', new: null,
+    tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 3 }, spare: 'ramp',
+    parts: [{ kind: 'seesaw', c: 12, r: 3 }, { kind: 'lift', c: 17, top: 2, bottom: 5, cups: 2 }],
+    rows: [
+      '....................*...',
+      '......................G.',
+      '..................######',
+      '.....###................',
+      '.....###..##............',
+      'S....###..##...##.......',
+      '##.#########.#.#########',
+    ],
+  },
 ];
