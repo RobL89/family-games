@@ -1,17 +1,24 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.0 (15 Nov, the first build).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.1 (15 Nov, step 2).
+//
+// Changes at v1.1 (step 2, D-147): progress is saved (progress.js, format 1): on its own, in this browser's
+// entry "family-games:hamster-highway:progress"; inside P-020's wrapper, handed in with fg:start and out with
+// fg:state at each change, none of it kept on the device (contract 0.4.2 section 4, through
+// games/_common/rocket/link.js and shared/bridge.js). The wrapper's sound off mutes the game and hides its
+// sound button. The house opens at the first level not done. Test hooks: ready, linked, muted.
 //
 // Title card (a Play button first, GC6) → the house and garden (D-140) → a level: build (gadgets go
 // anywhere they fit, D-139: drag from the tray or click then click; click a placed gadget to take it
 // back), then GO: five hamsters walk the route core.js works out, one after another, with a party when
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
-// Progress is kept only while the page is open: the data map has no row for it yet (Q-051).
-// Runs on its own as a plain page (GC5); linking to P-020's wrapper comes before the release.
+// Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
 import { COLS, ROWS, GADGETS, key, parseLevel, fits, fitCells, left, walk, terrain } from './core.js';
 import { LEVELS } from './levels.js';
 import { CELL, INK, SUN, CORAL, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
+import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
+import { linkUp } from '../_common/rocket/link.js';
 
 const BW = COLS * CELL;   // 720
 const BH = ROWS * CELL;   // 420
@@ -21,14 +28,27 @@ const SC = 0.56;          // a hamster's size on the board, as in the mock-ups
 const $ = (id) => document.getElementById(id);
 const board = $('board');
 const layer = (id) => $(id);
+const IDS = LEVELS.map((d) => d.id);
+const ENTRY = 'family-games:hamster-highway:progress';   // on its own only (data map 1.9)
 
 const S = {
   screen: 'title',
-  progress: { done: {}, seeds: {}, tries: {} },   // only while the page is open (Q-051)
+  progress: fresh(),   // progress.js, format 1 (D-147)
+  ready: false, linked: null, soundLocked: false, playAsked: false,
   at: 0,
   li: 0, level: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
 };
+
+// ---------------------------------------------------------------- saving (D-147)
+function readDevice() {
+  try { return JSON.parse(localStorage.getItem(ENTRY)); } catch { return null; }
+}
+function keep() {
+  const st = pack(S.progress);
+  if (S.linked) { S.linked.saveState(st); return; }
+  try { localStorage.setItem(ENTRY, JSON.stringify(st)); } catch { /* storage blocked or full: play on */ }
+}
 
 // ---------------------------------------------------------------- screens
 function show(name) {
@@ -47,6 +67,7 @@ function renderHouse() {
   $('house-svg').innerHTML = houseScene({ levels, current: S.at }) + `<g id="token">${tokenAt(LEVELS[S.at].spot)}</g>`;
   $('seeds').innerHTML = LEVELS.map((d) => `<svg viewBox="-14 -18 28 36"${S.progress.seeds[d.id] ? '' : ' opacity="0.3"'}>${seedArt()}</svg>`).join('');
   $('sound').innerHTML = soundIcon();
+  $('sound').hidden = S.soundLocked;
   sizeHouse();
   const [x] = SPOTS[LEVELS[S.at].spot];
   const scroll = $('house-scroll');
@@ -380,7 +401,9 @@ function segmentsOf(res) {
 function startRun() {
   if (S.mode !== 'build') return;
   const id = S.level.id;
-  S.progress.tries[id] = (S.progress.tries[id] || 0) + 1;
+  const before = S.progress.tries[id];
+  S.progress = tried(IDS, S.progress, id);
+  if (S.progress.tries[id] !== before) keep();
   const seedLeft = !!S.level.seed;
   const res = walk(S.level, S.placed, seedLeft);
   const segs = segmentsOf(res);
@@ -542,8 +565,8 @@ function finishRun() {
   if (!R) return;
   const id = S.level.id;
   if (R.res.outcome === 'home' && R.home === WALKERS) {
-    S.progress.done[id] = true;
-    if (S.seedTaken) S.progress.seeds[id] = true;
+    S.progress = finished(IDS, S.progress, id, S.seedTaken);
+    keep();
     S.mode = 'party';
     party();
   } else {
@@ -689,7 +712,7 @@ function goTo(i) {
 // ---------------------------------------------------------------- start
 $('title-art').innerHTML = titleArt();
 $('title-art').addEventListener('pointerdown', (e) => { const pk = e.target.closest('[data-poke]'); if (pk) poke(pk); });
-$('play').addEventListener('click', () => { play('go'); show('house'); });
+$('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); show('house'); });
 $('house-svg').addEventListener('pointerdown', onHouseTap);
 $('sound').addEventListener('click', () => { setMuted(!isMuted()); $('sound').innerHTML = soundIcon(); play('tap'); });
 $('turn').addEventListener('click', () => { S.turnDismissed = true; $('turn').hidden = true; });
@@ -701,13 +724,24 @@ board.addEventListener('pointercancel', onUp);
 board.addEventListener('pointerleave', () => { if (!S.drag && S.hover) { S.hover = null; renderGhost(); } });
 window.addEventListener('resize', () => { if (S.screen === 'level') fitBoard(); if (S.screen === 'house') sizeHouse(); });
 
+// The wrapper's start (or the game's own, at once, when it runs on its own): who's playing isn't needed;
+// sound and the saved progress are.
+linkUp((start, fg) => {
+  S.linked = start.standalone ? null : fg;
+  if (start.sound === false) { setMuted(true); S.soundLocked = true; }
+  S.progress = unpack(IDS, S.linked ? start.state : readDevice());
+  S.at = nextAt(IDS, S.progress);
+  S.ready = true;
+  if (S.playAsked) { play('go'); show('house'); }
+});
+
 // The test hook: reads the game and finds where to tap; the browser test taps like a child would.
 window.__test = {
   state: () => ({
     screen: S.screen, mode: S.mode, level: S.level && S.level.id, placed: { ...S.placed }, selected: S.selected,
     left: S.level ? left(S.level, S.placed) : null, progress: JSON.parse(JSON.stringify(S.progress)), layout: S.layout,
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
-    outcome: S.run ? S.run.res.outcome : null,
+    outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,
   }),
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();

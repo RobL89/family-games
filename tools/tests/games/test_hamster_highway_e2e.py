@@ -1,4 +1,12 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.0.1 (15 Nov; renamed with the game, D-146).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.1 (15 Nov, step 2).
+
+Changes at v1.1 (step 2, D-147): saving and the wrapper link. On its own, the progress is kept in the
+device's entry and comes back after a reload, and a broken entry starts afresh. In a stand-in wrapper (a
+page served to the test browser only, framing the game and answering fg:ready with fg:start the way
+shared/bridge.js expects): the child's progress handed in opens the house where they were; each change
+goes out with fg:state and nothing is kept on the device; sound off makes no audio and hides the sound
+button; with sound on and no progress, a new player starts at level 1. The game may also fetch
+games/_common/rocket/link.js and shared/bridge.js. Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
 Headless Chromium is the stand-in for the PC and the phone. The game is served from the repo on
 127.0.0.1 and played the way a child would: real mouse clicks, a drag, and touch taps, at the
@@ -27,7 +35,7 @@ Usage, from the repo root:
     python3 -B tools/tests/games/test_hamster_highway_e2e.py [OUT]
 Exits 1 if a check fails.
 """
-import functools, http.server, os, socketserver, sys, threading
+import functools, http.server, json, os, socketserver, sys, threading
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -52,7 +60,25 @@ PORT = httpd.server_address[1]
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 BASE = f'http://127.0.0.1:{PORT}'
 URL = f'{BASE}/games/hamster-highway/index.html'
-OWN = (f'{BASE}/games/hamster-highway/', f'{BASE}/games/_common/fonts/')
+OWN = (f'{BASE}/games/hamster-highway/', f'{BASE}/games/_common/fonts/', f'{BASE}/games/_common/rocket/link.js', f'{BASE}/shared/bridge.js')
+ENTRY = 'family-games:hamster-highway:progress'   # the game's own entry on its own (data map 1.9)
+WRAP = f'{BASE}/__wrapper.html'                  # the stand-in wrapper, served by the test only
+WRAPPER = '''<!doctype html><html><body style="margin:0"><div style="height:56px;background:#ddd"></div>
+<iframe id="g" src="/games/hamster-highway/index.html" style="display:block;border:0;width:100vw;height:calc(100vh - 56px)"></iframe>
+<script>
+window.__states = []; window.__ready = 0;
+const START = JSON.parse(decodeURIComponent(location.hash.slice(1)) || '{}');
+addEventListener('message', (e) => {
+  const f = document.getElementById('g').contentWindow;
+  if (e.source !== f || e.origin !== location.origin) return;
+  const m = e.data;
+  if (m && m.v === 1 && m.type === 'fg:ready') { window.__ready++; f.postMessage({ v: 1, type: 'fg:start', player: { name: 'Sam', animal: 'fox', colour: '#2E8FD0' },
+    sound: START.sound !== false, lists: [], settings: {}, state: START.state === undefined ? null : START.state, level: null }, location.origin); }
+  if (m && m.v === 1 && m.type === 'fg:state') window.__states.push(m.state);
+});
+</script></body></html>'''
+COUNT_AUDIO = """(() => { window.__audio = 0; for (const n of ['AudioContext', 'webkitAudioContext']) { const R = window[n];
+  if (typeof R !== 'function') continue; window[n] = class extends R { constructor(...a) { super(...a); window.__audio++; } }; } })()"""
 
 from playwright.sync_api import sync_playwright  # noqa: E402
 
@@ -83,6 +109,45 @@ def go_and_wait(pg, mode_after, touch=False):
     tap(pg, '[data-btn="go"]', touch)
     pg.wait_for_function('__test.state().mode === "run"', timeout=5000)
     pg.wait_for_function(f'__test.state().mode === "{mode_after}"', timeout=20000)
+
+
+def kept(pg):
+    return json.loads(pg.evaluate(f"localStorage.getItem('{ENTRY}')") or 'null')
+
+
+def framed(br, start, w=1366, h=768):
+    """The game in the stand-in wrapper, with fg:start's sound and state from `start`."""
+    ctx = br.new_context(viewport={'width': w, 'height': h})
+    ctx.add_init_script(COUNT_AUDIO)
+    ctx.route('**/__wrapper.html', lambda route: route.fulfill(status=200, content_type='text/html', body=WRAPPER))
+    pg = ctx.new_page()
+    errors = []
+    pg.on('pageerror', lambda e: errors.append(str(e)))
+    pg.on('console', lambda m: errors.append('console: ' + m.text) if m.type == 'error' else None)
+    pg.goto(WRAP + '#' + json.dumps(start))
+    pg.wait_for_function('window.__ready > 0', timeout=10000)
+    f = pg.frame_locator('#g')
+    fr = [x for x in pg.frames if x != pg.main_frame][0]
+    fr.wait_for_function('window.__test && __test.state().ready', timeout=10000)
+    return ctx, pg, fr, errors
+
+
+def ftap(pg, fr, sel):
+    b = fr.locator(sel).first.bounding_box()
+    pg.mouse.click(b['x'] + b['width'] / 2, b['y'] + b['height'] / 2)
+
+
+def fcell(pg, fr, c, r):
+    o = pg.locator('#g').bounding_box()
+    p = fr.evaluate(f'__test.cellPoint({c}, {r})')
+    pg.mouse.click(o['x'] + p['x'], o['y'] + p['y'])
+
+
+def fgo(pg, fr, mode_after):
+    fr.evaluate('__test.speed(8)')
+    ftap(pg, fr, '[data-btn="go"]')
+    fr.wait_for_function('__test.state().mode === "run"', timeout=5000)
+    fr.wait_for_function(f'__test.state().mode === "{mode_after}"', timeout=20000)
 
 
 def open_page(br, w, h, touch=False):
@@ -159,6 +224,9 @@ with sync_playwright() as pw:
     check(s['home'] == 5 and s['seedTaken'] and s['progress']['done'].get('L1') and s['progress']['seeds'].get('L1'),
           f'PC: level 1: all five home, a party, the seed taken ({s["home"]}, {s["seedTaken"]})')
     check(all(x in s['heard'] for x in ('go', 'home', 'seed', 'party')), 'PC: level 1: go, home, seed and party sounds asked for')
+    k = kept(pg)
+    check(k == {'v': 1, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 1}} and not s['linked'],
+          f'PC on its own: level 1 done, its seed and its one try are kept in the device\'s entry, format 1 (D-147) ({k})')
     pg.wait_for_timeout(500)
     pg.screenshot(path=os.path.join(OUT, 'pc-5-party.png'))
     tap(pg, '#party [data-act="house"]')
@@ -228,6 +296,59 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
+    want = {'v': 1, 'done': {'L1': True, 'L2': True, 'L3': True}, 'seeds': {'L1': True, 'L2': True, 'L3': True}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3}}
+    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 3 done, their seeds, and the GO presses until each was first done (1, 2, 3; the replay for level 3\'s seed not counted) ({kept(pg)})')
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    tap(pg, '#play')
+    pg.wait_for_function('__test.state().screen === "house"')
+    s = state(pg)
+    check(s['progress'] == {k: want[k] for k in ('done', 'seeds', 'tries')} and pg.locator('[data-level].locked').count() == 0,
+          f'PC on its own: after a reload, the house comes back as it was left: every level open, the seeds found ({s["progress"]})')
+    pg.evaluate(f"localStorage.setItem('{ENTRY}', '{{oops')")
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    tap(pg, '#play')
+    pg.wait_for_function('__test.state().screen === "house"')
+    s = state(pg)
+    check(s['progress'] == {'done': {}, 'seeds': {}, 'tries': {}} and s['at'] == 0, f'PC on its own: a broken entry starts afresh at level 1 ({s["progress"]})')
+    check(not errors, f'PC on its own: no script errors after the reloads {errors[:2]}')
+    ctx.close()
+
+    # ---- in the stand-in wrapper: progress in with fg:start, out with fg:state, sound off
+    ctx, pg, fr, errors = framed(br, {'sound': False, 'state': {'v': 1, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2}}})
+    s = fr.evaluate('__test.state()')
+    check(s['linked'] and s['muted'], f'wrapper: the game takes fg:start: linked, and sound off ({s["linked"]}, {s["muted"]})')
+    ftap(pg, fr, '#play')
+    fr.wait_for_function('__test.state().screen === "house"')
+    s = fr.evaluate('__test.state()')
+    check(fr.locator('[data-level="1"].locked').count() == 0 and fr.locator('[data-level="2"].locked').count() == 1 and s['at'] == 1,
+          f'wrapper: the child\'s progress opens the house where they were: level 2 open and waiting, level 3 locked ({s["at"]})')
+    check(not fr.locator('#sound').is_visible(), 'wrapper: with sound off, the game\'s own sound button is hidden')
+    pg.screenshot(path=os.path.join(OUT, 'wrapper-1-house.png'))
+    ftap(pg, fr, '[data-level="1"]')
+    fr.wait_for_function('__test.state().level === "L2"')
+    fgo(pg, fr, 'build')
+    last = pg.evaluate('window.__states[window.__states.length - 1]')
+    check(last == {'v': 1, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2, 'L2': 1}}, f'wrapper: a GO goes out with fg:state at once, the try counted ({last})')
+    ftap(pg, fr, '[data-slot="bridge"]'); fcell(pg, fr, 3, 6)
+    ftap(pg, fr, '[data-slot="ramp"]'); fcell(pg, fr, 7, 5)
+    fgo(pg, fr, 'party')
+    last = pg.evaluate('window.__states[window.__states.length - 1]')
+    check(last == {'v': 1, 'done': {'L1': True, 'L2': True}, 'seeds': {}, 'tries': {'L1': 2, 'L2': 2}}, f'wrapper: the party goes out with fg:state: level 2 done (GC7.5) ({last})')
+    check(kept(pg) is None, 'wrapper: nothing is kept on the device by the game')
+    check(pg.evaluate('[...document.querySelectorAll("iframe")].length') == 1 and fr.evaluate('window.__audio') == 0,
+          f'wrapper: with sound off, no audio is made ({fr.evaluate("window.__audio")})')
+    check(not errors, f'wrapper: no script errors {errors[:2]}')
+    ctx.close()
+    ctx, pg, fr, errors = framed(br, {'sound': True, 'state': None})
+    s = fr.evaluate('__test.state()')
+    ftap(pg, fr, '#play')
+    fr.wait_for_function('__test.state().screen === "house"')
+    check(s['linked'] and not s['muted'] and fr.locator('#sound').is_visible() and fr.locator('[data-level].locked').count() == fr.locator('[data-level]').count() - 1,
+          'wrapper: with sound on and no progress, the sound button shows and a new player starts at level 1')
+    check(fr.evaluate('window.__audio') >= 1, 'wrapper: with sound on, Play makes sound')
+    check(not errors, f'wrapper (sound on): no script errors {errors[:2]}')
     ctx.close()
 
     # ---- phones

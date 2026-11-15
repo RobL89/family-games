@@ -1,4 +1,8 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.0.1 (15 Nov; renamed with the game, D-146).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.1 (15 Nov, step 2).
+
+Changes at v1.1 (step 2, D-147): progress.js, the saved progress (format 1): fresh, unpack (what the device or
+the wrapper hands back, made safe), tried (a GO counts until the level is first done), finished, pack and
+nextAt; and progress.js is pure and imports nothing. Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
 Fast, no browser: node runs games/hamster-highway/core.js and levels.js. It checks:
   - every function in core.js: key, parseLevel (and the boards it refuses), terrain, holds, fits,
@@ -209,6 +213,66 @@ check(out['key'] == '3,6', 'key(3, 6) is "3,6"')
 check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube'], 3, 3], 'the board is 12 x 7; five gadgets; a fall of 3 bonks; a bounce is 3 up')
 check(out['noStack'] == [False, False, False, False, False, False], 'nothing fits on a gadget, the start, the home or the seed, nor an unknown gadget, nor off the board')
 
+# progress.js (D-147): what is saved, on the device or through the wrapper, made safe on the way in
+PJS = r"""
+const [progUrl] = process.argv.slice(1);
+const P = await import(progUrl);
+const ids = ['L1', 'L2', 'L3'];
+const o = {};
+o.format = P.FORMAT;
+o.fresh = P.fresh();
+o.unpack = {
+  nul: P.unpack(ids, null), str: P.unpack(ids, 'x'), arr: P.unpack(ids, []), noV: P.unpack(ids, { done: { L1: true } }),
+  v2: P.unpack(ids, { v: 2, done: { L1: true } }),
+  good: P.unpack(ids, { v: 1, done: { L1: true, L2: true }, seeds: { L1: true }, tries: { L1: 3, L2: 1 } }),
+  messy: P.unpack(ids, { v: 1, done: { L1: true, L2: 'yes', L9: true, L3: 1 }, seeds: { L2: true, L1: 1, L3: true }, tries: { L1: 2.6, L2: -4, L3: 'many', L7: 5, L4: 1e9 } }),
+  badParts: P.unpack(ids, { v: 1, done: [true], seeds: 'all', tries: null }),
+};
+let p = P.fresh();
+const t1 = P.tried(ids, p, 'L1'); const t2 = P.tried(ids, t1, 'L1');
+o.tried = { first: t1.tries, second: t2.tries, same: t1 === p, untouched: p.tries };
+const f1 = P.finished(ids, t2, 'L1', false);
+const f2 = P.finished(ids, f1, 'L1', true);
+const f3 = P.finished(ids, f2, 'L1', false);
+o.finished = { f1, f2, f3, afterDone: P.tried(ids, f3, 'L1').tries, otherTries: P.tried(ids, f3, 'L2').tries };
+o.unknown = { tried: P.tried(ids, p, 'L9'), finished: P.finished(ids, p, 'L9', true) };
+o.pack = P.pack(f2);
+o.round = P.unpack(ids, JSON.parse(JSON.stringify(P.pack(f2))));
+o.size = JSON.stringify(P.pack({ done: Object.fromEntries(ids.map((i) => [i, true])), seeds: Object.fromEntries(ids.map((i) => [i, true])), tries: Object.fromEntries(ids.map((i) => [i, 9999])) })).length;
+o.nextAt = [P.nextAt(ids, P.fresh()), P.nextAt(ids, f2), P.nextAt(ids, { done: { L1: true, L2: true, L3: true }, seeds: {}, tries: {} }),
+            P.nextAt(ids, { done: { L2: true }, seeds: {}, tries: {} })];
+console.log(JSON.stringify(o));
+"""
+pp = os.path.join(GAME, 'progress.js')
+if not os.path.exists(pp):
+    check(False, 'progress.js exists (D-147)')
+else:
+    r = subprocess.run(['node', '--input-type=module', '-e', PJS, 'file://' + pp], capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout, r.stderr)
+        check(False, 'node ran progress.js')
+    else:
+        o = json.loads(r.stdout)
+        F = {'done': {}, 'seeds': {}, 'tries': {}}
+        check(o['format'] == 1 and o['fresh'] == F, f'progress: format 1; a new player has nothing done, found or tried ({o["fresh"]})')
+        u = o['unpack']
+        check(all(u[k] == F for k in ('nul', 'str', 'arr', 'noV', 'v2', 'badParts')),
+              f'progress: nothing, not an object, a list, no format, another format, or broken parts all start afresh ({[k for k in u if u[k] != F]})')
+        check(u['good'] == {'done': {'L1': True, 'L2': True}, 'seeds': {'L1': True}, 'tries': {'L1': 3, 'L2': 1}}, f'progress: a good format 1 entry is read as it is ({u["good"]})')
+        check(u['messy'] == {'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 3}},
+              f'progress: a messy entry keeps only true marks of known levels, seeds only on done levels, whole tries 0 to 9999 ({u["messy"]})')
+        check(o['tried']['first'] == {'L1': 1} and o['tried']['second'] == {'L1': 2} and not o['tried']['same'] and o['tried']['untouched'] == {},
+              f'progress: each GO counts a try on a level not yet done, in a new object ({o["tried"]})')
+        fi = o['finished']
+        check(fi['f1']['done'] == {'L1': True} and fi['f1']['seeds'] == {} and fi['f1']['tries'] == {'L1': 2}, f'progress: a party marks the level done, its tries kept ({fi["f1"]})')
+        check(fi['f2']['seeds'] == {'L1': True} and fi['f3']['seeds'] == {'L1': True}, 'progress: a seed found stays found, even after a party without it')
+        check(fi['afterDone'] == {'L1': 2} and fi['otherTries'] == {'L1': 2, 'L2': 1}, f'progress: once a level is done, its GO presses no longer count; another level\'s do ({fi["afterDone"]}, {fi["otherTries"]})')
+        check(o['unknown']['tried'] == F and o['unknown']['finished'] == F, 'progress: a level that is not in the game changes nothing')
+        check(o['pack'] == {'v': 1, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 2}} and o['round'] == {k: o['pack'][k] for k in ('done', 'seeds', 'tries')},
+              f'progress: pack adds the format version, and unpack reads it back the same ({o["pack"]})')
+        check(o['size'] < 20000, f'progress: every level done, found and tried 9999 times is under the 20,000 characters fg:state allows ({o["size"]})')
+        check(o['nextAt'] == [0, 1, 2, 0], f'progress: the hamster waits at the first level not done, or the last when all are ({o["nextAt"]})')
+
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'
                     r'performance|setTimeout|setInterval|requestAnimationFrame|eval|Function|AudioContext|navigator)\b')
@@ -219,7 +283,7 @@ def code_only(text):
     return '\n'.join(re.sub(r'(^|[^:])//.*$', r'\1', line) for line in text.split('\n'))
 
 
-for f in ('core.js', 'levels.js', 'art.js', 'house.js'):
+for f in ('core.js', 'levels.js', 'art.js', 'house.js', 'progress.js'):
     p = os.path.join(GAME, f)
     if not os.path.exists(p):
         check(False, f'{f} exists')
