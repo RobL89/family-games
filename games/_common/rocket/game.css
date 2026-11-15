@@ -184,7 +184,7 @@ button { font: inherit; color: inherit; }
   .chip.face-sum { gap: .08em; padding-left: .2em; padding-right: .2em; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .chip.face svg.blocks { height: 2.5em; } /* a sideways phone: the ones at least 8 px (D-126) */
+  .chip.face svg.blocks { height: 2.45em; } /* a sideways phone: the ones at least 8 px (D-126), the rocket still 60 px to fall */
 }
 /* a challenge round (D-091): its card's chip */
 .chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
