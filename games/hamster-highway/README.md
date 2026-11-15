@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.3 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 5, the house picker, saving and the wrapper link.
+Version 1.4 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 5, the house picker, saving and the wrapper link.
 
+Changes at v1.4 (D-150): the bedroom is upstairs right, so the house's path never doubles back.
 Changes at v1.3 (step 2, D-145, D-149): levels 4 (the floater, in the living room) and 5 (the tube, in the
 bedroom), each with its own backdrop; tubes on the board join up.
 Changes at v1.2 (step 2, D-147): progress is saved, on its own and through P-020's wrapper; sound follows the wrapper.
@@ -22,7 +23,7 @@ all made in code (D-010).
 ## How it plays
 
 - **The house:** levels sit in a cross-section of a house and garden, each in a place drawn like
-  the level (D-140). Levels open one after another. The view scrolls sideways.
+  the level (D-140). Levels open one after another, along a path that never doubles back (D-150). The view scrolls sideways.
 - **Placing gadgets:** anywhere they fit (D-139): a bridge where a hamster would fall through, next
   to ground; a ramp, bouncer or floater on ground or a bridge; a tube in any empty square. On the PC, drag one from the tray or
   click it and then a square; on a phone, tap then tap. A square that doesn't fit shows red.
@@ -66,6 +67,7 @@ and the page at PC and phone sizes).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.4 | 2026-11-15 | The house's path one way (D-150) |
 | 1.3 | 2026-11-15 | Levels 4 and 5, their backdrops (D-145, D-149); joined tubes |
 | 1.2 | 2026-11-15 | Saving (D-147) and the wrapper link |
 | 1.1 | 2026-11-15 | The id is `hamster-highway` (D-146): folder and tests renamed |

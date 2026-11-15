@@ -1,4 +1,7 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.1 (15 Nov, step 2).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.2 (15 Nov).
+
+Changes at v1.2 (Rob's look at preview 2, D-150): the house's dotted path, through the levels in order and on to
+the places kept for later, only ever goes right (never doubles back).
 
 Changes at v1.1 (step 2): levels 4 and 5 (the floater and the tube, D-145) with their golden seeds, each
 needing the level's spare gadget (`spare` in levels.js; the counts from solve_hamster_highway.py 1.0, 15 Nov);
@@ -291,6 +294,22 @@ else:
               f'progress: pack adds the format version, and unpack reads it back the same ({o["pack"]})')
         check(o['size'] < 20000, f'progress: every level done, found and tried 9999 times is under the 20,000 characters fg:state allows ({o["size"]})')
         check(o['nextAt'] == [0, 1, 2, 0], f'progress: the hamster waits at the first level not done, or the last when all are ({o["nextAt"]})')
+
+# the house's path (D-150): the levels' places in order, then the places kept for later, only ever going right
+HJS = r"""
+const [houseUrl, levelsUrl] = process.argv.slice(1);
+const { SPOTS, FUTURE } = await import(houseUrl);
+const { LEVELS } = await import(levelsUrl);
+console.log(JSON.stringify(LEVELS.map((d) => SPOTS[d.spot]).concat(FUTURE)));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr)
+    check(False, 'node ran house.js')
+else:
+    pts = json.loads(r.stdout)
+    xs = [p[0] for p in pts]
+    check(all(b >= a for a, b in zip(xs, xs[1:])), f'the house\'s path through the levels and on to the places for later only goes right, never doubling back (D-150) ({xs})')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

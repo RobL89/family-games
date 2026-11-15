@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.33 · 2026-11-15 |
+| **Version** | 1.34 · 2026-11-15 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.34:** Hamster Highway's house path never doubles back (D-150): the bedroom is upstairs right; `test_hamster_highway_core.py` 1.2 checks it.
 
 **Changes at v1.33:** Hamster Highway step 2 (D-145, D-147, D-149): levels 4 and 5, its progress saved (on its own in `family-games:hamster-highway:progress`; in the wrapper with `fg:state`, through `games/_common/rocket/link.js`), the solver `solve_hamster_highway.py`, the core and browser tests at 1.1 and the bench at 1.1; `close.py` 1.15 and `test_close_pick.py` 1.9 treat `solve_` scripts as design tools.
 
@@ -168,6 +170,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.34 | 2026-11-15 | Hamster Highway's house path one way (D-150) |
 | 1.33 | 2026-11-15 | Hamster Highway step 2: levels 4 and 5, saving and the wrapper link, the level solver; `close.py` 1.15 |
 | 1.32 | 2026-11-15 | Hamster Highway renamed `hamster-highway` (D-146) |
 | 1.31 | 2026-11-15 | Hamster Highway's first build: its folder, tests and bench; `close.py` 1.13 |

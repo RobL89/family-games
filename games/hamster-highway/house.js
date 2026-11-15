@@ -1,4 +1,8 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.1.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.2.
+//
+// Changes at v1.2 (Rob's look at preview 2, D-150): the path through the levels never doubles back: the bedroom
+// is drawn upstairs on the right, above the living room, and the bathroom on the left, so the levels run
+// kitchen, pantry, living room, up to the bedroom, and out to the garden.
 //
 // Changes at v1.1 (step 2, D-145): level 4 by the living room's bookshelf (a hamster floats down to the sofa on a
 // dandelion) and level 5 at the bedroom's hamster cage (up its tube); both rooms drawn in full now. Five soft
@@ -17,7 +21,7 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [512, 300] };
+export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300] };
 // Places kept for levels 6 to 10, drawn softly without numbers.
 export const FUTURE = [[1420, 712], [1600, 712], [1862, 548], [2100, 724], [2322, 352]];
 
@@ -190,7 +194,8 @@ function marker(x, y, i, st) {
 
 // state: { levels: [{ spot, open, done, seed }], current: index of the level the hamster sits on }
 export function houseScene(state) {
-  let s = sky() + ground() + houseShell() + bedroom() + bathroom() + kitchen() + pantry() + living();
+  // the bedroom (drawn at x 70 to 650) goes upstairs right and the bathroom (660 to 1250) upstairs left (D-150)
+  let s = sky() + ground() + houseShell() + rect(655, 206, 600, 274, '#ECE7FF', 0, 0) + g(bedroom(), 'translate(590 0)') + g(bathroom(), 'translate(-590 0)') + kitchen() + pantry() + living();
   s += rect(60, 476, 1200, 16, '#C48A4C', 0, 3) + line(655, 206, 655, 476, INK, 8) + line(655, 492, 655, 780, INK, 8) + line(955, 492, 955, 780, INK, 8);
   s += rect(60, 196, 1200, 584, 'none', 0, 5);
   s += garden();
