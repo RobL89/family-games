@@ -1,4 +1,13 @@
-"""Sketches: Bridge & Ramp Builder (working name; working id bridge-builder). Version 0.1.
+"""Sketches: Bridge & Ramp Builder (working name; working id bridge-builder). Version 0.2.
+
+Changes at v0.2 (15 Nov, Rob: theme A, Hamster Highway (D-133); PC first, phone sideways (D-134); "Show
+me examples for item placing"; "If you were given more freedom on the gadget or level design what would
+you do? Make three suggestions on each."): a second page, sketches 2, now the default (--sketches 2):
+three ways to place gadgets, each as three steps on level 2 in Hamster Highway's style ((a) build
+spots, (b) anywhere it fits, (c) anywhere at all), then three gadget ideas and three level ideas. The
+board and the tray are drawn by board() and tray(), split out of scene() unchanged, so sketches 1
+(--sketches 1) builds as before, apart from its stamp. The walker model and its checks are unchanged;
+sketches 2 adds checks of option (b)'s rule on level 2.
 
 Rob, 15 Nov 2026, the new game's first chat: a retro-style puzzle game where the child places
 gadgets on a side-view grid in Build mode, then presses a big GO and a line of characters walks
@@ -28,21 +37,27 @@ A drop of one or two squares is fine; three or more is a funny fall (unless it c
 and off the bottom is a splash. A wall it can't get past leaves it stuck, and it fades. A tube
 carries it from one end of a chain of tube squares to the other.
 
-Writes index.html into the folder given (default /mnt/user-data/outputs/bridge-builder-sketches/),
+Writes index.html into the folder given (default /mnt/user-data/outputs/bridge-builder-sketches-N/),
 then checks the page in headless Chromium (a stand-in for the phone and PC): phone upright and
 sideways and PC, light and dark: no script errors, nothing fetched, no sideways scrolling, every
 drawing drawn; saves pictures to the folder's shots/.
 Usage, from the repo root:
-    python3 -B tools/tests/games/sketch_bridge_builder.py [out-folder]
+    python3 -B tools/tests/games/sketch_bridge_builder.py [out-folder] [--sketches 1|2]
 Exits 1 if a check fails.
 """
 import base64, math, os, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-OUT = sys.argv[1] if len(sys.argv) > 1 else '/mnt/user-data/outputs/bridge-builder-sketches'
+ARGS = sys.argv[1:]
+SKETCHES = 2
+if '--sketches' in ARGS:
+    i = ARGS.index('--sketches')
+    SKETCHES = int(ARGS[i + 1])
+    del ARGS[i:i + 2]
+OUT = ARGS[0] if ARGS else f'/mnt/user-data/outputs/bridge-builder-sketches-{SKETCHES}'
 os.makedirs(OUT, exist_ok=True)
-VERSION = '0.1'
+VERSION = '0.2'
 COMMIT = subprocess.check_output(['git', '-C', REPO, 'rev-parse', '--short', 'HEAD'], text=True).strip()
 
 INK, WHITE = '#1B1446', '#FFFFFF'
@@ -607,16 +622,43 @@ def icon(theme, kind, x, y, sc):
     return place(gadget(theme, kind), x, y + lift * sc, sc)
 
 
-def scene(T):
-    th, W, H = T['id'], COLS * CELL, ROWS * CELL
+def board(T, rows):
+    """The backdrop, blocks, water, start and home of a 12 x 7 level, in theme T."""
+    th = T['id']
     s = backdrop(th)
     for r in range(ROWS):
         for c in range(COLS):
-            if SAMPLE[r][c] == '#':
-                s += block(th, c, r, r == 0 or SAMPLE[r - 1][c] != '#')
+            if rows[r][c] == '#':
+                s += block(th, c, r, r == 0 or rows[r - 1][c] != '#')
             elif r == ROWS - 1:
                 s += pit(th, c, r)
-    s += place(start_art(th), 0, 5 * CELL, CELL / 100) + place(home_art(th), 11 * CELL, 5 * CELL, CELL / 100)
+    (sc, sr), (gc, gr) = [next((c, r) for r in range(ROWS) for c in range(COLS) if rows[r][c] == ch) for ch in 'SG']
+    return s + place(start_art(th), sc * CELL, sr * CELL, CELL / 100) + place(home_art(th), gc * CELL, gr * CELL, CELL / 100)
+
+
+def tray(T, counts, selected=None, H=ROWS * CELL):
+    """The tray under the board: the level map button, the five gadgets (dots = how many) and GO.
+    The selected gadget is lifted and ringed."""
+    th, W = T['id'], COLS * CELL
+    s = rect(0, H, W, 110, T['panel'], w=0) + line(0, H, W, H, INK, 3)
+    s += circle(46, H + 55, 30, T['slot'], w=3, stroke=T['slot_stroke'])
+    s += ''.join(rect(32 + 15 * dx, H + 41 + 15 * dy, 12, 12, SUN if (dx, dy) == (0, 0) else '#C9D3EA', rx=3, w=2) for dx in (0, 1) for dy in (0, 1))
+    for i, kind in enumerate(GADGET_ORDER):
+        x = 100 + 94 * i
+        n = counts[kind]
+        one = rect(x, H + 11, 84, 78, T['slot'], rx=14, w=3, stroke=T['slot_stroke'], extra='' if n else ' opacity="0.45"')
+        one += g(icon(th, kind, x + 17, H + 14, 0.5), extra='' if n else ' opacity="0.35"')
+        one += ''.join(circle(x + 42 + 13 * (j - (n - 1) / 2), H + 76, 4.5, SUN, w=2) for j in range(n))
+        if kind == selected:
+            one = rect(x - 5, H + 6, 94, 88, 'none', rx=18, w=5, stroke=SUN) + one
+            one = g(one, 'translate(0 -10)')
+        s += one
+    return s + go_button(578, H + 17)
+
+
+def scene(T):
+    th, W, H = T['id'], COLS * CELL, ROWS * CELL
+    s = board(T, SAMPLE)
     s += place(gadget(th, 'bridge', 2), 3 * CELL, 6 * CELL, CELL / 100)
     for (c, r), k in SAMPLE_GADGETS.items():
         if k != 'B':
@@ -630,17 +672,7 @@ def scene(T):
         s += place(hero('walk1'), 38 + 36 * i, 49, 0.34, op=1 if i == 0 else 0.3)
     s += star(48, 20, 7)
     s += circle(684, 32, 22, WHITE, w=2.5) + path('M 674 26 a 12 12 0 1 1 -1 12', w=3) + path('M 668 18 L 673 27 L 682 22', w=3)
-    s += rect(0, H, W, 110, T['panel'], w=0) + line(0, H, W, H, INK, 3)
-    s += circle(46, H + 55, 30, T['slot'], w=3, stroke=T['slot_stroke'])
-    s += ''.join(rect(32 + 15 * dx, H + 41 + 15 * dy, 12, 12, SUN if (dx, dy) == (0, 0) else '#C9D3EA', rx=3, w=2) for dx in (0, 1) for dy in (0, 1))
-    counts = {'bridge': 2, 'ramp': 1, 'spring': 1, 'float': 1, 'tube': 0}
-    for i, kind in enumerate(GADGET_ORDER):
-        x = 100 + 94 * i
-        n = counts[kind]
-        s += rect(x, H + 11, 84, 78, T['slot'], rx=14, w=3, stroke=T['slot_stroke'], extra='' if n else ' opacity="0.45"')
-        s += g(icon(th, kind, x + 17, H + 14, 0.5), extra='' if n else ' opacity="0.35"')
-        s += ''.join(circle(x + 42 + 13 * (j - (n - 1) / 2), H + 76, 4.5, SUN, w=2) for j in range(n))
-    s += go_button(578, H + 17)
+    s += tray(T, {'bridge': 2, 'ramp': 1, 'spring': 1, 'float': 1, 'tube': 0})
     return f'<svg viewBox="0 0 {W} {H + 110}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{T["title"]}: the sample level">{s}</svg>'
 
 
@@ -758,51 +790,34 @@ def level_svg(L):
     return f'<svg viewBox="-2 -2 {W + 4} {H + 4}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Level sketch: {L["name"]}">{s}</svg>', outcome, bad
 
 
-# ---------------------------------------------------------------- the page
+# ---------------------------------------------------------------- page 1: three themes (sketches 1, 15 Nov)
 font = base64.b64encode(open(os.path.join(REPO, 'games', '_common', 'fonts', 'fredoka-latin-700-normal.woff2'), 'rb').read()).decode()
-theme_html = ''
-for T in THEMES:
-    dl = ''.join(f'<dt>{a}</dt><dd>{b}</dd>' for a, b in T['rows'])
-    theme_html += (f'<section id="theme-{T["id"]}"><h2>{T["key"]}. {T["title"]}</h2><p class="pitch">{T["pitch"]}</p>'
-                   f'<figure class="scene">{scene(T)}<figcaption>The sample level just after GO: walkers on the bridge, the ramp, '
-                   f'the bouncer and the floater, and the first one home. The tray shows the level\'s gadgets as it starts '
-                   f'(dots = how many); the tube isn\'t in this level.</figcaption></figure>'
-                   f'<div class="row"><figure class="strip">{sprites(T)}<figcaption>The hero\'s poses</figcaption></figure>'
-                   f'<figure class="strip narrow">{gadget_strip(T)}<figcaption>The five gadgets</figcaption></figure></div>'
-                   f'<dl>{dl}</dl></section>')
-level_html = ''
-for i, L in enumerate(LEVELS, 1):
-    svg_, outcome, bad = level_svg(L)
-    tray = ', '.join(f'{n} {NAMES[KIND[k]]}{"s" if n > 1 else ""}' for k, n in
-                     sorted({v: list(L['sol'].values()).count(v) for v in L['sol'].values()}.items(), key=lambda kv: 'BRPUT'.index(kv[0])))
-    level_html += (f'<figure class="level">{svg_}<figcaption><b>{i}. {L["name"]}</b> · new: the {L["new"]} · tray: {tray} · '
-                   f'backdrop {L["back"]}<br>Without the {L["new"]}, {WITHOUT[bad]}.</figcaption></figure>')
-(up, side_, pc) = FIT
-fit_text = (f'The board is 12 × 7 squares. On the phone held upright it can only be {up[1]} px wide, so each square is about '
-            f'{up[7]:.0f} px: small for a child\'s finger (my judgement). Held sideways, with the tray down the side, each is about '
-            f'{side_[7]:.0f} px; on the PC about {pc[7]:.0f} px. Worked out here from the screen sizes Rocket Lander was checked at, '
-            f'less the wrapper\'s {BAR} px bar, with a {TRAY} px tray (my judgement).')
 
-html = f'''<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bridge &amp; Ramp Builder: three themes (sketches 1)</title>
-<style>
-@font-face {{ font-family: 'Fredoka'; font-weight: 700; src: url(data:font/woff2;base64,{font}) format('woff2'); }}
-:root {{ --bg: #F7F5FF; --fg: #1B1446; --mut: #5d5880; --card: #fff; }}
-@media (prefers-color-scheme: dark) {{ :root {{ --bg: #121027; --fg: #EDEBFF; --mut: #a9a5c9; --card: #1d1a3a; }} }}
-body {{ margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 16px/1.45 system-ui, sans-serif; }}
-h1 {{ font-size: 22px; margin: 0 0 4px; }} h2 {{ font-size: 20px; margin: 30px 0 2px; }}
-p, ul {{ margin: 0 0 10px; max-width: 70ch; }} ul {{ padding-left: 20px; }} .pitch {{ font-weight: 600; }}
-.stamp {{ color: var(--mut); font-size: 13px; }}
-.row {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-top: 12px; }}
-figure {{ margin: 0; background: var(--card); color: var(--fg); border-radius: 14px; padding: 8px; box-sizing: border-box; }}
-figure svg {{ display: block; width: 100%; height: auto; border-radius: 10px; }}
-figure.scene {{ max-width: 760px; }} figure.strip {{ flex: 1 1 340px; max-width: 560px; }} figure.strip.narrow {{ max-width: 460px; }}
-figure.level {{ flex: 1 1 300px; max-width: 420px; }} figure.fit {{ max-width: 760px; }}
-figcaption {{ font-size: 13px; color: var(--mut); margin-top: 6px; }}
-dl {{ margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 15px; max-width: 760px; }}
-dt {{ font-weight: 700; }} dd {{ margin: 0; }}
-</style></head><body>
+
+def page1():
+    theme_html = ''
+    for T in THEMES:
+        dl = ''.join(f'<dt>{a}</dt><dd>{b}</dd>' for a, b in T['rows'])
+        theme_html += (f'<section id="theme-{T["id"]}"><h2>{T["key"]}. {T["title"]}</h2><p class="pitch">{T["pitch"]}</p>'
+                       f'<figure class="scene">{scene(T)}<figcaption>The sample level just after GO: walkers on the bridge, the ramp, '
+                       f'the bouncer and the floater, and the first one home. The tray shows the level\'s gadgets as it starts '
+                       f'(dots = how many); the tube isn\'t in this level.</figcaption></figure>'
+                       f'<div class="row"><figure class="strip">{sprites(T)}<figcaption>The hero\'s poses</figcaption></figure>'
+                       f'<figure class="strip narrow">{gadget_strip(T)}<figcaption>The five gadgets</figcaption></figure></div>'
+                       f'<dl>{dl}</dl></section>')
+    level_html = ''
+    for i, L in enumerate(LEVELS, 1):
+        svg_, outcome, bad = level_svg(L)
+        tray_txt = ', '.join(f'{n} {NAMES[KIND[k]]}{"s" if n > 1 else ""}' for k, n in
+                             sorted({v: list(L['sol'].values()).count(v) for v in L['sol'].values()}.items(), key=lambda kv: 'BRPUT'.index(kv[0])))
+        level_html += (f'<figure class="level">{svg_}<figcaption><b>{i}. {L["name"]}</b> · new: the {L["new"]} · tray: {tray_txt} · '
+                       f'backdrop {L["back"]}<br>Without the {L["new"]}, {WITHOUT[bad]}.</figcaption></figure>')
+    (up, side_, pc) = FIT
+    fit_text = (f'The board is 12 × 7 squares. On the phone held upright it can only be {up[1]} px wide, so each square is about '
+                f'{up[7]:.0f} px: small for a child\'s finger (my judgement). Held sideways, with the tray down the side, each is about '
+                f'{side_[7]:.0f} px; on the PC about {pc[7]:.0f} px. Worked out here from the screen sizes Rocket Lander was checked at, '
+                f'less the wrapper\'s {BAR} px bar, with a {TRAY} px tray (my judgement).')
+    body = f'''
 <h1>Bridge &amp; Ramp Builder: three themes (sketches 1)</h1>
 <p class="stamp">Sketches, not the finished look. Original art throughout (D-010): it plays a little like Lemmings and Pipe Mania, but looks like neither. sketch_bridge_builder.py {VERSION} · built at {COMMIT} · draft, for Rob to choose from</p>
 <h2>How a level plays (proposed)</h2>
@@ -819,7 +834,294 @@ dt {{ font-weight: 700; }} dd {{ margin: 0; }}
 <p>Plain sketches, the same in any theme. Dashed squares are build spots, shown with the gadget that solves them; the green dots are the walkers' route; the red star is where they end up without the level's new gadget. Each was run through the proposed walker rules by this script.</p>
 <div class="row">{level_html}</div>
 <p><b>After level 5 (proposed):</b> mix them up, two or three gadgets at once; then spare spots and a spare gadget, so there's a choice to make; then taller levels with more platforms.</p></section>
-</body></html>'''
+'''
+    return 'Bridge &amp; Ramp Builder: three themes (sketches 1)', body, '', 3 * len(THEMES) + 1 + len(LEVELS)
+
+
+# ---------------------------------------------------------------- page 2: placing gadgets and six ideas (sketches 2, 15 Nov)
+HAM = THEMES[0]
+STEP = LEVELS[1]['rows']      # level 2, Step up: the gap at (3, 6), the step at (7, 5)
+SPOTS = [(3, 6), (7, 5)]
+GREEN, AMBER = '#2BB673', '#F0A51C'
+C0 = {'bridge': 1, 'ramp': 1, 'spring': 0, 'float': 0, 'tube': 0}
+
+
+def fits(rows, placed, kind):
+    """Option (b), anywhere it fits: a bridge over a gap in the ground (an empty square in the bottom
+    row); any other gadget on an empty square with ground or a placed bridge under it."""
+    out = []
+    for r in range(ROWS):
+        for c in range(COLS):
+            if rows[r][c] != '.' or (c, r) in placed:
+                continue
+            if kind == 'bridge':
+                ok = r == ROWS - 1
+            else:
+                ok = r + 1 < ROWS and (rows[r + 1][c] == '#' or placed.get((c, r + 1)) == 'B')
+            if ok:
+                out.append((c, r))
+    return out
+
+
+def marks_svg(cells, style):
+    s = ''
+    for c, r in cells:
+        x, y = c * CELL, r * CELL
+        if style == 'spot':
+            s += rect(x + 4, y + 4, CELL - 8, CELL - 8, 'rgba(255,201,60,0.3)', rx=10, w=3, stroke=AMBER, extra=' stroke-dasharray="8 6"')
+        else:
+            s += rect(x + 3, y + 3, CELL - 6, CELL - 6, 'rgba(255,246,199,0.8)', rx=8, w=2, stroke=AMBER)
+    return s
+
+
+def ghost(c, r, kind, ok):
+    x, y = c * CELL, r * CELL
+    col = GREEN if ok else CORAL
+    s = rect(x + 2, y + 2, CELL - 4, CELL - 4, col, rx=10, w=4, stroke=col, extra=' fill-opacity="0.16"')
+    s += place(gadget('hamster', kind), x, y, CELL / 100, op=0.6)
+    if not ok:
+        s += line(x + 40, y + 8, x + 54, y + 22, CORAL, 4.5) + line(x + 54, y + 8, x + 40, y + 22, CORAL, 4.5)
+    return s
+
+
+def pointer(x, y):
+    return path(f'M {x} {y} l 0 30 l 8 -7 l 6 13 l 6 -3 l -6 -12 l 10 0 z', WHITE, 2.4)
+
+
+def sparkle(c, r):
+    x, y = c * CELL, r * CELL
+    return star(x + 6, y + 8, 6) + star(x + 58, y + 4, 5) + star(x + 62, y + 40, 4) + circle(x + 2, y + 56, 4, '#EDEBFF', w=1.4, stroke='#B9B4D6')
+
+
+def frame(n, placed=None, counts=C0, selected=None, marks=(), ghost_=None, ptr=None, extra=''):
+    placed = placed or {}
+    s = board(HAM, STEP)
+    for (c, r), k in placed.items():
+        s += place(gadget('hamster', KIND[k]), c * CELL, r * CELL, CELL / 100)
+    for cells, style in marks:
+        s += marks_svg(cells, style)
+    if ghost_:
+        s += ghost(*ghost_)
+    s += extra + tray(HAM, counts, selected)
+    if ptr:
+        s += pointer(*ptr)
+    s += circle(32, 32, 22, WHITE, w=3) + text(32, 42, str(n), 26)
+    return f'<svg viewBox="0 0 720 530" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placing gadgets, step {n}">{s}</svg>'
+
+
+def less(counts, **k):
+    d = dict(counts)
+    d.update(k)
+    return d
+
+
+BRIDGED = {(3, 6): 'B'}
+RAMP_FITS = fits(STEP, BRIDGED, 'ramp')
+def options():
+    """Built only for sketches 2, so sketches 1's drawing ids stay as they were."""
+    return [
+        ('a', 'Build spots', 'The level marks a few squares, and any gadget can go in any spot. The simplest: few places to try, and every level is known to have an answer. The least to think about.', [
+            (frame(1, selected='ramp', marks=[(SPOTS, 'spot')], ptr=(240, 462)), 'Pick the ramp: the build spots glow.'),
+            (frame(2, selected='ramp', marks=[([(3, 6)], 'spot')], ghost_=(7, 5, 'ramp', True), ptr=(462, 344)), 'Drag it onto a spot, or click the spot.'),
+            (frame(3, placed={(7, 5): 'R'}, counts=less(C0, ramp=0), marks=[([(3, 6)], 'spot')], extra=sparkle(7, 5)), 'In it pops. Click it again to send it back.')]),
+        ('b', 'Anywhere it fits', 'Pick a gadget and every square where it can stand lights up: a bridge only over a gap, the others on any floor. More places to choose from, so more to work out (where exactly does the ramp go?), but no muddles like a ramp in mid-air.', [
+            (frame(1, selected='bridge', marks=[(fits(STEP, {}, 'bridge'), 'fit')], ptr=(146, 462)), 'Pick the bridge: only the gap lights up.'),
+            (frame(2, placed=BRIDGED, counts=less(C0, bridge=0), selected='ramp', marks=[(RAMP_FITS, 'fit')], ghost_=(5, 2, 'ramp', False), ptr=(342, 164)),
+             'Pick the ramp: every floor square lights up. In mid-air it turns red and won\'t go.'),
+            (frame(3, placed=BRIDGED, counts=less(C0, bridge=0), selected='ramp', marks=[([p for p in RAMP_FITS if p != (7, 5)], 'fit')], ghost_=(7, 5, 'ramp', True), ptr=(462, 344)),
+             'By the step it goes green: drop it there.')]),
+        ('c', 'Anywhere at all', 'Any empty square, with no glow. The most freedom, and the most muddles: a ramp floating in the air does nothing, and the child finds out only by pressing GO.', [
+            (frame(1, selected='ramp', ptr=(342, 164)), 'Pick the ramp: nothing lights up.'),
+            (frame(2, placed={(3, 6): 'B', (5, 2): 'R'}, counts=less(C0, bridge=0, ramp=0), extra=sparkle(5, 2)), 'It goes wherever it\'s dropped, even in mid-air.'),
+            (frame(3, placed={(3, 6): 'B', (5, 2): 'R'}, counts=less(C0, bridge=0, ramp=0),
+                   extra=place(hamster('stuck'), 396, 360, 0.56) + circle(430, 268, 16, WHITE, w=2.4) + text(430, 277, '?', 22)
+                   + place(hamster('walk1'), 250, 360, 0.56)), 'After GO: stuck at the step. Try again.')]),
+    ]
+
+
+def mini(rows):
+    """An 8-wide level corner in Hamster Highway's style: plain kitchen bands, blocks, water, start and home."""
+    H, W = len(rows) * CELL, len(rows[0]) * CELL
+    s = ''.join(rect(0, i * H / 4, W, H / 4 + 1, c, w=0) for i, c in enumerate(('#FFE9C7', '#FFE2BC', '#FFDAB0', '#FFD3A5')))
+    s += ''.join(line(0, y, W, y, '#F3C995', 1.4) for y in range(150, H, 30)) + ''.join(line(x, 150, x, H, '#F3C995', 1.4) for x in range(0, W, 30))
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch == '#':
+                s += block('hamster', c, r, r == 0 or rows[r - 1][c] != '#')
+            elif r == len(rows) - 1:
+                s += pit('hamster', c, r)
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch == 'S':
+                s += place(start_art('hamster'), c * CELL, r * CELL, CELL / 100)
+            if ch == 'G':
+                s += place(home_art('hamster'), c * CELL, r * CELL, CELL / 100)
+    return s, W, H
+
+
+def route(d, col=GREEN, op=1.0):
+    return path(d, w=3.2, stroke=col, extra=f' stroke-dasharray="0.1 8" opacity="{f(op)}"')
+
+
+def arrow_head(x, y, ang, col=GREEN):
+    a = math.radians(ang)
+    p1 = (x - 10 * math.cos(a - 0.5), y - 10 * math.sin(a - 0.5))
+    p2 = (x - 10 * math.cos(a + 0.5), y - 10 * math.sin(a + 0.5))
+    return path(f'M {f(p1[0])} {f(p1[1])} L {f(x)} {f(y)} L {f(p2[0])} {f(p2[1])}', w=3.2, stroke=col)
+
+
+def leftward(body):
+    return g(body, 'scale(-1 1)')
+
+
+def seed(x, y, sc=1.0):
+    return g(path('M 0 -14 C 10 -6 10 8 0 15 C -10 8 -10 -6 0 -14 Z', '#FFD45E', 2.4) + path('M 0 -9 L 0 10', w=1.8, stroke='#C77A0C'),
+             f'translate({f(x)} {f(y)}) scale({f(sc)})')
+
+
+def idea_svg(name, body, W, H):
+    return f'<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{name}">{body}</svg>'
+
+
+def idea_catapult():
+    s, W, H = mini(['........', '........', '........', 'S......G', '##....##'])
+    s += route('M 132 192 Q 262 -30 400 230')
+    s += rect(80, 218, 24, 22, '#C98F57', rx=4, w=2.4)
+    s += line(58, 238, 124, 198, INK, 12) + line(58, 238, 124, 198, '#E2A867', 7) + ellipse(132, 192, 16, 9, '#E2A867', rot=-32)
+    s += place(hamster('boing'), 262, 96, 0.56, rot=24) + text(262, 30, 'wheee!', 18, '#C77A0C')
+    s += place(hamster('home'), 386, 240, 0.56) + place(hamster('walk1'), 36, 240, 0.56)
+    return idea_svg('Spoon catapult', s, W, H)
+
+
+def idea_signpost():
+    s, W, H = mini(['........', 'S.......', '###.....', 'G.......', '########'])
+    s += route('M 70 108 L 200 108 L 214 222 L 430 222') + arrow_head(430, 222, 0)
+    s += route('M 430 234 L 70 234', '#C77A0C') + arrow_head(70, 234, 180, '#C77A0C')
+    s += line(452, 240, 452, 192, '#8B5A3C', 6) + path('M 424 200 L 436 186 L 474 186 L 474 212 L 436 212 Z', '#C98F57', 2.4)
+    s += place(hamster('walk2'), 214, 168, 0.56) + place(hamster('walk1'), 330, 240, 0.56)
+    s += place(leftward(hamster('walk1')), 410, 240, 0.56) + place(leftward(hamster('walk2')), 150, 240, 0.56)
+    return idea_svg('Twig signpost', s, W, H)
+
+
+def idea_wheel():
+    s, W, H = mini(['........', '........', '........', 'S......G', '####..##'])
+    s += line(150, 180, 118, 240, STEEL, 6) + line(150, 180, 182, 240, STEEL, 6)
+    s += circle(150, 168, 58, 'rgba(255,255,255,0.45)', w=4) + circle(150, 168, 48, 'none', w=2.4, stroke='#C9D3EA')
+    s += ''.join(line(150, 168, 150 + 48 * math.cos(a), 168 + 48 * math.sin(a), '#C9D3EA', 2) for a in [i * math.pi / 4 for i in range(8)])
+    s += place(hamster('walk2'), 150, 222, 0.5) + text(150, 98, 'whirr!', 16, '#C77A0C')
+    s += path('M 150 168 L 300 40 L 356 236', w=2, stroke='#8B5A3C', extra=' stroke-dasharray="5 4"') + circle(300, 40, 9, '#C9D3EA', w=2.4)
+    s += place(gadget('hamster', 'bridge', 2), 240, 240, CELL / 100)
+    s += place(hamster('walk1'), 296, 240, 0.56) + place(hamster('walk2'), 392, 240, 0.56) + place(hamster('walk1'), 54, 240, 0.56, op=0.9)
+    return idea_svg('Hamster wheel', s, W, H)
+
+
+def idea_seeds():
+    s, W, H = mini(['........', '........', '...###..', 'S......G', '########'])
+    s += route('M 64 232 L 400 232', '#9AA7C7')
+    s += route('M 150 220 C 150 40 180 30 196 108 L 350 108 L 364 222 L 400 222')
+    s += place(gadget('hamster', 'spring'), 120, 180, CELL / 100)
+    s += seed(272, 92, 1.2) + star(250, 70, 6, '#FFF2B0', 1.4) + star(296, 74, 5, '#FFF2B0', 1.4)
+    s += place(hamster('walk1'), 226, 120, 0.56) + place(hamster('walk2'), 290, 240, 0.56, op=0.55)
+    s += rect(10, 10, 92, 40, 'rgba(255,255,255,0.88)', rx=20, w=2.5) + seed(36, 30, 0.8) + seed(64, 30, 0.8) + g(seed(88, 30, 0.8), extra=' opacity="0.3"')
+    s += text(300, 274, 'easy way', 14, '#5A6C8C', weight=600, family='system-ui, sans-serif')
+    s += text(196, 24, 'seed way', 14, GREEN, weight=700, family='system-ui, sans-serif')
+    return idea_svg('Golden seeds', s, W, H)
+
+
+def idea_fixit():
+    s, W, H = mini(['........', '........', '......G.', 'S....###', '##.#####'])
+    s += place(gadget('hamster', 'ramp'), 120, 240, CELL / 100) + place(gadget('hamster', 'bridge'), 240, 227, CELL / 100)
+    s += place(hamster('stuck'), 270, 240, 0.56) + circle(300, 150, 16, WHITE, w=2.4) + text(300, 159, '?', 22)
+    s += path('M 150 236 C 160 120 250 120 262 214', w=3, stroke=AMBER, extra=' stroke-dasharray="7 6"') + arrow_head(262, 214, 80, AMBER) + arrow_head(150, 236, 95, AMBER)
+    s += text(206, 112, 'swap!', 16, '#C77A0C')
+    return idea_svg('Fix-it level', s, W, H)
+
+
+def idea_rooms():
+    W, H = 480, 300
+    s = rect(0, 0, W, H, '#DFF3FF', w=0) + rect(0, 250, W, 50, '#8BD48B', w=0) + line(0, 250, W, 250, INK, 2.4)
+    s += path('M 6 96 L 160 16 L 314 96 Z', '#E8505B') + rect(20, 96, 280, 154, '#FFE9C7', w=3) + line(20, 172, 300, 172, INK, 3)
+    s += text(160, 118, 'bookshelf (later)', 14, '#9AA7C7', weight=600, family='system-ui, sans-serif') + text(252, 192, 'kitchen', 14, '#8B5A3C', weight=700, family='system-ui, sans-serif')
+    s += text(400, 196, 'veg patch', 14, '#3E9B4F', weight=700, family='system-ui, sans-serif')
+    s += ''.join(ellipse(x, 262, 14, 6, '#8B5A3C', w=1.6) + path(f'M {x} 256 q -6 -10 -10 -6 m 10 6 q 6 -10 10 -6', w=1.8, stroke='#3E9B4F') for x in (330, 372, 414, 456))
+    pts = [(46, 228), (96, 214), (146, 228), (196, 214), (250, 228), (330, 230), (372, 212), (414, 230), (448, 212), (448, 160)]
+    s += path('M ' + ' L '.join(f'{x} {y}' for x, y in pts), w=3, stroke=AMBER, extra=' stroke-dasharray="2 7"')
+    s += ''.join(circle(x, y, 13, SUN if i < 3 else WHITE, w=2.4) + text(x, y + 5, str(i + 1), 13, INK) for i, (x, y) in enumerate(pts))
+    s += ''.join(circle(x, 148, 9, '#EDEBFF', w=2, stroke='#9AA7C7') for x in (80, 130, 180, 230))
+    s += place(hamster('home'), 146, 214, 0.36) + seed(108, 240, 0.6) + seed(372, 236, 0.6)
+    s += path('M 404 120 L 470 120', w=2, stroke=INK) + ''.join(path(f'M {x} 120 l 6 12 l 6 -12 z', c, 1.6) for x, c in ((408, CORAL), (424, SUN), (440, MINT), (456, LILAC)))
+    s += rect(430, 136, 36, 14, PINK, rx=4, w=2) + star(448, 132, 5)
+    return idea_svg('Rooms with a story', s, W, H)
+
+
+GADGET_IDEAS = [
+    ('Spoon catapult', idea_catapult, 'A wooden spoon on a cork. A hamster that steps on it is flung in an arc across a wide gap, landing three squares on. The bouncer goes up; the spoon goes across, so it crosses gaps too wide for the bridges in the tray.', 'judging how far', 'v1.1'),
+    ('Twig signpost', idea_signpost, 'A little arrow sign: a hamster that reaches it turns round and walks the other way. Home can then be behind or under the start, and later levels can zig-zag up the bookshelf.', 'left and right, and a route that turns back', 'v1.1'),
+    ('Hamster wheel', idea_wheel, 'The first hamster to reach it hops in and runs. While it runs, it lowers a drawbridge (or lifts a teacup lift) somewhere else; the rest cross, and the runner follows the last one home.', 'cause and effect: one thing making another happen', 'later: it ends the rule that every hamster does the same'),
+]
+LEVEL_IDEAS = [
+    ('Golden seeds', idea_seeds, 'A shiny seed on a harder route. Every level can still be finished the easy way; the seed is a reason for a second go, and the level map shows where seeds are still hidden.', 'more than one way works, and trying again on purpose', 'v1: no new rule'),
+    ('Fix-it levels', idea_fixit, 'The gadgets are already out, but two are in the wrong places. Press GO, watch what goes wrong, then swap them.', 'spotting a mistake and putting it right (the start of debugging)', 'v1: one or two of the 10 levels'),
+    ('Rooms with a story', idea_rooms, 'The levels sit on a map of the house: the kitchen worktop, then the veg patch, each room ending in a bigger level that uses everything so far, and a seed party. New rooms later bring new gadgets.', 'nothing new on its own: it gives the 10 levels a journey and a reason to go on', 'v1: it is the level map'),
+]
+
+
+def page2():
+    opts = ''
+    for key, name, pitch, frames in options():
+        figs = ''.join(f'<figure class="frame">{svg_}<figcaption>{cap}</figcaption></figure>' for svg_, cap in frames)
+        opts += f'<section id="placing-{key}"><h3>({key}) {name}</h3><p>{pitch}</p><div class="row">{figs}</div></section>'
+
+    def ideas(lst):
+        return ''.join(f'<figure class="idea">{fn()}<figcaption><b>{i}. {name}.</b> {pitch} <b>Teaches:</b> {teach}. <b>Band:</b> {band} (proposed).</figcaption></figure>'
+                       for i, (name, fn, pitch, teach, band) in enumerate(lst, 1))
+    body = f'''
+<h1>Hamster Highway: placing gadgets, and six ideas (sketches 2)</h1>
+<p class="stamp">Sketches, not the finished look; original art (D-010). sketch_bridge_builder.py {VERSION} · built at {COMMIT} · draft, for Rob to choose from</p>
+<p><b>Decided so far:</b> the Hamster Highway theme (D-133); built for the PC first, playable on a phone held sideways (D-134); the next game we make (D-135); the five first levels, with up to 10 in all after the trial (D-136).</p>
+<h2>Placing gadgets: three ways</h2>
+<p>All three on level 2, Step up, which needs a bridge over the gap and a ramp up the step. On the PC: drag a gadget from the tray, or click it and then click the square. On a phone: tap, then tap. Clicking or tapping a placed gadget sends it back to the tray.</p>
+{opts}
+<p><b>Claude's pick: (b), anywhere it fits</b> (my judgement). With a mouse, exact drops are easy; it asks more of the child than spots, yet still steers away from muddles. The first levels can stay simple by having only one or two squares that fit.</p>
+<h2>With more freedom: three gadgets</h2>
+<div class="row">{ideas(GADGET_IDEAS)}</div>
+<p>Also thought of: a toy car that jumps off the end of a ramp, a desk fan that blows floaters sideways, and a teacup lift.</p>
+<h2>…and three level ideas</h2>
+<div class="row">{ideas(LEVEL_IDEAS)}</div>
+'''
+    css = ('h3 {{ font-size: 18px; margin: 22px 0 2px; }} figure.frame {{ flex: 1 1 280px; max-width: 380px; }} '
+           'figure.idea {{ flex: 1 1 300px; max-width: 480px; }}').replace('{{', '{').replace('}}', '}')
+    return 'Hamster Highway: placing gadgets, and six ideas (sketches 2)', body, css, 3 * 3 + len(GADGET_IDEAS) + len(LEVEL_IDEAS)
+
+
+if SKETCHES == 2:
+    check(fits(STEP, {}, 'bridge') == [(3, 6)], 'sketches 2: in option (b) the bridge fits only over the gap (3,6)')
+    check((7, 5) in RAMP_FITS and (5, 2) not in RAMP_FITS, 'sketches 2: in option (b) the ramp fits by the step, not in mid-air')
+    check(walk(STEP, {(3, 6): 'B', (7, 5): 'R'})[0] == 'home', 'sketches 2: level 2 is solved with the ramp by the step')
+    check(walk(STEP, {(3, 6): 'B', (5, 2): 'R'})[0] == 'stuck', 'sketches 2: with the ramp in mid-air they get stuck at the step')
+    check(walk(STEP, {})[0] != 'home', 'sketches 2: level 2 needs its gadgets')
+TITLE, BODY, EXTRA_CSS, N_SVG = (page1 if SKETCHES == 1 else page2)()
+
+html = f'''<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{TITLE}</title>
+<style>
+@font-face {{ font-family: 'Fredoka'; font-weight: 700; src: url(data:font/woff2;base64,{font}) format('woff2'); }}
+:root {{ --bg: #F7F5FF; --fg: #1B1446; --mut: #5d5880; --card: #fff; }}
+@media (prefers-color-scheme: dark) {{ :root {{ --bg: #121027; --fg: #EDEBFF; --mut: #a9a5c9; --card: #1d1a3a; }} }}
+body {{ margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 16px/1.45 system-ui, sans-serif; }}
+h1 {{ font-size: 22px; margin: 0 0 4px; }} h2 {{ font-size: 20px; margin: 30px 0 2px; }}
+p, ul {{ margin: 0 0 10px; max-width: 70ch; }} ul {{ padding-left: 20px; }} .pitch {{ font-weight: 600; }}
+.stamp {{ color: var(--mut); font-size: 13px; }}
+.row {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-top: 12px; }}
+figure {{ margin: 0; background: var(--card); color: var(--fg); border-radius: 14px; padding: 8px; box-sizing: border-box; }}
+figure svg {{ display: block; width: 100%; height: auto; border-radius: 10px; }}
+figure.scene {{ max-width: 760px; }} figure.strip {{ flex: 1 1 340px; max-width: 560px; }} figure.strip.narrow {{ max-width: 460px; }}
+figure.level {{ flex: 1 1 300px; max-width: 420px; }} figure.fit {{ max-width: 760px; }}
+figcaption {{ font-size: 13px; color: var(--mut); margin-top: 6px; }}
+dl {{ margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 15px; max-width: 760px; }}
+dt {{ font-weight: 700; }} dd {{ margin: 0; }}
+{EXTRA_CSS}</style></head><body>{BODY}</body></html>'''
 page = os.path.join(OUT, 'index.html')
 with open(page, 'w', encoding='utf-8') as fh:
     fh.write(html)
@@ -831,7 +1133,6 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 SHOTS = os.path.join(OUT, 'shots')
 os.makedirs(SHOTS, exist_ok=True)
 url = 'file://' + page
-N_SVG = 3 * len(THEMES) + 1 + len(LEVELS)
 with sync_playwright() as pw:
     br = pw.chromium.launch()
     for w, h, scheme in ((390, 844, 'light'), (844, 390, 'light'), (1280, 800, 'light'), (390, 844, 'dark'), (844, 390, 'dark'), (1280, 800, 'dark')):
