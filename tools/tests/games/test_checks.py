@@ -1,6 +1,9 @@
 """Tests for P-034 (Kids Games Development)'s checks: repo_check, doc_check and
-pins_check. Version 1.3.
+pins_check. Version 1.4.
 
+Changes at v1.4 (ER-011, D-162): a case with a real origin, where main and the pinned branch are the same
+commit: pins_check --fetch must leave main's fetched history as deep as it was (before the fix it cut main
+to 1 commit, so the next repo check counted P-020's merged commits as P-034's).
 Changes at v1.3 (D-122): the doc check no longer checks games.json, P-020's file since D-113, so its
 seven games.json cases give way to one: P-020's statuses, an artifact game's folder and a broken file
 all pass the doc check.
@@ -251,6 +254,42 @@ def case_pins_drift(repo):
 def case_pins_drift_unreadable(repo):
     sh(repo, 'git', 'update-ref', '-d', 'refs/remotes/origin/work')
     return check(repo, 'pins_check.py')[0] == 1
+
+
+def case_pins_fetch_keeps_main_deep(repo):
+    # ER-011: a real origin (file://, so depth is honoured) whose main has 5 commits and whose
+    # pinned branch (work) is the same commit as main, as on GitHub since P-020 publishes.
+    origin = tempfile.mkdtemp(prefix='p034-origin-')
+    clone = tempfile.mkdtemp(prefix='p034-clone-')
+    try:
+        sh(origin, 'git', 'init', '-q', '-b', 'main')
+        sh(origin, 'git', 'config', 'user.email', 'test@example.invalid')
+        sh(origin, 'git', 'config', 'user.name', 'Test')
+        for i in range(5):
+            write(origin, 'docs/game-contract.md', f'contract {i}\n'); commit(origin, f'c{i}')
+        sh(origin, 'git', 'branch', 'work')
+        blob = subprocess.run(['git', 'rev-parse', 'HEAD:docs/game-contract.md'], cwd=origin,
+                              capture_output=True, text=True).stdout.strip()
+        url = 'file://' + origin
+        sh(clone, 'git', 'clone', '-q', '--depth', '1', url, '.')
+        sh(clone, 'git', 'fetch', '-q', '--depth=500', 'origin', '+refs/heads/main:refs/remotes/origin/main')
+        def count():
+            return int(subprocess.run(['git', 'rev-list', '--count', 'origin/main'], cwd=clone,
+                                      capture_output=True, text=True).stdout.strip())
+        before = count()
+        pins = {'format': 1, 'frozen': [],
+                'drift': [{'name': 'contract', 'branch': 'work', 'path': 'docs/game-contract.md',
+                           'object': blob, 'pinned_at': 'test'}]}
+        write(clone, 'tools/tests/games/pins.json', json.dumps(pins, indent=1))
+        code, out = check(clone, 'pins_check.py', ('--fetch',))
+        after = count()
+        if code != 0 or before != 5 or after != before:
+            print(f'    pins --fetch: exit {code}, origin/main {before} commits before, {after} after')
+            return False
+        return True
+    finally:
+        shutil.rmtree(origin, ignore_errors=True)
+        shutil.rmtree(clone, ignore_errors=True)
 
 
 CASES = [(n[5:], f) for n, f in sorted(globals().items()) if n.startswith('case_')]

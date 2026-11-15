@@ -1,4 +1,9 @@
-"""Pins check for P-034 (Kids Games Development). Version 1.0.
+"""Pins check for P-034 (Kids Games Development). Version 1.1.
+
+Changes at v1.1 (ER-011, D-162): --fetch fetches each pinned branch 500 deep, not 1. When a pinned
+branch (work) is the same commit as main, a 1-deep fetch marked that commit shallow and cut main's
+fetched history to 1 commit, so the next repo check without a fresh fetch counted P-020's merged
+commits as P-034's.
 
 Reads tools/tests/games/pins.json and checks:
 - frozen: each file is byte for byte as pinned (sha256), e.g. Rob's wife's
@@ -10,7 +15,7 @@ Reads tools/tests/games/pins.json and checks:
 
 Usage, from the repo root:
     python3 -B tools/tests/games/pins_check.py [--repo .] [--fetch]
---fetch first fetches each pinned branch from origin (depth 1).
+--fetch first fetches each pinned branch from origin (500 deep, never shallower: ER-011).
 Exit 0 pass, 1 fail.
 """
 import argparse
@@ -51,7 +56,7 @@ def main(argv=None):
     branches = sorted({d['branch'] for d in pins.get('drift', [])})
     if a.fetch:
         for b in branches:
-            code, _, err = git(a.repo, 'fetch', '--depth=1', 'origin', f'+refs/heads/{b}:refs/remotes/origin/{b}')
+            code, _, err = git(a.repo, 'fetch', '--depth=500', 'origin', f'+refs/heads/{b}:refs/remotes/origin/{b}')
             if code != 0:
                 errs.append(f'drift: cannot fetch {b}: {err}')
     for d in pins.get('drift', []):
