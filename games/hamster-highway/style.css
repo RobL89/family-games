@@ -1,0 +1,106 @@
+/* Hamster Highway. Version 1.1 (step 3: a worn stick's snap, at the end). The colours are the mock-ups' (tools/tests/games/sketch_bridge_builder.py, theme A). */
+:root { --ink: #1B1446; --cream: #FFF8EE; --wall: #FFE2BC; --go: #3CC864; --amber: #F0A51C; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall); color: var(--ink);
+  font-family: Fredoka, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.stage { position: fixed; inset: 0; }
+.screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.screen[hidden] { display: none; }
+button { font: inherit; color: inherit; }
+.round { width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--ink); background: var(--cream); padding: 6px; cursor: pointer;
+  box-shadow: 0 4px 0 rgba(27, 20, 70, .25); }
+.round svg { width: 100%; height: 100%; display: block; }
+.round:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(27, 20, 70, .25); }
+
+/* the title card (GC6: a Play button on the first screen) */
+.title { flex-direction: column; gap: 3vh; background: linear-gradient(#FFE9C7, #FFD3A5); }
+.title-art { width: min(92vw, 120vh); max-height: 68vh; }
+.play { width: min(26vh, 130px); height: min(26vh, 130px); border-radius: 50%; border: 5px solid var(--ink); background: var(--go);
+  box-shadow: 0 7px 0 #25994A; cursor: pointer; animation: pulse 1.6s ease-in-out infinite; padding: 10px; }
+.play svg { width: 100%; height: 100%; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* the house and garden (D-140) */
+.house { background: #CDEEFF; }
+.house-scroll { position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; overscroll-behavior: contain; }
+#house-svg { display: block; height: 100%; }
+.house-hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+.house-hud > * { pointer-events: auto; }
+.pill { display: flex; gap: 2px; align-items: center; padding: 4px 10px; border: 3px solid var(--ink); border-radius: 999px; background: rgba(255, 248, 238, .92); }
+.pill svg { width: 28px; height: 34px; display: block; }
+
+/* a level */
+.level { background: var(--wall); }
+#board { display: block; touch-action: none; }
+.party { position: absolute; left: 0; right: 0; bottom: 6%; display: flex; justify-content: center; gap: 22px; }
+.party[hidden] { display: none; }
+.round.big { width: 84px; height: 84px; padding: 12px; border-width: 4px; }
+.round.next { background: var(--go); animation: pulse 1.4s ease-in-out infinite; }
+.turn { position: absolute; top: 8px; right: 8px; width: 96px; height: 96px; border: 3px solid var(--ink); border-radius: 22px; background: rgba(255, 248, 238, .95); padding: 4px; }
+.turn[hidden] { display: none; }
+.turn svg { width: 100%; height: 100%; }
+.tilt { transform-box: fill-box; transform-origin: center; animation: tilt 2.4s ease-in-out infinite; }
+@keyframes tilt { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+
+/* small moving things in the drawings (D-141) */
+svg .poke, svg [data-level], svg .slot, svg .btn, svg [data-placed], svg [data-walker] { cursor: pointer; }
+.poke, .bob, .mallow, .drop, .dance, .flutter, .twinkle, .eyes, .dizzy, .puff, .glow, .shake, .wobble, .hop, .squish, .spin, .wink, .rise, .pop, .confetti, .wave, .cloud, .bird, .sunset, .peek, .tiny-hop {
+  transform-box: fill-box; transform-origin: 50% 100%; }
+.eyes, .dizzy, .puff, .twinkle, .spin, .glow, .pop, .confetti { transform-origin: 50% 50%; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.bob { animation: bob 1.8s ease-in-out infinite; }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+.eyes { animation: blink 4.6s infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .65; transform: scale(.86); } }
+.twinkle { animation: twinkle 1.4s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-6px); } }
+.wave { animation: wave 2.4s ease-in-out infinite; }
+@keyframes drift { from { transform: translateX(0); } to { transform: translateX(70px); } }
+.cloud { animation: drift 16s ease-in-out infinite alternate; }
+@keyframes puff { 0% { transform: translateY(0) scale(.6); opacity: .9; } 100% { transform: translateY(-70px) scale(1.5); opacity: 0; } }
+.puff { animation: puff 3s linear infinite; }
+.p1 { animation-delay: 1s; } .p2 { animation-delay: 2s; }
+@keyframes glow { 0%, 100% { opacity: .2; transform: scale(.95); } 50% { opacity: .6; transform: scale(1.05); } }
+.glow { animation: glow 1.8s ease-in-out infinite; }
+@keyframes flutter { from { transform: scaleX(1); } to { transform: scaleX(.3); } }
+.flutter { animation: flutter .3s ease-in-out infinite alternate; transform-origin: 50% 50%; }
+.f2 { animation-duration: .4s; }
+@keyframes sunset { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+.sunset { animation: sunset 9s ease-in-out infinite; }
+@keyframes bird { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, -6px); } }
+.bird { animation: bird 7s ease-in-out infinite; }
+@keyframes dizzy { to { transform: rotate(360deg); } }
+.dizzy { animation: dizzy 1.1s linear infinite; }
+
+/* answers to a tap */
+@keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 75% { transform: rotate(10deg); } }
+.wobble { animation: wobble .45s ease-in-out 2; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-22px); } }
+.hop { animation: hop .5s ease-out; }
+.tiny-hop { animation: hop .4s ease-out; }
+@keyframes squish { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.25, .65); } 65% { transform: scale(.9, 1.15); } }
+.squish { animation: squish .45s ease-out; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .7s ease-in-out; }
+@keyframes wink { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.15); } }
+.wink .sun-eyes { transform-box: fill-box; transform-origin: center; animation: wink .5s ease-in-out; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+.shake { animation: shake .35s ease-in-out; transform-origin: 50% 50%; }
+@keyframes drop { 0% { transform: translateY(-30px) scale(.8); opacity: 0; } 60% { transform: translateY(0) scale(1.08, .92); opacity: 1; } 100% { transform: none; } }
+.drop { animation: drop .32s ease-out; }
+@keyframes rise { to { transform: translateY(-46px); opacity: 0; } }
+.rise { animation: rise .9s ease-out forwards; }
+@keyframes pop { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+.pop { animation: pop .6s ease-out forwards; }
+@keyframes dance { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-16px) rotate(6deg); } }
+.dance { animation: dance .5s ease-in-out infinite; }
+@keyframes confetti { from { transform: translate(0, 0) rotate(0); opacity: 1; } to { transform: translate(var(--dx), 470px) rotate(var(--rot)); opacity: .9; } }
+.confetti { animation: confetti var(--t) linear var(--d) both; }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-4deg); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } }
+.btn.go.ready { transform-box: fill-box; transform-origin: 50% 50%; animation: wiggle 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cloud, .bird, .puff, .flutter, .sunset, .wave { animation: none; } }
+
+/* a worn stick snapping (game.js 1.3, D-143): its halves tip and fall away */
+@keyframes snapL { to { transform: translate(-14px, 150px) rotate(-55deg); opacity: 0; } }
+@keyframes snapR { to { transform: translate(14px, 150px) rotate(55deg); opacity: 0; } }
+.snapL, .snapR { transform-box: fill-box; transform-origin: center; animation: snapL 1.1s ease-in forwards; }
+.snapR { animation-name: snapR; }
