@@ -1,4 +1,9 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.5 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.6 (15 Nov).
+
+Changes at v1.6 (step 4, D-157): the teacup lift with two cups on the one-cup test board, worked out by hand
+before core.js 1.3: where the second cup is, that one is stopped at each end at once, who rides which cup and
+when, the run's length (96 ticks against one cup's 171), a hamster just too late for one cup taking the other,
+and the cups a lift may have (1 or 2).
 
 Changes at v1.5 (step 4, D-156, D-158): wider boards (12 to 24 squares, each level its own) and the see-saw on
 level 8's board, worked out by hand before core.js 1.2: who waits, when it tips, who it carries, the ends of all
@@ -597,6 +602,65 @@ else:
     check(o['bare'] == ['splash'] * 5, f'without the see-saw, they drop into the gap ({o["bare"]})')
     check(o['again'], 'see-saw: the same build always gives the same run')
     check(o['walk'] == 'stuck', f'walk() (one hamster, time standing still): waits at the high end, then naps ({o["walk"]})')
+
+# the teacup lift with two cups (D-157): a lift part may say cups: 2 (1 if it says nothing): two cups on one loop,
+# half a loop apart, so one goes up as the other comes down; still one hamster a cup. Worked out by hand (15 Nov,
+# step 4) on the one-cup test board above (lift at c 5, top 2, bottom 5: a loop of 30 ticks, half a loop 15),
+# before core.js 1.3:
+#   - cup 1 is half a loop on from cup 0: at ticks 0, 6, 10.5, 15, 21, 30 its row is 2, 2, 3.5, 5, 5, 2; the two cups
+#     pass at row 3.5 at tick 10.5; whenever one is stopped, the other is stopped at the other end;
+#   - the first hamster reaches the edge at 8 (four walks), cup 1 comes down to the bottom at 15: on at 15, waits
+#     to 21, rides 21 to 30, three walks home by 36; then a cup every 15 ticks: on at 15, 30, 45, 60, 75 (cups 1, 0,
+#     1, 0, 1), home at 36, 51, 66, 81, 96; the run lasts 96 ticks (19.2 s at 0.2 s a tick, against one cup's 34.2 s);
+#   - a lone hamster at the edge one tick before cup 0 leaves (tick 5) waits for cup 1, on at 15;
+#   - a lift with 0 or 3 cups is refused.
+CJS = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const ROWS = ['............', '........G...', '......######', '......######', 'S.....######', '#####.######', '############'];
+const TWO = { kind: 'lift', c: 5, top: 2, bottom: 5, cups: 2 };
+const lv = core.parseLevel({ id: 'lift2', tray: {}, parts: [TWO], rows: ROWS });
+const p = lv.parts[0];
+const ends = [];
+for (let t = 0; t < 30; t++) { const a = core.cupStop(p, t, 0); const b = core.cupStop(p, t, 1); ends.push([a ? a.end : null, b ? b.end : null]); }
+const res = core.run(lv, {});
+const late = core.parseLevel({ id: 'late2', tray: {}, parts: [TWO], rows: ROWS.map((row, r) => (r === 3 ? '..S...######' : r === 4 ? '......######' : row)) });
+const refuse = (cups) => { try { core.parseLevel({ id: 'bad', tray: {}, parts: [{ ...TWO, cups }], rows: ROWS }); return 'parsed'; } catch (e) { return e.message; } };
+console.log(JSON.stringify({
+  cups: [p.cups, core.parseLevel({ id: 'one', tray: {}, parts: [{ kind: 'lift', c: 5, top: 2, bottom: 5 }], rows: ROWS }).parts[0].cups],
+  cup1: [0, 6, 10.5, 15, 21, 30].map((t) => core.cupRow(p, t, 1)), cup0: core.cupRow(p, 10.5, 0), cup0at0: core.cupRow(p, 0),
+  ends,
+  out: res.hamsters.map((h) => h.outcome), end: res.hamsters.map((h) => h.end), ticks: res.ticks,
+  on: res.hamsters.map((h) => { const s = h.steps.find((st) => st.c === 5); return s ? s.t0 : null; }),
+  rides: res.hamsters.map((h) => [...new Set(h.steps.filter((s) => s.act === 'ride').map((s) => s.cup))]),
+  spans: res.hamsters.map((h) => { const r = h.steps.filter((s) => s.act === 'ride'); return r.length ? [r[0].cup, r[0].t0, r[r.length - 1].t1] : null; }),
+  late: core.run(late, {}, 1).hamsters.map((h) => [h.outcome, h.steps.find((s) => s.c === 5).t0]),
+  again: JSON.stringify(core.run(lv, {})) === JSON.stringify(res),
+  refuse: [refuse(0), refuse(3), refuse(1.5), refuse(1), refuse(2)],
+}));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', CJS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-2000:], r.stderr[-2000:])
+    check(False, 'node ran the teacup lift with two cups')
+else:
+    o = json.loads(r.stdout)
+    check(o['cups'] == [2, 1], f'a lift part has the cups it says, 1 if it says nothing ({o["cups"]})')
+    check(o['cup1'] == [2, 2, 3.5, 5, 5, 2] and o['cup0'] == 3.5 and o['cup0at0'] == 5,
+          f'two cups: cup 1 is half a loop on (rows 2, 2, 3.5, 5, 5, 2 at ticks 0, 6, 10.5, 15, 21, 30); they pass at 3.5 at 10.5; cup 0 alone is as before ({o["cup1"]}, {o["cup0"]}, {o["cup0at0"]})')
+    pairs = {tuple(x) for x in o['ends']}
+    check(pairs == {('bottom', 'top'), ('top', 'bottom'), (None, None)}, f'two cups: whenever one is stopped, the other is stopped at the other end ({sorted(pairs, key=str)})')
+    check(o['out'] == ['home'] * 5 and o['on'] == [15, 30, 45, 60, 75] and o['end'] == [36, 51, 66, 81, 96],
+          f'two cups: all five home; on at 15, 30, 45, 60, 75, home at 36, 51, 66, 81, 96, by hand ({o["out"]}, {o["on"]}, {o["end"]})')
+    check(o['rides'] == [[1], [0], [1], [0], [1]], f'two cups: each hamster rides one cup, the cups taking turns, 1, 0, 1, 0, 1 ({o["rides"]})')
+    sp = [s for s in o['spans'] if s]
+    clash = [(a, b) for a in sp for b in sp if a is not b and a[0] == b[0] and a[1] < b[2] and b[1] < a[2]]
+    check(len(sp) == 5 and not clash, f'two cups: never two hamsters on one cup at once ({o["spans"]})')
+    check(o['ticks'] == 96, f'two cups: the run lasts 96 ticks (19.2 s; one cup 171, 34.2 s) ({o["ticks"]})')
+    check(o['late'] == [['home', 15]], f'two cups: a hamster at the edge one tick before cup 0 leaves takes cup 1 at 15 ({o["late"]})')
+    check(o['again'], 'two cups: the same build always gives the same run')
+    rf = o['refuse']
+    check(all('part' in x for x in rf[:3]) and rf[3:] == ['parsed', 'parsed'], f'parseLevel takes a lift of 1 or 2 cups and refuses 0, 3 or 1.5 ({rf})')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

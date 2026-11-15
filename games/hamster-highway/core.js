@@ -1,4 +1,9 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.2.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.3.
+//
+// Changes at v1.3 (step 4, D-157): a teacup lift may have two cups on its loop ({ kind: 'lift', c, top, bottom,
+// cups: 2 }; 1 if it says nothing), half a loop apart, so one goes up as the other comes down; still one hamster a
+// cup. cupRow(p, t, k) and cupStop(p, t, k) give cup k's place; a hamster boards whichever empty cup is stopped at
+// its end, and its 'ride' steps say which (cup).
 //
 // Changes at v1.2 (step 4, D-156, D-158): boards may be 12 to 24 squares wide (MAX_COLS), each level its own width,
 // read from its rows (level.cols); 7 tall as before. And the see-saw, a part ({ kind: 'seesaw', c, r }): a plank over
@@ -90,32 +95,36 @@ export function parseLevel(def) {
       parts.push({ kind: 'seesaw', c: p.c, r: p.r });
       continue;
     }
-    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < cols && p.top >= 1 && p.bottom < ROWS && p.top < p.bottom;
+    const cups = p && p.cups === undefined ? 1 : p && p.cups;
+    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < cols && p.top >= 1 && p.bottom < ROWS && p.top < p.bottom
+      && (cups === 1 || cups === 2);
     if (!ok) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
     for (let r = p.top - 1; r <= p.bottom; r++) {
       if (rows[r][p.c] !== '.') throw new Error(`level ${def.id}: the lift part's shaft must be clear at ${p.c},${r}`);
       shaft.add(key(p.c, r));
     }
-    parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom });
+    parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom, cups });
   }
   return { id: def.id, rows, cols, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space };
 }
 
 // A teacup lift's loop: stopped at the bottom for LIFT_STOP ticks, up a row every LIFT_MOVE, stopped at the top,
-// down again. cupRow is the row the cup is the floor of at tick t (between two rows while it moves); cupStop says
-// which end it is stopped at, and the tick it leaves, or null while it moves.
+// down again. cupRow is the row cup k is the floor of at tick t (between two rows while it moves); cupStop says
+// which end it is stopped at, and the tick it leaves, or null while it moves. Cup 0 starts at the bottom; a second
+// cup (k 1) is half a loop on, at the top (D-157).
 const loop = (p) => { const run = (p.bottom - p.top) * LIFT_MOVE; return { run, all: 2 * (LIFT_STOP + run) }; };
-export function cupRow(p, t) {
-  const { run, all } = loop(p);
-  const u = ((t % all) + all) % all;
+const phase = (p, t, k) => { const { all } = loop(p); const u = t + (k * all) / 2; return ((u % all) + all) % all; };
+export function cupRow(p, t, k = 0) {
+  const { run } = loop(p);
+  const u = phase(p, t, k);
   if (u < LIFT_STOP) return p.bottom;
   if (u < LIFT_STOP + run) return p.bottom - (u - LIFT_STOP) / LIFT_MOVE;
   if (u < 2 * LIFT_STOP + run) return p.top;
   return p.top + (u - 2 * LIFT_STOP - run) / LIFT_MOVE;
 }
-export function cupStop(p, t) {
-  const { run, all } = loop(p);
-  const u = ((t % all) + all) % all;
+export function cupStop(p, t, k = 0) {
+  const { run } = loop(p);
+  const u = phase(p, t, k);
   if (u < LIFT_STOP) return { end: 'bottom', leaves: t - u + LIFT_STOP };
   if (u >= LIFT_STOP + run && u < 2 * LIFT_STOP + run) return { end: 'top', leaves: t - u + 2 * LIFT_STOP + run };
   return null;
@@ -173,7 +182,8 @@ export function left(level, placed) {
 
 // One hamster's trip, a step at a time (a generator, so run() can move five together). It reads the world through
 // ctx: at(c, r) and holds(c, r), which may change as others pass; stand(c, r), as it stands there, true if a worn
-// stick under it snaps; take(c, r), true if this hamster takes the golden seed there; and, for a lift, stop(c, r), canBoard(stop), board(stop) and leave(stop), and now(), the tick;
+// stick under it snaps; take(c, r), true if this hamster takes the golden seed there; and, for a lift, stop(c, r),
+// canBoard(stop), board(stop) (which sets stop.cup, the cup it boards), leaves(stop) and leave(stop), and now(), the tick;
 // for a see-saw, plank(c, r) (the plank's square there now, if any: { part, i }), standAt(part, i), tipped(part),
 // weigh(part) (it stands on the far end; true once it has tipped), unweigh(part) and carry(c, r) (where a tipping
 // plank takes it: { r, dur }, or null).
@@ -278,7 +288,7 @@ export function* trip(level, ctx) {
       const dir = stop.end === 'bottom' ? -1 : 1;
       for (let i = stop.part.bottom - stop.part.top; i > 0; i--) {
         r += dir;
-        yield touch({ c, r, act: 'ride' }, c, r);
+        yield touch({ c, r, act: 'ride', cup: stop.cup }, c, r);
       }
       continue;
     }
@@ -312,6 +322,13 @@ function world(level, placed0, seedLeft) {
   const parts = (level.parts || []).filter((p) => p.kind === 'lift');
   const saws = (level.parts || []).filter((p) => p.kind === 'seesaw').map((p) => ({ p, tippedAt: null, far: new Set() }));
   const at = (c, r) => terrain(level, placed, c, r);
+  const cups = (p) => Array.from({ length: p.cups || 1 }, (_, k) => k);
+  const rider = (p, k) => riders.get(`${p.c},${p.top},${k}`);
+  // the empty cup stopped at a stop's end with time to step in, if any
+  const free = (s) => cups(s.part).find((k) => {
+    const cs = cupStop(s.part, t, k);
+    return rider(s.part, k) === undefined && !!cs && cs.end === s.end && cs.leaves - t >= TICKS.walk;
+  });
   const tipped = (s) => s.tippedAt !== null && s.tippedAt <= t;
   // the plank's square at c, r now, if any
   const plank = (c, r) => {
@@ -327,7 +344,7 @@ function world(level, placed0, seedLeft) {
     ctx: (who) => ({
       at,
       now: () => t,
-      holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cupRow(p, t) === r) || !!plank(c, r),
+      holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cups(p).some((k) => cupRow(p, t, k) === r)) || !!plank(c, r),
       plank,
       standAt: (s, i) => plankStand(s.p, i, tipped(s)),
       tipped,
@@ -371,13 +388,10 @@ function world(level, placed0, seedLeft) {
         const part = parts.find((p) => p.c === c && (r === p.top - 1 || r === p.bottom - 1));
         return part ? { part, end: r === part.top - 1 ? 'top' : 'bottom' } : null;
       },
-      canBoard: (s) => {
-        const cs = cupStop(s.part, t);
-        return !riders.has(s.part) && !!cs && cs.end === s.end && cs.leaves - t >= TICKS.walk;
-      },
-      leaves: (s) => { const cs = cupStop(s.part, t); return cs ? cs.leaves : t; },
-      board: (s) => { riders.set(s.part, who); },
-      leave: (s) => { if (riders.get(s.part) === who) riders.delete(s.part); },
+      canBoard: (s) => free(s) !== undefined,
+      leaves: (s) => { const cs = cupStop(s.part, t, s.cup || 0); return cs ? cs.leaves : t; },
+      board: (s) => { s.cup = free(s); riders.set(`${s.part.c},${s.part.top},${s.cup}`, who); },
+      leave: (s) => { const k = `${s.part.c},${s.part.top},${s.cup}`; if (riders.get(k) === who) riders.delete(k); },
     }),
   };
 }
