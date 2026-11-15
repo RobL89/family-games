@@ -170,7 +170,6 @@ button { font: inherit; color: inherit; }
 .chip.face-share svg.plates { height: .5em; }
 .chip.face-fracof svg.groups.r1 { height: .8em; }
 .chip.face-fracof svg.groups.r2 { height: 1.3em; }
-.chip.face-fracof svg.groups.r3 { height: 2.3em; }
 .chip.face svg.blocks { height: 2.4em; }
 .chip.face svg.chart { height: 1.9em; }
 .chip.face-groups { flex-wrap: wrap; justify-content: center; row-gap: .1em; }
@@ -180,10 +179,12 @@ button { font: inherit; color: inherit; }
 @media (max-width: 480px) {
   .chip.face-bond, .chip.face-share, .chip.face-fracof { flex-wrap: wrap; justify-content: center; row-gap: .1em; }
   .chip.face-bond svg, .chip.face-share svg.sweets, .chip.face-fracof svg.groups { flex-basis: 100%; }
-  .chip.face-fracof svg.groups.r3 { flex-basis: auto; } /* four groups make a square: beside the words, so the rocket keeps its fall */
   .chip.face-double .pair { flex-direction: column; gap: .1em; } /* double 5: five over five, so both fit the width */
   .chip.face-double .pc svg { height: .7em; }
   .chip.face-sum { gap: .08em; padding-left: .2em; padding-right: .2em; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .chip.face svg.blocks { height: 2.5em; } /* a sideways phone: the ones at least 8 px (D-126) */
 }
 /* a challenge round (D-091): its card's chip */
 .chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
