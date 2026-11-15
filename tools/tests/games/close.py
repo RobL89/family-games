@@ -1,4 +1,9 @@
-"""Close script for P-034 (Kids Games Development). Version 1.11.
+"""Close script for P-034 (Kids Games Development). Version 1.12.
+
+Changes at v1.12 (15 Nov, Rob's pick of a quicker full run before the counting release): --jobs N runs the
+browser tests N at a time (1 unless asked, 4 at most), each one's output printed whole when it ends, in
+order; the fast checks still run first, one at a time, and every test runs as before. The counting test
+(test_rocket_lander_counting.py) is on the map, run with Rocket Lander's own files.
 
 Changes at v1.11 (ER-010, stage 3): main is fetched 500 commits deep, not 1. Since D-120 merged main into
 claude/games, a main cut to one commit hid where the branch left it, so the repo check counted P-020's
@@ -58,7 +63,7 @@ compares with today's main. It never commits or pushes: that stays a step the
 chat takes, naming the file versions, once this passes.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/close.py [--no-fetch] [--full | --changed]
+    python3 -B tools/tests/games/close.py [--no-fetch] [--full | --changed] [--jobs N]
 Exit 0 only if every part passes.
 """
 import glob
@@ -87,6 +92,7 @@ FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'te
 STAND = [T + 'stand_in.py', T + 'fixture_map_stand_in.js']  # the stand-in map the older browser tests play (step 2c-3b)
 COVERS = {
     'test_rocket_hangar_e2e.py': STAND,
+    'test_rocket_lander_counting.py': ['games/rocket-lander/'],
     'test_rocket_lander_e2e.py': ['games/rocket-lander/'] + STAND,
     'test_rocket_lander_labels.py': ['games/rocket-lander/'],
     'test_rocket_lander_levels.py': ['games/rocket-lander/'] + STAND,
@@ -130,6 +136,21 @@ def choose(args, tests, changed_fn=None):
     if '--changed' in args:
         return pick_tests((changed_fn or changed_since_pass)(), tests)
     return 'fast', [t for t in tests if t in FAST]
+
+
+def jobs_of(args):
+    """How many browser tests run at a time: --jobs N, 1 to 4; 1 if not asked or not a number."""
+    try:
+        n = int(args[args.index('--jobs') + 1])
+    except (ValueError, IndexError):
+        return 1
+    return max(1, min(4, n))
+
+
+def run_quiet(label, cmd):
+    """A test run with its output kept, to print whole when it ends (--jobs)."""
+    r = subprocess.run(cmd, cwd=REPO, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'}, capture_output=True, text=True)
+    return label, r.returncode, r.stdout + r.stderr
 
 
 def pass_commit(paths=None):
@@ -177,9 +198,20 @@ def main():
         print(f'== tests: {mode}' + ('' if mode == 'full' else f' (since the full pass at {(pass_commit() or "?")[:7]}; '
                                      f'changed: {", ".join(changed or []) or "nothing"})'))
     results.append((f'tests chosen: {mode}, {len(tests)} of {len(found)}', 'PASS'))
+    jobs = jobs_of(sys.argv[1:])
+    browser = [t for t in tests if os.path.basename(t) not in FAST] if jobs > 1 else []
     for t in tests:
+        if t in browser:
+            continue
         code = run(os.path.relpath(t, REPO), PY + [t])
         results.append((os.path.relpath(t, REPO), 'PASS' if code == 0 else 'FAIL'))
+    if browser:
+        from concurrent.futures import ThreadPoolExecutor
+        print(f'== {len(browser)} browser tests, {jobs} at a time')
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            for label, code, out in pool.map(lambda t: run_quiet(os.path.relpath(t, REPO), PY + [t]), browser):
+                print(f'== {label}\n{out}', flush=True)
+                results.append((label, 'PASS' if code == 0 else 'FAIL'))
     code = run('repo check', PY + [os.path.join(HERE, 'repo_check.py')])
     results.append(('repo check', 'PASS' if code == 0 else 'FAIL'))
     code = run('doc check', PY + [os.path.join(HERE, 'doc_check.py')])

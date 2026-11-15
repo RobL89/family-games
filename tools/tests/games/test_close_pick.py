@@ -1,4 +1,8 @@
-"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.5.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.6.
+
+Changes at v1.6 (15 Nov, Rob's go for a quicker full run): close.jobs_of(): --jobs N runs the browser tests
+N at a time (1 unless asked, at least 1, at most 4); the fast checks still run first, one at a time. The
+counting test (test_rocket_lander_counting.py) runs with Rocket Lander's own files.
 
 Changes at v1.5 (D-086): close.choose(): the close runs the fast checks only unless asked;
 --full runs everything, --changed picks by the map as before.
@@ -99,5 +103,14 @@ with tempfile.TemporaryDirectory() as d:
     print(('ok   ' if got == 'bbbb222' else 'FAIL ') + f"the clone's own record comes first: {got}")
     if got != 'bbbb222':
         fails.append('clone first')
+for args, want in ((['--full'], 1), (['--full', '--jobs', '2'], 2), (['--jobs', '0'], 1), (['--jobs', '9'], 4), (['--jobs', 'x'], 1), (['--jobs'], 1)):
+    got = close.jobs_of(args)
+    print(('ok   ' if got == want else 'FAIL ') + f'--jobs from {args}: {got}, wanted {want}')
+    if got != want:
+        fails.append(f'jobs {args}')
+got = close.COVERS.get('test_rocket_lander_counting.py')
+print(('ok   ' if got == ['games/rocket-lander/'] else 'FAIL ') + f"the counting test runs with Rocket Lander's own files: {got}")
+if got != ['games/rocket-lander/']:
+    fails.append('counting covers')
 print(f'\n{len(fails)} problem(s)' if fails else '\nAll good.')
 sys.exit(1 if fails else 0)
