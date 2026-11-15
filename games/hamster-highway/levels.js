@@ -1,4 +1,10 @@
-// Hamster Highway's levels. Version 1.1. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.2. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.2 (step 3, D-143, D-153, D-154): level 6, Crack!, at the bath, and level 7, Two by two, on the
+// loft's rafters, both with the worn stick, which snaps under the fourth hamster, so a second stick must catch
+// hamsters 4 and 5: level 6 one under the other, level 7 four in two layers. Their seeds need the spare ramp:
+// past the bath (6,4 or 7,4) on level 6, just before the gap (4,2 only) on level 7, as solve_hamster_highway.py
+// 1.1 found. Worn sticks only on a couple of levels (D-154). Each has its own backdrop.
 //
 // Changes at v1.1 (step 2, D-145, D-149): level 4, Gentle landing (the floater), by the living room's bookshelf,
 // and level 5, Tube trip (the tube), at the bedroom's cage, each on the sketch model's board with a golden seed

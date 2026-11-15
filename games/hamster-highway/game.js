@@ -1,4 +1,9 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.2 (15 Nov, step 2).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.3 (15 Nov, step 3).
+//
+// Changes at v1.3 (step 3, D-144, D-153): GO plays core.js's timed model (run()): each hamster follows its own
+// steps at their own ticks (TICK seconds each), so a worn stick can crack under each hamster and snap under the
+// fourth (a crack sound and a deeper crack drawn; then a snap, the halves falling, and the stick back again after
+// the run); a hamster waiting (for a teacup lift, later) taps its foot. Levels 6 and 7 (the bath, the loft).
 //
 // Changes at v1.2 (step 2, D-145): tubes on the board join up with their neighbours (art.js tubePiece), with an
 // open mouth at each end of a chain; the clock, lamp, moon and star mobile answer a tap.
@@ -15,9 +20,9 @@
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
 // Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
-import { COLS, ROWS, GADGETS, key, parseLevel, fits, fitCells, left, walk, terrain } from './core.js';
+import { COLS, ROWS, GADGETS, key, parseLevel, fits, fitCells, left, run, terrain } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, stickArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
@@ -26,7 +31,7 @@ import { linkUp } from '../_common/rocket/link.js';
 const BW = COLS * CELL;   // 720
 const BH = ROWS * CELL;   // 420
 const WALKERS = 5;
-const GAP = 1.25;         // seconds between hamsters
+const TICK = 0.2;         // seconds a tick of the timed model lasts (walk 2 ticks, a hamster every 6)
 const SC = 0.56;          // a hamster's size on the board, as in the mock-ups
 const $ = (id) => document.getElementById(id);
 const board = $('board');
@@ -386,21 +391,24 @@ function feet(c, r) {
   return { x: (c + 0.5) * CELL, y };
 }
 
-function segmentsOf(res) {
-  const st = res.steps;
+// One hamster's steps (with their ticks, from run()) as the pieces it is drawn along, in seconds.
+function segmentsOf(st) {
   const segs = [];
-  let t = 0;
-  const add = (seg) => { seg.t0 = t; seg.t1 = t + seg.dur; t = seg.t1; segs.push(seg); };
+  let at = 0;
+  const add = (seg) => { seg.t0 = at * TICK; seg.t1 = seg.end * TICK; seg.dur = seg.t1 - seg.t0; segs.push(seg); };
   for (let i = 1; i < st.length; i++) {
     const a = st[i - 1];
     const b = st[i];
     const p0 = segs.length ? segs[segs.length - 1].p1 : feet(a.c, a.r);
+    at = b.t0;
     if (b.act === 'walk' || b.act === 'climb') {
       const mid = { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
-      add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), dur: b.act === 'climb' ? 0.55 : 0.42, seed: !!b.seed, sound: b.act === 'climb' ? 'climb' : null });
+      add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'climb' ? 'climb' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
-      add({ kind: 'bounce', p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, dur: 0.85, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+      add({ kind: 'bounce', p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+    } else if (b.act === 'wait') {
+      add({ kind: 'wait', p0, p1: p0, end: b.t1 });
     } else if (b.act === 'fall' || b.act === 'float') {
       let j = i;
       let seed = !!b.seed;
@@ -408,11 +416,11 @@ function segmentsOf(res) {
       const last = st[j];
       const rows = j - i + 1;
       const p1 = last.r >= ROWS ? { x: p0.x, y: BH - 16 } : feet(last.c, last.r);
-      add({ kind: b.act, p0, p1, dur: b.act === 'float' ? 0.5 * rows : 0.16 + 0.09 * rows, seed, rows,
+      add({ kind: b.act, p0, p1, end: last.t1, seed, rows,
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
-    } else if (b.act === 'tube') {
-      add({ kind: 'tube', p0, p1: feet(b.c, b.r), dur: 0.3, seed: !!b.seed });
+    } else {
+      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed });   // tube, ride
     }
   }
   return segs;
@@ -424,17 +432,21 @@ function startRun() {
   const before = S.progress.tries[id];
   S.progress = tried(IDS, S.progress, id);
   if (S.progress.tries[id] !== before) keep();
-  const seedLeft = !!S.level.seed;
-  const res = walk(S.level, S.placed, seedLeft);
-  const segs = segmentsOf(res);
+  const res = run(S.level, S.placed);
+  const hs = res.hamsters.map((h) => {
+    const segs = segmentsOf(h.steps);
+    const [c, r] = S.level.start;
+    return { outcome: h.outcome, segs, start: h.steps[0].t0 * TICK, total: segs.length ? segs[segs.length - 1].t1 : h.steps[0].t0 * TICK,
+      last: segs.length ? segs[segs.length - 1].p1 : feet(c, r) };
+  });
+  const bad = res.hamsters.find((h) => h.outcome !== 'home');
   S.mode = 'run';
   S.selected = null;
   S.hover = null;
   S.drag = null;
   S.seedTaken = false;
   renderSeed();
-  const total = segs.length ? segs[segs.length - 1].t1 : 0;
-  S.run = { res, segs, total, t: 0, home: 0, walkers: [], finishing: false, last: performance.now() };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now() };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
@@ -452,8 +464,29 @@ function stopRun() {
   layer('fx').innerHTML = '';
   S.seedTaken = false;
   renderSeed();
+  renderGadgets();
   const peek = $('peek');
   if (peek) peek.removeAttribute('visibility');
+}
+
+// A worn stick's crack or snap (run()'s events), when its tick comes: a deeper crack drawn, or the stick gone with
+// its halves falling. The sticks come back whole when the run ends (renderGadgets).
+function stickEvent(e) {
+  const el = board.querySelector(`[data-placed="${e.c},${e.r}"]`);
+  if (!el) return;
+  if (e.kind === 'crack') {
+    play(e.n >= 3 ? 'creak' : 'crack');
+    el.lastElementChild.innerHTML = stickArt(e.n);
+    bump(el.lastElementChild, 'wobble', 500);
+    return;
+  }
+  play('snap');
+  el.setAttribute('visibility', 'hidden');
+  const x = e.c * CELL;
+  const y = e.r * CELL;
+  const half = (cls, x0) => place(g(rect(x0, 4, 52, 16, '#EED9B0', 6, 2.6) + path(`M ${x0 ? x0 + 2 : 50} 4 l -4 4 l 4 4 l -4 4 l 4 4`, 'none', 2, '#8B5A3C'), '', ` class="${cls}"`), x, y, CELL / 100);
+  fx(half('snapL', -4) + half('snapR', 52), 1200);
+  puff(x + 30, y + 10, 0.7);
 }
 
 function tick(now) {
@@ -462,6 +495,7 @@ function tick(now) {
   const dt = Math.min(0.05, (now - R.last) / 1000);
   R.last = now;
   R.t += dt * S.speed;
+  while (R.ev < R.events.length && R.events[R.ev].t * TICK <= R.t) stickEvent(R.events[R.ev++]);
   for (const w of R.walkers) if (!w.done) moveWalker(R, w);
   if (R.walkers.every((w) => w.done) && !R.finishing) {
     R.finishing = true;
@@ -483,14 +517,15 @@ function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
 }
 
 function moveWalker(R, w) {
-  const local = R.t - w.i * GAP;
-  if (local < 0) return;
-  if (local < R.total) {
-    let k = R.segs.findIndex((s) => local < s.t1);
-    if (k < 0) k = R.segs.length - 1;
-    const s = R.segs[k];
+  const H = R.hs[w.i];
+  const local = R.t;
+  if (local < H.start) return;
+  if (local < H.total) {
+    let k = H.segs.findIndex((s) => local < s.t1);
+    if (k < 0) k = H.segs.length - 1;
+    const s = H.segs[k];
     if (k !== w.seg) {
-      if (w.seg >= 0) onSegEnd(R, w, R.segs[w.seg]);
+      if (w.seg >= 0) onSegEnd(R, w, H.segs[w.seg]);
       w.seg = k;
       if (s.sound) play(s.sound);
       if (s.mallow) squishMallow(s.mallow);
@@ -517,6 +552,10 @@ function moveWalker(R, w) {
       x = s.p0.x;
       y = s.p0.y + (s.p1.y - s.p0.y) * f * f;
       pose = 'fall';
+    } else if (s.kind === 'wait') {
+      x = s.p0.x;
+      y = s.p0.y - 2 * Math.abs(Math.sin(local * 6));
+      pose = Math.floor(local * 3) % 2 ? 'walk1' : 'home';
     } else if (s.kind === 'float') {
       x = s.p0.x + 4 * Math.sin(f * Math.PI * 3);
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
@@ -529,24 +568,18 @@ function moveWalker(R, w) {
     setAt(w, x, y, rot);
     return;
   }
-  if (w.seg >= 0 && !w.endedSeg) { onSegEnd(R, w, R.segs[w.seg]); w.endedSeg = true; }
-  endWalker(R, w, local - R.total);
+  if (w.seg >= 0 && !w.endedSeg) { onSegEnd(R, w, H.segs[w.seg]); w.endedSeg = true; }
+  endWalker(R, w, local - H.total);
 }
 
 function onSegEnd(R, w, s) {
-  if (s.seed && w.i === 0 && !S.seedTaken) takeSeed();
-  if ((s.kind === 'fall' || s.kind === 'float') && s.rows < 3 && R.res.outcome !== 'splash') play('patter');
-}
-
-function lastPoint(R) {
-  if (R.segs.length) return R.segs[R.segs.length - 1].p1;
-  const [c, r] = S.level.start;
-  return feet(c, r);
+  if (s.seed && !S.seedTaken) takeSeed();
+  if ((s.kind === 'fall' || s.kind === 'float') && s.rows < 3 && !(s === R.hs[w.i].segs[R.hs[w.i].segs.length - 1] && R.hs[w.i].outcome === 'splash')) play('patter');
 }
 
 function endWalker(R, w, e) {
-  const p = lastPoint(R);
-  const out = R.res.outcome;
+  const p = R.hs[w.i].last;
+  const out = R.hs[w.i].outcome;
   const once = (name, fn) => { if (!w.endFx[name]) { w.endFx[name] = true; fn(); } };
   if (out === 'home') {
     once('home', () => { play('home'); R.home += 1; renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
@@ -695,6 +728,7 @@ const POKES = {
   sun: ['wink', 'chirp'], cloud: ['squish', 'whoosh'], smoke: ['squish', 'poof'], bird: ['hop', 'chirp'], frog: ['hop', 'ribbit'],
   future: ['wobble', 'soon'], wheel: ['spin', 'squeak'], cushion: ['squish', 'poof'], mallow: ['squish', 'boing'], tube: ['wobble', 'squeak'],
   hero: ['hop', 'squeak'], clock: ['wobble', 'chirp'], lamp: ['wobble', 'clink'], moon: ['hop', 'whoosh'], mobile: ['wobble', 'clink'],
+  mirror: ['wink', 'clink'], towel: ['wobble', 'whoosh'], skylight: ['wink', 'chirp'], spider: ['hop', 'squeak'],
 };
 function poke(el) {
   const [cls, snd] = POKES[el.dataset.poke] || ['wobble', 'tap'];

@@ -81,6 +81,9 @@ const SOUNDS = {
   soon: (t) => { tone(392, t, 0.12, 'triangle', 0.08); tone(330, t + 0.11, 0.16, 'triangle', 0.08); },
   hop: (t) => tone(400, t, 0.18, 'sine', 0.12, 900),
   whoosh: (t) => noise(t, 0.3, { from: 600, to: 2400, volume: 0.12 }),
+  crack: (t) => { noise(t, 0.05, { from: 4200, to: 2600, volume: 0.14 }); tone(1300, t, 0.04, 'square', 0.03); },
+  snap: (t) => { noise(t, 0.12, { from: 5000, to: 1200, volume: 0.3 }); tone(520, t + 0.03, 0.3, 'triangle', 0.09, 160); },
+  creak: (t) => tone(260, t, 0.35, 'sawtooth', 0.03, 200),
 };
 
 export const SOUND_NAMES = Object.keys(SOUNDS);

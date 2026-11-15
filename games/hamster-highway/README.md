@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.6 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 5, the house picker, saving and the wrapper link.
+Version 1.7 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 7, the house picker, saving and the wrapper link.
 
+Changes at v1.7 (step 3, D-153, D-154): levels 6 (the bath) and 7 (the loft's rafters) with the worn lolly stick, a sixth gadget: pale and a little cracked, it cracks under each hamster and snaps under the fourth, so a second stick underneath must catch the last two; nothing goes on it. GO plays the timed model.
 Changes at v1.6 (step 3's spike, D-144): `core.js` 1.1 moves all five hamsters together, tick by tick (`run()`), so a moving part can matter; a teacup lift is ready in the rules, not yet in a level.
 Changes at v1.5 (D-151): every stop planned (house.js's PLAN): bath, loft, roof and drainpipe, garden; a simple loft and drainpipe drawn.
 Changes at v1.4 (D-150): the bedroom is upstairs right, so the house's path never doubles back.
@@ -12,7 +13,7 @@ Changes at v1.2 (step 2, D-147): progress is saved, on its own and through P-020
 A puzzle game with no timer and nothing to read. The child puts gadgets on a side-view board, presses
 GO, and five round hamsters (the Nibbles) walk from the cardboard tube on the left to their seed
 house on the right, one after another. A bridge crosses a gap, a ramp climbs a step, a bouncer
-throws them up high, a dandelion floater lets them drift down, and a tube carries them along it. A drop of three squares or more is a funny fall; a hamster stuck at a wall
+throws them up high, a dandelion floater lets them drift down, a tube carries them along it, and a worn lolly stick holds three hamsters, then snaps. A drop of three squares or more is a funny fall; a hamster stuck at a wall
 has a nap and fades. All five home: a party, and the next level opens. Original art and sounds,
 all made in code (D-010).
 
@@ -20,7 +21,7 @@ all made in code (D-010).
 - **Needs from the launcher:** sound on or off, and saving its progress (`fg:state`, contract
   section 4), through `games/_common/rocket/link.js` and `shared/bridge.js`. Who's playing isn't used.
 - **Folder:** `games/hamster-highway/`, the game's id (D-146; it was `bridge-builder` until 15 Nov).
-- **Brief:** P-034's claude/hamster-highway/brief.md; decisions D-133 to D-149.
+- **Brief:** P-034's claude/hamster-highway/brief.md; decisions D-133 to D-154.
 
 ## How it plays
 
@@ -69,6 +70,7 @@ and the page at PC and phone sizes).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.7 | 2026-11-15 | Levels 6 and 7, the worn stick (D-153, D-154) |
 | 1.6 | 2026-11-15 | The timed model (D-144) |
 | 1.5 | 2026-11-15 | Every stop planned; the loft and drainpipe (D-151) |
 | 1.4 | 2026-11-15 | The house's path one way (D-150) |

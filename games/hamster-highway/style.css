@@ -1,4 +1,4 @@
-/* Hamster Highway. Version 1.0. The colours are the mock-ups' (tools/tests/games/sketch_bridge_builder.py, theme A). */
+/* Hamster Highway. Version 1.1 (step 3: a worn stick's snap, at the end). The colours are the mock-ups' (tools/tests/games/sketch_bridge_builder.py, theme A). */
 :root { --ink: #1B1446; --cream: #FFF8EE; --wall: #FFE2BC; --go: #3CC864; --amber: #F0A51C; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall); color: var(--ink);
   font-family: Fredoka, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
@@ -98,3 +98,9 @@ svg .poke, svg [data-level], svg .slot, svg .btn, svg [data-placed], svg [data-w
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-4deg); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } }
 .btn.go.ready { transform-box: fill-box; transform-origin: 50% 50%; animation: wiggle 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .cloud, .bird, .puff, .flutter, .sunset, .wave { animation: none; } }
+
+/* a worn stick snapping (game.js 1.3, D-143): its halves tip and fall away */
+@keyframes snapL { to { transform: translate(-14px, 150px) rotate(-55deg); opacity: 0; } }
+@keyframes snapR { to { transform: translate(14px, 150px) rotate(55deg); opacity: 0; } }
+.snapL, .snapR { transform-box: fill-box; transform-origin: center; animation: snapL 1.1s ease-in forwards; }
+.snapR { animation-name: snapR; }

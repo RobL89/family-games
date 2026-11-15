@@ -1,11 +1,16 @@
-// Hamster Highway's drawings, as SVG text. Version 1.1.
+// Hamster Highway's drawings, as SVG text. Version 1.2.
+//
+// Changes at v1.2 (step 3, D-153, D-154): the worn lolly stick (stickArt: pale, already a little cracked, a crack
+// more with each hamster, and a sticking plaster for luck); the bathroom backdrop for level 6 (tiles, a round
+// mirror, a towel, bubbles that bob) and the loft for level 7 (planks, rafters, a round window, a spider that
+// answers a tap).
 //
 // Changes at v1.1 (step 2, D-145, D-149): the living room and bedroom backdrops for levels 4 and 5, with
 // things that answer a tap (the clock, the lamp, the moon, the star mobile, the wheel); each backdrop sits in a
 // group named data-back. Tubes on the board join up with their neighbours (tubePiece).
 //
 // Original art (D-010), moved from the agreed mock-ups (tools/tests/games/sketch_bridge_builder.py,
-// theme A, Hamster Highway, D-133) and drawn the same way: the Nibbles, their five gadgets, the wooden
+// theme A, Hamster Highway, D-133) and drawn the same way: the Nibbles, their five gadgets (the worn stick came later), the wooden
 // blocks, the kitchen backdrop, the cardboard tube and the seed house. New here: the pantry backdrop,
 // a hamster peeking from the tube, a rubber duck in the water, golden seeds, and the tray's buttons.
 // Pure: it only builds text; game.js puts it on the page (so a test can check it touches nothing else).
@@ -158,7 +163,20 @@ export function gadget(kind, count = 1) {
     return line(50, 100, 50, 52, '#3E9B4F', 4) + path('M 50 86 q -16 -2 -20 -14 q 14 0 20 10', LEAF, 2)
       + circle(50, 34, 26, WHITE, 2, '#B9B4D6') + puff + circle(50, 34, 4.5, '#E9E4FF', 1.4, '#B9B4D6');
   }
+  if (kind === 'stick') return stickArt(0);
   return tube(TUBE_ICON, '#A8ECFF', '#6CCBE8');
+}
+
+// The worn lolly stick (D-143, D-153), in a 100-wide square: paler than the sturdy bridge, already a little
+// cracked; each crack (0 to 3) adds a zigzag and the stick sags a little more.
+const CRACKS = [[50, 'M 46 6 l 6 6 l -5 4 l 5 6'], [26, 'M 24 6 l 5 5 l -4 5 l 4 6'], [74, 'M 72 6 l -5 5 l 5 5 l -4 6'], [38, 'M 36 6 l 6 7 l -6 4 l 5 5']];
+export function stickArt(cracks = 0) {
+  const sag = 2 * cracks;
+  let s = path(`M -4 ${4} Q 50 ${4 + sag * 2} 104 4 L 104 20 Q 50 ${20 + sag * 2} -4 20 Z`, '#EED9B0', 2.6);
+  s += line(10, 10, 40, 10 + sag, '#D9BC8A', 1.6) + line(60, 15 + sag, 92, 14, '#D9BC8A', 1.6);
+  s += CRACKS.slice(0, cracks + 1).map(([, d]) => path(d, 'none', 2.2, '#8B5A3C')).join('');
+  s += g(rect(56, 2 + sag, 18, 18, '#FFC9B0', 4, 1.8) + circle(62, 9 + sag, 1.2, '#E39A80', 0) + circle(68, 14 + sag, 1.2, '#E39A80', 0), '', ' opacity="0.95"');
+  return s;
 }
 
 // A tube square on the board, joined to its neighbours: dirs is a string of the sides it opens to, of
@@ -230,7 +248,7 @@ function jar(x, h, col, lid = '#E8505B') {
 
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn.
 export function backdrop(name) {
-  return g(backdropArt(name), '', ` data-back="${['pantry', 'living', 'bedroom'].includes(name) ? name : 'kitchen'}"`);
+  return g(backdropArt(name), '', ` data-back="${['pantry', 'living', 'bedroom', 'bathroom', 'loft'].includes(name) ? name : 'kitchen'}"`);
 }
 
 // The living room (level 4, D-149): striped wallpaper, a sunflower picture, a cuckoo clock and a hanging lamp.
@@ -268,7 +286,38 @@ function bedroomArt() {
   return s + g(d, '', ' opacity="0.9"');
 }
 
+// The bathroom (level 6, D-154): pale tiles, a round mirror, a towel on its rail, and bubbles that bob up.
+function bathroomArt() {
+  let s = bands(['#E3F4FA', '#DBEFF7', '#D3EAF3', '#CBE5F0']);
+  for (let y = 30; y < H; y += 40) s += line(0, y, W, y, '#BFDDEA', 1.6);
+  for (let x = 20; x < W; x += 40) s += line(x, 0, x, H, '#BFDDEA', 1.6);
+  let d = g(circle(560, 96, 56, '#F4FBFF', 5, '#C9A26E') + path('M 528 74 q 14 -16 34 -14', 'none', 4, WHITE) + path('M 536 92 q 6 -8 16 -8', 'none', 3, WHITE),
+    '', ' class="poke picture" data-poke="mirror"');
+  d += line(300, 70, 430, 70, '#C9A26E', 5) + g(rect(318, 70, 92, 96, '#FF9BB3', 6, 2.6) + line(318, 140, 410, 140, WHITE, 6) + line(318, 152, 410, 152, WHITE, 3),
+    '', ' class="poke towel" data-poke="towel"');
+  d += [[120, 160, 14], [160, 120, 9], [96, 96, 7], [210, 150, 11], [640, 220, 10]].map(([x, y, r], i) =>
+    g(circle(x, y, r, 'rgba(255,255,255,0.55)', 2, '#9FD3E8') + circle(x - r / 3, y - r / 3, r / 4, WHITE, 0), '', ` class="bob" style="animation-delay:${(i * 0.4).toFixed(1)}s"`)).join('');
+  return s + g(d, '', ' opacity="0.9"');
+}
+
+// The loft (level 7, D-154): bare planks, rafters under the roof, a round window, and a little spider.
+function loftArt() {
+  let s = bands(['#E8CFA6', '#E2C69A', '#DBBC8E', '#D4B282']);
+  for (let x = 0; x < W; x += 48) s += line(x, 0, x, H, '#C9A26E', 2, ' opacity="0.6"');
+  s += path(`M 0 120 L 360 0 L ${W} 120`, 'none', 14, '#B57A44', ' opacity="0.7"');
+  s += [80, 200, 520, 640].map((x) => line(x, 120 - Math.abs(360 - x) / 3, x, H, '#B57A44', 10, ' opacity="0.45"')).join('');
+  let d = g(circle(360, 90, 38, '#9FD3F5', 5, '#8B5A3C') + line(360, 52, 360, 128, '#8B5A3C', 4) + line(322, 90, 398, 90, '#8B5A3C', 4)
+    + circle(372, 78, 8, '#FFF3B0', 0), '', ' class="poke picture" data-poke="skylight"');
+  d += path('M 620 0 L 700 0 M 640 0 L 690 40 M 660 0 L 700 20 M 650 0 Q 676 22 700 38', 'none', 1.4, '#FFF8EE', ' opacity="0.8"');
+  d += g(line(676, 0, 676, 58, '#5A3A22', 1.4) + circle(676, 64, 7, '#5A3A22', 0) + circle(673, 62, 1.6, WHITE, 0) + circle(679, 62, 1.6, WHITE, 0)
+    + [-1, 1].map((k) => path(`M 676 64 l ${9 * k} -5 M 676 66 l ${10 * k} 2 M 676 68 l ${8 * k} 7`, 'none', 1.4, '#5A3A22')).join(''),
+  '', ' class="poke spider" data-poke="spider"');
+  return s + g(d, '', ' opacity="0.9"');
+}
+
 function backdropArt(name) {
+  if (name === 'bathroom') return bathroomArt();
+  if (name === 'loft') return loftArt();
   if (name === 'living') return livingArt();
   if (name === 'bedroom') return bedroomArt();
   if (name === 'pantry') {
@@ -301,7 +350,7 @@ function backdropArt(name) {
 // ---------------------------------------------------------------- the tray's pieces
 export function slot(x, y, w, h, kind, count, selected, fresh) {
   const k = Math.min((w - 20) / 100, (h - 26) / 100);
-  const lift = kind === 'bridge' ? 40 * k : 0;
+  const lift = kind === 'bridge' || kind === 'stick' ? 40 * k : 0;
   let s = rect(x, y, w, h, '#FFF8EE', 14, 3, INK, count ? '' : ' opacity="0.45"');
   s += place(gadget(kind), x + (w - 100 * k) / 2, y + 6 + lift, k, 0, count ? '' : ' opacity="0.35"');
   for (let j = 0; j < count; j++) s += circle(x + w / 2 + 13 * (j - (count - 1) / 2), y + h - 11, 4.5, SUN, 2);

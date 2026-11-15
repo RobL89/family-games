@@ -1,4 +1,10 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.2 (15 Nov).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.3 (15 Nov).
+
+Changes at v1.3 (step 3, D-144, D-153, D-154): runs play the timed model (game.js 1.3); the house shows seven
+levels and the plan's five places still to come; level 6 (the bathroom backdrop): one worn stick cracks under three
+hamsters and snaps under the fourth, two splash, then two sticks one under the other and the spare ramp past the
+bath give a party with the seed; level 7 (the loft): four sticks in two layers and the spare ramp before the gap,
+a party with the seed, and no Next after it; the saved tries 2 and 1.
 
 Changes at v1.2 (D-151): the house shows seven soft places, the plan's, for levels 6 to 10 and two later.
 
@@ -186,7 +192,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 5 and locked == 4 and future == 7, f'PC: the house shows levels 1 to 5, four locked, and the plan\'s 7 places for later (D-151) ({n_markers}, {locked}, {future})')
+    check(n_markers == 7 and locked == 6 and future == 5, f'PC: the house shows levels 1 to 7, six locked, and the plan\'s 5 places still to come (D-151) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -326,7 +332,6 @@ with sync_playwright() as pw:
     go_and_wait(pg, 'party')
     s = state(pg)
     check(s['home'] == 5 and not s['seedTaken'], 'PC: level 5 with three tubes: up and home, without the seed')
-    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
     tap(pg, '#party [data-act="again"]')
     pg.wait_for_function('__test.state().mode === "build"')
     place(pg, 'tube', 6, 2)
@@ -338,14 +343,48 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and s['progress']['seeds'].get('L5'), 'PC: level 5 with a fourth tube on top: out beside the seed, and home with it')
+
+    # level 6: the worn stick (D-143, D-153)
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L6"')
+    check(pg.locator('#bg [data-back="bathroom"]').count() == 1 and pg.locator('[data-slot="stick"]').count() == 1,
+          'PC: level 6 has the bathroom for its backdrop and the worn stick in its tray (D-153, D-154)')
+    place(pg, 'stick', 5, 4)
+    go_and_wait(pg, 'build')
+    s = state(pg)
+    check(all(x in s['heard'] for x in ('crack', 'snap', 'splash')) and s['placed'] == {'5,4': 'stick'},
+          f'PC: level 6 with one stick: it cracks, snaps under the fourth, they splash, and the stick is back for the next try ({s["placed"]})')
+    place(pg, 'stick', 5, 5)
+    place(pg, 'ramp', 6, 4)
+    pg.evaluate('__test.speed(1)')
+    tap(pg, '[data-btn="go"]')
+    pg.wait_for_timeout(6200)
+    pg.screenshot(path=os.path.join(OUT, 'pc-14-level6-snap.png'))
+    pg.evaluate('__test.speed(8)')
+    pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'], 'PC: level 6 with a stick under the stick and the spare ramp past the bath: all five home, with the seed')
+
+    # level 7: two layers of sticks
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L7"')
+    check(pg.locator('#bg [data-back="loft"]').count() == 1, 'PC: level 7 has the loft for its backdrop (D-154)')
+    for cc, rr in ((5, 3), (6, 3), (5, 4), (6, 4)):
+        place(pg, 'stick', cc, rr)
+    place(pg, 'ramp', 4, 2)
+    pg.screenshot(path=os.path.join(OUT, 'pc-15-level7-built.png'))
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and 'snap' in s['heard'], 'PC: level 7 with four sticks in two layers and the ramp before the gap: a snap, then all five home with the seed')
+    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
-    ids = ['L1', 'L2', 'L3', 'L4', 'L5']
-    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1}}
-    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 5 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1; the replays for seeds not counted) ({kept(pg)})')
+    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7']
+    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1}}
+    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 7 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')
     tap(pg, '#play')
