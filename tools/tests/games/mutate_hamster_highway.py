@@ -1,20 +1,20 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.0 (15 Nov). Built like mutate_rocket_map.py 1.0.
+tests catch (project rules: test the tests). Version 1.0.1 (15 Nov; renamed with the game, D-146). Built like mutate_rocket_map.py 1.0.
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
 error, not a catch. Ten faults in the rules (core.js), caught or not by the core test (seconds each), and
 two in the screens (game.js), by the browser test (about a minute each).
 Usage, from the repo root:
-    python3 -B tools/tests/games/mutate_bridge_builder.py [--fast]
+    python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
 --fast skips the faults that need the browser test.
 """
 import os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-G = 'games/bridge-builder/'
-CORE, E2E = 'test_bridge_builder_core.py', 'test_bridge_builder_e2e.py'
+G = 'games/hamster-highway/'
+CORE, E2E = 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py'
 FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),

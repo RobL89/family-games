@@ -1,8 +1,10 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where a hamster goes. Version 1.0.
+// Hamster Highway's rules: the board, where each gadget fits, and where a hamster goes. Version 1.0.1.
+//
+// Changes at v1.0.1 (D-146): its test's new name, test_hamster_highway_core.py; the rules are unchanged.
 //
 // Pure (project rules): no page, no clock, no randomness, nothing fetched. The walker rules are
 // brief 0.3's (D-136), first modelled in tools/tests/games/sketch_bridge_builder.py; placing is
-// "anywhere it fits" (D-139); golden seeds are D-138's. tools/tests/games/test_bridge_builder_core.py
+// "anywhere it fits" (D-139); golden seeds are D-138's. tools/tests/games/test_hamster_highway_core.py
 // checks every function here, against the sketch model's own outcomes.
 //
 // A level's board is 7 rows of 12 characters, top row first:

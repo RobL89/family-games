@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.31 · 2026-11-15 |
+| **Version** | 1.32 · 2026-11-15 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.32:** Hamster Highway's id is `hamster-highway` (D-146): its folder `games/hamster-highway/`, its tests `test_hamster_highway_core.py` and `test_hamster_highway_e2e.py` and its bench `mutate_hamster_highway.py`, renamed from `bridge-builder`; `close.py` 1.14, `test_close_pick.py` 1.8. The sketch script keeps its name.
 
 **Changes at v1.31:** Hamster Highway's first build (D-133 to D-141): levels 1 to 3 and the house-and-garden picker in `games/bridge-builder/` (the id is open, Q-049), not yet linked to the wrapper; its tests `test_bridge_builder_core.py` (fast) and `test_bridge_builder_e2e.py` (browser), and the bench `mutate_bridge_builder.py`; `close.py` 1.13 and `test_close_pick.py` 1.7 know them.
 
@@ -72,7 +74,7 @@ This repo is **P-020 (Family Games Launcher)**'s, the host of every game: it own
 
 | Path | Owner | What it holds |
 |---|---|---|
-| `games/<id>/` | P-034 on `claude/` branches; P-020's copy on `work` and `main` | One folder per game P-034 develops (Rocket Lander; Hamster Highway in `bridge-builder/`, being built; Word Worm and Monster Café to come; Bubble pop later): its page, manifest, tile picture and one-page README (contract 0.4, section 2) |
+| `games/<id>/` | P-034 on `claude/` branches; P-020's copy on `work` and `main` | One folder per game P-034 develops (Rocket Lander; Hamster Highway in `hamster-highway/`, being built; Word Worm and Monster Café to come; Bubble pop later): its page, manifest, tile picture and one-page README (contract 0.4, section 2) |
 | `games/kriss-kross/`, `games/_template/` | P-020 | Rob's wife's game, kept as she made it, and P-020's earlier template (P54, D-115) |
 | `games/_common/` | P-034 on `claude/` branches; P-020's copy once released | Code shared between games. `rocket/` is the rocket game's engine (the round flow in `round.js`, the map screens in `starmap.js`, the map's progress rules in `progress.js` and the tracks' in `tracks.js`, the scene, sounds, settings and level helpers, and the hangar: the ships' one table of names, tiers, prices and sounds with the rules for buying in `fleet.js`, their drawings in `ships.js`, and the showroom in `hangar.js`), used by Rocket Lander, the one rocket game since D-058. `fonts/` holds the games' font, Fredoka, with its OFL licence (D-043). A game may import from here, from `shared/bridge.js` and from nothing else outside its folder (D-036, contract 0.4 GC4) |
 | [`games.json`](../../games.json) | P-020 | The launcher's list of games: order, status and where each came from (contract 0.4, section 2). P-034 asks for a change in its release note |
@@ -113,9 +115,9 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `count_rocket_ship_prices.py` | A count, not a check: the ship prices in `fleet.js` against a school year's moon rocks, at a few scalings (D-109) |
 | `measure_rocket_faces.py` | A measurement, not a check: each counting picture's smallest dot (or sweet, block, counter) and how many it shows, at the launcher's three sizes, with a sheet of the worst (trial feedback item 1, 14 Nov) |
 | `sketch_rocket_counting.py` | Not a check: mock-ups of How many dots? and Groups of on the real game, for Rob to pick from (D-125) |
-| `test_bridge_builder_core.py` | Hamster Highway's rules (`core.js`) and levels (`levels.js`), against the sketch model's outcomes; where gadgets fit (D-139); the golden seeds (D-138); the pure files and the imports. Fast (Node) |
-| `test_bridge_builder_e2e.py` | Hamster Highway in Chromium (the stand-in for the PC and phone): the house, placing by click, drag and touch, runs that end home, stuck, in a splash and in a funny fall, the parties and seeds, and the page at PC and phone sizes. About a minute |
-| `mutate_bridge_builder.py` | A bench, not in the run: plants 12 faults in Hamster Highway's rules and screens and counts what the two tests catch (12 of 12 on 15 Nov) |
+| `test_hamster_highway_core.py` | Hamster Highway's rules (`core.js`) and levels (`levels.js`), against the sketch model's outcomes; where gadgets fit (D-139); the golden seeds (D-138); the pure files and the imports. Fast (Node) |
+| `test_hamster_highway_e2e.py` | Hamster Highway in Chromium (the stand-in for the PC and phone): the house, placing by click, drag and touch, runs that end home, stuck, in a splash and in a funny fall, the parties and seeds, and the page at PC and phone sizes. About a minute |
+| `mutate_hamster_highway.py` | A bench, not in the run: plants 12 faults in Hamster Highway's rules and screens and counts what the two tests catch (12 of 12 on 15 Nov) |
 | `sketch_bridge_builder.py` | Not a check: SVG sketches for a new game, working name Bridge & Ramp Builder (15 Nov): three themes on one sample level with the tray, GO button and the hero's poses, the level's fit on each device, and five first levels. Its walker model of the proposed rules checks each level is solved with its gadgets and not without its new one; then it checks the page at phone and PC sizes, light and dark. Original art (D-010); no game files change. Version 0.2 adds sketches 2 (`--sketches 2`, the default; `--sketches 1` still builds the first page): three ways to place gadgets on level 2 and six ideas, in Hamster Highway's style (D-133) |
 | `measure_rocket_state_size.py` | A measurement, not a check: the largest progress Rocket Lander can save, as JSON, against contract 0.4's 20,000-character cap on `fg:state` (3,383 characters, 16.9%, on 12 Nov) |
 | `stand_in.py`, with `fixture_map_stand_in.js` | Not a check: the stand-in map (`map.js` 2.0, byte for byte, its sha256 checked before use) served in place of `map.js` to the older browser tests written for the stand-in levels (`test_rocket_lander_e2e.py`, `_levels.py`, `_sums_e2e.py`, `_map_e2e.py`, `test_rocket_hangar_e2e.py`), so their checks stay as they were (step 2c-3b) |
@@ -163,6 +165,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.32 | 2026-11-15 | Hamster Highway renamed `hamster-highway` (D-146) |
 | 1.31 | 2026-11-15 | Hamster Highway's first build: its folder, tests and bench; `close.py` 1.13 |
 | 1.30 | 2026-11-15 | Hamster Highway (D-133): `sketch_bridge_builder.py` 0.2 with sketches 2 |
 | 1.29 | 2026-11-15 | `sketch_bridge_builder.py`: a new game's first sketches; the missing 1.28 row |

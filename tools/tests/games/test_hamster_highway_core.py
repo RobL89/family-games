@@ -1,6 +1,6 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.0 (15 Nov, the first build).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.0.1 (15 Nov; renamed with the game, D-146).
 
-Fast, no browser: node runs games/bridge-builder/core.js and levels.js. It checks:
+Fast, no browser: node runs games/hamster-highway/core.js and levels.js. It checks:
   - every function in core.js: key, parseLevel (and the boards it refuses), terrain, holds, fits,
     fitCells, left and walk;
   - walk() against the sketch model's own outcomes (tools/tests/games/sketch_bridge_builder.py 0.1,
@@ -16,14 +16,14 @@ Fast, no browser: node runs games/bridge-builder/core.js and levels.js. It check
     imports only from its own folder or games/_common/.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/test_bridge_builder_core.py
+    python3 -B tools/tests/games/test_hamster_highway_core.py
 Exits 1 if a check fails.
 """
 import json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-GAME = os.path.join(REPO, 'games', 'bridge-builder')
+GAME = os.path.join(REPO, 'games', 'hamster-highway')
 problems = []
 
 

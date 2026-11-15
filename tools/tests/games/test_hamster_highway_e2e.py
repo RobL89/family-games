@@ -1,4 +1,4 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.0 (15 Nov, the first build).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.0.1 (15 Nov; renamed with the game, D-146).
 
 Headless Chromium is the stand-in for the PC and the phone. The game is served from the repo on
 127.0.0.1 and played the way a child would: real mouse clicks, a drag, and touch taps, at the
@@ -21,17 +21,17 @@ up the walk). The checks, decided before the build:
   - a tap on the duck quacks, on a jar clinks; the sounds of each event are asked for (sound.js's tally,
     as the stand-in browser plays no audio);
   - on a sideways phone, touch taps place a gadget and start a run.
-Pictures go to OUT/ (default /tmp/bridge-builder-e2e) for looking over.
+Pictures go to OUT/ (default /tmp/hamster-highway-e2e) for looking over.
 
 Usage, from the repo root:
-    python3 -B tools/tests/games/test_bridge_builder_e2e.py [OUT]
+    python3 -B tools/tests/games/test_hamster_highway_e2e.py [OUT]
 Exits 1 if a check fails.
 """
 import functools, http.server, os, socketserver, sys, threading
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
-OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/bridge-builder-e2e'
+OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/hamster-highway-e2e'
 os.makedirs(OUT, exist_ok=True)
 problems = []
 
@@ -51,8 +51,8 @@ httpd = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Quie
 PORT = httpd.server_address[1]
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 BASE = f'http://127.0.0.1:{PORT}'
-URL = f'{BASE}/games/bridge-builder/index.html'
-OWN = (f'{BASE}/games/bridge-builder/', f'{BASE}/games/_common/fonts/')
+URL = f'{BASE}/games/hamster-highway/index.html'
+OWN = (f'{BASE}/games/hamster-highway/', f'{BASE}/games/_common/fonts/')
 
 from playwright.sync_api import sync_playwright  # noqa: E402
 

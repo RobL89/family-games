@@ -1,6 +1,6 @@
 # Hamster Highway
 
-Version 1.0 · 15 Nov 2026 · P-034 (Kids Games Development) · first build: levels 1 to 3 and the house picker.
+Version 1.1 · 15 Nov 2026 · P-034 (Kids Games Development) · first build: levels 1 to 3 and the house picker.
 
 A puzzle game with no timer and nothing to read. The child puts gadgets on a side-view board, presses
 GO, and five round hamsters (the Nibbles) walk from the cardboard tube on the left to their seed
@@ -12,8 +12,8 @@ all made in code (D-010).
 - **Runs on its own:** yes, as a plain page (contract 0.4.2 GC5). It is not linked to P-020's
   wrapper yet; that comes before its release.
 - **Needs from the launcher:** nothing yet.
-- **Folder:** `games/bridge-builder/` for now; the title is Hamster Highway (the id is open, Q-049).
-- **Brief:** P-034's claude/bridge-builder/brief.md (0.3); decisions D-133 to D-141.
+- **Folder:** `games/hamster-highway/`, the game's id (D-146; it was `bridge-builder` until 15 Nov).
+- **Brief:** P-034's claude/hamster-highway/brief.md; decisions D-133 to D-147.
 
 ## How it plays
 
@@ -47,12 +47,13 @@ for it yet (Q-051).
 
 ## Checks
 
-`tools/tests/games/test_bridge_builder_core.py` (fast: the rules, the levels, the seeds, the
-boundaries) and `tools/tests/games/test_bridge_builder_e2e.py` (in a browser: the house, placing by
+`tools/tests/games/test_hamster_highway_core.py` (fast: the rules, the levels, the seeds, the
+boundaries) and `tools/tests/games/test_hamster_highway_e2e.py` (in a browser: the house, placing by
 mouse and by drag, a full run with a party, a failed run, and the page at PC and phone sizes).
 
 ## Change log
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1 | 2026-11-15 | The id is `hamster-highway` (D-146): folder and tests renamed |
 | 1.0 | 2026-11-15 | First build: levels 1 to 3, the house picker, golden seeds |

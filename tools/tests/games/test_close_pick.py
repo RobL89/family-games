@@ -1,4 +1,6 @@
-"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.7.
+"""Tests for the close script's choice of tests (close.py pick_tests, pass_commit). Version 1.8.
+
+Changes at v1.8 (D-146): Hamster Highway's tests and folder by their new names; the cases are as v1.7.
 
 Changes at v1.7 (15 Nov, Hamster Highway's first build): its core test is a fast check, and its browser
 test runs with its own folder's files and nobody else's.
@@ -39,8 +41,8 @@ T = 'tools/tests/games/'
 ALL = ['test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_hangar_e2e.py',
        'test_rocket_lander_core.py', 'test_rocket_lander_e2e.py', 'test_rocket_lander_labels.py',
        'test_rocket_lander_levels.py', 'test_rocket_lander_map_e2e.py', 'test_rocket_lander_preview.py', 'test_rocket_lander_sums_e2e.py',
-       'test_rocket_ship_hooks_e2e.py', 'test_bridge_builder_core.py', 'test_bridge_builder_e2e.py']
-FAST = ['test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py', 'test_bridge_builder_core.py']
+       'test_rocket_ship_hooks_e2e.py', 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py']
+FAST = ['test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'test_rocket_lander_core.py', 'test_hamster_highway_core.py']
 fails = []
 
 
@@ -89,8 +91,8 @@ check([T + 'preview_debug_rocket_lander.js'], 'some', FAST + ['test_rocket_lande
       'a test the map does not know always runs', tests=ALL + ['test_new_e2e.py'])
 check([T + 'close_pass.txt'], 'some', FAST, 'the full pass kept in the repo: the fast checks only')
 check([T + 'close_pass.txt', T + 'sketch_rocket_new_ships.js'], 'some', FAST, 'the pass record and a sketch: the fast checks only')
-check(['games/bridge-builder/game.js'], 'some', FAST + ['test_bridge_builder_e2e.py'], 'Hamster Highway\'s own files: its browser test, no rocket tests')
-check([T + 'sketch_bridge_builder.py', T + 'mutate_bridge_builder.py'], 'some', FAST, 'Hamster Highway\'s sketches and bench: the fast checks only')
+check(['games/hamster-highway/game.js'], 'some', FAST + ['test_hamster_highway_e2e.py'], 'Hamster Highway\'s own files: its browser test, no rocket tests')
+check([T + 'sketch_bridge_builder.py', T + 'mutate_hamster_highway.py'], 'some', FAST, 'Hamster Highway\'s sketches and bench: the fast checks only')
 
 import tempfile  # noqa: E402
 with tempfile.TemporaryDirectory() as d:
