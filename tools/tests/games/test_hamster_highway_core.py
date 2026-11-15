@@ -1,4 +1,9 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.2 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.3 (15 Nov).
+
+Changes at v1.3 (D-151, plan A of the house routes): the whole planned route (levels 1 to 5's places, then
+house.js's PLAN for levels 6 to 10 and two places kept for later, with its bends over the roof and down the
+drainpipe) never crosses itself or runs back along itself, in place of v1.2's "only goes right"; PLAN holds
+levels 6 to 10 in order with two later places, and FUTURE is PLAN's places.
 
 Changes at v1.2 (Rob's look at preview 2, D-150): the house's dotted path, through the levels in order and on to
 the places kept for later, only ever goes right (never doubles back).
@@ -295,21 +300,44 @@ else:
         check(o['size'] < 20000, f'progress: every level done, found and tried 9999 times is under the 20,000 characters fg:state allows ({o["size"]})')
         check(o['nextAt'] == [0, 1, 2, 0], f'progress: the hamster waits at the first level not done, or the last when all are ({o["nextAt"]})')
 
-# the house's path (D-150): the levels' places in order, then the places kept for later, only ever going right
+# the house's path (D-150, D-151): levels 1 to 5's places, then the plan for 6 to 10 and two places kept for later,
+# with its bends; the whole route never crosses itself or runs back along itself
 HJS = r"""
 const [houseUrl, levelsUrl] = process.argv.slice(1);
-const { SPOTS, FUTURE } = await import(houseUrl);
+const H = await import(houseUrl);
 const { LEVELS } = await import(levelsUrl);
-console.log(JSON.stringify(LEVELS.map((d) => SPOTS[d.spot]).concat(FUTURE)));
+const pts = LEVELS.map((d) => H.SPOTS[d.spot]);
+for (const p of H.PLAN || []) pts.push(...(p.via || []), p.at);
+console.log(JSON.stringify({ pts, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout, r.stderr)
     check(False, 'node ran house.js')
 else:
-    pts = json.loads(r.stdout)
-    xs = [p[0] for p in pts]
-    check(all(b >= a for a, b in zip(xs, xs[1:])), f'the house\'s path through the levels and on to the places for later only goes right, never doubling back (D-150) ({xs})')
+    h = json.loads(r.stdout)
+
+    def orient(p, q, s):
+        v = (q[0] - p[0]) * (s[1] - p[1]) - (q[1] - p[1]) * (s[0] - p[0])
+        return (v > 0) - (v < 0)
+
+    def on(p, q, s):   # s on the segment p-q, given the three are in a line
+        return min(p[0], q[0]) <= s[0] <= max(p[0], q[0]) and min(p[1], q[1]) <= s[1] <= max(p[1], q[1])
+
+    def meet(a, b, c, d):
+        o1, o2, o3, o4 = orient(a, b, c), orient(a, b, d), orient(c, d, a), orient(c, d, b)
+        if o1 * o2 < 0 and o3 * o4 < 0:
+            return True
+        return any(o == 0 and on(*seg, pt) for o, seg, pt in ((o1, (a, b), c), (o2, (a, b), d), (o3, (c, d), a), (o4, (c, d), b)))
+
+    segs = list(zip(h['pts'], h['pts'][1:]))
+    bad = [(i, j) for i in range(len(segs)) for j in range(i + 1, len(segs))
+           if (j == i + 1 and (orient(*segs[i], segs[j][1]) == 0 and on(*segs[i], segs[j][1]) or orient(*segs[j], segs[i][0]) == 0 and on(*segs[j], segs[i][0])))
+           or (j > i + 1 and meet(*segs[i], *segs[j]))]
+    check(not bad, f'the house\'s whole planned route never crosses itself or runs back along itself (D-151) ({bad or len(segs)} segments)')
+    check(h['plan'] == [['bath', 6], ['rafters', 7], ['suitcases', None], ['veg', 8], ['shed', 9], ['pond', None], ['treehouse', 10]],
+          f'the plan (D-151, plan A): 6 the bath, 7 the loft\'s rafters, a later place by the suitcases, 8 the veg patch, 9 the shed, a later place at the pond, 10 the treehouse ({h["plan"]})')
+    check(h['future'] == h['planAt'], 'the soft places in the house are the plan\'s places, in its order')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

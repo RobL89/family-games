@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.34 · 2026-11-15 |
+| **Version** | 1.35 · 2026-11-15 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.35:** Hamster Highway's stops all planned (D-151, plan A): `house.js` 1.3's `PLAN`, a loft and a drainpipe; `test_hamster_highway_core.py` 1.3 checks the whole route never crosses itself, `test_hamster_highway_e2e.py` 1.2 the seven soft places; `sketch_hamster_house_routes.py` 0.1 drew the two plans.
 
 **Changes at v1.34:** Hamster Highway's house path never doubles back (D-150): the bedroom is upstairs right; `test_hamster_highway_core.py` 1.2 checks it.
 
@@ -124,6 +126,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `mutate_hamster_highway.py` | A bench, not in the run: plants 21 faults in Hamster Highway's rules, progress, levels and screens and counts what the two tests catch (12 of 12 on 15 Nov at 1.0; 1.1: see the step 2 commit) |
 | `solve_hamster_highway.py` | Not a check: a design tool. Tries every way to put each level's tray down and counts the solutions, those without the new gadget (0), those with the seed, and those with one fewer of the spare (0 with the seed) |
 | `sketch_bridge_builder.py` | Not a check: SVG sketches for a new game, working name Bridge & Ramp Builder (15 Nov): three themes on one sample level with the tray, GO button and the hero's poses, the level's fit on each device, and five first levels. Its walker model of the proposed rules checks each level is solved with its gadgets and not without its new one; then it checks the page at phone and PC sizes, light and dark. Original art (D-010); no game files change. Version 0.2 adds sketches 2 (`--sketches 2`, the default; `--sketches 1` still builds the first page): three ways to place gadgets on level 2 and six ideas, in Hamster Highway's style (D-133) |
+| `sketch_hamster_house_routes.py` | Not a check: two plans for every Hamster Highway stop, drawn on `house.js`'s art (A up and over the roof, B under the house in a burrow); checks neither path crosses itself and the page at phone and PC widths, light and dark. Rob picked A (D-151) |
 | `measure_rocket_state_size.py` | A measurement, not a check: the largest progress Rocket Lander can save, as JSON, against contract 0.4's 20,000-character cap on `fg:state` (3,383 characters, 16.9%, on 12 Nov) |
 | `stand_in.py`, with `fixture_map_stand_in.js` | Not a check: the stand-in map (`map.js` 2.0, byte for byte, its sha256 checked before use) served in place of `map.js` to the older browser tests written for the stand-in levels (`test_rocket_lander_e2e.py`, `_levels.py`, `_sums_e2e.py`, `_map_e2e.py`, `test_rocket_hangar_e2e.py`), so their checks stay as they were (step 2c-3b) |
 | `plan_rocket_levels.py`, with `syllabus-notes.json` | The level plan (step 2c-2, decided: D-089 to D-092): its table of tracks, systems and levels, checked against Rob's syllabus notes (every level placed once, in the notes' order, 7 and a challenge a system), and the counts quoted in the plan. Run with the notes' path; `test_rocket_lander_core.py` runs it on `syllabus-notes.json`, Rob's notes without the children's ages (Q-033, D-095) |
@@ -170,6 +173,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.35 | 2026-11-15 | Hamster Highway's stops planned (D-151); the route sketch |
 | 1.34 | 2026-11-15 | Hamster Highway's house path one way (D-150) |
 | 1.33 | 2026-11-15 | Hamster Highway step 2: levels 4 and 5, saving and the wrapper link, the level solver; `close.py` 1.15 |
 | 1.32 | 2026-11-15 | Hamster Highway renamed `hamster-highway` (D-146) |

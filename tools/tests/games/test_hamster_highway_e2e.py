@@ -1,4 +1,6 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.1 (15 Nov, step 2).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.2 (15 Nov).
+
+Changes at v1.2 (D-151): the house shows seven soft places, the plan's, for levels 6 to 10 and two later.
 
 Changes at v1.1 (step 2): levels 4 and 5 (D-145): the house shows five levels and five places for later; on
 level 4 the bridge alone ends in a funny fall, and the floater with the spare bridge floats them down past
@@ -184,7 +186,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 5 and locked == 4 and future == 5, f'PC: the house shows levels 1 to 5, four locked, and 5 places for later ({n_markers}, {locked}, {future})')
+    check(n_markers == 5 and locked == 4 and future == 7, f'PC: the house shows levels 1 to 5, four locked, and the plan\'s 7 places for later (D-151) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))

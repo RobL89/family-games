@@ -1,4 +1,9 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.2.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.3.
+//
+// Changes at v1.3 (D-151, plan A of tools/tests/games/sketch_hamster_house_routes.py 0.1): every stop is planned.
+// After the bedroom the route goes left to the bath (6), up into a loft under the roof (7, and a later place by
+// the suitcases), over the roof and down the drainpipe to the veg patch (8), the shed (9), the pond (later) and
+// the treehouse (10). PLAN holds it; the soft places are PLAN's; the loft and drainpipe are drawn, simply, for now.
 //
 // Changes at v1.2 (Rob's look at preview 2, D-150): the path through the levels never doubles back: the bedroom
 // is drawn upstairs on the right, above the living room, and the bathroom on the left, so the levels run
@@ -22,8 +27,19 @@ const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
 export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300] };
-// Places kept for levels 6 to 10, drawn softly without numbers.
-export const FUTURE = [[1420, 712], [1600, 712], [1862, 548], [2100, 724], [2322, 352]];
+// The plan for the stops after level 5 (D-151), in route order: name, place, the level planned there (null: kept
+// for a level after v1), and any bends before it. Levels 6 to 10 follow D-145. Drawn softly without numbers until
+// their levels exist; test_hamster_highway_core.py checks the whole route never crosses itself.
+export const PLAN = [
+  { name: 'bath', at: [300, 360], level: 6 },
+  { name: 'rafters', at: [430, 150], level: 7 },
+  { name: 'suitcases', at: [860, 150], level: null },
+  { name: 'veg', at: [1480, 712], level: 8, via: [[1240, 150], [1300, 220], [1300, 700]] },
+  { name: 'shed', at: [1862, 560], level: 9 },
+  { name: 'pond', at: [2100, 724], level: null },
+  { name: 'treehouse', at: [2322, 352], level: 10 },
+];
+export const FUTURE = PLAN.map((p) => p.at);
 
 const KITCH = '#FFE9C7';
 const WOOD = '#E2A867';
@@ -66,10 +82,30 @@ function ground() {
 function houseShell() {
   let s = path('M 24 206 L 660 40 L 1296 206 Z', '#E8505B', 4);
   for (let i = 1; i < 5; i++) s += line(24 + i * 127, 206 - (i * 166) / 5, 1296 - i * 127, 206 - (i * 166) / 5, '#C93D48', 2.4);
+  s += loft();
   s += rect(980, 70, 60, 100, '#C98F57', 3, 4) + rect(972, 60, 76, 16, '#A8703F', 3, 3);
   s += g([0, 1, 2].map((i) => circle(1010, 46, 14 + i * 4, '#F2EFF7', 2, '#C9C4E6', ` class="puff p${i}"`)).join(''), '', ' class="poke smoke" data-poke="smoke"');
   s += rect(60, 196, 1200, 584, '#F6E3C6', 0, 5);
   return s;
+}
+
+// The loft under the roof (D-151): bare boards and rafters, a round window and two old suitcases. Simple for now.
+function loft() {
+  let s = path('M 130 196 L 660 70 L 1190 196 Z', '#F2D3A6', 3);
+  for (let x = 250; x < 1100; x += 120) {
+    const top = 196 - (126 * (540 - Math.abs(x - 660))) / 540;
+    s += line(x, 196, x, top, '#C98F57', 4);
+  }
+  s += rect(130, 188, 1060, 10, '#B57A44', 0, 2.4);
+  s += circle(660, 130, 22, '#CDEEFF', 4, WHITE) + line(660, 108, 660, 152, WHITE, 3) + line(638, 130, 682, 130, WHITE, 3);
+  s += rect(800, 156, 64, 32, '#C9B8FF', 6, 2.4) + rect(822, 150, 20, 8, '#8B5A3C', 3, 1.8) + rect(870, 166, 46, 22, '#FFB3C7', 5, 2.4);
+  return g(s, '', ' class="later"');
+}
+
+// The gutter and drainpipe down the house's right side (D-151): the way from the roof to the garden.
+function drainpipe() {
+  return g(rect(1170, 200, 140, 10, '#9AA7C7', 4, 2.4) + rect(1293, 206, 14, 560, '#9AA7C7', 7, 2.4)
+    + path('M 1293 760 q 7 14 22 14', 'none', 10, '#9AA7C7') + ellipse(1322, 780, 16, 4, '#BFEAFF', 1.6, '#5FA8C9'), '', ' class="later"');
 }
 
 function kitchen() {
@@ -198,7 +234,7 @@ export function houseScene(state) {
   let s = sky() + ground() + houseShell() + rect(655, 206, 600, 274, '#ECE7FF', 0, 0) + g(bedroom(), 'translate(590 0)') + g(bathroom(), 'translate(-590 0)') + kitchen() + pantry() + living();
   s += rect(60, 476, 1200, 16, '#C48A4C', 0, 3) + line(655, 206, 655, 476, INK, 8) + line(655, 492, 655, 780, INK, 8) + line(955, 492, 955, 780, INK, 8);
   s += rect(60, 196, 1200, 584, 'none', 0, 5);
-  s += garden();
+  s += garden() + drainpipe();
   // a soft dotted path through the levels there are, and on to the next place (not across the whole house)
   const pts = state.levels.map((l) => SPOTS[l.spot]).concat(FUTURE.slice(0, 1));
   s += path(`M ${pts.map(([x, y]) => `${x} ${y}`).join(' L ')}`, 'none', 4, MUTED, ' stroke-dasharray="2 12" opacity="0.4"');
