@@ -1,4 +1,7 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.4.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.5.
+//
+// Changes at v1.5 (step 4): level 8 at the veg patch, PLAN's place for it; a built level keeps its plan place's
+// bends in the dotted path, so the way to the veg patch still goes over the roof and down the drainpipe.
 //
 // Changes at v1.4 (step 3, D-154): levels 6 (the bath) and 7 (the loft's rafters) are built, so their places are
 // SPOTS at PLAN's own places; a PLAN place shows softly only while no level sits there.
@@ -29,7 +32,7 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150] };
+export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150], veg: [1480, 712] };
 // The plan for the stops after level 5 (D-151), in route order: name, place, the level planned there (null: kept
 // for a level after v1), and any bends before it. Levels 6 to 10 follow D-145. Drawn softly without numbers until
 // a level's spot takes the place's name; test_hamster_highway_core.py checks the whole route never crosses itself.
@@ -241,12 +244,28 @@ export function houseScene(state) {
   // a soft dotted path through the levels there are, and on to the next place (not across the whole house)
   const built = new Set(state.levels.map((l) => l.spot));
   const later = PLAN.filter((p) => !built.has(p.name));
-  const pts = state.levels.map((l) => SPOTS[l.spot]).concat(later.slice(0, 1).flatMap((p) => [...(p.via || []), p.at]));
+  const pts = housePath(state);
   s += path(`M ${pts.map(([x, y]) => `${x} ${y}`).join(' L ')}`, 'none', 4, MUTED, ' stroke-dasharray="2 12" opacity="0.4"');
   s += later.map((p) => p.at).map(([x, y], k) => g(circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none') + circle(x, y, 24, 'rgba(255,248,238,0.5)', 3, BROWN, ' stroke-dasharray="6 6" stroke-opacity="0.4"'),
     '', ` class="poke future" data-poke="future" data-future="${k}"`)).join('');
   s += state.levels.map((l, i) => marker(SPOTS[l.spot][0], SPOTS[l.spot][1], i, { ...l, current: i === state.current })).join('');
   return s;
+}
+
+// The dotted path's points: the route (levels 1 to 5's places, then PLAN in its order, with its bends) through the
+// levels there are and on to the next place after the last of them.
+export function housePath(state) {
+  const built = new Set(state.levels.map((l) => l.spot));
+  const route = state.levels.filter((l) => !PLAN.some((p) => p.name === l.spot)).map((l) => ({ at: SPOTS[l.spot], place: true }));
+  let last = route.length - 1;
+  for (const p of PLAN) {
+    for (const v of p.via || []) route.push({ at: v, place: false });
+    route.push({ at: p.at, place: true });
+    if (built.has(p.name)) last = route.length - 1;
+  }
+  let end = last + 1;
+  while (end < route.length && !route[end].place) end++;
+  return route.slice(0, end + 1).map((x) => x.at);
 }
 
 export function tokenAt(levelSpot) {

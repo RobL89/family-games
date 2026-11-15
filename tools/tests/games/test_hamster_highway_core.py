@@ -114,7 +114,7 @@ out.levels = LEVELS.map((d) => {
   const lv = core.parseLevel(d);
   const fitsBy = {};
   for (const k of core.GADGETS) fitsBy[k] = core.fitCells(lv, {}, k);
-  return { id: lv.id, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back };
+  return { id: lv.id, cols: lv.cols, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back };
 });
 // placing in order, each where it fits
 const placeAll = (lv, list) => {
@@ -133,6 +133,7 @@ const SOL = {
   L5: { solve: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3]], seed: [['tube', 6, 2]] },
   L6: { solve: [['stick', 5, 4], ['stick', 5, 5]], seed: [['ramp', 6, 4]] },
   L7: { solve: [['stick', 5, 3], ['stick', 6, 3], ['stick', 5, 4], ['stick', 6, 4]], seed: [['ramp', 4, 2]] },
+  L8: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['ramp', 10, 3]], seed: [['ramp', 2, 4]] },
 };
 // all five hamsters (run(), the timed model): 'home' only if every one gets home, else the first other outcome
 const five = (lv, placed) => {
@@ -161,7 +162,7 @@ for (const d of LEVELS) {
     errA: a.error || null, errB: b.error || null,
     solved: ra && ra.outcome, solvedSeed: ra && ra.seed,
     withSeed: rb && rb.outcome, seedTaken: rb && rb.seed,
-    noNew: a.placed ? five(lv, withoutNew).outcome : null,
+    noNew: a.placed ? (core.GADGETS.includes(d.new) ? five(lv, withoutNew) : five(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), a.placed)).outcome : null,
     oneStickLess: a.placed ? Object.keys(a.placed).filter((k) => a.placed[k] === 'stick').map((k) => { const p = { ...a.placed }; delete p[k]; return five(lv, p).homes; }) : null,
     seedGone: rb ? core.walk(lv, b.placed, false).seed : null,
     leftAfter: a.placed ? core.left(lv, a.placed) : null,
@@ -216,11 +217,13 @@ for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows
 
 # levels.js
 lv = {x['id']: x for x in out['levels']}
-check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'], f'levels.js holds levels 1 to 7, in order ({list(lv)})')
+check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8'], f'levels.js holds levels 1 to 8, in order ({list(lv)})')
 check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2]
-      and lv['L6']['seed'] == [7, 3] and lv['L7']['seed'] == [5, 1], 'each level has its golden seed where levels.js says')
-check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick'], 'each level brings in one new gadget, in the agreed order; 6 and 7 the worn stick (D-136, D-145, D-153)')
-check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube', 'ramp', 'ramp'], 'levels 2 to 7 each name the spare gadget their seed needs')
+      and lv['L6']['seed'] == [7, 3] and lv['L7']['seed'] == [5, 1] and lv['L8']['seed'] == [3, 3], 'each level has its golden seed where levels.js says')
+check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw'], 'each level brings in one new thing, in the agreed order; 6 and 7 the worn stick, 8 the see-saw (D-136, D-145, D-153, D-156)')
+check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube', 'ramp', 'ramp', 'ramp'], 'levels 2 to 8 each name the spare gadget their seed needs')
+check(lv['L8']['tray'] == {'bridge': 1, 'ramp': 3} and lv['L8']['cols'] == 18 and (lv['L8']['room'], lv['L8']['spot'], lv['L8']['back']) == ('garden', 'veg', 'veg'),
+      f'level 8: 18 squares wide (D-158), a bridge and 3 ramps (one a spare for the seed), at the veg patch with its own backdrop ({lv["L8"]["tray"]}, {lv["L8"]["cols"]})')
 check(lv['L6']['tray'] == {'stick': 2, 'ramp': 1} and lv['L7']['tray'] == {'stick': 4, 'ramp': 1},
       'the trays: level 6 has 2 worn sticks and a ramp; level 7 4 worn sticks and a ramp (each ramp a spare for the seed)')
 check([(lv[i]['room'], lv[i]['spot'], lv[i]['back']) for i in ('L6', 'L7')] == [('bathroom', 'bath', 'bathroom'), ('loft', 'rafters', 'loft')],
@@ -252,7 +255,8 @@ for i, (lid, p) in enumerate(out['play'].items(), 1):
     check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
     check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
 check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
-check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5', 'L6', 'L7')), 'levels 2 to 7: the seed needs the spare gadget')
+check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8')), 'levels 2 to 8: the seed needs the spare gadget')
+check(out['play']['L8']['spare'] == [[2, 4], [3, 4]], f'level 8: the spare ramp takes the seed home from 2,4 or 3,4 (on the bridge) only, at the first gap ({out["play"]["L8"]["spare"]})')
 check(out['play']['L6']['spare'] == [[6, 4], [7, 4]], f'level 6: the spare ramp takes the seed home from 6,4 or 7,4 only, past the bath ({out["play"]["L6"]["spare"]})')
 check(out['play']['L7']['spare'] == [[4, 2]], f'level 7: the spare ramp takes the seed home only from 4,2, just before the gap ({out["play"]["L7"]["spare"]})')
 check(out['play']['L6']['oneStickLess'] == [3, 3] and all(n < 5 for n in out['play']['L7']['oneStickLess']) and len(out['play']['L7']['oneStickLess']) == 4,
@@ -336,11 +340,13 @@ HJS = r"""
 const [houseUrl, levelsUrl] = process.argv.slice(1);
 const H = await import(houseUrl);
 const { LEVELS } = await import(levelsUrl);
-const pts = LEVELS.map((d) => H.SPOTS[d.spot]);
-const built = new Set(LEVELS.map((d) => d.spot));
-for (const p of H.PLAN || []) if (!built.has(p.name)) pts.push(...(p.via || []), p.at);
+// levels 1 to 5's places, then every PLAN place in its own order, built or not, with its bends (built ones sit at PLAN's place, atPlan)
+const pts = LEVELS.filter((d) => !(H.PLAN || []).some((p) => p.name === d.spot)).map((d) => H.SPOTS[d.spot]);
+for (const p of H.PLAN || []) pts.push(...(p.via || []), p.at);
+// the path the house draws now (levels there are, and on to the next place): it must run along that route's start
+const drawn = H.housePath ? H.housePath({ levels: LEVELS }) : null;
 const atPlan = LEVELS.filter((d) => (H.PLAN || []).some((p) => p.name === d.spot)).map((d) => [d.id, JSON.stringify(H.SPOTS[d.spot]) === JSON.stringify(H.PLAN.find((p) => p.name === d.spot).at), H.PLAN.find((p) => p.name === d.spot).level]);
-console.log(JSON.stringify({ pts, atPlan, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
+console.log(JSON.stringify({ pts, drawn, atPlan, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
@@ -370,7 +376,9 @@ else:
     check(h['plan'] == [['bath', 6], ['rafters', 7], ['suitcases', None], ['veg', 8], ['shed', 9], ['pond', None], ['treehouse', 10]],
           f'the plan (D-151, plan A): 6 the bath, 7 the loft\'s rafters, a later place by the suitcases, 8 the veg patch, 9 the shed, a later place at the pond, 10 the treehouse ({h["plan"]})')
     check(h['future'] == h['planAt'], 'the soft places in the house are the plan\'s places, in its order')
-    check(h['atPlan'] == [['L6', True, 6], ['L7', True, 7]], f'levels 6 and 7 sit at the plan\'s own places for them, the bath and the rafters (D-151) ({h["atPlan"]})')
+    k = len(h['drawn'] or [])
+    check(k > 0 and h['drawn'] == h['pts'][:k], f'the house draws its dotted path along that route, through the levels there are and on to the next place, never back to a place it passed ({h["drawn"]})')
+    check(h['atPlan'] == [['L6', True, 6], ['L7', True, 7], ['L8', True, 8]], f'levels 6 to 8 sit at the plan\'s own places for them, the bath, the rafters and the veg patch (D-151) ({h["atPlan"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -399,7 +407,7 @@ const SOL = {
   L4: [['bridge', 3, 2], ['floater', 5, 1], ['bridge', 6, 2]], L5: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3], ['tube', 6, 2]],
 };
 for (const d of LEVELS) {
-  if (d.new === 'stick') continue;   // worn sticks change the route for later hamsters: their own checks
+  if (d.new === 'stick' || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
   const lv = core.parseLevel(d);
   const placed = {};
   for (const [k, c, r] of SOL[d.id]) placed[core.key(c, r)] = k;

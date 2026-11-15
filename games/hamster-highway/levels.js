@@ -1,4 +1,11 @@
-// Hamster Highway's levels. Version 1.2. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.3. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.3 (step 4, D-156, D-158): level 8, Two to tip, at the veg patch: the first wide level, 18 squares,
+// and the see-saw (a part, not a gadget: `new` names it for the house and the tests). A bridge over a gap and a ramp
+// up a step on the way, then the see-saw over a gap in the veg patch: the first two hamsters tip it, and a ramp
+// at the end of the high bank lets the other three onto its raised near end. Its seed hangs over the first gap,
+// reached by the spare ramp just before it (2,4), as solve_hamster_highway.py 1.2 found. `parts` lists its
+// see-saw for core.js.
 //
 // Changes at v1.2 (step 3, D-143, D-153, D-154): level 6, Crack!, at the bath, and level 7, Two by two, on the
 // loft's rafters, both with the worn stick, which snaps under the fourth hamster, so a second stick must catch
@@ -114,6 +121,20 @@ export const LEVELS = [
       '#####..#####',
       '#####..#####',
       '#####..#####',
+    ],
+  },
+  {
+    id: 'L8', name: 'Two to tip', room: 'garden', spot: 'veg', back: 'veg', new: 'seesaw',
+    tray: { bridge: 1, ramp: 3 }, spare: 'ramp',
+    parts: [{ kind: 'seesaw', c: 11, r: 3 }],
+    rows: [
+      '..................',
+      '..................',
+      '..................',
+      '...*..............',
+      'S.....#####.......',
+      '###.#######.....G.',
+      '###.#######.#.####',
     ],
   },
 ];

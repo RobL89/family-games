@@ -1,5 +1,9 @@
 """Hamster Highway's level solver: tries every way to put a level's tray down and says what each gives.
-Version 1.1 (15 Nov, step 3). Not part of the close: a design tool, kept so each level's claims can be re-run.
+Version 1.2 (15 Nov, step 4). Not part of the close: a design tool, kept so each level's claims can be re-run.
+
+Changes at v1.2 (step 4, D-156): on a level with a see-saw, every placement is judged by run() (walk() can't show
+one: with time standing still, a hamster on its high end waits and naps); and a level whose new thing is a part, not
+a gadget, is tried without that part for "without the new".
 
 Changes at v1.1 (step 3, D-143, D-153): a placement counts as home only when all five hamsters get home, checked
 with core.js 1.1's run() wherever one hamster's walk() gets home and something wears out or moves (a worn stick, a
@@ -44,8 +48,9 @@ if (explore) {
 const ORDER = ['bridge', 'stick', 'ramp', 'bouncer', 'floater', 'tube'];
 // all five home: one hamster's walk() first (quick); run() only where something wears out or moves
 function home(lv, placed) {
-  const w = core.walk(lv, placed);
-  if (w.outcome !== 'home') return { home: false, seed: false };
+  const saw = lv.parts.some((p) => p.kind === 'seesaw');
+  const w = saw ? null : core.walk(lv, placed);
+  if (w && w.outcome !== 'home') return { home: false, seed: false };
   if (!lv.parts.length && !Object.values(placed).includes('stick')) return { home: true, seed: w.seed };
   const r = core.run(lv, placed);
   return { home: r.hamsters.every((h) => h.outcome === 'home'), seed: r.hamsters.some((h) => h.seed) };
@@ -88,7 +93,8 @@ for (const d of LEVELS) {
   if (want && !want.split(',').includes(d.id)) continue;
   const lv = core.parseLevel(d);
   const all = count(lv, lv.tray);
-  const noNew = count(lv, { ...lv.tray, [d.new]: 0 });
+  const noNew = core.GADGETS.includes(d.new) ? count(lv, { ...lv.tray, [d.new]: 0 })
+    : count(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), lv.tray);
   const less = d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
   const fewer = lv.tray.stick ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
   out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer });
