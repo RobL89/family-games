@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.10 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10, the house picker, saving and the wrapper link.
+Version 1.11 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10, the house picker, saving and the wrapper link.
 
+Changes at v1.11 (D-165): its release check, `tools/tests/games/hamster-highway/check.py` (contract GC7.6); released to P-020 (Family Games Launcher). The game itself is unchanged.
 Changes at v1.10 (D-163): a teacup takes two hamsters side by side; the second waits a moment at the top before stepping out.
 Changes at v1.9 (step 4, D-157, D-160, D-161): level 9 (the shed, 20 squares) brings in the teacup lift: a string looped round two cotton reels with two teacups on it, one waiting at the bottom while the other waits at the top; a hamster steps into an empty cup, rides up inside it and steps out, the others queue. Level 10 (the treehouse, 24 squares), the finale, uses every gadget but the worn stick, the see-saw and the lift.
 Changes at v1.8 (step 4, D-156, D-158): level 8 (the veg patch), the first wide level, 18 squares: the board slides sideways (swipe it, tap the big arrows, or hold a gadget at its edge; during a run it follows the hamsters). The see-saw: two hamsters on its high end tip it, it stays tipped and carries whoever is on it, so a ramp is needed to step onto its raised end.
@@ -68,12 +69,15 @@ and nothing is kept on the device. Sound off in the wrapper mutes the game and h
 `tools/tests/games/test_hamster_highway_core.py` (fast: the rules, the levels, the seeds, the
 boundaries) and `tools/tests/games/test_hamster_highway_e2e.py` (in a browser: the house, placing by
 mouse and by drag, a full run with a party, a failed run, saving and reloading, a stand-in wrapper,
-and the page at PC and phone sizes).
+and the page at PC and phone sizes). The release check, `tools/tests/games/hamster-highway/check.py`, plays level 1
+through P-020's wrapper on its `harness.py` (the three sizes, saving, a second child, sound off, a slow Sheet, two
+devices, and on its own).
 
 ## Change log
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.11 | 2026-11-15 | Its release check; released to P-020 (D-165) |
 | 1.10 | 2026-11-15 | Two hamsters a teacup (D-163) |
 | 1.9 | 2026-11-15 | Levels 9 and 10, the teacup lift with two cups (D-157, D-161) |
 | 1.8 | 2026-11-15 | Level 8, wide boards and the see-saw (D-156, D-158) |
