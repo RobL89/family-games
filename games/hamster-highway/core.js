@@ -1,4 +1,12 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.1.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.2.
+//
+// Changes at v1.2 (step 4, D-156, D-158): boards may be 12 to 24 squares wide (MAX_COLS), each level its own width,
+// read from its rows (level.cols); 7 tall as before. And the see-saw, a part ({ kind: 'seesaw', c, r }): a plank over
+// columns c to c+2 on a flowerpot under c+1, where a hamster stands on row r at the middle. At rest its near end is
+// down (they stand on rows r+1, r, r-1 along it); tipped, the far end is down (r-1, r, r+1). Along the plank a
+// hamster climbs or steps down; it can't step up onto it from outside. One that reaches the high far end waits there
+// for a friend (SEESAW_WAIT ticks, then naps); when two (PAIR) stand on the far end it tips, in TIP ticks, and stays
+// tipped for the rest of the run; anyone on it moves with it ('tilt' steps). run() lists the tip in events.
 //
 // Changes at v1.1 (step 3, D-143, D-153): the worn lolly stick, a sixth gadget ('stick'): it fits and holds like a
 // bridge, takes nothing on it, gets a crack with each hamster that stands on it, and snaps under the fourth (SNAP); run() lists the
@@ -20,7 +28,8 @@
 //   '#' ground   '.' air   'S' where the hamsters come out   'G' their home   '*' a golden seed (in air)
 // Placed gadgets are { 'c,r': kind }, kind one of GADGETS.
 
-export const COLS = 12;
+export const COLS = 12;       // a board's narrowest, and levels 1 to 7's width
+export const MAX_COLS = 24;   // the widest (D-158)
 export const ROWS = 7;
 export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'];
 export const BIG_FALL = 3;   // squares: a drop of 3 or more is a funny fall (D-136)
@@ -30,7 +39,10 @@ export const WALKERS = 5;    // hamsters a GO sends out (brief)
 export const RELEASE = 6;    // ticks between one hamster coming out and the next
 export const LIFT_STOP = 6;  // ticks a teacup waits at each end
 export const LIFT_MOVE = 3;  // ticks a teacup takes to move one row
-export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE };   // a step's length
+export const TIP = 4;        // ticks a see-saw takes to tip
+export const PAIR = 2;       // hamsters on its far end that tip it (D-144)
+export const SEESAW_WAIT = 24;   // ticks a hamster waits on a see-saw's high end for a friend before it naps
+export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP };   // a step's length
 const MAX_TICKS = 3000;      // a run ends here, anyone still out counted stuck
 
 const MARKS = '#.SG*';
@@ -42,12 +54,13 @@ export const key = (c, r) => `${c},${r}`;
 
 export function parseLevel(def) {
   const rows = def && def.rows;
-  if (!Array.isArray(rows) || rows.length !== ROWS || rows.some((row) => typeof row !== 'string' || row.length !== COLS)) {
-    throw new Error(`level ${def && def.id}: the board must be ${ROWS} rows of ${COLS}`);
+  const cols = Array.isArray(rows) && typeof rows[0] === 'string' ? rows[0].length : 0;
+  if (!Array.isArray(rows) || rows.length !== ROWS || cols < COLS || cols > MAX_COLS || rows.some((row) => typeof row !== 'string' || row.length !== cols)) {
+    throw new Error(`level ${def && def.id}: the board must be ${ROWS} rows of ${COLS} to ${MAX_COLS} squares, all the same`);
   }
   const found = { S: [], G: [], '*': [] };
   rows.forEach((row, r) => {
-    for (let c = 0; c < COLS; c++) {
+    for (let c = 0; c < cols; c++) {
       const ch = row[c];
       if (!MARKS.includes(ch)) throw new Error(`level ${def.id}: unknown mark "${ch}" at ${c},${r}`);
       if (found[ch]) found[ch].push([c, r]);
@@ -62,8 +75,22 @@ export function parseLevel(def) {
   }
   const parts = [];
   const shaft = new Set();
+  const space = new Set();
   for (const p of def.parts || []) {
-    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < COLS && p.top >= 1 && p.bottom < ROWS && p.top < p.bottom;
+    if (p && p.kind === 'seesaw') {
+      const fine = [p.c, p.r].every(Number.isInteger) && p.c >= 1 && p.c + 2 < cols && p.r >= 1 && p.r + 2 < ROWS;
+      if (!fine) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
+      const sq = [];
+      for (let c = p.c; c <= p.c + 2; c++) for (let r = p.r - 1; r <= p.r + 2; r++) sq.push([c, r]);
+      for (let r = p.r + 3; r < ROWS && rows[r][p.c + 1] !== '#'; r++) sq.push([p.c + 1, r]);   // the flowerpot, down to the ground
+      for (const [c, r] of sq) {
+        if (rows[r][c] !== '.') throw new Error(`level ${def.id}: the see-saw part's space must be clear at ${c},${r}`);
+        space.add(key(c, r));
+      }
+      parts.push({ kind: 'seesaw', c: p.c, r: p.r });
+      continue;
+    }
+    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < cols && p.top >= 1 && p.bottom < ROWS && p.top < p.bottom;
     if (!ok) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
     for (let r = p.top - 1; r <= p.bottom; r++) {
       if (rows[r][p.c] !== '.') throw new Error(`level ${def.id}: the lift part's shaft must be clear at ${p.c},${r}`);
@@ -71,7 +98,7 @@ export function parseLevel(def) {
     }
     parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom });
   }
-  return { id: def.id, rows, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft };
+  return { id: def.id, rows, cols, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space };
 }
 
 // A teacup lift's loop: stopped at the bottom for LIFT_STOP ticks, up a row every LIFT_MOVE, stopped at the top,
@@ -94,15 +121,22 @@ export function cupStop(p, t) {
   return null;
 }
 
+// A see-saw's plank: the row a hamster stands on at its square i (0 near end, 1 middle, 2 far end), at rest or tipped.
+export function plankStand(p, i, tipped) {
+  return p.r + (i - 1) * (tipped ? 1 : -1);
+}
+
 // What is in a square: '#', '.', 'S', 'G', a gadget's kind, 'shaft' (a lift's, where its cup goes and a hamster
-// rides), or null off the sides or below the bottom.
+// rides), 'seesaw' (a see-saw's space: air but for its plank, which run() knows), or null off the sides or below
+// the bottom.
 // Above the top is open air. A golden seed's square is air.
 export function terrain(level, placed, c, r) {
-  if (c < 0 || c >= COLS || r >= ROWS) return null;
+  if (c < 0 || c >= (level.cols || COLS) || r >= ROWS) return null;
   if (r < 0) return '.';
   const g = placed[key(c, r)];
   if (g) return g;
   if (level.shaft && level.shaft.has(key(c, r))) return 'shaft';
+  if (level.space && level.space.has(key(c, r))) return 'seesaw';
   const ch = level.rows[r][c];
   return ch === '*' ? '.' : ch;
 }
@@ -113,8 +147,8 @@ export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c
 // where a hamster would fall through, beside ground or another bridge; a ramp, bouncer or floater
 // on ground or a bridge; a tube on any empty square.
 export function fits(level, placed, kind, c, r) {
-  if (!GADGETS.includes(kind) || c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
-  if (level.rows[r][c] !== '.' || placed[key(c, r)] || (level.shaft && level.shaft.has(key(c, r)))) return false;
+  if (!GADGETS.includes(kind) || c < 0 || c >= (level.cols || COLS) || r < 0 || r >= ROWS) return false;
+  if (level.rows[r][c] !== '.' || placed[key(c, r)] || (level.shaft && level.shaft.has(key(c, r))) || (level.space && level.space.has(key(c, r)))) return false;
   const below = terrain(level, placed, c, r + 1);
   if (kind === 'bridge' || kind === 'stick') {
     const side = (dc) => SIDE.has(terrain(level, placed, c + dc, r));
@@ -126,7 +160,7 @@ export function fits(level, placed, kind, c, r) {
 
 export function fitCells(level, placed, kind) {
   const out = [];
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (fits(level, placed, kind, c, r)) out.push([c, r]);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < (level.cols || COLS); c++) if (fits(level, placed, kind, c, r)) out.push([c, r]);
   return out;
 }
 
@@ -139,8 +173,11 @@ export function left(level, placed) {
 
 // One hamster's trip, a step at a time (a generator, so run() can move five together). It reads the world through
 // ctx: at(c, r) and holds(c, r), which may change as others pass; stand(c, r), as it stands there, true if a worn
-// stick under it snaps; take(c, r), true if this hamster takes the golden seed there; and, for a lift, stop(c, r), canBoard(stop), board(stop) and leave(stop), and now(), the tick.
-// It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait' or 'ride';
+// stick under it snaps; take(c, r), true if this hamster takes the golden seed there; and, for a lift, stop(c, r), canBoard(stop), board(stop) and leave(stop), and now(), the tick;
+// for a see-saw, plank(c, r) (the plank's square there now, if any: { part, i }), standAt(part, i), tipped(part),
+// weigh(part) (it stands on the far end; true once it has tipped), unweigh(part) and carry(c, r) (where a tipping
+// plank takes it: { r, dur }, or null).
+// It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait', 'ride' or 'tilt';
 // dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a landing's
 // last step, set when it lands) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' | 'stuck' | 'bonk-head'.
 export function* trip(level, ctx) {
@@ -148,11 +185,12 @@ export function* trip(level, ctx) {
   let [c, r] = level.start;
   let floater = false;
   let riding = null;
+  let waited = 0;
   const tubed = new Set();
   const touch = (st, cc, rr) => { if (ctx.take(cc, rr)) st.seed = true; return st; };
   const done = (outcome, fell = 0) => { if (riding) ctx.leave(riding); riding = null; return { outcome, fell }; };
   yield { c, r, act: 'start' };
-  for (let guard = 0; guard < 400; guard++) {
+  for (let guard = 0; guard < 600; guard++) {
     const k = at(c, r);
     if (k === 'G') return done('home');
     if (k === 'bouncer') {
@@ -182,7 +220,14 @@ export function* trip(level, ctx) {
     let fell = 0;
     let last = null;
     for (;;) {
-      while (!ctx.holds(c, r + 1)) {
+      for (;;) {
+        const moved = ctx.carry(c, r);   // a see-saw tipping from under it, or up through it
+        if (moved) {
+          r = moved.r;
+          yield touch({ c, r, act: 'tilt', dur: moved.dur }, c, r);
+          continue;
+        }
+        if (ctx.holds(c, r + 1)) break;
         if (r + 1 >= ROWS) {
           yield { c, r: r + 1, act: floater ? 'float' : 'fall' };
           return done('splash', fell + 1);
@@ -198,6 +243,26 @@ export function* trip(level, ctx) {
     if (fell >= BIG_FALL && !floater) return done('bonk', fell);
     if (fell) floater = false;
     if (at(c, r) === 'G') return done('home');
+    const on = ctx.plank(c, r + 1);
+    if (on && on.i === 2 && !ctx.tipped(on.part)) {
+      // a see-saw's high end: wait here for a friend; two tip it, and the carry above takes them down with it
+      if (ctx.weigh(on.part)) continue;
+      if (++waited > SEESAW_WAIT) { ctx.unweigh(on.part); return done('stuck'); }
+      yield { c, r, act: 'wait' };
+      continue;
+    }
+    if (on && on.i < 2) {
+      // along the plank: up or down a row a square
+      const s = ctx.standAt(on.part, on.i + 1);
+      if (s === r - 1 || s === r + 1) {
+        const act = s === r - 1 ? 'climb' : 'walk';
+        c += 1;
+        r = s;
+        yield touch({ c, r, act }, c, r);
+        continue;
+      }
+    }
+    if (ctx.plank(c + 1, r)) return done('stuck');   // a see-saw's raised end: a step up from outside
     const next = at(c + 1, r);
     if (next === 'shaft') {
       // a teacup lift: wait at the edge for the empty cup, step in, ride to the other end, then on as usual
@@ -244,15 +309,47 @@ function world(level, placed0, seedLeft) {
   const riders = new Map();
   const worn = new Map();
   const events = [];
-  const parts = level.parts || [];
+  const parts = (level.parts || []).filter((p) => p.kind === 'lift');
+  const saws = (level.parts || []).filter((p) => p.kind === 'seesaw').map((p) => ({ p, tippedAt: null, far: new Set() }));
   const at = (c, r) => terrain(level, placed, c, r);
+  const tipped = (s) => s.tippedAt !== null && s.tippedAt <= t;
+  // the plank's square at c, r now, if any
+  const plank = (c, r) => {
+    for (const s of saws) {
+      const i = c - s.p.c;
+      if (i >= 0 && i <= 2 && plankStand(s.p, i, tipped(s)) + 1 === r) return { part: s, i };
+    }
+    return null;
+  };
   return {
     events,
     setNow: (tick) => { t = tick; },
     ctx: (who) => ({
       at,
       now: () => t,
-      holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cupRow(p, t) === r),
+      holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cupRow(p, t) === r) || !!plank(c, r),
+      plank,
+      standAt: (s, i) => plankStand(s.p, i, tipped(s)),
+      tipped,
+      weigh: (s) => {
+        s.far.add(who);
+        if (s.tippedAt === null && s.far.size >= PAIR) {
+          s.tippedAt = t;
+          events.push({ t, kind: 'tip', c: s.p.c, r: s.p.r, n: s.far.size, who });
+        }
+        return tipped(s);
+      },
+      unweigh: (s) => { s.far.delete(who); },
+      carry: (c, r) => {
+        for (const s of saws) {
+          const i = c - s.p.c;
+          if (i < 0 || i > 2 || !tipped(s)) continue;
+          const was = plankStand(s.p, i, false);
+          const now = plankStand(s.p, i, true);
+          if (was !== now && (r === was || r === now + 1)) return { r: now, dur: Math.max(1, s.tippedAt + TIP - t) };
+        }
+        return null;
+      },
       stand: (c, r) => {
         const k = key(c, r + 1);
         if (placed[k] !== 'stick') return false;

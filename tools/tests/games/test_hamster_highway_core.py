@@ -1,4 +1,8 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.4 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.5 (15 Nov).
+
+Changes at v1.5 (step 4, D-156, D-158): wider boards (12 to 24 squares, each level its own) and the see-saw on
+level 8's board, worked out by hand before core.js 1.2: who waits, when it tips, who it carries, the ends of all
+five, without the ramp to its raised end, a lone hamster, and nothing fits in its space.
 
 Changes at v1.4 (step 3, D-143, D-144, D-153, D-154): the worn lolly stick, a sixth gadget that cracks with each
 hamster and snaps under the fourth, on level 6's board, by hand; nothing goes on it. Levels 6 (the bath) and 7 (the
@@ -459,8 +463,8 @@ if r.returncode != 0:
     check(False, 'node ran the timed model (run, cupRow)')
 else:
     o = json.loads(r.stdout)
-    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3}, 6, 3],
-          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3; the cup stops 6, moves a row in 3 ({o["consts"]})')
+    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4}, 6, 3],
+          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
     check(not bad and len(o['same']) == 23, f'timed model: on the 18 sketch boards and levels 1 to 5 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
@@ -515,6 +519,76 @@ else:
     check(o['bridge'] == {'out': ['home'] * 5, 'ev': []}, f'a sturdy bridge never cracks ({o["bridge"]})')
     check(o['fits'] and o['holds'] and o['besideStick'] is False, 'a worn stick fits where a bridge does and holds a hamster, but nothing goes on it (a ramp on it would never crack it)')
     check(o['walk'] == 'home', f'walk(): one hamster crosses one worn stick ({o["walk"]})')
+
+# wider boards (D-158) and the see-saw (D-144, D-156). A level may be 12 to 24 squares wide, 7 tall. A see-saw is a
+# part { kind: 'seesaw', c, r }: a plank over columns c to c+2 on a flowerpot under c+1, where a hamster stands on row
+# r at the middle. At rest its near end is down (they stand on rows r+1, r, r-1 along it); tipped, its far end is down
+# (r-1, r, r+1). A hamster climbs or steps down along the plank, but can't step up onto it from outside. One that
+# reaches the high far end waits there for a friend (up to SEESAW_WAIT = 24 ticks, then it naps); when two stand on
+# the far end it tips, in TIP = 4 ticks, and stays tipped; anyone on the plank moves with it.
+# Worked out by hand (15 Nov) on level 8's board (18 wide, see-saw at c 11, r 3), without its seed, before core.js 1.2:
+#   - bridge 3,5, ramps 5,4 and 10,3: the first hamster waits at 13,2 from tick 32; the second gets there at 38 and it
+#     tips (one 'tip' event at 38); the first waits 32 to 38, rides down 39 to 42; the third, dropping onto the near end,
+#     is lifted with it 38 to 42; all five home, at 49, 49, 53, 53 and 59;
+#   - without the ramp at 10,3: it tips at 36; the third is lifted; the fourth and fifth are stuck at the raised end
+#     (at 39 and 45): home, home, home, stuck, stuck;
+#   - one hamster alone waits 24 ticks (32 to 55), then naps: stuck at 56;
+#   - without the see-saw (its part taken away), they drop into the gap: splash.
+WJS = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const ROWS8 = ['..................', '..................', '..................', '..................',
+  'S.....#####.......', '###.#######.....G.', '###.#######.#.####'];
+const SAW = { kind: 'seesaw', c: 11, r: 3 };
+const L8 = core.parseLevel({ id: 'w8', tray: {}, rows: ROWS8, parts: [SAW] });
+const FULL = { '3,5': 'bridge', '5,4': 'ramp', '10,3': 'ramp' };
+const go = (lv, placed, n) => { const r = core.run(lv, placed, n); return { out: r.hamsters.map((h) => h.outcome), end: r.hamsters.map((h) => h.end),
+  acts: r.hamsters.map((h) => [...new Set(h.steps.map((s) => s.act))]), ev: r.events.map((e) => [e.t, e.kind, e.c, e.r, e.n]),
+  h1: r.hamsters[0].steps.filter((s) => s.act === 'wait' || s.act === 'tilt').map((s) => [s.act, s.t0, s.t1, s.c, s.r]),
+  h3: r.hamsters[2] ? r.hamsters[2].steps.filter((s) => s.act === 'tilt').map((s) => [s.t0, s.t1, s.c, s.r]) : [], ticks: r.ticks }; };
+const refuse = (rows, parts) => { try { core.parseLevel({ id: 'bad', rows, tray: {}, parts }); return 'parsed'; } catch (e) { return e.message; } };
+const wide = (n) => ROWS8.map((row) => (row + '.'.repeat(30)).slice(0, n));
+console.log(JSON.stringify({
+  consts: [core.COLS, core.MAX_COLS, core.TIP, core.SEESAW_WAIT],
+  cols: L8.cols, cols12: core.parseLevel({ id: 'n', tray: {}, rows: ['............', '............', '............', '............', '............', 'S.........G.', '############'] }).cols,
+  full: go(L8, FULL), noRamp: go(L8, { '3,5': 'bridge', '5,4': 'ramp' }), alone: go(L8, FULL, 1),
+  bare: go(core.parseLevel({ id: 'w8', tray: {}, rows: ROWS8 }), FULL).out,
+  again: JSON.stringify(core.run(L8, FULL)) === JSON.stringify(core.run(L8, FULL)),
+  fitSpace: [core.fits(L8, {}, 'tube', 11, 2), core.fits(L8, {}, 'tube', 13, 5), core.fits(L8, {}, 'tube', 12, 5), core.fits(L8, {}, 'tube', 14, 2), core.fits(L8, {}, 'ramp', 17, 5), core.fits(L8, {}, 'ramp', 18, 5)],
+  terrain: [core.terrain(L8, {}, 12, 4), core.terrain(L8, {}, 17, 6), core.terrain(L8, {}, 18, 6)],
+  refuse: { w25: refuse(wide(25)), w24: refuse(wide(24)), ragged: refuse(ROWS8.map((r, i) => (i === 0 ? r + '.' : r))),
+            notClear: refuse(ROWS8.map((r, i) => (i === 3 ? r.slice(0, 12) + '#' + r.slice(13) : r)), [SAW]),
+            offEnd: refuse(ROWS8, [{ kind: 'seesaw', c: 16, r: 3 }]), offTop: refuse(ROWS8, [{ kind: 'seesaw', c: 11, r: 0 }]) },
+  walk: core.walk(L8, FULL).outcome,
+}));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', WJS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-2000:], r.stderr[-2000:])
+    check(False, 'node ran the wider boards and the see-saw')
+else:
+    o = json.loads(r.stdout)
+    check(o['consts'] == [12, 24, 4, 24], f'boards 12 to 24 wide (D-158); a see-saw tips in 4 ticks; a hamster waits up to 24 ticks for a friend ({o["consts"]})')
+    check(o['cols'] == 18 and o['cols12'] == 12, f'parseLevel reads each board\'s width: 18 and 12 ({o["cols"]}, {o["cols12"]})')
+    rf = o['refuse']
+    check('rows of 12 to 24' in rf['w25'] and rf['w24'] == 'parsed' and 'rows of 12 to 24' in rf['ragged'], f'a board 24 wide parses; 25 wide or ragged rows are refused ({rf["w24"]}, {rf["w25"]}, {rf["ragged"]})')
+    check(all('part' in rf[k] for k in ('notClear', 'offEnd', 'offTop')), f'parseLevel refuses a see-saw through ground, off the end or off the top ({rf})')
+    check(o['terrain'] == ['seesaw', '#', None], f'terrain(): the see-saw\'s space, the far bank\'s last square, off the end of an 18-wide board ({o["terrain"]})')
+    check(o['fitSpace'] == [False, False, False, True, True, False], f'nothing fits in the see-saw\'s space; above and past it they do; nothing off the end ({o["fitSpace"]})')
+    f = o['full']
+    check(f['out'] == ['home'] * 5 and f['end'] == [49, 49, 53, 53, 59] and f['ticks'] == 59, f'see-saw, solved: all five home at 49, 49, 53, 53, 59, by hand ({f["out"]}, {f["end"]})')
+    check(f['ev'] == [[38, 'tip', 11, 3, 2]], f'see-saw: it tips once, at 38, under two hamsters, by hand ({f["ev"]})')
+    check(f['h1'] == [['wait', t, t + 1, 13, 2] for t in range(32, 39)] + [['tilt', 39, 42, 13, 4]], f'see-saw: the first waits at the high end 32 to 38, then rides down to 13,4 by 42 ({f["h1"]})')
+    check(f['h3'] == [[38, 42, 11, 2]], f'see-saw: the third, on the near end as it tips, is lifted to 11,2 by 42 ({f["h3"]})')
+    check('wait' not in f['acts'][3] and 'tilt' not in f['acts'][3], f'see-saw: the fourth walks straight over it, tipped ({f["acts"][3]})')
+    n = o['noRamp']
+    check(n['out'] == ['home', 'home', 'home', 'stuck', 'stuck'] and n['ev'] == [[36, 'tip', 11, 3, 2]] and n['end'][3:] == [39, 45],
+          f'see-saw without the ramp to its raised end: it tips at 36, three home, the fourth and fifth stuck at 39 and 45 ({n["out"]}, {n["ev"]}, {n["end"]})')
+    a = o['alone']
+    check(a['out'] == ['stuck'] and a['end'] == [56] and a['ev'] == [], f'see-saw: one hamster alone waits 24 ticks and naps at 56; it never tips ({a})')
+    check(o['bare'] == ['splash'] * 5, f'without the see-saw, they drop into the gap ({o["bare"]})')
+    check(o['again'], 'see-saw: the same build always gives the same run')
+    check(o['walk'] == 'stuck', f'walk() (one hamster, time standing still): waits at the high end, then naps ({o["walk"]})')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

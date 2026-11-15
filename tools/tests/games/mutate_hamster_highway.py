@@ -1,5 +1,8 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.2 (15 Nov, step 3).
+tests catch (project rules: test the tests). Version 1.3 (15 Nov, step 4).
+Changes at v1.3 (step 4, D-156, D-158): seven faults in wider boards and the see-saw (core.js 1.2): a board 25 wide
+accepted, one hamster tips it, it never carries anyone, it tips at once, a lone hamster waits for ever (stopped by
+the run's end instead), a hamster steps up onto its raised end from outside, and something fits in its space.
 Changes at v1.2 (step 3): the seed-on-foot fault follows core.js 1.1's new text; five faults in the timed model (core.js 1.1): the cup shared, stepped onto too
 late, left before it moves, all five out at once, and the seed taken by every hamster; three in the worn stick:
 a gadget fits on it, it snaps under the third, and it stays when snapped. (Cracking twice under one hamster
@@ -9,7 +12,7 @@ the wrapper link (game.js). Version 1.0.1 (15 Nov): renamed with the game, D-146
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
-error, not a catch. Twenty-four faults caught or not by the core test (seconds each), in the rules (core.js), the
+error, not a catch. Thirty-one faults caught or not by the core test (seconds each), in the rules (core.js), the
 progress (progress.js) and the levels; five in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
@@ -40,6 +43,13 @@ FAULTS = [
     ('a gadget fits on a worn stick', G + 'core.js', "const FLOOR = new Set(['#', 'bridge']); ", "const FLOOR = new Set(['#', 'bridge', 'stick']); ", CORE),
     ('a stick snaps under the third', G + 'core.js', 'const snap = by.size >= SNAP;', 'const snap = by.size >= SNAP - 1;', CORE),
     ('a snapped stick stays', G + 'core.js', '        if (snap) delete placed[k];\n', '', CORE),
+    ('a board 25 wide is accepted', G + 'core.js', 'export const MAX_COLS = 24;', 'export const MAX_COLS = 25;', CORE),
+    ('one hamster tips the see-saw', G + 'core.js', 'export const PAIR = 2;', 'export const PAIR = 1;', CORE),
+    ('the see-saw carries nobody', G + 'core.js', 'if (was !== now && (r === was || r === now + 1))', 'if (false)', CORE),
+    ('the see-saw tips at once', G + 'core.js', 'dur: Math.max(1, s.tippedAt + TIP - t)', 'dur: 1', CORE),
+    ('a lone hamster waits for ever', G + 'core.js', 'if (++waited > SEESAW_WAIT)', 'if (++waited > 1e9)', CORE),
+    ('they step up onto its raised end', G + 'core.js', "    if (ctx.plank(c + 1, r)) return done('stuck');", '', CORE),
+    ('a gadget fits in its space', G + 'core.js', ' || (level.space && level.space.has(key(c, r)))) return false;', ') return false;', CORE),
     ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
     ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),
