@@ -1,4 +1,10 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.4 (15 Nov).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.5 (15 Nov).
+
+Changes at v1.5 (step 4, D-157, D-161): the house shows ten levels and the plan's 2 places still to come; after level
+8, Next opens level 9 (the shed backdrop, 20 squares wide, a lift with two cups): with the bridge and the step's ramp
+only, they step into the cups with a clink, ride up and have a funny fall off the bench; the cups move during a
+run; with the floater and the spare bridge, a party with the seed. Level 10 (the treehouse, 24 wide, a see-saw and a
+lift): its answer and the spare ramp give a party with the seed, and no Next after it; the saved tries 2 and 1.
 
 Changes at v1.4 (step 4, D-156, D-158): the house shows eight levels and the plan's 4 places still to come; level 8
 (the veg patch backdrop, 18 squares wide): the window starts at the left with an arrow to the right only; a swipe
@@ -120,6 +126,12 @@ def cell(pg, c, r, touch=False):
 def place(pg, kind, c, r, touch=False):
     if state(pg)['selected'] != kind:   # a second tap on the picked gadget would put it down again
         tap(pg, f'[data-slot="{kind}"]', touch)
+    while True:   # on a wide board, the arrows slide the window until the square shows (6 squares a tap)
+        x = (c + 0.5) * 60 - pg.evaluate('__test.view()')['x']
+        if 40 < x < 680:
+            break
+        tap(pg, '[data-btn="panR"]' if x >= 680 else '[data-btn="panL"]', touch)
+        pg.wait_for_timeout(450)
     cell(pg, c, r, touch)
 
 
@@ -200,7 +212,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 8 and locked == 7 and future == 4, f'PC: the house shows levels 1 to 8, seven locked, and the plan\'s 4 places still to come (D-151) ({n_markers}, {locked}, {future})')
+    check(n_markers == 10 and locked == 9 and future == 2, f'PC: the house shows levels 1 to 10, nine locked, and the plan\'s 2 places still to come (D-151) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -442,15 +454,59 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and mid > 0, f'PC: level 8 with the ramp to the see-saw and the spare at the first gap: all five home with the seed; the window followed them ({mid})')
+    # level 9: the shed and the teacup lift with two cups (D-157, D-161)
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L9"')
+    v = pg.evaluate('__test.view()')
+    check(pg.locator('#bg [data-back="shed"]').count() == 1 and pg.locator('#parts [data-cup]').count() == 2 and pg.locator('#cupfront [data-cupf]').count() == 2
+          and pg.locator('#bg .loop').count() == 1 and v == {'x': 0, 'max': 480},
+          f'PC: level 9 has the shed for its backdrop and a lift with two cups on one loop; 20 squares wide, its window at the left ({v})')
+    place(pg, 'bridge', 3, 5)
+    place(pg, 'ramp', 5, 4)
+    cups0 = pg.evaluate('[...document.querySelectorAll("#parts [data-cup]")].map((e) => e.getAttribute("transform"))')
+    pg.evaluate('__test.speed(1)')
+    tap(pg, '[data-btn="go"]')
+    pg.wait_for_timeout(4600)
+    cups1 = pg.evaluate('[...document.querySelectorAll("#parts [data-cup]")].map((e) => e.getAttribute("transform"))')
+    pg.screenshot(path=os.path.join(OUT, 'pc-17-level9-lift.png'))
+    pg.evaluate('__test.speed(8)')
+    pg.wait_for_function('__test.state().outcome === "bonk"', timeout=10000)   # the run's outcome is known as it starts
+    pg.wait_for_function('__test.state().mode === "build"', timeout=30000)
+    s = {**state(pg), 'outcome': 'bonk'}   # back to building, the outcome is gone; the sounds are all in
+    check(cups0 == ['translate(510.0 300.0)', 'translate(510.0 120.0)'] and all(a != b for a, b in zip(cups0, cups1)),
+          f'PC: level 9\'s cups wait one at the bottom, one at the top, and move during a run ({cups0}, {cups1})')
+    check(s['outcome'] == 'bonk' and all(x in s['heard'] for x in ('clink', 'wheee', 'flump')),
+          f'PC: level 9 without the floater: they step into the cups (clink), ride up (wheee), then a funny fall off the bench ({s["outcome"]}, {s["heard"][-10:]})')
+    place(pg, 'floater', 13, 1)
+    place(pg, 'bridge', 15, 2)
+    check(state(pg)['placed'] == {'3,5': 'bridge', '5,4': 'ramp', '13,1': 'floater', '15,2': 'bridge'}, f'PC: level 9: the floater and the spare bridge put down along the bench ({state(pg)["placed"]})')
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'], 'PC: level 9 with the floater and the spare bridge: all five ride the lift home, with the seed')
+    # level 10: the treehouse finale
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L10"')
+    v = pg.evaluate('__test.view()')
+    check(pg.locator('#bg [data-back="treehouse"]').count() == 1 and pg.locator('[data-saw]').count() == 1 and pg.locator('#parts [data-cup]').count() == 2 and v == {'x': 0, 'max': 720},
+          f'PC: level 10 has the treehouse for its backdrop, a see-saw and a lift with two cups; 24 squares wide ({v})')
+    for kind, c, r in (('bridge', 2, 6), ('bouncer', 4, 5), ('floater', 6, 2), ('tube', 9, 5), ('tube', 9, 4), ('tube', 9, 3), ('ramp', 11, 3), ('ramp', 20, 1)):
+        place(pg, kind, c, r)
+    check(len(state(pg)['placed']) == 8 and state(pg)['left'] == {'bridge': 0, 'ramp': 0, 'bouncer': 0, 'floater': 0, 'tube': 0},
+          f'PC: level 10: all eight gadgets put down along the board ({state(pg)["placed"]})')
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and all(x in s['heard'] for x in ('boing', 'creak', 'clink')),
+          f'PC: level 10 with its answer and the spare ramp: a bounce, the see-saw, the lift, all five home with the seed ({s["heard"][-8:]})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-18-level10-party.png'))
     check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
-    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8']
-    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2}}
-    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 8 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2; the replays for seeds not counted) ({kept(pg)})')
+    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10']
+    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1}}
+    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 10 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')
     tap(pg, '#play')
