@@ -1,4 +1,12 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.3 (15 Nov, step 3).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.4 (15 Nov, step 4).
+//
+// Changes at v1.4 (step 4, D-156, D-158): a board wider than the screen (level 8 is 18 squares) shows through a
+// window 12 squares wide that slides: while building, swipe the board or tap the big arrows at its sides, and a
+// gadget dragged to the window's edge slides it on; during a run the window follows the hamsters, and it starts at
+// the left. The see-saw: a plank turned on a flowerpot (art.js), at rest near end down; when run()'s 'tip' event
+// comes it creaks and swings over in TIP ticks, and the hamsters on it ride along ('tilt'); one waiting on its high
+// end taps its foot. Two hamsters on one square are drawn a little apart. Party confetti is drawn on the screen,
+// not the board.
 //
 // Changes at v1.3 (step 3, D-144, D-153): GO plays core.js's timed model (run()): each hamster follows its own
 // steps at their own ticks (TICK seconds each), so a worn stick can crack under each hamster and snap under the
@@ -20,15 +28,16 @@
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
 // Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
-import { COLS, ROWS, GADGETS, key, parseLevel, fits, fitCells, left, run, terrain } from './core.js';
+import { COLS, ROWS, GADGETS, TIP, key, parseLevel, fits, fitCells, left, run, terrain } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, stickArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
 import { linkUp } from '../_common/rocket/link.js';
 
-const BW = COLS * CELL;   // 720
+const BW = COLS * CELL;   // 720: the window onto the board, 12 squares
+const SLANT = 45;         // degrees a see-saw's plank lies at (a row a square)
 const BH = ROWS * CELL;   // 420
 const WALKERS = 5;
 const TICK = 0.2;         // seconds a tick of the timed model lasts (walk 2 ticks, a hamster every 6)
@@ -46,6 +55,7 @@ const S = {
   at: 0,
   li: 0, level: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
+  vx: 0, pan: null, edge: 0,   // the window's place along a wide board (board units), a swipe, a drag at its edge
 };
 
 // ---------------------------------------------------------------- saving (D-147)
@@ -108,18 +118,54 @@ function openLevel(i) {
   S.run = null;
   S.seedTaken = false;
   S.fresh = LEVELS[i].new;
+  S.vx = 0;
+  S.pan = null;
   $('party').hidden = true;
   show('level');
   renderLevel();
+  setView(0);
+}
+
+// ---------------------------------------------------------------- the window onto a wide board (D-158)
+function maxView() {
+  return S.level ? Math.max(0, S.level.cols * CELL - BW) : 0;
+}
+function setView(x) {
+  S.vx = Math.max(0, Math.min(maxView(), x));
+  layer('world').setAttribute('transform', `translate(${(-S.vx).toFixed(1)} 0)`);
+  renderArrows();
+}
+function slideView(dx) {
+  const from = S.vx;
+  const to = Math.max(0, Math.min(maxView(), from + dx));
+  const t0 = performance.now();
+  const step = (now) => {
+    const f = Math.min(1, (now - t0) / 350);
+    setView(from + (to - from) * (1 - (1 - f) ** 3));
+    if (f < 1 && S.mode === 'build') requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+// big arrows at the window's sides while building, where there is more board that way
+function renderArrows() {
+  let s = '';
+  if (S.level && maxView() > 0 && S.mode === 'build') {
+    const arrow = (x, dir) => g(rect(x, 150, 44, 120, 'rgba(255,255,255,0.8)', 20, 2.5)
+      + path(`M ${x + 22 + 8 * dir} 186 L ${x + 22 - 8 * dir} 210 L ${x + 22 + 8 * dir} 234`, 'none', 6, INK, ' stroke-linecap="round" stroke-linejoin="round"'),
+    '', ` class="btn pan" data-btn="${dir > 0 ? 'panL' : 'panR'}"`);
+    if (S.vx > 1) s += arrow(4, 1);
+    if (S.vx < maxView() - 1) s += arrow(BW - 48, -1);
+  }
+  layer('arrows').innerHTML = s;
 }
 
 function renderLevel() {
   const lv = S.level;
   const def = LEVELS[S.li];
-  let bg = backdrop(def.back);
+  let bg = backdrop(def.back, lv.cols * CELL);
   let duckDone = false;
   for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
+    for (let c = 0; c < lv.cols; c++) {
       if (lv.rows[r][c] === '#') bg += block(c, r, r === 0 || lv.rows[r - 1][c] !== '#');
       else if (r === ROWS - 1) {
         bg += water(c, r);
@@ -135,9 +181,24 @@ function renderLevel() {
   bg += place(startArt(), sc * CELL, sr * CELL, CELL / 100);
   bg += place(g(g(hamsterHead(), '', ' class="bob"'), '', ' class="poke peek" data-poke="peek" id="peek"'), sc * CELL + 50, sr * CELL + 58, 0.34);
   bg += place(homeArt(), hc * CELL, hr * CELL, CELL / 100);
+  for (const p of lv.parts.filter((q) => q.kind === 'seesaw')) {
+    let ground = p.r + 1;
+    while (ground < ROWS && lv.rows[ground][p.c + 1] !== '#') ground += 1;
+    bg += potArt((p.c + 1.5) * CELL, (p.r + 1) * CELL, ground * CELL);
+  }
   layer('bg').innerHTML = bg;
+  renderParts();
   renderSeed();
   renderAll();
+}
+
+// The see-saws' planks (D-156), each turned about its flowerpot's top: at rest near end down (-SLANT), tipped +SLANT.
+function renderParts() {
+  layer('parts').innerHTML = S.level.parts.filter((p) => p.kind === 'seesaw')
+    .map((p, i) => `<g data-saw="${i}" data-at="${p.c},${p.r}" transform="${sawTurn(p, -SLANT)}">${seesawArt()}</g>`).join('');
+}
+function sawTurn(p, deg) {
+  return `translate(${((p.c + 1.5) * CELL).toFixed(1)} ${((p.r + 1) * CELL).toFixed(1)}) rotate(${deg.toFixed(1)})`;
 }
 
 function renderSeed() {
@@ -192,6 +253,7 @@ function renderFits() {
 function renderGhost() {
   const h = S.hover;
   const kind = S.drag ? S.drag.kind : S.selected;
+  layer('drag').innerHTML = '';
   if (S.mode !== 'build' || !kind || !h) { layer('ghost').innerHTML = ''; return; }
   if (h.cell) {
     const [c, r] = h.cell;
@@ -202,7 +264,8 @@ function renderGhost() {
     if (!ok) s += path(`M ${c * CELL + 40} ${r * CELL + 8} l 14 14 m 0 -14 l -14 14`, 'none', 4.5, CORAL);
     layer('ghost').innerHTML = s;
   } else if (S.drag && S.drag.moved) {
-    layer('ghost').innerHTML = place(gadget(kind), h.x - 30, h.y - 40, 0.6, 0, ' opacity="0.85"');
+    layer('ghost').innerHTML = '';
+    layer('drag').innerHTML = place(gadget(kind), h.x - 30, h.y - 40, 0.6, 0, ' opacity="0.85"');
   } else layer('ghost').innerHTML = '';
 }
 
@@ -274,7 +337,8 @@ function toBoard(e) {
 }
 function cellAt(p) {
   if (p.x < 0 || p.y < 0 || p.x >= BW || p.y >= BH) return null;
-  return [Math.floor(p.x / CELL), Math.floor(p.y / CELL)];
+  const c = Math.floor((p.x + S.vx) / CELL);
+  return c < S.level.cols ? [c, Math.floor(p.y / CELL)] : null;
 }
 
 function tryPlace(kind, c, r) {
@@ -334,6 +398,11 @@ function onDown(e) {
     if (S.hover) bump(layer('ghost'), 'shake');
     return;
   }
+  if (!S.selected && maxView() > 0 && p.y < BH && p.x < BW) {
+    S.pan = { x0: e.clientX, vx0: S.vx, moved: false, pk };
+    board.setPointerCapture(e.pointerId);
+    return;
+  }
   if (pk) { poke(pk); return; }
   if (S.selected) { S.selected = null; renderAll(); }
 }
@@ -341,10 +410,19 @@ function onDown(e) {
 function onMove(e) {
   if (S.screen !== 'level' || S.mode !== 'build') return;
   const p = toBoard(e);
+  if (S.pan) {
+    const m = board.getScreenCTM();
+    if (Math.abs(e.clientX - S.pan.x0) > 8) S.pan.moved = true;
+    if (S.pan.moved && m) setView(S.pan.vx0 - (e.clientX - S.pan.x0) / m.a);
+    return;
+  }
   if (S.drag) {
     if (!S.drag.moved && Math.hypot(e.clientX - S.drag.x0, e.clientY - S.drag.y0) > 8) S.drag.moved = true;
     S.hover = { x: p.x, y: p.y, cell: S.drag.moved ? cellAt(p) : null };
     if (S.drag.moved) renderGhost();
+    // a gadget held at the window's edge slides the board on
+    const edge = S.drag.moved && p.y < BH && maxView() > 0 ? (p.x < 40 ? -1 : p.x > BW - 40 && p.x < BW ? 1 : 0) : 0;
+    if (edge && !S.edge) { S.edge = edge; requestAnimationFrame(edgeSlide); } else S.edge = edge;
     return;
   }
   if (S.selected && e.pointerType === 'mouse') {
@@ -357,7 +435,22 @@ function onMove(e) {
   }
 }
 
+function edgeSlide() {
+  if (!S.edge || !S.drag) { S.edge = 0; return; }
+  setView(S.vx + 9 * S.edge);
+  if (S.hover && S.hover.cell) { S.hover.cell = cellAt(S.hover); renderGhost(); }
+  requestAnimationFrame(edgeSlide);
+}
+
 function onUp(e) {
+  if (S.pan) {
+    const pan = S.pan;
+    S.pan = null;
+    if (board.hasPointerCapture(e.pointerId)) board.releasePointerCapture(e.pointerId);
+    if (!pan.moved && pan.pk) poke(pan.pk);
+    return;
+  }
+  S.edge = 0;
   const d = S.drag;
   if (!d) return;
   S.drag = null;
@@ -381,6 +474,7 @@ function button(name) {
   if (name === 'house') { stopRun(); S.selected = null; play('tap'); show('house'); return; }
   if (name === 'go') { startRun(); return; }
   if (name === 'stop') { play('back'); stopRun(); renderAll(); }
+  if (name === 'panL' || name === 'panR') { play('whoosh'); slideView((name === 'panL' ? -1 : 1) * 6 * CELL); }
 }
 
 // ---------------------------------------------------------------- the hamsters' trip
@@ -402,7 +496,9 @@ function segmentsOf(st) {
     const p0 = segs.length ? segs[segs.length - 1].p1 : feet(a.c, a.r);
     at = b.t0;
     if (b.act === 'walk' || b.act === 'climb') {
-      const mid = { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
+      const p1 = feet(b.c, b.r);
+      const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
+      const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
       add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'climb' ? 'climb' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
@@ -420,7 +516,7 @@ function segmentsOf(st) {
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
     } else {
-      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed });   // tube, ride
+      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' ? 'wheee' : null });   // tube, ride, tilt
     }
   }
   return segs;
@@ -446,13 +542,14 @@ function startRun() {
   S.drag = null;
   S.seedTaken = false;
   renderSeed();
-  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now() };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [] };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
   if (peek) peek.setAttribute('visibility', 'hidden');
   play('go');
   renderAll();
+  renderArrows();
   requestAnimationFrame(tick);
 }
 
@@ -465,6 +562,8 @@ function stopRun() {
   S.seedTaken = false;
   renderSeed();
   renderGadgets();
+  renderParts();
+  renderArrows();
   const peek = $('peek');
   if (peek) peek.removeAttribute('visibility');
 }
@@ -472,6 +571,7 @@ function stopRun() {
 // A worn stick's crack or snap (run()'s events), when its tick comes: a deeper crack drawn, or the stick gone with
 // its halves falling. The sticks come back whole when the run ends (renderGadgets).
 function stickEvent(e) {
+  if (e.kind === 'tip') { play('creak'); S.run.tips[`${e.c},${e.r}`] = e.t * TICK; return; }
   const el = board.querySelector(`[data-placed="${e.c},${e.r}"]`);
   if (!el) return;
   if (e.kind === 'crack') {
@@ -496,7 +596,10 @@ function tick(now) {
   R.last = now;
   R.t += dt * S.speed;
   while (R.ev < R.events.length && R.events[R.ev].t * TICK <= R.t) stickEvent(R.events[R.ev++]);
+  R.drawn = [];
   for (const w of R.walkers) if (!w.done) moveWalker(R, w);
+  turnSaws(R);
+  follow(R, dt);
   if (R.walkers.every((w) => w.done) && !R.finishing) {
     R.finishing = true;
     setTimeout(finishRun, 350 / S.speed);
@@ -505,12 +608,40 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
+// A tipping see-saw swings over in TIP ticks, with a bump at the end.
+function turnSaws(R) {
+  for (const el of layer('parts').children) {
+    const t0 = R.tips[el.dataset.at];
+    if (t0 === undefined) continue;
+    const f = Math.max(0, Math.min(1, (R.t - t0) / (TIP * TICK)));
+    const [c, r] = el.dataset.at.split(',').map(Number);
+    el.setAttribute('transform', sawTurn({ c, r }, -SLANT + 2 * SLANT * f * f));
+    if (f >= 1 && !el.dataset.bumped) { el.dataset.bumped = '1'; play('boing'); puff((c + 2.5) * CELL, (r + 2) * CELL, 0.8); }
+  }
+}
+
+// During a run the window follows the hamsters still on their way (their middle), gently.
+function follow(R, dt) {
+  if (maxView() <= 0) return;
+  const xs = R.walkers.filter((w) => !w.done && w.x !== undefined).map((w) => w.x);
+  if (!xs.length) return;
+  const want = xs.reduce((a, b) => a + b, 0) / xs.length - BW / 2;
+  setView(S.vx + (want - S.vx) * Math.min(1, dt * 2.5));
+}
+
 function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
   w.el.firstElementChild.innerHTML = hamster(pose);
 }
 function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
+  // two hamsters on one square are drawn a little apart, so a child sees both
+  const R = S.run;
+  if (R && R.drawn) {
+    while (R.drawn.some(([dx, dy]) => Math.abs(dx - x) < 10 && Math.abs(dy - y) < 10)) x -= 18;
+    R.drawn.push([x, y]);
+  }
+  w.x = x;
   w.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${sc.toFixed(3)})`);
   w.el.setAttribute('opacity', op.toFixed(2));
   w.el.removeAttribute('visibility');
@@ -563,6 +694,7 @@ function moveWalker(R, w) {
     } else {
       x = s.p0.x + (s.p1.x - s.p0.x) * f;
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
+      if (s.kind === 'tilt') pose = 'fall';
     }
     setPose(w, pose);
     setAt(w, x, y, rot);
@@ -632,7 +764,9 @@ function finishRun() {
     const peek = $('peek');
     if (peek) { peek.removeAttribute('visibility'); bump(peek, 'hop'); }
     play('squeak');
+    renderParts();
     renderAll();
+    renderArrows();
   }
 }
 
@@ -655,7 +789,8 @@ function party() {
     const y = 40 + 36 * (1 - ((x - 360) / 180) ** 2) * 0.55;
     return path(`M ${x - 9} ${y - 2} L ${x} ${y + 16} L ${x + 9} ${y - 2} Z`, [CORAL, SUN, '#5FE3BD', '#C9B8FF'][i % 4], 1.8);
   }).join('');
-  layer('fx').innerHTML = s;
+  layer('fx').innerHTML = '';
+  layer('pfx').innerHTML = s;
   layer('walkers').innerHTML = '';
   renderTray();
   const nextOk = S.li + 1 < LEVELS.length;
@@ -667,6 +802,7 @@ function partyAct(act) {
   play('tap');
   $('party').hidden = true;
   layer('fx').innerHTML = '';
+  layer('pfx').innerHTML = '';
   if (act === 'house') { S.at = Math.min(S.li + 1, LEVELS.length - 1); S.mode = 'build'; S.run = null; show('house'); return; }
   if (act === 'next') { openLevel(S.li + 1); return; }
   S.mode = 'build';
@@ -675,7 +811,9 @@ function partyAct(act) {
   renderSeed();
   const peek = $('peek');
   if (peek) peek.removeAttribute('visibility');
+  renderParts();
   renderAll();
+  renderArrows();
 }
 
 // ---------------------------------------------------------------- little effects (D-141)
@@ -728,7 +866,7 @@ const POKES = {
   sun: ['wink', 'chirp'], cloud: ['squish', 'whoosh'], smoke: ['squish', 'poof'], bird: ['hop', 'chirp'], frog: ['hop', 'ribbit'],
   future: ['wobble', 'soon'], wheel: ['spin', 'squeak'], cushion: ['squish', 'poof'], mallow: ['squish', 'boing'], tube: ['wobble', 'squeak'],
   hero: ['hop', 'squeak'], clock: ['wobble', 'chirp'], lamp: ['wobble', 'clink'], moon: ['hop', 'whoosh'], mobile: ['wobble', 'clink'],
-  mirror: ['wink', 'clink'], towel: ['wobble', 'whoosh'], skylight: ['wink', 'chirp'], spider: ['hop', 'squeak'],
+  mirror: ['wink', 'clink'], towel: ['wobble', 'whoosh'], skylight: ['wink', 'chirp'], spider: ['hop', 'squeak'], scarecrow: ['wobble', 'squeak'],
 };
 function poke(el) {
   const [cls, snd] = POKES[el.dataset.poke] || ['wobble', 'tap'];
@@ -799,8 +937,9 @@ window.__test = {
   }),
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();
-    const p = new DOMPoint((c + 0.5) * CELL, (r + 0.5) * CELL).matrixTransform(m);
+    const p = new DOMPoint((c + 0.5) * CELL - S.vx, (r + 0.5) * CELL).matrixTransform(m);
     return { x: p.x, y: p.y };
   },
   speed: (k) => { S.speed = k; },
+  view: () => ({ x: S.vx, max: maxView() }),
 };

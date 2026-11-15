@@ -1,4 +1,9 @@
-// Hamster Highway's drawings, as SVG text. Version 1.2.
+// Hamster Highway's drawings, as SVG text. Version 1.3.
+//
+// Changes at v1.3 (step 4, D-156, D-158): the veg patch backdrop for level 8, as wide as its board (a sky with a sun
+// and clouds that answer a tap, a picket fence, sunflowers, a scarecrow made of a broom and a flowerpot hat); the
+// see-saw: a garden plank (seesawArt, drawn level with its top edge on the pivot, so game.js just turns it) on a
+// terracotta flowerpot (potArt). backdrop() takes the board's width.
 //
 // Changes at v1.2 (step 3, D-153, D-154): the worn lolly stick (stickArt: pale, already a little cracked, a crack
 // more with each hamster, and a sticking plaster for luck); the bathroom backdrop for level 6 (tiles, a round
@@ -246,9 +251,54 @@ function jar(x, h, col, lid = '#E8505B') {
     + rect(x + 7, -h + 10, 8, h - 20, WHITE, 4, 0, INK, ' opacity="0.35"'), '', ` class="poke jar" data-poke="jar"`);
 }
 
-// Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn.
-export function backdrop(name) {
+// Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
+// width (the backdrops for 12-square boards are drawn 720 wide).
+export function backdrop(name, w = W) {
+  if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   return g(backdropArt(name), '', ` data-back="${['pantry', 'living', 'bedroom', 'bathroom', 'loft'].includes(name) ? name : 'kitchen'}"`);
+}
+
+// The veg patch (level 8, D-151), w wide: sky, a sun and clouds, a picket fence, sunflowers and a scarecrow.
+function vegArt(w) {
+  let s = ['#CDEBFA', '#D7F0FB', '#E1F4FC', '#EAF8FD'].map((c, i) => rect(0, (i * 300) / 4, w, 76, c, 0, 0)).join('');
+  s += rect(0, 296, w, H - 296, '#D9F2C9', 0, 0);
+  let d = g(circle(90, 70, 34, SUN, 3) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+    const a = (i * Math.PI) / 4;
+    return line(90 + 42 * Math.cos(a), 70 + 42 * Math.sin(a), 90 + 54 * Math.cos(a), 70 + 54 * Math.sin(a), '#F0A51C', 4);
+  }).join('') + circle(80, 64, 3.2, INK, 0) + circle(100, 64, 3.2, INK, 0) + path('M 80 80 q 10 8 20 0', 'none', 2.6), '', ' class="poke" data-poke="sun"');
+  for (let x = 300; x < w; x += 420) {
+    d += g(g(ellipse(x, 64, 46, 20, WHITE, 2.4, '#B9D6E6') + ellipse(x + 30, 54, 30, 18, WHITE, 0) + ellipse(x - 26, 56, 24, 14, WHITE, 0), '', ' class="cloud"'), '', ' class="poke" data-poke="cloud"');
+  }
+  for (let x = 10; x < w; x += 34) d += path(`M ${x} 300 L ${x} 240 L ${x + 11} 228 L ${x + 22} 240 L ${x + 22} 300 Z`, '#FFF8EE', 2, '#D8C9B0');
+  d += rect(0, 252, w, 10, '#FFF8EE', 0, 2, '#D8C9B0') + rect(0, 282, w, 10, '#FFF8EE', 0, 2, '#D8C9B0');
+  for (let x = 200; x < w; x += 360) {
+    d += line(x, 300, x, 170, '#3E9B4F', 5) + path(`M ${x} 250 q -26 -4 -30 -20 q 20 0 30 14`, LEAF, 2)
+      + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => {
+        const a = (i * Math.PI) / 5;
+        return ellipse(x + 22 * Math.cos(a), 160 + 22 * Math.sin(a), 11, 6, SUN, 1.6, INK, (a * 180) / Math.PI);
+      }).join('') + circle(x, 160, 14, '#8B5A3C', 2);
+  }
+  const sx = Math.max(560, w - 260);
+  d += g(line(sx, 300, sx, 150, '#8B5A3C', 6) + line(sx - 44, 196, sx + 44, 196, '#8B5A3C', 5)
+    + circle(sx, 140, 20, '#F6E7C8', 2.4) + circle(sx - 7, 136, 2.6, INK, 0) + circle(sx + 7, 136, 2.6, INK, 0) + path(`M ${sx - 7} 146 q 7 6 14 0`, 'none', 2)
+    + path(`M ${sx - 18} 126 L ${sx + 18} 126 L ${sx + 12} 104 L ${sx - 12} 104 Z`, '#D9774B', 2.4)
+    + rect(sx - 24, 176, 48, 60, '#9FD3F5', 8, 2.4) + rect(sx - 10, 190, 12, 12, '#FF9BB3', 2, 1.6), '', ' class="poke" data-poke="scarecrow"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+// The see-saw's plank, a garden board 3 squares long on the slant (3 x CELL x √2), drawn level and centred on 0,0
+// with its top edge on y 0, where the hamsters' feet go; game.js turns it about 0,0 (the flowerpot's top).
+export function seesawArt() {
+  const L = Math.round(3 * CELL * Math.SQRT2);
+  return rect(-L / 2, 0, L, 16, '#C98F57', 6, 2.6) + line(-L / 2 + 14, 6, -12, 6, '#A8703F', 1.6) + line(18, 11, L / 2 - 16, 11, '#A8703F', 1.6)
+    + circle(-L / 2 + 10, 8, 2.4, '#8B5A3C', 0) + circle(L / 2 - 10, 8, 2.4, '#8B5A3C', 0) + circle(0, 8, 7, '#8B5A3C', 2.2);
+}
+
+// The flowerpot the see-saw stands on: x its middle, from y0 (just under the plank's middle) down to y1 (the ground).
+export function potArt(x, y0, y1) {
+  return path(`M ${x - 26} ${y0 + 12} L ${x + 26} ${y0 + 12} L ${x + 18} ${y1} L ${x - 18} ${y1} Z`, '#D9774B', 2.6)
+    + rect(x - 30, y0 + 4, 60, 14, '#E98C60', 4, 2.6) + path(`M ${x - 12} ${y0 + 34} q 12 8 24 0`, 'none', 2, '#B85F38')
+    + path(`M ${x} ${y0 + 4} L ${x - 8} ${y0 - 4} L ${x + 8} ${y0 - 4} Z`, '#8B5A3C', 2);
 }
 
 // The living room (level 4, D-149): striped wallpaper, a sunflower picture, a cuckoo clock and a hanging lamp.

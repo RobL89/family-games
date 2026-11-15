@@ -1,4 +1,12 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.3 (15 Nov).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.4 (15 Nov).
+
+Changes at v1.4 (step 4, D-156, D-158): the house shows eight levels and the plan's 4 places still to come; level 8
+(the veg patch backdrop, 18 squares wide): the window starts at the left with an arrow to the right only; a swipe
+on the board slides it 4 squares; an arrow slides it to the end; a ramp held at the window's right edge slides it on;
+with the bridge and the step's ramp only, the see-saw creaks over and they ride it, but not all get home; with the
+ramp to its raised end and the spare ramp at the first gap, a party with the seed, the window having followed them
+along; no Next after level 8; its saved tries 2. On a phone held sideways, level 8's arrows slide it by touch and a
+ramp goes down at 10,3 by touch.
 
 Changes at v1.3 (step 3, D-144, D-153, D-154): runs play the timed model (game.js 1.3); the house shows seven
 levels and the plan's five places still to come; level 6 (the bathroom backdrop): one worn stick cracks under three
@@ -192,7 +200,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 7 and locked == 6 and future == 5, f'PC: the house shows levels 1 to 7, six locked, and the plan\'s 5 places still to come (D-151) ({n_markers}, {locked}, {future})')
+    check(n_markers == 8 and locked == 7 and future == 4, f'PC: the house shows levels 1 to 8, seven locked, and the plan\'s 4 places still to come (D-151) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -376,15 +384,73 @@ with sync_playwright() as pw:
     go_and_wait(pg, 'party')
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'snap' in s['heard'], 'PC: level 7 with four sticks in two layers and the ramp before the gap: a snap, then all five home with the seed')
+
+    # level 8: the wide board (D-158) and the see-saw (D-156)
+    tap(pg, '#party [data-act="next"]')
+    pg.wait_for_function('__test.state().level === "L8"')
+    v = pg.evaluate('__test.view()')
+    check(pg.locator('#bg [data-back="veg"]').count() == 1 and pg.locator('[data-saw]').count() == 1 and v == {'x': 0, 'max': 360},
+          f'PC: level 8 has the veg patch for its backdrop and a see-saw; 18 squares wide, its window starts at the left ({v})')
+    check(pg.locator('[data-btn="panR"]').count() == 1 and pg.locator('[data-btn="panL"]').count() == 0, 'PC: level 8 shows an arrow to the right only')
+    place(pg, 'bridge', 3, 5)
+    place(pg, 'ramp', 5, 4)
+    tap(pg, '[data-slot="ramp"]')   # put the ramp back down: nothing in hand, so a drag on the board slides it
+    a = pg.evaluate('__test.cellPoint(8, 1)')
+    b = pg.evaluate('__test.cellPoint(4, 1)')
+    pg.mouse.move(a['x'], a['y'])
+    pg.mouse.down()
+    for k in range(1, 11):
+        pg.mouse.move(a['x'] + (b['x'] - a['x']) * k / 10, a['y'])
+    pg.mouse.up()
+    v = pg.evaluate('__test.view()')
+    check(abs(v['x'] - 240) < 2 and state(pg)['placed'] == {'3,5': 'bridge', '5,4': 'ramp'}, f'PC: a swipe slides the board 4 squares and puts nothing down ({v["x"]})')
+    tap(pg, '[data-btn="panR"]')
+    pg.wait_for_timeout(450)
+    v = pg.evaluate('__test.view()')
+    check(v['x'] == 360 and pg.locator('[data-btn="panR"]').count() == 0, f'PC: the right arrow slides it to the end, and goes ({v["x"]})')
+    tap(pg, '[data-btn="panL"]')
+    pg.wait_for_timeout(450)
+    check(pg.evaluate('__test.view()')['x'] == 0, 'PC: the left arrow slides it back to the start (6 squares a tap)')
+    sb = pg.locator('[data-slot="ramp"]').first.bounding_box()
+    e = pg.evaluate('__test.cellPoint(11, 3)')
+    pg.mouse.move(sb['x'] + sb['width'] / 2, sb['y'] + sb['height'] / 2)
+    pg.mouse.down()
+    for k in range(1, 11):
+        pg.mouse.move(sb['x'] + sb['width'] / 2 + (e['x'] - sb['x'] - sb['width'] / 2) * k / 10, sb['y'] + sb['height'] / 2 + (e['y'] - sb['y'] - sb['height'] / 2) * k / 10)
+    pg.wait_for_timeout(500)
+    held = pg.evaluate('__test.view()')['x']
+    pg.mouse.move(sb['x'] + sb['width'] / 2, sb['y'] + sb['height'] / 2)
+    pg.mouse.up()
+    check(held > 0 and state(pg)['placed'] == {'3,5': 'bridge', '5,4': 'ramp'}, f'PC: a ramp held at the window\'s right edge slides the board on; let go over the tray, nothing goes down ({held})')
+    go_and_wait(pg, 'build')
+    s = state(pg)
+    check(all(x in s['heard'] for x in ('creak', 'wheee', 'snore')), f'PC: level 8 without the ramp to the see-saw: it creaks over, they ride it, and some nap at its raised end ({s["heard"][-12:]})')
+    while pg.evaluate('__test.view()')['x'] > 0:
+        tap(pg, '[data-btn="panL"]')
+        pg.wait_for_timeout(450)
+    place(pg, 'ramp', 2, 4)
+    tap(pg, '[data-btn="panR"]')
+    pg.wait_for_timeout(450)
+    place(pg, 'ramp', 10, 3)
+    check(state(pg)['placed'] == {'3,5': 'bridge', '5,4': 'ramp', '2,4': 'ramp', '10,3': 'ramp'}, f'PC: level 8: a ramp put down at 10,3 with the board slid along ({state(pg)["placed"]})')
+    pg.evaluate('__test.speed(1)')
+    tap(pg, '[data-btn="go"]')
+    pg.wait_for_timeout(8700)
+    pg.screenshot(path=os.path.join(OUT, 'pc-16-level8-tip.png'))
+    mid = pg.evaluate('__test.view()')['x']
+    pg.evaluate('__test.speed(8)')
+    pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and mid > 0, f'PC: level 8 with the ramp to the see-saw and the spare at the first gap: all five home with the seed; the window followed them ({mid})')
     check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
-    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7']
-    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1}}
-    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 7 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1; the replays for seeds not counted) ({kept(pg)})')
+    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8']
+    want = {'v': 1, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2}}
+    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 8 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')
     tap(pg, '#play')
@@ -463,6 +529,22 @@ with sync_playwright() as pw:
         check(state(pg)['home'] == 5, f'{tag}: GO by touch: all five home')
         pg.wait_for_timeout(300)
         pg.screenshot(path=os.path.join(OUT, f'{w}x{h}-party.png'))
+        if (w, h) == (844, 390):
+            # level 8 by touch: the arrows slide the wide board, and a ramp goes down along it
+            done7 = {f'L{i}': True for i in range(1, 8)}
+            pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 1, done: {json.dumps(done7)}, seeds: {{}}, tries: {{}}}}))")
+            pg.reload()
+            pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+            tap(pg, '#play', True)
+            pg.wait_for_function('__test.state().screen === "house"')
+            tap(pg, '[data-level="7"]', True)
+            pg.wait_for_function('__test.state().level === "L8"')
+            tap(pg, '[data-btn="panR"]', True)
+            pg.wait_for_timeout(450)
+            v = pg.evaluate('__test.view()')
+            place(pg, 'ramp', 10, 3, True)
+            check(v['x'] == 360 and state(pg)['placed'] == {'10,3': 'ramp'}, f'{tag}: on level 8 the arrow slides the board by touch, and a ramp goes down at 10,3 ({v}, {state(pg)["placed"]})')
+            pg.screenshot(path=os.path.join(OUT, f'{w}x{h}-level8.png'))
         sizes_ok(pg, tag, errors, asked)
         ctx.close()
     br.close()

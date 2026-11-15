@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.7 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 7, the house picker, saving and the wrapper link.
+Version 1.8 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 8, the house picker, saving and the wrapper link.
 
+Changes at v1.8 (step 4, D-156, D-158): level 8 (the veg patch), the first wide level, 18 squares: the board slides sideways (swipe it, tap the big arrows, or hold a gadget at its edge; during a run it follows the hamsters). The see-saw: two hamsters on its high end tip it, it stays tipped and carries whoever is on it, so a ramp is needed to step onto its raised end.
 Changes at v1.7 (step 3, D-153, D-154): levels 6 (the bath) and 7 (the loft's rafters) with the worn lolly stick, a sixth gadget: pale and a little cracked, it cracks under each hamster and snaps under the fourth, so a second stick underneath must catch the last two; nothing goes on it. GO plays the timed model.
 Changes at v1.6 (step 3's spike, D-144): `core.js` 1.1 moves all five hamsters together, tick by tick (`run()`), so a moving part can matter; a teacup lift is ready in the rules, not yet in a level.
 Changes at v1.5 (D-151): every stop planned (house.js's PLAN): bath, loft, roof and drainpipe, garden; a simple loft and drainpipe drawn.
@@ -45,7 +46,7 @@ all made in code (D-010).
 
 | File | What |
 |---|---|
-| `core.js` | The rules: the board, where gadgets fit, each hamster's trip, and all five together, tick by tick, with any teacup lift (`run()`). Pure |
+| `core.js` | The rules: the board (12 to 24 wide), where gadgets fit, each hamster's trip, and all five together, tick by tick, with any teacup lift or see-saw (`run()`). Pure |
 | `levels.js` | The levels, as text boards with their trays. Data only |
 | `art.js` | The drawings, as SVG text. Pure |
 | `house.js` | The house-and-garden picker and the title card, as SVG text. Pure |
@@ -70,6 +71,7 @@ and the page at PC and phone sizes).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.8 | 2026-11-15 | Level 8, wide boards and the see-saw (D-156, D-158) |
 | 1.7 | 2026-11-15 | Levels 6 and 7, the worn stick (D-153, D-154) |
 | 1.6 | 2026-11-15 | The timed model (D-144) |
 | 1.5 | 2026-11-15 | Every stop planned; the loft and drainpipe (D-151) |
