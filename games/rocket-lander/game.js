@@ -1,5 +1,8 @@
 // Rocket Lander: steer a falling rocket onto the spot asked for on the planet's number line.
-// One game with a map of solar systems (D-058). Version 3.5.
+// One game with a map of solar systems (D-058). Version 3.6.
+//
+// Changes at v3.6 (trial feedback item 1, D-123): a picture level's chip is drawn with the level's row, so a
+// row that says `pictures: false` (Doubles and halves to 20) asks with the numbers alone.
 //
 // Changes at v3.5 (stage 3, D-120): only this header: the game links to P-020's wrapper through the
 // engine (round.js 2.9, link.js), so begin() is no longer what a start message calls.
@@ -317,7 +320,7 @@ const ASK = {
   isRight: askRight,
   goalOf: askGoal,
   // odd or even to 100 takes Number mode's word chip ("Land on [even]"); the rest are faces
-  chip: (T) => (T.ask === 'parity' ? { cls: `word ${T.rel}`, html: T.rel } : faceChip(T)),
+  chip: (T, S, row) => (T.ask === 'parity' ? { cls: `word ${T.rel}`, html: T.rel } : faceChip(T, row)), // the row: pictures or not (D-123)
   words: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'the number').replace(/^Land on /, '').replace(/[!?]$/, ''),
   sayAll: (T) => (ASK_SAY[T.ask] ? ASK_SAY[T.ask](T) : 'Land on the number!'),
   miss: (T, spot, goal) => askMiss(T, spot, goal),

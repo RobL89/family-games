@@ -1,7 +1,12 @@
 // Reception's target faces (level plan 0.3, section 5; D-092): the pictures and phrases at the top
 // that ask for a number: dots to count, a quick look, more or fewer than some dots, one more or one
 // less, a frame to fill to make 5 or 10, sums with dots under each number (Q-033), doubles and
-// sharing sweets. Version 1.2. Changes at v1.2 (step 2c-3c): Year 1's and Year 3's faces: a number to find
+// sharing sweets. Version 1.3. Changes at v1.3 (trial feedback item 1: D-123 to D-125): How many dots? and
+// More, fewer or the same draw their 1 to 6 dots in rows of 3 (6 is 3 and 3); Groups of keeps its words and
+// draws a box per group with its size written in it, no dots; a level whose row says `pictures: false`
+// (Doubles and halves to 20) asks double and half with the numbers alone. faceChip takes the level's row
+// for that. A fraction of dots puts a group of 3 in a row of 3, so four such groups make two short lines
+// (r2), not a square. Changes at v1.2 (step 2c-3c): Year 1's and Year 3's faces: a number to find
 // (shown as itself, like Number mode's chip), groups of 2, 5 or 10 as rows of dots (an array, the notes'
 // show_array), half of a number as its dots in two groups, a 3-digit number as counters in a place-value
 // chart (H, T, O: nine hundreds as blocks wouldn't fit an upright phone's chip), 10 or 100 more or less, a
@@ -25,18 +30,20 @@ const dot = (x, y, how = 'on') => (how === 'empty'
     ? `<circle class="d-gone" cx="${x}" cy="${y}" r="${DOT_R}"/><path class="d-x" d="M${x - 3.2} ${y - 3.2}L${x + 3.2} ${y + 3.2}M${x + 3.2} ${y - 3.2}L${x - 3.2} ${y + 3.2}"/>`
     : `<circle class="d-on" cx="${x}" cy="${y}" r="${DOT_R}"/>`);
 
-// An svg of cells in rows of 5: `hows` lists each cell's look in order ('on', 'gone', 'empty').
-function cells(hows, { frame = false, cls = 'fd' } = {}) {
-  const n = hows.length, cols = Math.max(1, Math.min(PER_ROW, n)), rows = Math.max(1, Math.ceil(n / PER_ROW));
+// An svg of cells in rows of `per` (5 unless said): `hows` lists each cell's look in order ('on', 'gone', 'empty').
+function cells(hows, { frame = false, cls = 'fd', per = PER_ROW } = {}) {
+  const n = hows.length, cols = Math.max(1, Math.min(per, n)), rows = Math.max(1, Math.ceil(n / per));
   const w = cols * 10, h = rows * 10;
-  const box = frame ? hows.map((_, i) => `<rect class="f-cell" x="${(i % PER_ROW) * 10 + 0.8}" y="${Math.floor(i / PER_ROW) * 10 + 0.8}" width="8.4" height="8.4" rx="1.6"/>`).join('') : '';
-  const body = hows.map((how, i) => dot((i % PER_ROW) * 10 + 5, Math.floor(i / PER_ROW) * 10 + 5, how)).join('');
+  const box = frame ? hows.map((_, i) => `<rect class="f-cell" x="${(i % per) * 10 + 0.8}" y="${Math.floor(i / per) * 10 + 0.8}" width="8.4" height="8.4" rx="1.6"/>`).join('') : '';
+  const body = hows.map((how, i) => dot((i % per) * 10 + 5, Math.floor(i / per) * 10 + 5, how)).join('');
   return `<svg class="${cls} r${rows}" viewBox="-0.6 -0.6 ${w + 1.2} ${h + 1.2}" aria-hidden="true">${box}${body}</svg>`;
 }
 const many = (n, how = 'on') => Array.from({ length: n }, () => how);
 
-// n dots in rows of 5.
-export const dotsSvg = (n) => cells(many(n));
+// n dots in rows of 5, or of `per`.
+export const dotsSvg = (n, per = PER_ROW) => cells(many(n), { per });
+// A count to look at (How many dots?, More or fewer; D-125): 1 to 6 in rows of 3, so 6 is 3 and 3.
+const COUNT_ROW = 3;
 
 // A quick look's dots (1 to 5), laid out three ways: as on a dice, in a row, or scattered.
 const PIPS = { 1: [[15, 15]], 2: [[8, 8], [22, 22]], 3: [[8, 8], [15, 15], [22, 22]], 4: [[8, 8], [22, 8], [8, 22], [22, 22]],
@@ -57,21 +64,24 @@ export const bondSvg = (whole, part) => cells([...many(part), ...many(whole - pa
 // A number with its dots under it; for a take-away, the first number's last `gone` dots crossed out.
 const column = (n, hows) => `<span class="pc"><b class="fn">${esc(n)}</b>${hows.length ? cells(hows) : '<span class="d-none"></span>'}</span>`;
 
-// The chip for a Reception target: { cls, html } (game.js puts it in the target's chip).
-export function faceChip(T) {
+// The chip for a target: { cls, html } (game.js puts it in the target's chip). `row` is the level's row:
+// with `pictures: false`, double and half are asked with the numbers alone (D-123).
+export function faceChip(T, row = null) {
+  const pictures = !(row && row.pictures === false);
   const fw = (w) => `<span class="fw">${esc(w)}</span>`;
   switch (T.ask) {
     case 'dots':
-      return { cls: 'face face-dots', html: dotsSvg(T.n) };
+      return { cls: 'face face-dots', html: dotsSvg(T.n, COUNT_ROW) };
     case 'flash':
       return { cls: 'face face-flash', html: `<span class="fl" style="--show:${Math.round(T.ms ?? 1500)}ms">${flashSvg(T.n, T.look)}<b class="fl-q" aria-hidden="true">?</b></span>` };
     case 'compare':
-      return { cls: 'face face-compare', html: `${fw(T.rel === 'more' ? 'more than' : T.rel === 'fewer' ? 'fewer than' : 'the same as')}${dotsSvg(T.n)}` };
+      return { cls: 'face face-compare', html: `${fw(T.rel === 'more' ? 'more than' : T.rel === 'fewer' ? 'fewer than' : 'the same as')}${dotsSvg(T.n, COUNT_ROW)}` };
     case 'more-less':
       return { cls: 'face face-more-less', html: `${fw(`${T.by ?? 1} ${T.dir === 'more' ? 'more' : 'less'} than`)}<b class="fn">${esc(T.n)}</b>` };
     case 'bond':
       return { cls: 'face face-bond', html: `${bondSvg(T.whole, T.part)}${fw('make')}<b class="fn">${esc(T.whole)}</b>` };
     case 'double':
+      if (!pictures) return { cls: 'face face-double plain', html: `${fw('double')}<b class="fn">${esc(T.n)}</b>` };
       return { cls: 'face face-double', html: `${fw('double')}<span class="pc"><b class="fn">${esc(T.n)}</b><span class="pair">${dotsSvg(T.n)}${dotsSvg(T.n)}</span></span>` };
     case 'share':
       return { cls: 'face face-share', html: `${sweetsSvg(T.total)}${fw('shared by')}${platesSvg(T.groups)}` };
@@ -90,8 +100,9 @@ export function faceChip(T) {
     case 'find':
       return { cls: '', html: esc(T.n) };
     case 'groups':
-      return { cls: 'face face-groups', html: `<b class="fn">${esc(T.groups)}</b>${fw(T.groups === 1 ? 'group of' : 'groups of')}<b class="fn">${esc(T.size)}</b>${arraySvg(T.groups, T.size)}` };
+      return { cls: 'face face-groups', html: `<b class="fn">${esc(T.groups)}</b>${fw(T.groups === 1 ? 'group of' : 'groups of')}<b class="fn">${esc(T.size)}</b>${groupBoxes(T.groups, T.size)}` };
     case 'half':
+      if (!pictures) return { cls: 'face face-half plain', html: `${fw('half of')}<b class="fn">${esc(T.n)}</b>` };
       return { cls: 'face face-half', html: `${fw('half of')}<b class="fn">${esc(T.n)}</b>${groupsSvg(T.n, 2)}` };
     case 'frac-compare':
       return { cls: 'face face-fcmp', html: `${fw('Which is bigger?')}${fracHtml(1, T.first)}${fw('or')}${fracHtml(1, T.second)}` };
@@ -113,7 +124,12 @@ export function partsHtml(v, d) {
 // A fraction sum, its two fractions written one number over the other: 5/7 + 1/7.
 export const fracSumHtml = (T) => `${fracHtml(T.a, T.den)}<span class="op">${esc(T.op)}</span>${fracHtml(T.b, T.den)}`;
 
-// So many groups of 2, 5 or 10, each a row of dots in a box (an array); a row of 10 is two fives.
+// So many groups of 2, 5 or 10, a box for each group with its size written in it (D-123, D-125), on a line
+// of its own under the words.
+export const groupBoxes = (groups, size) => `<span class="gbx">${Array.from({ length: groups }, () => `<b class="gb">${esc(size)}</b>`).join('')}</span>`;
+
+// So many groups of 2, 5 or 10, each a row of dots in a box (an array); a row of 10 is two fives. Not drawn
+// since v1.3 (D-123): kept for the record and its test.
 export function arraySvg(groups, size) {
   const gap = size > 5 ? 3 : 0, rowW = size * 10 + gap + 2, rowH = 12;
   const body = Array.from({ length: groups }, (_, r) => {
@@ -183,7 +199,7 @@ export function shapeSvg(num, den, look = 0) {
 // `total` dots in `den` equal groups, each group in a box: 12 in 4 groups of 3. Two or three groups side by
 // side; four (and more) in rows of two (or the square root), as a quartered square, so the picture stays narrow.
 export function groupsSvg(total, den) {
-  const k = total / den, cols = Math.max(1, Math.ceil(Math.sqrt(k))), rows = Math.ceil(k / cols);
+  const k = total / den, cols = k <= 3 ? Math.max(1, k) : Math.ceil(Math.sqrt(k)), rows = Math.ceil(k / cols); // 3 in a row, not 2 and 1 (v1.3)
   const per = den <= 3 ? den : Math.ceil(Math.sqrt(den)), lines = Math.ceil(den / per);
   const bw = cols * 10 + 2, bh = rows * 10 + 2, gap = 3;
   const body = Array.from({ length: den }, (_, g) => {
@@ -192,7 +208,7 @@ export function groupsSvg(total, den) {
     return `<rect class="fo-group" x="${gx}" y="${gy}" width="${bw}" height="${bh}" rx="2.5"/>${dots}`;
   }).join('');
   const W = per * (bw + gap) - gap, H = lines * (bh + gap) - gap;
-  return `<svg class="fd groups r${H <= 14 ? 1 : H <= 26 ? 2 : 3}" viewBox="-1 -1 ${W + 2} ${H + 2}" aria-hidden="true">${body}</svg>`;
+  return `<svg class="fd groups r${H <= 14 ? 1 : H <= 28 ? 2 : 3}" viewBox="-1 -1 ${W + 2} ${H + 2}" aria-hidden="true">${body}</svg>`;
 }
 
 // A Reception sum with dots under each number (R09, R10): 2 + 3 with 2 and 3 dots; 5 − 2 with five

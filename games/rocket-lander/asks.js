@@ -1,6 +1,8 @@
 // Reception's questions (level plan 0.3, sections 4 and 5): levels whose answer is still a number on
 // the line, but asked by a picture or a phrase at the top: how many dots, a quick look, more or fewer
-// than some dots, one more or one less, making 5 or 10, doubles and sharing. Version 1.2.
+// than some dots, one more or one less, making 5 or 10, doubles and sharing. Version 1.3.
+// Changes at v1.3 (trial feedback item 1, D-123): more than n is asked for every n whose dots are shown (min
+// to max) while the line still holds a bigger number (to `to`), so 6 dots on a 0 to 10 line ask more than 6.
 // Changes at v1.2 (step 2c-3c): Year 1's and Year 3's questions: find a number on a stretch (find), a
 // level in parts (`parts`: numbers to 100 in halves, D-094), one more or less by 10 or 100 (`by`), a count
 // whose stretch counts in a coarser step (`stretch`: counting in 10s on a stretch in 2s, so the answer isn't
@@ -107,7 +109,7 @@ export function choices(row, kind = null) {
       const out = [];
       for (const rel of rels) {
         // at least one dot to look at, and at least one number on the line that fits
-        const ns = rel === 'more' ? between(Math.max(1, lo), hi - 1) : rel === 'fewer' ? between(Math.max(1, lo + 1), hi) : between(Math.max(1, lo), hi);
+        const ns = rel === 'more' ? between(Math.max(1, lo), Math.min(hi, (row.to ?? hi) - 1)) : rel === 'fewer' ? between(Math.max(1, lo + 1), hi) : between(Math.max(1, lo), hi);
         for (const n of ns) out.push(rel === 'same' ? { rule: 'ask', ask: 'compare', rel, n, value: n } : { rule: 'range', ask: 'compare', rel, n });
       }
       return out;

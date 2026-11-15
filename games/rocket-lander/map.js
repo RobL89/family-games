@@ -1,6 +1,11 @@
 // Rocket Lander's maps of solar systems: one map for each track, on the same six systems (D-058,
-// D-065, D-066, D-089). Version 2.2 (step 2c-3c).
+// D-065, D-066, D-089). Version 2.3 (trial feedback item 1).
 //
+// Changes at v2.3 (D-123, D-125): fewer things to count. How many dots? asks 1 to 6 on a line from 0 to 6;
+// More, fewer or the same shows 6 dots at most; Share it out 6 sweets at most; Year 1's Sharing up to 10
+// between 2 or 5; Half of a number up to 12; Fractions of numbers up to 12; Doubles and halves to 20 with
+// the numbers alone (`pictures: false`). Each cut row says so in its `source`. The editions stay: every
+// level id still means the same level, so stars and rocks are kept.
 // Changes at v2.2 (step 2c-3c): Year 1's Ice, Jungle and Ringed on the lower track and Year 3's on the
 // higher, from the level plan (claude/level-plan.md 0.3, section 4), each 7 levels and a challenge, so no
 // system is coming soon. The editions stay ('lower-1', 'higher-1'): only systems that were coming soon
@@ -58,13 +63,13 @@ const LOWER = [
   { id: 'moon', levels: [
     { kind: 'number', level: 1, plan: 'R01', about: 'Land on numbers, 0 to 5', sample: { rule: 'any', value: 3 } },
     { kind: 'number', level: 2, plan: 'R02', about: 'Numbers to 10, and dice', sample: { rule: 'dice', value: 4 } },
-    { kind: 'ask', plan: 'R03', row: { ask: 'dots', min: 1, max: 10, from: 0, to: 10, label_every: 1 },
+    { kind: 'ask', plan: 'R03', row: { ask: 'dots', min: 1, max: 6, from: 0, to: 6, label_every: 1, source: 'R03 cut to 1 to 6 dots, on 0 to 6 (D-123, D-125); the notes say 1 to 10' },
       about: 'How many dots?', sample: { rule: 'ask', ask: 'dots', n: 6, value: 6 } },
     { kind: 'number', plan: 'X-dice6', row: { from: 0, to: 6, label_every: 1, labels: 'dice', mix: { any: 1 }, source: 'D-060, D-067: dice faces on the line, 0 an empty die' },
       about: 'Dice faces on the line', sample: { rule: 'any', value: 5 } },
     { kind: 'ask', plan: 'R04', row: { ask: 'flash', min: 1, max: 5, show_ms: 1500, from: 0, to: 5, label_every: 1 },
       about: 'Quick look: how many?', sample: { rule: 'ask', ask: 'flash', n: 4, value: 4, look: 0, ms: 1500 } },
-    { kind: 'ask', plan: 'R05', row: { ask: 'compare', min: 0, max: 10, rels: { more: 2, fewer: 2, same: 1 }, from: 0, to: 10, label_every: 1 },
+    { kind: 'ask', plan: 'R05', row: { ask: 'compare', min: 0, max: 6, rels: { more: 2, fewer: 2, same: 1 }, from: 0, to: 10, label_every: 1, source: 'R05 cut to 6 dots at most, on 0 to 10 (D-123); the notes say 0 to 10' },
       about: 'More, fewer or the same', sample: { rule: 'range', ask: 'compare', rel: 'more', n: 3 } },
     { kind: 'ask', plan: 'R06', row: { ask: 'more-less', min: 0, max: 10, from: 0, to: 10, label_every: 1 },
       about: 'One more, one less', sample: { rule: 'ask', ask: 'more-less', dir: 'more', n: 6, value: 7 } },
@@ -92,7 +97,7 @@ const LOWER = [
     { kind: 'sums', level: 3, plan: 'X-mix10', about: 'Plus and take away, to 10', sample: { rule: 'sum', sum: '4 + 5' } },
     { kind: 'number', level: 3, plan: 'R15', about: 'Even and odd numbers', sample: { rule: 'parity', parity: 'even' } },
     { kind: 'number', level: 4, plan: 'X-parity-faint', about: 'Even and odd, colours faint', sample: { rule: 'parity', parity: 'odd' } },
-    { kind: 'ask', plan: 'R16', row: { ask: 'share', total_max: 10, groups: 2, from: 0, to: 5, label_every: 1 },
+    { kind: 'ask', plan: 'R16', row: { ask: 'share', total_max: 6, groups: 2, from: 0, to: 5, label_every: 1, source: 'R16 cut to 6 sweets at most (D-123); the notes say 10' },
       about: 'Share it out', sample: { rule: 'ask', ask: 'share', total: 6, groups: 2, value: 3 } },
     { kind: 'number', plan: 'X-dice12', row: { from: 0, to: 12, label_every: 1, labels: 'dice', mix: { any: 1 }, source: 'D-060: 7 to 12 as a 6 and the rest' },
       about: 'Dice up to 12', sample: { rule: 'any', value: 9 } },
@@ -144,14 +149,14 @@ const LOWER = [
   { id: 'ringed', levels: [
     { kind: 'ask', plan: 'Y1-12', row: { ask: 'groups', sizes: [2, 5, 10], max_groups: 5, source: 'Y1-12: 1 to 5 groups of 2, 5 or 10, as an array; on the size\'s own line' },
       about: 'Groups of 2, 5 and 10', sample: { rule: 'ask', ask: 'groups', groups: 3, size: 5, value: 15 } },
-    { kind: 'ask', plan: 'Y1-13', row: { ask: 'share', total_max: 20, groups: [2, 5, 10], from: 0, to: 10, label_every: 1, source: 'Y1-13: share up to 20 between 2, 5 or 10' },
-      about: 'Share between 2, 5 or 10', sample: { rule: 'ask', ask: 'share', total: 15, groups: 5, value: 3 } },
+    { kind: 'ask', plan: 'Y1-13', row: { ask: 'share', total_max: 10, groups: [2, 5], from: 0, to: 10, label_every: 1, source: 'Y1-13: share up to 20 between 2, 5 or 10; cut to 10 between 2 or 5 (D-123)' },
+      about: 'Share between 2 or 5', sample: { rule: 'ask', ask: 'share', total: 10, groups: 5, value: 2 } },
     { kind: 'number', level: 7, plan: 'X-0-5-10', about: 'Only 0, 5 and 10 written', sample: { rule: 'any', value: 5 } },
     { kind: 'ask', plan: 'Y1-14', row: { ask: 'frac-shape', fractions: ['1/2', '1/4'], source: 'Y1-14: halves and quarters of shapes' },
       about: 'Halves and quarters', sample: { rule: 'ask', ask: 'frac-shape', num: 1, den: 4, look: 0, parts: 4, value: 1 } },
-    { kind: 'ask', plan: 'Y1-15', row: { ask: 'frac-of', fractions: ['1/2'], total_max: 20, from: 0, to: 10, label_every: 1, source: 'Y1-15: half of 2 to 20' },
+    { kind: 'ask', plan: 'Y1-15', row: { ask: 'frac-of', fractions: ['1/2'], total_max: 12, from: 0, to: 10, label_every: 1, source: 'Y1-15: half of 2 to 20; cut to 12 (D-123)' },
       about: 'Half of a number', sample: { rule: 'ask', ask: 'frac-of', num: 1, den: 2, total: 12, value: 6 } },
-    { kind: 'ask', plan: 'X-doubles20', row: { ask: 'double', max: 10, halves: true, min: 0, span: 10, label_every: 1,
+    { kind: 'ask', plan: 'X-doubles20', row: { ask: 'double', max: 10, halves: true, min: 0, span: 10, label_every: 1, pictures: false,
       source: "notes: year1 other: doubles and halves to 20 (double 1 to 10, half of 2 to 20, by turns)" },
       about: 'Doubles and halves to 20', sample: { rule: 'ask', ask: 'half', n: 14, value: 7 } },
     { kind: 'number', level: 8, plan: 'X-0-10', about: 'Only 0 and 10 written', sample: { rule: 'any', value: 3 } },
@@ -221,7 +226,7 @@ const HIGHER = [
       about: 'Odd or even to 100', sample: { rule: 'range', ask: 'parity', rel: 'even' } },
     { kind: 'ask', plan: 'Y2-19', row: { ask: 'frac-shape', fractions: ['1/2', '1/3', '1/4', '2/4', '3/4'], source: 'Y2-19: fractions of shapes' },
       about: 'Fractions of shapes', sample: { rule: 'ask', ask: 'frac-shape', num: 3, den: 4, look: 0, parts: 4, value: 3 } },
-    { kind: 'ask', plan: 'Y2-20', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '1/4', '3/4'], total_max: 24, span: 10, label_every: 1, source: 'Y2-20: fractions of numbers to 24, whole answers' },
+    { kind: 'ask', plan: 'Y2-20', row: { ask: 'frac-of', fractions: ['1/2', '1/3', '1/4', '3/4'], total_max: 12, span: 10, label_every: 1, source: 'Y2-20: fractions of numbers to 24, whole answers; cut to 12 (D-123)' },
       about: 'Fractions of numbers', sample: { rule: 'ask', ask: 'frac-of', num: 3, den: 4, total: 12, value: 9 } },
     CHALLENGE,
   ] },

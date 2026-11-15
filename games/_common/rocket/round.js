@@ -1,4 +1,8 @@
-// The rocket game's round flow (D-027, D-058). Version 2.9.
+// The rocket game's round flow (D-027, D-058). Version 2.10.
+//
+// Changes at v2.10 (trial feedback item 1, D-124): a landing's fall is measured after its question is
+// drawn, so the rocket starts below the question's box however tall its picture (it was measured before,
+// under the last landing's box); a question set by a test hook is measured again too.
 //
 // Changes at v2.9 (stage 3, D-120, D-121, D-118): linked to P-020's wrapper through shared/bridge.js
 // (link.js). runRocket starts the game when the bridge's start arrives: at once on its own, as before;
@@ -510,7 +514,6 @@ function playRocket(mode, { linked = null, state = null, track = null } = {}) {
     G.prev = G.T;
     lineForTarget();
     G.goal = null;
-    measureFall();
     const xt = scene.xOf(spotFor(G.T, scene.W / 2));
     const span = scene.x1 - scene.x0;
     const zone = Math.min(span * 0.28, Math.max(R.h * 0.9, scene.W * 0.16));
@@ -527,6 +530,7 @@ function playRocket(mode, { linked = null, state = null, track = null } = {}) {
     setPhase('fly');
     input.active = false;
     showTarget();
+    measureFall(); // under the box just drawn (D-124): a taller picture starts the rocket lower
     renderDots();
   }
 
@@ -1335,7 +1339,7 @@ function playRocket(mode, { linked = null, state = null, track = null } = {}) {
     freeze(on) { if (on) { cancelAnimationFrame(frame); } else { last = performance.now(); frame = requestAnimationFrame(loop); } },
   };
   // The mode's own hooks, such as making this landing's target a given one (while flying).
-  const set = (T) => { G.T = T; G.prev = T; lineForTarget(); showTarget(); };
+  const set = (T) => { G.T = T; G.prev = T; lineForTarget(); showTarget(); measureFall(); };
   // each kind's hooks work while one of its own levels is played
   for (const k of Object.values(mode.kinds || { one: mode })) {
     for (const [name, fn] of Object.entries(k.testHooks || {})) {

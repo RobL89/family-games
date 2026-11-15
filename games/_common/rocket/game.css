@@ -1,4 +1,8 @@
-/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.4.
+/* Rocket Lander: deep space, chunky indigo outlines, coral, sun yellow and mint. Version 2.5.
+   Changes at v2.5 (trial feedback item 1, D-123 to D-125): bigger counting pictures. Each picture face has
+   its own height; on an upright phone, where the box is narrow, a frame to fill, sweets to share and a
+   fraction of dots go on two lines (the picture, then its words), and Groups of puts a box per group under
+   its words. Floors for each are in test_rocket_lander_counting.py.
    Changes at v2.4 (stage 3, D-121): the one-time track pick's card, its two buttons one above the other
    (side by side on a sideways phone).
    Changes at v2.3 (step 2c-3c): Year 1's and Year 3's faces: groups as rows of dots in lilac boxes, half of a
@@ -151,6 +155,37 @@ button { font: inherit; color: inherit; }
 .chip.sum.frac { display: inline-flex; align-items: center; gap: .16em; }
 .chip.sum.frac .fr { font-size: .62em; }
 .chip.face-est .fw { max-width: 4.2em; }
+/* Bigger counting pictures (D-124, D-125): heights by face, each picture's things counted at its biggest */
+.chip.face-dots svg.r1, .chip.face-compare svg.r1 { height: 1.15em; }
+.chip.face-dots svg.r2 { height: 2.05em; }
+.chip.face-compare svg.r2 { height: 1.7em; }
+.chip.face-flash svg.fl-dots { height: 2.1em; }
+.chip.face-flash svg.fl-dots[data-look="row"] { height: .85em; }
+.chip.face-bond svg.r1 { height: .85em; }
+.chip.face-bond svg.r2 { height: 1.5em; }
+.chip.face-sum .pc svg, .chip.face-sum .pc .d-none { height: .9em; }
+.chip.face-double .pc svg { height: 1em; }
+.chip.face-share svg.sweets.r1 { height: .7em; }
+.chip.face-share svg.sweets.r2 { height: 1.25em; }
+.chip.face-share svg.plates { height: .5em; }
+.chip.face-fracof svg.groups.r1 { height: .8em; }
+.chip.face-fracof svg.groups.r2 { height: 1.3em; }
+.chip.face svg.blocks { height: 2.4em; }
+.chip.face svg.chart { height: 1.9em; }
+.chip.face-groups { flex-wrap: wrap; justify-content: center; row-gap: .1em; }
+.chip .gbx { display: inline-flex; flex-basis: 100%; flex-wrap: wrap; justify-content: center; gap: .12em; }
+.chip .gb { display: inline-grid; place-items: center; min-width: 1.25em; height: 1.1em; padding: 0 .1em; border-radius: .25em;
+  background: var(--lilac); border: 2px solid var(--ink); font-size: .74em; line-height: 1; }
+@media (max-width: 480px) {
+  .chip.face-bond, .chip.face-share, .chip.face-fracof { flex-wrap: wrap; justify-content: center; row-gap: .1em; }
+  .chip.face-bond svg, .chip.face-share svg.sweets, .chip.face-fracof svg.groups { flex-basis: 100%; }
+  .chip.face-double .pair { flex-direction: column; gap: .1em; } /* double 5: five over five, so both fit the width */
+  .chip.face-double .pc svg { height: .7em; }
+  .chip.face-sum { gap: .08em; padding-left: .2em; padding-right: .2em; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .chip.face svg.blocks { height: 2.45em; } /* a sideways phone: the ones at least 8 px (D-126), the rocket still 60 px to fall */
+}
 /* a challenge round (D-091): its card's chip */
 .chip.challenge { display: inline-flex; align-items: center; gap: .2em; font-size: 1em; padding: .14em .5em .18em; background: var(--coral); color: var(--paper); }
 .chip.challenge svg { width: .9em; height: .9em; }
