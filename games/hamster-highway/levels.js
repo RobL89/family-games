@@ -84,4 +84,30 @@ export const LEVELS = [
       '###.########',
     ],
   },
+  {
+    id: 'L6', name: 'Crack!', room: 'bathroom', spot: 'bath', back: 'bathroom', new: 'stick',
+    tray: { stick: 2, ramp: 1 }, spare: 'ramp',
+    rows: [
+      '............',
+      '............',
+      '............',
+      'S......*....',
+      '#####.....G.',
+      '#####.######',
+      '#####.######',
+    ],
+  },
+  {
+    id: 'L7', name: 'Two by two', room: 'loft', spot: 'rafters', back: 'loft', new: 'stick',
+    tray: { stick: 4, ramp: 1 }, spare: 'ramp',
+    rows: [
+      '............',
+      '.....*......',
+      'S...........',
+      '#####.....G.',
+      '#####..#####',
+      '#####..#####',
+      '#####..#####',
+    ],
+  },
 ];

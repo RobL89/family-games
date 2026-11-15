@@ -1,13 +1,15 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
 tests catch (project rules: test the tests). Version 1.2 (15 Nov, step 3).
-Changes at v1.2 (step 3's spike): the seed-on-foot fault follows core.js 1.1's new text; five faults in the timed model (core.js 1.1): the cup shared, stepped onto too
-late, left before it moves, all five out at once, and the seed taken by every hamster. Built like mutate_rocket_map.py 1.0.
+Changes at v1.2 (step 3): the seed-on-foot fault follows core.js 1.1's new text; five faults in the timed model (core.js 1.1): the cup shared, stepped onto too
+late, left before it moves, all five out at once, and the seed taken by every hamster; three in the worn stick:
+a gadget fits on it, it snaps under the third, and it stays when snapped. (Cracking twice under one hamster
+was tried and dropped: no rule yet lets a hamster stand on one stick twice, so it changes nothing.) Built like mutate_rocket_map.py 1.0.
 Changes at v1.1 (step 2): nine more faults, in the saved progress (progress.js), level 4's tray, and saving and
 the wrapper link (game.js). Version 1.0.1 (15 Nov): renamed with the game, D-146.
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
-error, not a catch. Twenty-one faults caught or not by the core test (seconds each), in the rules (core.js), the
+error, not a catch. Twenty-four faults caught or not by the core test (seconds each), in the rules (core.js), the
 progress (progress.js) and the levels; five in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
@@ -22,7 +24,7 @@ CORE, E2E = 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py'
 FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),
-    ('a bridge holds nobody', G + 'core.js', "const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube']);", "const HOLDS = new Set(['#', 'ramp', 'tube']);", CORE),
+    ('a bridge holds nobody', G + 'core.js', "const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick']);", "const HOLDS = new Set(['#', 'ramp', 'tube', 'stick']);", CORE),
     ('a bridge fits where they stand', G + 'core.js', 'return !HOLDS.has(below) && (side(-1) || side(1));', 'return HOLDS.has(below) && (side(-1) || side(1));', CORE),
     ('a ramp fits in mid-air', G + 'core.js', '  return FLOOR.has(below);\n}', '  return below !== null;\n}', CORE),
     ('a wall does not stop them', G + 'core.js', "if (next === null || next === '#') return done('stuck');", "if (next === null) return done('stuck');", CORE),
@@ -35,6 +37,9 @@ FAULTS = [
     ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now() };\n", '', CORE),
     ('all five come out at once', G + 'core.js', 'next: i * RELEASE,', 'next: 0,', CORE),
     ('the seed is taken by every hamster', G + 'core.js', '        seed = false;\n        return true;', '        return true;', CORE),
+    ('a gadget fits on a worn stick', G + 'core.js', "const FLOOR = new Set(['#', 'bridge']); ", "const FLOOR = new Set(['#', 'bridge', 'stick']); ", CORE),
+    ('a stick snaps under the third', G + 'core.js', 'const snap = by.size >= SNAP;', 'const snap = by.size >= SNAP - 1;', CORE),
+    ('a snapped stick stays', G + 'core.js', '        if (snap) delete placed[k];\n', '', CORE),
     ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
     ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),

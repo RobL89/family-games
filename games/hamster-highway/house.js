@@ -1,4 +1,7 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.3.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.4.
+//
+// Changes at v1.4 (step 3, D-154): levels 6 (the bath) and 7 (the loft's rafters) are built, so their places are
+// SPOTS at PLAN's own places; a PLAN place shows softly only while no level sits there.
 //
 // Changes at v1.3 (D-151, plan A of tools/tests/games/sketch_hamster_house_routes.py 0.1): every stop is planned.
 // After the bedroom the route goes left to the bath (6), up into a loft under the roof (7, and a later place by
@@ -26,10 +29,10 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300] };
+export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150] };
 // The plan for the stops after level 5 (D-151), in route order: name, place, the level planned there (null: kept
 // for a level after v1), and any bends before it. Levels 6 to 10 follow D-145. Drawn softly without numbers until
-// their levels exist; test_hamster_highway_core.py checks the whole route never crosses itself.
+// a level's spot takes the place's name; test_hamster_highway_core.py checks the whole route never crosses itself.
 export const PLAN = [
   { name: 'bath', at: [300, 360], level: 6 },
   { name: 'rafters', at: [430, 150], level: 7 },
@@ -236,9 +239,11 @@ export function houseScene(state) {
   s += rect(60, 196, 1200, 584, 'none', 0, 5);
   s += garden() + drainpipe();
   // a soft dotted path through the levels there are, and on to the next place (not across the whole house)
-  const pts = state.levels.map((l) => SPOTS[l.spot]).concat(FUTURE.slice(0, 1));
+  const built = new Set(state.levels.map((l) => l.spot));
+  const later = PLAN.filter((p) => !built.has(p.name));
+  const pts = state.levels.map((l) => SPOTS[l.spot]).concat(later.slice(0, 1).flatMap((p) => [...(p.via || []), p.at]));
   s += path(`M ${pts.map(([x, y]) => `${x} ${y}`).join(' L ')}`, 'none', 4, MUTED, ' stroke-dasharray="2 12" opacity="0.4"');
-  s += FUTURE.map(([x, y], k) => g(circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none') + circle(x, y, 24, 'rgba(255,248,238,0.5)', 3, BROWN, ' stroke-dasharray="6 6" stroke-opacity="0.4"'),
+  s += later.map((p) => p.at).map(([x, y], k) => g(circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none') + circle(x, y, 24, 'rgba(255,248,238,0.5)', 3, BROWN, ' stroke-dasharray="6 6" stroke-opacity="0.4"'),
     '', ` class="poke future" data-poke="future" data-future="${k}"`)).join('');
   s += state.levels.map((l, i) => marker(SPOTS[l.spot][0], SPOTS[l.spot][1], i, { ...l, current: i === state.current })).join('');
   return s;

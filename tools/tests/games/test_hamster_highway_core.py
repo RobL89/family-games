@@ -1,6 +1,9 @@
 """Hamster Highway's pure core, its levels and its boundaries. Version 1.4 (15 Nov).
 
-Changes at v1.4 (step 3's spike, D-144): the timed model, run() and cupRow(): on boards with nothing that moves,
+Changes at v1.4 (step 3, D-143, D-144, D-153, D-154): the worn lolly stick, a sixth gadget that cracks with each
+hamster and snaps under the fourth, on level 6's board, by hand; nothing goes on it. Levels 6 (the bath) and 7 (the
+loft's rafters): all five home with their sticks (run()), not without, not with any one stick fewer, and the seed
+only with the spare ramp in the squares the solver found. Levels are now judged by all five hamsters. And the spike: the timed model, run() and cupRow(): on boards with nothing that moves,
 five hamsters go walk()'s way 6 ticks apart and only the first takes the seed; a teacup lift on a test board
 (stops 6 ticks, moves a row in 3) carries them one at a time at times worked out by hand, and never takes
 on a hamster too late to step in before it moves; the same build
@@ -124,6 +127,14 @@ const SOL = {
   L3: { solve: [['bridge', 2, 6], ['bouncer', 5, 5]], seed: [['ramp', 9, 4]] },
   L4: { solve: [['bridge', 3, 2], ['floater', 5, 1]], seed: [['bridge', 6, 2]] },
   L5: { solve: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3]], seed: [['tube', 6, 2]] },
+  L6: { solve: [['stick', 5, 4], ['stick', 5, 5]], seed: [['ramp', 6, 4]] },
+  L7: { solve: [['stick', 5, 3], ['stick', 6, 3], ['stick', 5, 4], ['stick', 6, 4]], seed: [['ramp', 4, 2]] },
+};
+// all five hamsters (run(), the timed model): 'home' only if every one gets home, else the first other outcome
+const five = (lv, placed) => {
+  const r = core.run(lv, placed);
+  const bad = r.hamsters.find((h) => h.outcome !== 'home');
+  return { outcome: bad ? bad.outcome : 'home', seed: r.hamsters.some((h) => h.seed), homes: r.hamsters.filter((h) => h.outcome === 'home').length };
 };
 out.play = {};
 for (const d of LEVELS) {
@@ -132,13 +143,13 @@ for (const d of LEVELS) {
   const a = placeAll(lv, s.solve);
   const b = placeAll(lv, [...s.solve, ...s.seed]);
   const withoutNew = Object.fromEntries(Object.entries(a.placed || {}).filter(([, k]) => k !== d.new));
-  const ra = a.placed ? core.walk(lv, a.placed) : null;
-  const rb = b.placed ? core.walk(lv, b.placed) : null;
+  const ra = a.placed ? five(lv, a.placed) : null;
+  const rb = b.placed ? five(lv, b.placed) : null;
   // every square the spare gadget fits, with the level solved: which take the seed home?
   const spare = [];
   if (a.placed && s.seed.length) {
     for (const [c, r] of core.fitCells(lv, a.placed, d.spare)) {
-      const res = core.walk(lv, { ...a.placed, [core.key(c, r)]: d.spare });
+      const res = five(lv, { ...a.placed, [core.key(c, r)]: d.spare });
       if (res.outcome === 'home' && res.seed) spare.push([c, r]);
     }
   }
@@ -146,7 +157,8 @@ for (const d of LEVELS) {
     errA: a.error || null, errB: b.error || null,
     solved: ra && ra.outcome, solvedSeed: ra && ra.seed,
     withSeed: rb && rb.outcome, seedTaken: rb && rb.seed,
-    noNew: a.placed ? core.walk(lv, withoutNew).outcome : null,
+    noNew: a.placed ? five(lv, withoutNew).outcome : null,
+    oneStickLess: a.placed ? Object.keys(a.placed).filter((k) => a.placed[k] === 'stick').map((k) => { const p = { ...a.placed }; delete p[k]; return five(lv, p).homes; }) : null,
     seedGone: rb ? core.walk(lv, b.placed, false).seed : null,
     leftAfter: a.placed ? core.left(lv, a.placed) : null,
     spare,
@@ -200,11 +212,15 @@ for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows
 
 # levels.js
 lv = {x['id']: x for x in out['levels']}
-check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5'], f'levels.js holds levels 1 to 5, in order ({list(lv)})')
-check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2],
-      'each level has its golden seed where levels.js says')
-check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube'], 'each level brings in one new gadget, in the agreed order (D-136, D-145)')
-check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube'], 'levels 2 to 5 each name the spare gadget their seed needs')
+check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'], f'levels.js holds levels 1 to 7, in order ({list(lv)})')
+check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2]
+      and lv['L6']['seed'] == [7, 3] and lv['L7']['seed'] == [5, 1], 'each level has its golden seed where levels.js says')
+check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick'], 'each level brings in one new gadget, in the agreed order; 6 and 7 the worn stick (D-136, D-145, D-153)')
+check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube', 'ramp', 'ramp'], 'levels 2 to 7 each name the spare gadget their seed needs')
+check(lv['L6']['tray'] == {'stick': 2, 'ramp': 1} and lv['L7']['tray'] == {'stick': 4, 'ramp': 1},
+      'the trays: level 6 has 2 worn sticks and a ramp; level 7 4 worn sticks and a ramp (each ramp a spare for the seed)')
+check([(lv[i]['room'], lv[i]['spot'], lv[i]['back']) for i in ('L6', 'L7')] == [('bathroom', 'bath', 'bathroom'), ('loft', 'rafters', 'loft')],
+      'level 6 is at the bath, level 7 on the loft\'s rafters, each with its own backdrop (D-149, D-151)')
 check(lv['L4']['tray'] == {'bridge': 2, 'floater': 1} and lv['L5']['tray'] == {'bridge': 1, 'tube': 4},
       'the trays: level 4 has 2 bridges and a floater; level 5 a bridge and 4 tubes (one of each a spare for the seed)')
 check([(lv[i]['room'], lv[i]['spot'], lv[i]['back']) for i in ('L4', 'L5')] == [('living', 'bookshelf', 'living'), ('bedroom', 'cage', 'bedroom')],
@@ -232,7 +248,11 @@ for i, (lid, p) in enumerate(out['play'].items(), 1):
     check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
     check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
 check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
-check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5')), 'levels 2 to 5: the seed needs the spare gadget')
+check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5', 'L6', 'L7')), 'levels 2 to 7: the seed needs the spare gadget')
+check(out['play']['L6']['spare'] == [[6, 4], [7, 4]], f'level 6: the spare ramp takes the seed home from 6,4 or 7,4 only, past the bath ({out["play"]["L6"]["spare"]})')
+check(out['play']['L7']['spare'] == [[4, 2]], f'level 7: the spare ramp takes the seed home only from 4,2, just before the gap ({out["play"]["L7"]["spare"]})')
+check(out['play']['L6']['oneStickLess'] == [3, 3] and all(n < 5 for n in out['play']['L7']['oneStickLess']) and len(out['play']['L7']['oneStickLess']) == 4,
+      f'levels 6 and 7: take away any one stick and not all five get home (the five hamsters matter, D-143) ({out["play"]["L6"]["oneStickLess"]}, {out["play"]["L7"]["oneStickLess"]})')
 check(out['play']['L4']['spare'] == [[6, 2]], f'level 4: the spare bridge takes the seed home only beside the ledge, at 6,2, so they float down past it ({out["play"]["L4"]["spare"]})')
 check(out['play']['L5']['spare'] == [[6, 2]], f'level 5: the spare tube takes the seed home only on top of the others, at 6,2 ({out["play"]["L5"]["spare"]})')
 check(out['play']['L2']['spare'] == [[4, 5], [5, 5]], f'level 2: the spare ramp takes the seed home from 4,5 or 5,5 only ({out["play"]["L2"]["spare"]})')
@@ -243,7 +263,7 @@ check(out['play']['L2']['leftAfter'] == {'bridge': 0, 'ramp': 1}, f'left(): leve
 check(out['terrain'] == ['bridge', '.', None, None, '.', '.', 'S', 'G'], f'terrain(): a bridge, air, off the side, below the bottom, above the top, a seed\'s square, start, home ({out["terrain"]})')
 check(out['holds'] == [True, False, True, False], 'holds(): a bridge and ground hold a hamster; air and a seed\'s square do not')
 check(out['key'] == '3,6', 'key(3, 6) is "3,6"')
-check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube'], 3, 3], 'the board is 12 x 7; five gadgets; a fall of 3 bonks; a bounce is 3 up')
+check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'], 3, 3], 'the board is 12 x 7; six gadgets (the worn stick, D-153); a fall of 3 bonks; a bounce is 3 up')
 check(out['noStack'] == [False, False, False, False, False, False], 'nothing fits on a gadget, the start, the home or the seed, nor an unknown gadget, nor off the board')
 
 # progress.js (D-147): what is saved, on the device or through the wrapper, made safe on the way in
@@ -313,8 +333,10 @@ const [houseUrl, levelsUrl] = process.argv.slice(1);
 const H = await import(houseUrl);
 const { LEVELS } = await import(levelsUrl);
 const pts = LEVELS.map((d) => H.SPOTS[d.spot]);
-for (const p of H.PLAN || []) pts.push(...(p.via || []), p.at);
-console.log(JSON.stringify({ pts, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
+const built = new Set(LEVELS.map((d) => d.spot));
+for (const p of H.PLAN || []) if (!built.has(p.name)) pts.push(...(p.via || []), p.at);
+const atPlan = LEVELS.filter((d) => (H.PLAN || []).some((p) => p.name === d.spot)).map((d) => [d.id, JSON.stringify(H.SPOTS[d.spot]) === JSON.stringify(H.PLAN.find((p) => p.name === d.spot).at), H.PLAN.find((p) => p.name === d.spot).level]);
+console.log(JSON.stringify({ pts, atPlan, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
@@ -344,6 +366,7 @@ else:
     check(h['plan'] == [['bath', 6], ['rafters', 7], ['suitcases', None], ['veg', 8], ['shed', 9], ['pond', None], ['treehouse', 10]],
           f'the plan (D-151, plan A): 6 the bath, 7 the loft\'s rafters, a later place by the suitcases, 8 the veg patch, 9 the shed, a later place at the pond, 10 the treehouse ({h["plan"]})')
     check(h['future'] == h['planAt'], 'the soft places in the house are the plan\'s places, in its order')
+    check(h['atPlan'] == [['L6', True, 6], ['L7', True, 7]], f'levels 6 and 7 sit at the plan\'s own places for them, the bath and the rafters (D-151) ({h["atPlan"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -372,6 +395,7 @@ const SOL = {
   L4: [['bridge', 3, 2], ['floater', 5, 1], ['bridge', 6, 2]], L5: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3], ['tube', 6, 2]],
 };
 for (const d of LEVELS) {
+  if (d.new === 'stick') continue;   // worn sticks change the route for later hamsters: their own checks
   const lv = core.parseLevel(d);
   const placed = {};
   for (const [k, c, r] of SOL[d.id]) placed[core.key(c, r)] = k;
@@ -453,6 +477,44 @@ else:
     check(o['bare'] == ['stuck'] * 5, f'teacup lift: without it, every hamster drops into the shaft and is stuck ({o["bare"]})')
     check(o['fitShaft'] == [False, True, True], f'teacup lift: nothing fits in its shaft; above it and beside it they do ({o["fitShaft"]})')
     check(all('part' in x for x in o['refuse']), f'parseLevel refuses an unknown part, a shaft through ground, a lift upside down, a lift off the top ({o["refuse"]})')
+
+# the worn lolly stick (D-143, D-153): its own gadget, fits where a bridge does, gets a crack with each hamster that
+# stands on it and snaps under the fourth. Worked out by hand (15 Nov) on level 6's board without its seed: the
+# hamsters reach the gap's square at ticks 10, 16, 22, 28, 34. One stick on top: three home, then two splashes,
+# cracks at 10, 16 and 22 and the snap at 28; one stick underneath: the same outcomes; one on top and one under it:
+# all five home, the top one snaps at 28 and the fourth falls one square onto the lower one, which cracks at 29 and
+# 35; a sturdy bridge: all home, no cracks. Nothing goes on a worn stick (else a ramp on it crosses for ever). walk() (one hamster) is home with one stick.
+SJS = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const F6 = core.parseLevel({ id: 'f6', tray: {}, rows: [
+  '............', '............', '............', 'S...........', '#####.....G.', '#####.######', '#####.######'] });
+const go = (placed) => { const r = core.run(F6, placed); return { out: r.hamsters.map((h) => h.outcome), ev: r.events.map((e) => [e.t, e.kind, e.c, e.r, e.n]) }; };
+console.log(JSON.stringify({
+  snap: core.SNAP, kinds: core.GADGETS,
+  top: go({ '5,4': 'stick' }), under: go({ '5,5': 'stick' }), both: go({ '5,4': 'stick', '5,5': 'stick' }), bridge: go({ '5,4': 'bridge' }),
+  fits: JSON.stringify(core.fitCells(F6, {}, 'stick')) === JSON.stringify(core.fitCells(F6, {}, 'bridge')) && core.fitCells(F6, {}, 'stick').length > 0,
+  besideStick: core.fits(F6, { '5,5': 'stick' }, 'ramp', 5, 4),
+  holds: core.holds(F6, { '5,4': 'stick' }, 5, 4),
+  walk: core.walk(F6, { '5,4': 'stick' }).outcome,
+}));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', SJS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-2000:], r.stderr[-2000:])
+    check(False, 'node ran the worn lolly stick')
+else:
+    o = json.loads(r.stdout)
+    check(o['snap'] == 4 and o['kinds'] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'], f'the worn stick is a sixth gadget and snaps under the fourth hamster (D-143, D-153) ({o["snap"]}, {o["kinds"]})')
+    five_three = ['home', 'home', 'home', 'splash', 'splash']
+    check(o['top']['out'] == five_three and o['top']['ev'] == [[10, 'crack', 5, 4, 1], [16, 'crack', 5, 4, 2], [22, 'crack', 5, 4, 3], [28, 'snap', 5, 4, 4]],
+          f'worn stick on top: cracks at 10, 16, 22, snaps under the fourth at 28; three home, two splash, by hand ({o["top"]})')
+    check(o['under']['out'] == five_three, f'worn stick underneath: three home, two splash ({o["under"]["out"]})')
+    check(o['both']['out'] == ['home'] * 5 and o['both']['ev'] == [[10, 'crack', 5, 4, 1], [16, 'crack', 5, 4, 2], [22, 'crack', 5, 4, 3], [28, 'snap', 5, 4, 4], [29, 'crack', 5, 5, 1], [35, 'crack', 5, 5, 2]],
+          f'one stick under another: the top one snaps at 28, the fourth drops onto the lower one (cracks at 29, 35); all five home, by hand ({o["both"]})')
+    check(o['bridge'] == {'out': ['home'] * 5, 'ev': []}, f'a sturdy bridge never cracks ({o["bridge"]})')
+    check(o['fits'] and o['holds'] and o['besideStick'] is False, 'a worn stick fits where a bridge does and holds a hamster, but nothing goes on it (a ramp on it would never crack it)')
+    check(o['walk'] == 'home', f'walk(): one hamster crosses one worn stick ({o["walk"]})')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

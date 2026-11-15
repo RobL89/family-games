@@ -1,6 +1,8 @@
 // Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.1.
 //
-// Changes at v1.1 (step 3's spike, D-144): the timed model. run() moves all five hamsters together, tick by tick,
+// Changes at v1.1 (step 3, D-143, D-153): the worn lolly stick, a sixth gadget ('stick'): it fits and holds like a
+// bridge, takes nothing on it, gets a crack with each hamster that stands on it, and snaps under the fourth (SNAP); run() lists the
+// cracks and snaps in events. And (the spike, D-144): the timed model. run() moves all five hamsters together, tick by tick,
 // so a moving part can matter: one hamster's trip is now a generator (trip), and walk() is that trip with
 // nothing moving, giving the same routes as v1.0.1. A level may have parts: a teacup lift ({ kind: 'lift', c,
 // top, bottom }), a cup in column c that stops at rows top and bottom (the rows it is the floor of) and carries
@@ -20,9 +22,10 @@
 
 export const COLS = 12;
 export const ROWS = 7;
-export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube'];
+export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'];
 export const BIG_FALL = 3;   // squares: a drop of 3 or more is a funny fall (D-136)
 export const BOUNCE = 3;     // squares a bouncer throws a hamster straight up, before one square on
+export const SNAP = 4;       // a worn stick snaps under its fourth hamster (D-143)
 export const WALKERS = 5;    // hamsters a GO sends out (brief)
 export const RELEASE = 6;    // ticks between one hamster coming out and the next
 export const LIFT_STOP = 6;  // ticks a teacup waits at each end
@@ -31,8 +34,9 @@ export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2,
 const MAX_TICKS = 3000;      // a run ends here, anyone still out counted stuck
 
 const MARKS = '#.SG*';
-const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube']);   // what a hamster can stand on
-const FLOOR = new Set(['#', 'bridge']);                    // what a ramp, bouncer or floater can stand on
+const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick']);   // what a hamster can stand on
+const FLOOR = new Set(['#', 'bridge']);                    // what a ramp, bouncer or floater can stand on (not a worn stick)
+const SIDE = new Set(['#', 'bridge', 'stick']);            // what a bridge or worn stick can go beside
 
 export const key = (c, r) => `${c},${r}`;
 
@@ -105,15 +109,15 @@ export function terrain(level, placed, c, r) {
 
 export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c, r));
 
-// Anywhere it fits (D-139): never on the start, home, seed, ground or another gadget. A bridge goes
+// Anywhere it fits (D-139): never on the start, home, seed, ground or another gadget. A bridge (or worn stick) goes
 // where a hamster would fall through, beside ground or another bridge; a ramp, bouncer or floater
 // on ground or a bridge; a tube on any empty square.
 export function fits(level, placed, kind, c, r) {
   if (!GADGETS.includes(kind) || c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
   if (level.rows[r][c] !== '.' || placed[key(c, r)] || (level.shaft && level.shaft.has(key(c, r)))) return false;
   const below = terrain(level, placed, c, r + 1);
-  if (kind === 'bridge') {
-    const side = (dc) => FLOOR.has(terrain(level, placed, c + dc, r));
+  if (kind === 'bridge' || kind === 'stick') {
+    const side = (dc) => SIDE.has(terrain(level, placed, c + dc, r));
     return !HOLDS.has(below) && (side(-1) || side(1));
   }
   if (kind === 'tube') return true;
@@ -134,8 +138,8 @@ export function left(level, placed) {
 }
 
 // One hamster's trip, a step at a time (a generator, so run() can move five together). It reads the world through
-// ctx: at(c, r) and holds(c, r), which may change as others pass; take(c, r), true if this hamster takes the
-// golden seed there; and, for a lift, stop(c, r), canBoard(stop), board(stop) and leave(stop), and now(), the tick.
+// ctx: at(c, r) and holds(c, r), which may change as others pass; stand(c, r), as it stands there, true if a worn
+// stick under it snaps; take(c, r), true if this hamster takes the golden seed there; and, for a lift, stop(c, r), canBoard(stop), board(stop) and leave(stop), and now(), the tick.
 // It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait' or 'ride';
 // dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a landing's
 // last step, set when it lands) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' | 'stuck' | 'bonk-head'.
@@ -177,15 +181,18 @@ export function* trip(level, ctx) {
     }
     let fell = 0;
     let last = null;
-    while (!ctx.holds(c, r + 1)) {
-      if (r + 1 >= ROWS) {
-        yield { c, r: r + 1, act: floater ? 'float' : 'fall' };
-        return done('splash', fell + 1);
+    for (;;) {
+      while (!ctx.holds(c, r + 1)) {
+        if (r + 1 >= ROWS) {
+          yield { c, r: r + 1, act: floater ? 'float' : 'fall' };
+          return done('splash', fell + 1);
+        }
+        r += 1;
+        fell += 1;
+        last = touch({ c, r, act: floater ? 'float' : 'fall' }, c, r);
+        yield last;
       }
-      r += 1;
-      fell += 1;
-      last = touch({ c, r, act: floater ? 'float' : 'fall' }, c, r);
-      yield last;
+      if (!ctx.stand(c, r)) break;   // a worn stick that snaps under it: on down
     }
     if (fell) last.land = fell;
     if (fell >= BIG_FALL && !floater) return done('bonk', fell);
@@ -227,20 +234,37 @@ export function* trip(level, ctx) {
   return done('stuck');
 }
 
-// The world as run() and walk() share it: the board and gadgets, the lifts' cups at tick now(), who rides each,
-// and the golden seed, taken once.
-function world(level, placed, seedLeft) {
+// The world as run() and walk() share it: the board and gadgets (worn sticks go when they snap), the lifts' cups
+// at tick now(), who rides each, who has cracked each worn stick, and the golden seed, taken once. events lists
+// each crack and snap: { t, kind: 'crack' | 'snap', c, r, n: hamsters so far, who }.
+function world(level, placed0, seedLeft) {
   let t = 0;
   let seed = seedLeft && !!level.seed;
+  const placed = { ...placed0 };
   const riders = new Map();
+  const worn = new Map();
+  const events = [];
   const parts = level.parts || [];
   const at = (c, r) => terrain(level, placed, c, r);
   return {
+    events,
     setNow: (tick) => { t = tick; },
     ctx: (who) => ({
       at,
       now: () => t,
       holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cupRow(p, t) === r),
+      stand: (c, r) => {
+        const k = key(c, r + 1);
+        if (placed[k] !== 'stick') return false;
+        const by = worn.get(k) || new Set();
+        if (by.has(who)) return false;
+        by.add(who);
+        worn.set(k, by);
+        const snap = by.size >= SNAP;
+        events.push({ t, kind: snap ? 'snap' : 'crack', c, r: r + 1, n: by.size, who });
+        if (snap) delete placed[k];
+        return snap;
+      },
       take: (c, r) => {
         if (!seed || level.seed[0] !== c || level.seed[1] !== r) return false;
         seed = false;
@@ -278,7 +302,7 @@ export function walk(level, placed, seedLeft = true) {
 
 // The whole GO: WALKERS hamsters, the first at tick 0 and each next RELEASE ticks later, all moving together,
 // a tick at a time, in order (the first hamster first in each tick), so the same build always gives the same run.
-// Returns { hamsters: [{ outcome, steps, seed, fell, end }], ticks }: each step has t0 and t1, its ticks; end is
+// Returns { hamsters: [{ outcome, steps, seed, fell, end }], events, ticks }: each step has t0 and t1, its ticks; end is
 // the tick a hamster's trip ends (home, or its fall or nap starts); ticks the last end.
 export function run(level, placed, walkers = WALKERS) {
   const w = world(level, placed, true);
@@ -306,5 +330,5 @@ export function run(level, placed, walkers = WALKERS) {
     }
   }
   for (const h of hs) if (!h.outcome) { h.outcome = 'stuck'; h.end = MAX_TICKS; }
-  return { hamsters: hs.map(({ outcome, steps, seed, fell, end }) => ({ outcome, steps, seed, fell, end })), ticks: Math.max(0, ...hs.map((h) => h.end)) };
+  return { hamsters: hs.map(({ outcome, steps, seed, fell, end }) => ({ outcome, steps, seed, fell, end })), events: w.events, ticks: Math.max(0, ...hs.map((h) => h.end)) };
 }
