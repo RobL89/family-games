@@ -1,4 +1,9 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.6 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.7 (15 Nov).
+
+Changes at v1.7 (Rob's look at preview 7, D-163): a teacup takes up to two hamsters, side by side; the second in
+waits SHARE_WAIT (4) ticks at the far end before stepping out, so they keep apart. The one-cup and two-cup lift
+boards' times worked out again by hand before core.js 1.4: who shares, which seat, the second's wait at the top,
+never three in a cup.
 
 Changes at v1.6 (step 4, D-157): levels 9 (the shed, the teacup lift) and 10 (the treehouse finale): solved with
 their gadgets, not without their lift (or, on 10, without the see-saw or the lift), the seed only with the spare in
@@ -412,8 +417,9 @@ else:
 #   - each step lasts its act's ticks (walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1);
 #   - a teacup lift (a test board, not a game level) stops 6 ticks at each end and moves a row every 3 ticks
 #     (a loop of 30 ticks): the cup's row at ticks 0, 5, 6, 7.5, 15, 20, 21, 30 is 5, 5, 5, 4.5, 2, 2, 2, 5;
-#     the hamsters queue at its edge and ride it one at a time, stepping on at ticks 30, 60, 90, 120 and 150 and
-#     home at 51, 81, 111, 141 and 171; never two on the cup; without the lift every one is stuck;
+#     the hamsters queue at its edge and ride it two at a time (D-163, 15 Nov: by hand again), stepping on at ticks
+#     30, 30, 60, 60 and 90 and home at 51, 55 (the second waits 4 ticks at the top), 81, 85 and 111; never three on
+#     the cup; without the lift every one is stuck;
 #   - the same build always gives the same result.
 TJS = r"""
 const [coreUrl, levelsUrl, sketchJson] = process.argv.slice(1);
@@ -503,13 +509,14 @@ else:
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
     L = o['lift']
     check([h['outcome'] for h in L] == ['home'] * 5, f'teacup lift: all five get home ({[h["outcome"] for h in L]})')
-    check([h['on'] for h in L] == [30, 60, 90, 120, 150] and [h['end'] for h in L] == [51, 81, 111, 141, 171],
-          f'teacup lift: they ride one at a time, on at 30, 60, 90, 120, 150, home at 51, 81, 111, 141, 171, by hand ({[(h["on"], h["end"]) for h in L]})')
+    check([h['on'] for h in L] == [30, 30, 60, 60, 90] and [h['end'] for h in L] == [51, 55, 81, 85, 111],
+          f'teacup lift: they ride two at a time (D-163), on at 30, 30, 60, 60, 90, home at 51, 55, 81, 85, 111, by hand ({[(h["on"], h["end"]) for h in L]})')
     spans = sorted((h['on'], h['off']) for h in L)
-    check(all(x[1] is not None and x[1] <= y[0] for x, y in zip(spans, spans[1:])), f'teacup lift: never two hamsters on the cup ({spans})')
+    most = max(sum(1 for a, b in spans if a <= t < b) for t in range(0, 200))
+    check(all(x[1] is not None for x in spans) and most == 2, f'teacup lift: never more than two hamsters on the cup, and two do share it ({spans}, {most})')
     check(all('wait' in h['acts'] and 'ride' in h['acts'] for h in L), 'teacup lift: each hamster waits at the edge, then rides')
     check(o['late'] == [['home', 30]], f'teacup lift: a hamster at the edge one tick before the cup leaves waits for the next stop (tick 30), never steps onto a cup about to move ({o["late"]})')
-    check(o['ticks'] == 171, f'teacup lift: the run lasts 171 ticks ({o["ticks"]})')
+    check(o['ticks'] == 111, f'teacup lift: the run lasts 111 ticks ({o["ticks"]})')
     check(o['same2'], 'timed model: the same build always gives the same result')
     check(o['bare'] == ['stuck'] * 5, f'teacup lift: without it, every hamster drops into the shaft and is stuck ({o["bare"]})')
     check(o['fitShaft'] == [False, True, True], f'teacup lift: nothing fits in its shaft; above it and beside it they do ({o["fitShaft"]})')
@@ -629,9 +636,11 @@ else:
 # before core.js 1.3:
 #   - cup 1 is half a loop on from cup 0: at ticks 0, 6, 10.5, 15, 21, 30 its row is 2, 2, 3.5, 5, 5, 2; the two cups
 #     pass at row 3.5 at tick 10.5; whenever one is stopped, the other is stopped at the other end;
-#   - the first hamster reaches the edge at 8 (four walks), cup 1 comes down to the bottom at 15: on at 15, waits
-#     to 21, rides 21 to 30, three walks home by 36; then a cup every 15 ticks: on at 15, 30, 45, 60, 75 (cups 1, 0,
-#     1, 0, 1), home at 36, 51, 66, 81, 96; the run lasts 96 ticks (19.2 s at 0.2 s a tick, against one cup's 34.2 s);
+#   - (D-163, two a cup, by hand again) the first reaches the edge at 8 (four walks), the second at 14; cup 1 comes
+#     down to the bottom at 15 and both step in (seats 0 and 1), wait to 21, ride 21 to 30; the first walks home by
+#     36, the second waits at the top 30 to 34 and is home by 40; cup 0 takes the third and fourth at 30 (home 51 and
+#     55), cup 1 the fifth at 45 (home 66): on at 15, 15, 30, 30, 45 (cups 1, 1, 0, 0, 1); the run lasts 66 ticks
+#     (13.2 s at 0.2 s a tick; one hamster a cup took 96, 19.2 s);
 #   - a lone hamster at the edge one tick before cup 0 leaves (tick 5) waits for cup 1, on at 15;
 #   - a lift with 0 or 3 cups is refused.
 CJS = r"""
@@ -653,6 +662,9 @@ console.log(JSON.stringify({
   out: res.hamsters.map((h) => h.outcome), end: res.hamsters.map((h) => h.end), ticks: res.ticks,
   on: res.hamsters.map((h) => { const s = h.steps.find((st) => st.c === 5); return s ? s.t0 : null; }),
   rides: res.hamsters.map((h) => [...new Set(h.steps.filter((s) => s.act === 'ride').map((s) => s.cup))]),
+  seats: res.hamsters.map((h) => [...new Set(h.steps.filter((s) => s.act === 'ride').map((s) => s.seat))]),
+  topWait: res.hamsters.map((h) => h.steps.filter((s) => s.act === 'wait' && s.r === 1).map((s) => [s.t0, s.t1])),
+  consts: [core.SEATS, core.SHARE_WAIT],
   spans: res.hamsters.map((h) => { const r = h.steps.filter((s) => s.act === 'ride'); return r.length ? [r[0].cup, r[0].t0, r[r.length - 1].t1] : null; }),
   late: core.run(late, {}, 1).hamsters.map((h) => [h.outcome, h.steps.find((s) => s.c === 5).t0]),
   again: JSON.stringify(core.run(lv, {})) === JSON.stringify(res),
@@ -670,13 +682,16 @@ else:
           f'two cups: cup 1 is half a loop on (rows 2, 2, 3.5, 5, 5, 2 at ticks 0, 6, 10.5, 15, 21, 30); they pass at 3.5 at 10.5; cup 0 alone is as before ({o["cup1"]}, {o["cup0"]}, {o["cup0at0"]})')
     pairs = {tuple(x) for x in o['ends']}
     check(pairs == {('bottom', 'top'), ('top', 'bottom'), (None, None)}, f'two cups: whenever one is stopped, the other is stopped at the other end ({sorted(pairs, key=str)})')
-    check(o['out'] == ['home'] * 5 and o['on'] == [15, 30, 45, 60, 75] and o['end'] == [36, 51, 66, 81, 96],
-          f'two cups: all five home; on at 15, 30, 45, 60, 75, home at 36, 51, 66, 81, 96, by hand ({o["out"]}, {o["on"]}, {o["end"]})')
-    check(o['rides'] == [[1], [0], [1], [0], [1]], f'two cups: each hamster rides one cup, the cups taking turns, 1, 0, 1, 0, 1 ({o["rides"]})')
+    check(o['consts'] == [2, 4], f'a cup takes two hamsters; the second waits 4 ticks at the other end (D-163) ({o["consts"]})')
+    check(o['out'] == ['home'] * 5 and o['on'] == [15, 15, 30, 30, 45] and o['end'] == [36, 40, 51, 55, 66],
+          f'two cups: all five home; on at 15, 15, 30, 30, 45, home at 36, 40, 51, 55, 66, by hand ({o["out"]}, {o["on"]}, {o["end"]})')
+    check(o['rides'] == [[1], [1], [0], [0], [1]] and o['seats'] == [[0], [1], [0], [1], [0]],
+          f'two cups: two share a cup, side by side, the cups taking turns: cups 1, 1, 0, 0, 1, seats 0, 1, 0, 1, 0 ({o["rides"]}, {o["seats"]})')
+    check(o['topWait'] == [[], [[30, 34]], [], [[45, 49]], []], f'two cups: the second in a cup waits 4 ticks at the top before stepping out, so they keep apart ({o["topWait"]})')
     sp = [s for s in o['spans'] if s]
-    clash = [(a, b) for a in sp for b in sp if a is not b and a[0] == b[0] and a[1] < b[2] and b[1] < a[2]]
-    check(len(sp) == 5 and not clash, f'two cups: never two hamsters on one cup at once ({o["spans"]})')
-    check(o['ticks'] == 96, f'two cups: the run lasts 96 ticks (19.2 s; one cup 171, 34.2 s) ({o["ticks"]})')
+    most = max(sum(1 for a in sp if a[0] == k and a[1] <= t < a[2]) for k in (0, 1) for t in range(0, 100))
+    check(len(sp) == 5 and most == 2, f'two cups: never more than two hamsters on one cup at once ({o["spans"]}, {most})')
+    check(o['ticks'] == 66, f'two cups: the run lasts 66 ticks (13.2 s; one a cup took 96) ({o["ticks"]})')
     check(o['late'] == [['home', 15]], f'two cups: a hamster at the edge one tick before cup 0 leaves takes cup 1 at 15 ({o["late"]})')
     check(o['again'], 'two cups: the same build always gives the same run')
     rf = o['refuse']

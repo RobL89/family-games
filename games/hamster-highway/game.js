@@ -1,4 +1,7 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.5 (15 Nov, step 4).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.6 (15 Nov, step 4).
+//
+// Changes at v1.6 (Rob's look at preview 7, D-163): two hamsters sharing a teacup sit side by side in it (SEATX),
+// from stepping in to stepping out; one riding alone sits in the middle.
 //
 // Changes at v1.5 (step 4, D-157, D-161): the teacup lift: its string and cotton reels behind (art.js liftArt), its
 // two cups moving with the run's clock (core.js cupRow), a cup going up a little right of the middle and one coming
@@ -533,8 +536,28 @@ function feet(c, r) {
   return { x: (c + 0.5) * CELL, y };
 }
 
-// One hamster's steps (with their ticks, from run()) as the pieces it is drawn along, in seconds.
-function segmentsOf(st) {
+// Two hamsters sharing a teacup (D-163) sit side by side: for each step of each hamster, how far left or right of
+// the middle it is drawn (0 unless it is in a cup with another).
+const SEATX = [-11, 11];
+function seatOffsets(hs) {
+  const count = new Map();
+  const keys = hs.map((h) => {
+    let k = null;
+    return h.steps.map((s, i) => {
+      if (s.seat === undefined) { k = null; return null; }
+      if (k === null) {
+        const r = h.steps.slice(i).find((x) => x.act === 'ride');
+        k = r ? `${r.c}:${r.cup}:${r.t0}` : `alone${i}`;
+        count.set(k, (count.get(k) || 0) + 1);
+      }
+      return k;
+    });
+  });
+  return hs.map((h, n) => h.steps.map((s, i) => (keys[n][i] && count.get(keys[n][i]) > 1 ? SEATX[s.seat] : 0)));
+}
+
+// One hamster's steps (with their ticks, from run()) as the pieces it is drawn along, in seconds; offs: seatOffsets'.
+function segmentsOf(st, offs = []) {
   const segs = [];
   let at = 0;
   const add = (seg) => { seg.t0 = at * TICK; seg.t1 = seg.end * TICK; seg.dur = seg.t1 - seg.t0; segs.push(seg); };
@@ -547,7 +570,8 @@ function segmentsOf(st) {
       const p1 = feet(b.c, b.r);
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
       const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
-      add({ kind: b.act, p0, mid, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed,
+      const f1 = feet(b.c, b.r);
+      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed,
         sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
@@ -565,8 +589,9 @@ function segmentsOf(st) {
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
     } else {
-      add({ kind: b.act, p0, p1: feet(b.c, b.r), end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
-        lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup });
+      const f1 = feet(b.c, b.r);
+      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+        lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup, dx: offs[i] || 0 });
     }
   }
   return segs;
@@ -579,8 +604,9 @@ function startRun() {
   S.progress = tried(IDS, S.progress, id);
   if (S.progress.tries[id] !== before) keep();
   const res = run(S.level, S.placed);
-  const hs = res.hamsters.map((h) => {
-    const segs = segmentsOf(h.steps);
+  const offs = seatOffsets(res.hamsters);
+  const hs = res.hamsters.map((h, n) => {
+    const segs = segmentsOf(h.steps, offs[n]);
     const [c, r] = S.level.start;
     return { outcome: h.outcome, segs, start: h.steps[0].t0 * TICK, total: segs.length ? segs[segs.length - 1].t1 : h.steps[0].t0 * TICK,
       last: segs.length ? segs[segs.length - 1].p1 : feet(c, r) };
@@ -744,6 +770,7 @@ function moveWalker(R, w) {
       pose = 'float';
     } else if (s.kind === 'ride' && s.lift) {
       ({ x, y } = cupXY(s.lift, s.cup || 0, local / TICK));   // inside its cup, wherever the cup is
+      x += s.dx;
       pose = 'home';
     } else {
       x = s.p0.x + (s.p1.x - s.p0.x) * f;

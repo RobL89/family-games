@@ -1,4 +1,8 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.3.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.4.
+//
+// Changes at v1.4 (Rob's look at preview 7, D-163): a teacup takes up to SEATS (2) hamsters, side by side; the second
+// in (seat 1) waits SHARE_WAIT ticks at the other end before stepping out, so the two keep apart. A hamster's steps
+// in and on a cup say its seat.
 //
 // Changes at v1.3 (step 4, D-157): a teacup lift may have two cups on its loop ({ kind: 'lift', c, top, bottom,
 // cups: 2 }; 1 if it says nothing), half a loop apart, so one goes up as the other comes down; still one hamster a
@@ -45,6 +49,8 @@ export const RELEASE = 6;    // ticks between one hamster coming out and the nex
 export const LIFT_STOP = 6;  // ticks a teacup waits at each end
 export const LIFT_MOVE = 3;  // ticks a teacup takes to move one row
 export const TIP = 4;        // ticks a see-saw takes to tip
+export const SEATS = 2;      // hamsters a teacup takes at once, side by side (D-163)
+export const SHARE_WAIT = 4; // ticks the second in a cup waits at the other end before stepping out (D-163)
 export const PAIR = 2;       // hamsters on its far end that tip it (D-144)
 export const SEESAW_WAIT = 24;   // ticks a hamster waits on a see-saw's high end for a friend before it naps
 export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP };   // a step's length
@@ -282,14 +288,15 @@ export function* trip(level, ctx) {
       ctx.board(stop);
       riding = stop;
       c += 1;
-      yield touch({ c, r, act: 'walk' }, c, r);
+      yield touch({ c, r, act: 'walk', seat: stop.seat }, c, r);
       const leaves = ctx.leaves(stop);
-      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now() };
+      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat };
       const dir = stop.end === 'bottom' ? -1 : 1;
       for (let i = stop.part.bottom - stop.part.top; i > 0; i--) {
         r += dir;
-        yield touch({ c, r, act: 'ride', cup: stop.cup }, c, r);
+        yield touch({ c, r, act: 'ride', cup: stop.cup, seat: stop.seat }, c, r);
       }
+      if (stop.seat) yield { c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat };   // the second waits, so they keep apart
       continue;
     }
     if (next === null || next === '#') return done('stuck');
@@ -323,11 +330,11 @@ function world(level, placed0, seedLeft) {
   const saws = (level.parts || []).filter((p) => p.kind === 'seesaw').map((p) => ({ p, tippedAt: null, far: new Set() }));
   const at = (c, r) => terrain(level, placed, c, r);
   const cups = (p) => Array.from({ length: p.cups || 1 }, (_, k) => k);
-  const rider = (p, k) => riders.get(`${p.c},${p.top},${k}`);
+  const aboard = (p, k) => riders.get(`${p.c},${p.top},${k}`) || [];
   // the empty cup stopped at a stop's end with time to step in, if any
   const free = (s) => cups(s.part).find((k) => {
     const cs = cupStop(s.part, t, k);
-    return rider(s.part, k) === undefined && !!cs && cs.end === s.end && cs.leaves - t >= TICKS.walk;
+    return aboard(s.part, k).length < SEATS && !!cs && cs.end === s.end && cs.leaves - t >= TICKS.walk;
   });
   const tipped = (s) => s.tippedAt !== null && s.tippedAt <= t;
   // the plank's square at c, r now, if any
@@ -390,8 +397,8 @@ function world(level, placed0, seedLeft) {
       },
       canBoard: (s) => free(s) !== undefined,
       leaves: (s) => { const cs = cupStop(s.part, t, s.cup || 0); return cs ? cs.leaves : t; },
-      board: (s) => { s.cup = free(s); riders.set(`${s.part.c},${s.part.top},${s.cup}`, who); },
-      leave: (s) => { const k = `${s.part.c},${s.part.top},${s.cup}`; if (riders.get(k) === who) riders.delete(k); },
+      board: (s) => { s.cup = free(s); const on = [...aboard(s.part, s.cup), who]; s.seat = on.length - 1; riders.set(`${s.part.c},${s.part.top},${s.cup}`, on); },
+      leave: (s) => { const k = `${s.part.c},${s.part.top},${s.cup}`; riders.set(k, aboard(s.part, s.cup).filter((x) => x !== who)); },
     }),
   };
 }
