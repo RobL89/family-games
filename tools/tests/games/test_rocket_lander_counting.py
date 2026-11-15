@@ -19,8 +19,9 @@ The step's own test (D-086). Two parts.
    judgement, 15 Nov, from today's sizes in `measure_rocket_faces.py` 1.0): on the upright phone and the
    PC, How many dots? 36, More or fewer 30, Quick look 28, Make 5 and Make 10 26, Reception's pictured
    sums 26, Doubles 20, Share it out 20, Half of 20, Fractions of numbers 18, Groups of a box 30 tall,
-   Tens and ones' ones 12, the place-value chart 16; sideways, 12 for every one and 24 for How many
-   dots?. And the picture fits: no sideways scroll, the box inside the screen, and the rocket still
+   Tens and ones' ones 12, the place-value chart 16; sideways, 12 for every one but 24 for How many
+   dots? and 8 for Tens and ones (D-126, lowered from 12 by Rob on 15 Nov: 12 sideways would leave the
+   rocket under 60 px to fall, and Rob plays on the PC and the upright phone). And the picture fits: no sideways scroll, the box inside the screen, and the rocket still
    falls at least 250 px upright and 60 px sideways. The fall is measured under the box as it is drawn: a
    round's first landing starts the rocket below its question's box (the engine measured the fall before
    drawing the question, so a taller picture covered the rocket's start: round.js 2.10), and a question
@@ -136,7 +137,7 @@ CASES = [
     ('Quarter of 12', 'year2', 23, 'aimAsk', [{'ask': 'frac-of', 'num': 1, 'den': 4, 'total': 12, 'value': 3}], 'dot', 18),
     ('999 chart', 'year2', 26, 'aimAsk', [{'ask': 'place', 'n': 999, 'value': 999}], 'counter', 16),
 ]
-SIDE = {'How many dots? 6': 24}
+SIDE = {'How many dots? 6': 24, 'Tens and ones 99': 8}  # tens and ones sideways: 8, not 12 (D-126: 12 would leave the rocket under 60 px to fall)
 MARK = {'dot': 'circle.d-on', 'sweet': 'circle.sw', 'box': '.gb', 'one': 'rect.pv-one', 'counter': 'circle.pc-h, circle.pc-t, circle.pc-o'}
 MEASURE = """(sel) => { const c = document.getElementById('target-n'), r = c.getBoundingClientRect(), t = __test.state();
   const ms = [...c.querySelectorAll(sel)].map((m) => { const b = m.getBoundingClientRect(); return Math.min(b.width, b.height); });
