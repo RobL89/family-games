@@ -1,7 +1,8 @@
 # Hamster Highway
 
-Version 1.9 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10, the house picker, saving and the wrapper link.
+Version 1.10 · 15 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10, the house picker, saving and the wrapper link.
 
+Changes at v1.10 (D-163): a teacup takes two hamsters side by side; the second waits a moment at the top before stepping out.
 Changes at v1.9 (step 4, D-157, D-160, D-161): level 9 (the shed, 20 squares) brings in the teacup lift: a string looped round two cotton reels with two teacups on it, one waiting at the bottom while the other waits at the top; a hamster steps into an empty cup, rides up inside it and steps out, the others queue. Level 10 (the treehouse, 24 squares), the finale, uses every gadget but the worn stick, the see-saw and the lift.
 Changes at v1.8 (step 4, D-156, D-158): level 8 (the veg patch), the first wide level, 18 squares: the board slides sideways (swipe it, tap the big arrows, or hold a gadget at its edge; during a run it follows the hamsters). The see-saw: two hamsters on its high end tip it, it stays tipped and carries whoever is on it, so a ramp is needed to step onto its raised end.
 Changes at v1.7 (step 3, D-153, D-154): levels 6 (the bath) and 7 (the loft's rafters) with the worn lolly stick, a sixth gadget: pale and a little cracked, it cracks under each hamster and snaps under the fourth, so a second stick underneath must catch the last two; nothing goes on it. GO plays the timed model.
@@ -73,6 +74,7 @@ and the page at PC and phone sizes).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.10 | 2026-11-15 | Two hamsters a teacup (D-163) |
 | 1.9 | 2026-11-15 | Levels 9 and 10, the teacup lift with two cups (D-157, D-161) |
 | 1.8 | 2026-11-15 | Level 8, wide boards and the see-saw (D-156, D-158) |
 | 1.7 | 2026-11-15 | Levels 6 and 7, the worn stick (D-153, D-154) |

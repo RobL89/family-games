@@ -1,5 +1,7 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.4 (15 Nov, step 4).
+tests catch (project rules: test the tests). Version 1.5 (15 Nov, step 4).
+Changes at v1.5 (D-163): two faults' text follows core.js 1.4's (the seat on a rider's steps); the shared-cup fault becomes 'any number in a cup' (core.js 1.4's seats); two more: three
+in a cup, and the second in a cup stepping out at once.
 Changes at v1.4 (step 4, D-157): the shared-cup fault follows core.js 1.3's text (each cup has its own rider); six
 faults in the two-cup lift and levels 9 and 10: the second cup a third of a loop on, only the first cup kept, three
 cups allowed, a rider's cup not named, level 9 without its spare bridge, level 10 without its third tube; and one in
@@ -17,7 +19,7 @@ the wrapper link (game.js). Version 1.0.1 (15 Nov): renamed with the game, D-146
 
 Each fault is one exact text change in a copy of the repo's games/ and tools/tests/games/ folders (a
 temporary folder); the repo itself is never changed. A fault whose text isn't found exactly once is an
-error, not a catch. Thirty-seven faults caught or not by the core test (seconds each), in the rules (core.js), the
+error, not a catch. Thirty-nine faults caught or not by the core test (seconds each), in the rules (core.js), the
 progress (progress.js) and the levels; six in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
@@ -40,9 +42,11 @@ FAULTS = [
     ('the seed is missed on foot', G + 'core.js', "    yield touch(st, c, r);\n  }\n  return done('stuck');", "    yield st;\n  }\n  return done('stuck');", CORE),
     ('an empty tray entry is allowed', G + 'core.js', 'n < 1) throw', 'n < 0) throw', CORE),
     ('a placed gadget stays in the tray', G + 'core.js', 'n[kind] = (n[kind] || 0) - 1;', 'n[kind] = (n[kind] || 0) - 0;', CORE),
-    ('two hamsters share the cup', G + 'core.js', 'return rider(s.part, k) === undefined && !!cs', 'return !!cs', CORE),
+    ('any number fit in a cup', G + 'core.js', 'return aboard(s.part, k).length < SEATS && !!cs', 'return !!cs', CORE),
+    ('three fit in a cup', G + 'core.js', 'export const SEATS = 2;', 'export const SEATS = 3;', CORE),
+    ('the second in a cup steps out at once', G + 'core.js', "      if (stop.seat) yield { c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat };", '', CORE),
     ('a hamster steps onto a cup about to move', G + 'core.js', 'cs.leaves - t >= TICKS.walk', 'cs.leaves - t >= 0', CORE),
-    ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now() };\n", '', CORE),
+    ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat };\n", '', CORE),
     ('all five come out at once', G + 'core.js', 'next: i * RELEASE,', 'next: 0,', CORE),
     ('the seed is taken by every hamster', G + 'core.js', '        seed = false;\n        return true;', '        return true;', CORE),
     ('a gadget fits on a worn stick', G + 'core.js', "const FLOOR = new Set(['#', 'bridge']); ", "const FLOOR = new Set(['#', 'bridge', 'stick']); ", CORE),
@@ -58,7 +62,7 @@ FAULTS = [
     ('the second cup is a third of a loop on', G + 'core.js', 'const u = t + (k * all) / 2;', 'const u = t + (k * all) / 3;', CORE),
     ('a lift keeps only its first cup', G + 'core.js', 'Array.from({ length: p.cups || 1 }, (_, k) => k)', 'Array.from({ length: 1 }, (_, k) => k)', CORE),
     ('a lift may have three cups', G + 'core.js', '&& (cups === 1 || cups === 2);', '&& (cups >= 1 && cups <= 3);', CORE),
-    ('a rider\'s cup is not named', G + 'core.js', "act: 'ride', cup: stop.cup }", "act: 'ride' }", CORE),
+    ('a rider\'s cup is not named', G + 'core.js', "act: 'ride', cup: stop.cup, seat: stop.seat }", "act: 'ride', seat: stop.seat }", CORE),
     ('level 9 has no spare bridge', G + 'levels.js', 'tray: { bridge: 2, ramp: 1, floater: 1 }', 'tray: { bridge: 1, ramp: 1, floater: 1 }', CORE),
     ('level 10 has two tubes', G + 'levels.js', 'floater: 1, tube: 3 }', 'floater: 1, tube: 2 }', CORE),
     ('the cups stand still during a run', G + 'game.js', '  moveCups(R);\n', '', E2E),
