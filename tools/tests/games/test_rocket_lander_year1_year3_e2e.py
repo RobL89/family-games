@@ -1,5 +1,6 @@
 """Rocket Lander's Year 1 levels on the lower track and Year 3 levels on the higher, in a browser (step 2c-3c).
-Version 1.1. Changes at v1.1 (D-123): Year 1's Sharing is between 2 or 5, up to 10, so its made-up question
+Version 1.2. Changes at v1.2 (D-127): a question's box may be a quarter of the screen high, not a fifth, as
+the bigger counting pictures need (D-124). Changes at v1.1 (D-123): Year 1's Sharing is between 2 or 5, up to 10, so its made-up question
 is 10 between 5 (was 15). The rest is unchanged.
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
@@ -186,7 +187,7 @@ def line_ok(ln, want, ans):
 
 
 def fits(info, w, h):
-    return info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.2 and len(info['aria'] or '') > 8
+    return info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.25 and len(info['aria'] or '') > 8
 
 
 with sync_playwright() as pw:

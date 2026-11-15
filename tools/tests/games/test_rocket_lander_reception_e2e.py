@@ -1,5 +1,6 @@
 """Rocket Lander's tracks, Reception's levels and the challenge rounds, in a browser (step 2c-3a).
-Version 1.5. Changes at v1.5 (D-123): How many dots? asks 1 to 6, so its made-up question is 5 dots, not 7
+Version 1.6. Changes at v1.6 (D-127): a question's box may be a quarter of the screen high, not a fifth, as
+the bigger counting pictures need (D-124). Changes at v1.5 (D-123): How many dots? asks 1 to 6, so its made-up question is 5 dots, not 7
 (7 is off its 0 to 6 line). Changes at v1.4 (step 2c-3c): Year 1 filled the lower track, so its Ice, Jungle and Ringed are
 no longer coming soon and the preview's test panel offers its 48 levels, not 24; the rest is unchanged.
 Changes at v1.3 (step 2c-3b, D-100): Year 2 replaced the stand-in levels, so no track is the
@@ -141,7 +142,7 @@ with sync_playwright() as pw:
             got_dots = info['sw'] if lid == 'candy-6' else info['on']
             check(info['face'] and info['lbl'] == 'none' and f"face-{T['ask']}" in info['cls'] and got_dots == want_dots,
                   f'{tag} {lid}: the {T["ask"]} face, without "Land on", {want_dots} drawn: {info["cls"]}, {got_dots}')
-            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.2,
+            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.25,  # a quarter (D-127; a fifth before D-124)
                   f'{tag} {lid}: it fits the screen, no sideways scroll, {info["h"]:.0f} px high')
             check(bool(info['aria']) and len(info['aria']) > 8,
                   f'{tag} {lid}: its words for screen readers: {info["aria"]!r}')

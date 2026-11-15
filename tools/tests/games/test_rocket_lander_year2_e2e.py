@@ -1,4 +1,6 @@
-"""Rocket Lander's Year 2 levels on the higher track, in a browser (step 2c-3b). Version 1.0.
+"""Rocket Lander's Year 2 levels on the higher track, in a browser (step 2c-3b). Version 1.1.
+Changes at v1.1 (D-127): a question's box may be a quarter of the screen high, not a fifth, as the bigger
+counting pictures need (D-124); the rest is unchanged.
 
 The step's own test (D-086: during a step, the new feature's own test and the fast checks). At a
 phone held upright (390x844) and a PC (1280x800):
@@ -177,7 +179,7 @@ with sync_playwright() as pw:
                 on = ln['to'] - ln['from'] == 10 and 1 <= ln['from'] and ln['to'] <= 100
             check(cls in info['cls'] and (info['face'] == (cls != 'word')) and on,
                   f'{tag} {lid}: the {T["ask"]} {"face" if cls != "word" else "word chip"} on its line {ln["from"]} to {ln["to"]}, look {s["labelLook"]}: {info["cls"]}, {info["text"]!r}')
-            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.2 and len(info['aria'] or '') > 8,
+            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.25 and len(info['aria'] or '') > 8,
                   f'{tag} {lid}: it fits the screen, no sideways scroll, {info["h"]:.0f} px high; screen readers hear {info["aria"]!r}')
             pg.evaluate('__test.right()')
             pg.wait_for_function('__test.state().right === 1', timeout=20000)
@@ -209,7 +211,7 @@ with sync_playwright() as pw:
             on = (ln['from'], ln['to'], ln['step']) == want if want else (ln['to'] - ln['from'] == 10 and ln['step'] == 1)
             check('sum' in info['cls'] and ln['from'] <= ans <= ln['to'] and on and (('?' in info['text']) == ('missing' in f)),
                   f'{tag} {lid}: {s["sum"]} on its line {ln["from"]} to {ln["to"]} in {ln["step"]}s, the answer {ans} on it; chip {info["text"]!r}')
-            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.2 and len(info['aria'] or '') > 8,
+            check(info['left'] >= 0 and info['right'] <= w and not info['sideways'] and 20 <= info['h'] <= h * 0.25 and len(info['aria'] or '') > 8,
                   f'{tag} {lid}: it fits the screen, no sideways scroll, {info["h"]:.0f} px high; screen readers hear {info["aria"]!r}')
             pg.evaluate('__test.right()')
             pg.wait_for_function('__test.state().right === 1', timeout=20000)
