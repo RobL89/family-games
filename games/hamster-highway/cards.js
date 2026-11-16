@@ -10,8 +10,8 @@
 // game.js shows a card once per child, the first time a level brings its gadget in, and again by help and a tap.
 // Pure (project rules): it only builds text, and imports only art.js.
 
-import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, homeArt, sparkle, liftArt, teacupBack, teacupFront,
-  seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+// (one line: tools/tests/games/build_preview.py reads one-line imports only)
+import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
 
 export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'];
 
