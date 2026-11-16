@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.38 · 2026-11-15 |
+| **Version** | 1.39 · 2026-11-16 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.39:** Hamster Highway step 8 (D-167, D-168, D-170, D-171): the help cards (`games/hamster-highway/cards.js`), the help button and progress format 2; a new browser test `test_hamster_highway_cards_e2e.py` 1.0, run by `close.py` 1.16 when the game changes; the core test at 1.8, the browser test at 1.6, the bench at 1.6 (13 card faults); the release check at 1.1, not yet run.
 
 **Changes at v1.38:** Hamster Highway released to P-020 (D-165): its release check `tools/tests/games/hamster-highway/check.py` 1.0 on P-020's `harness.py`; the folder map, the checks and "For other projects" say so, and the Hamster Highway test rows now cover levels 1 to 10. `pins_check.py` 1.1 fetches the pinned branches 500 deep, not 1 (ER-011), with `test_checks.py` 1.4.
 
@@ -128,6 +130,7 @@ All of them are in [`tools/tests/games/`](../../tools/tests/games/). The checks 
 | `measure_rocket_faces.py` | A measurement, not a check: each counting picture's smallest dot (or sweet, block, counter) and how many it shows, at the launcher's three sizes, with a sheet of the worst (trial feedback item 1, 14 Nov) |
 | `sketch_rocket_counting.py` | Not a check: mock-ups of How many dots? and Groups of on the real game, for Rob to pick from (D-125) |
 | `test_hamster_highway_core.py` | Hamster Highway's rules (`core.js`, with the timed model: five hamsters together, the worn stick, and a teacup lift on a test board), levels 1 to 10 (`levels.js`, with the see-saw and the two-cup teacup lift) and saved progress (`progress.js`), against the sketch model's outcomes; where gadgets fit (D-139); the golden seeds and the spares they need (D-138); the pure files and the imports. Fast (Node) |
+| `test_hamster_highway_cards_e2e.py` | Hamster Highway's help cards in Chromium (about 1.5 minutes): each card once per child, on the first level that brings it in; help and a tap on a gadget or part; format 2 saved and read, format 1 read; the wrapper; phones upright and sideways by touch; nothing spoken |
 | `test_hamster_highway_e2e.py` | Hamster Highway in Chromium (the stand-in for the PC and phone; about 1.5 minutes): the house, placing by click, drag and touch, levels 1 to 10 with runs that end home, stuck, in a splash and in a funny fall, the parties and seeds; saving on its own and after a reload; a stand-in wrapper (progress in with `fg:start`, out with `fg:state`, sound off); the page at PC and phone sizes |
 | `mutate_hamster_highway.py` | A bench, not in the run: plants faults in Hamster Highway's rules, progress, levels and screens and counts what the two tests catch (12 of 12 on 15 Nov at 1.0; at 1.5, 45 of 45 on 15 Nov before the release, the 6 screen faults included; `--fast` skips those 6) |
 | `solve_hamster_highway.py` | Not a check: a design tool. Tries every way to put each level's tray down and counts the solutions, those without the new gadget (0), those with the seed, and those with one fewer of the spare (0 with the seed) |
@@ -173,7 +176,7 @@ python3 -B tools/tests/games/close.py
 
 **What's private:** the repo and every branch are public, so nothing here holds the children's photos, voices or ages. Profiles, stars and settings live in P-020's Sheet, never in this repo.
 
-**On the device:** played on its own, Rocket Lander keeps its progress in the browser's localStorage, under one entry, `family-games:rocket-lander:progress`, holding `{ "v": 4, ... }` since step 2c-3a: the track played, the rocket's place on that track's map, how far it is open, each level's best stars and moon rocks found, the other track's map as left, the moon rocks, landings, and the ships owned and flown (D-042, D-053, D-058, D-089). A format 3 entry is still read: since step 2c-3b, with no stand-in track left, its rocks, landings and ships are kept and it plays the lower track from the start; a map kept on the stand-ins (edition `stand-in`) starts Year 2 afresh. Formats 1 and 2 (the two tiles' planets) are no longer read, so test progress started afresh; one child per device until the wrapper keeps it. Hamster Highway, played on its own, keeps its progress under `family-games:hamster-highway:progress`, holding `{ "v": 1, "done", "seeds", "tries" }`: each level done, each golden seed found and the GO presses until each level was first done; a broken or unknown entry starts afresh; inside the wrapper it goes out with `fg:state` and nothing is kept on the device (D-147). Nothing else in `games/` uses device storage. Inside P-020's wrapper (stage 3) the game hands its progress over with `fg:state` and the wrapper keeps it per child, so the game keeps none on the device (D-042, contract 0.4 section 4).
+**On the device:** played on its own, Rocket Lander keeps its progress in the browser's localStorage, under one entry, `family-games:rocket-lander:progress`, holding `{ "v": 4, ... }` since step 2c-3a: the track played, the rocket's place on that track's map, how far it is open, each level's best stars and moon rocks found, the other track's map as left, the moon rocks, landings, and the ships owned and flown (D-042, D-053, D-058, D-089). A format 3 entry is still read: since step 2c-3b, with no stand-in track left, its rocks, landings and ships are kept and it plays the lower track from the start; a map kept on the stand-ins (edition `stand-in`) starts Year 2 afresh. Formats 1 and 2 (the two tiles' planets) are no longer read, so test progress started afresh; one child per device until the wrapper keeps it. Hamster Highway, played on its own, keeps its progress under `family-games:hamster-highway:progress`, holding `{ "v": 2, "done", "seeds", "tries", "cards" }` since step 8 (D-171): each level done, each golden seed found, the GO presses until each level was first done and the help cards seen (format 1, without cards, is still read); a broken or unknown entry starts afresh; inside the wrapper it goes out with `fg:state` and nothing is kept on the device (D-147). Nothing else in `games/` uses device storage. Inside P-020's wrapper (stage 3) the game hands its progress over with `fg:state` and the wrapper keeps it per child, so the game keeps none on the device (D-042, contract 0.4 section 4).
 
 **Changes that affect you:** P-034 tells P-020 by a board note before a shared part changes or goes, and keeps the old form until P-020 has moved.
 
@@ -181,6 +184,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.39 | 2026-11-16 | Hamster Highway help cards (D-167, D-168, D-170, D-171) |
 | 1.38 | 2026-11-15 | Hamster Highway released to P-020 (D-165), its release check; ER-011 fixed |
 | 1.37 | 2026-11-15 | Hamster Highway levels 6 and 7, the worn stick (D-153, D-154) |
 | 1.36 | 2026-11-15 | Hamster Highway's timed model and teacup lift (D-144) |

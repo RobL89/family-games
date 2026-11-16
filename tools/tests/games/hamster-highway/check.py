@@ -1,4 +1,8 @@
-"""Hamster Highway release check (contract 0.4.2, GC7), through P-020's wrapper. Version 1.0.
+"""Hamster Highway release check (contract 0.4.2, GC7), through P-020's wrapper. Version 1.1.
+
+Changes at v1.1 (step 8, D-170, D-171): level 1's help card pops up the first time each child opens it; play_level1
+closes it with its tick, as a child would, and the progress sent is format 2, with the bridge's card seen. Not yet
+run at 1.1: it runs at the release (step 11), extended there for the 20 levels.
 
 See ../harness.py for how to run it (serve the repo root on 127.0.0.1:8123 first). Ends "PASS n of n".
 Made-up players only (Sam and Alex, the harness's). It checks, in the wrapper (play.html):
@@ -31,7 +35,7 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..',
 DEVICE_KEY = f'family-games:{GAME}:progress'  # the game's own entry when it runs on its own (game.js)
 ENTRY = {'id': GAME, 'title': 'Hamster Highway', 'icon': 'g-planet', 'colour': '#E8823B',
          'folder': f'games/{GAME}/', 'status': 'testing'}
-L1_DONE = {'v': 1, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 1}}
+L1_DONE = {'v': 2, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 1}, 'cards': {'bridge': True}}
 # Counts every audio context made and every word said, in any page of the context.
 COUNT_SOUND = """(() => { window.__made = { audio: 0, said: 0 };
   for (const n of ['AudioContext', 'webkitAudioContext']) { const R = window[n]; if (typeof R !== 'function') continue;
@@ -96,6 +100,9 @@ def play_level1(pg, f):
     tap(pg, f, '[data-level="0"]')
     f.wait_for_function('__test.state().level === "L1" && __test.state().screen === "level"', timeout=5000)
     f.wait_for_timeout(300)
+    if st(f)['card']:   # the bridge's help card, the first time this child opens level 1 (D-170)
+        tap(pg, f, '#card [data-btn="cardok"]')
+        f.wait_for_function('__test.state().card === null', timeout=5000)
     tap(pg, f, '[data-slot="bridge"]')
     square(pg, f, 5, 6)
     f.evaluate('__test.speed(8)')
@@ -129,7 +136,7 @@ with sync_playwright() as pw:
         pg.screenshot(path=f'{OUT}/1-{name}-title.png')
         to_house(pg, f)
         s = st(f)
-        c.check(f'{name}: a new child\'s house opens at level 1', s['at'] == 0 and s['progress'] == {'done': {}, 'seeds': {}, 'tries': {}}, (s['at'], s['progress']))
+        c.check(f'{name}: a new child\'s house opens at level 1', s['at'] == 0 and s['progress'] == {'done': {}, 'seeds': {}, 'tries': {}, 'cards': {}}, (s['at'], s['progress']))
         pg.screenshot(path=f'{OUT}/2-{name}-house.png')
         play_level1(pg, f)
         s = st(f)
@@ -151,7 +158,7 @@ with sync_playwright() as pw:
     to_house(pg, f)
     s = st(f)
     c.check('the same child comes back to their house: level 1 done, level 2 waiting',
-            s['progress'] == {k: L1_DONE[k] for k in ('done', 'seeds', 'tries')} and s['at'] == 1
+            s['progress'] == {k: L1_DONE[k] for k in ('done', 'seeds', 'tries', 'cards')} and s['at'] == 1
             and f.locator('[data-level="1"].locked').count() == 0, (s['at'], s['progress']))
     f = reopen(pg, 'p_alex')
     to_house(pg, f)

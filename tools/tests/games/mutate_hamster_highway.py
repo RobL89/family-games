@@ -1,5 +1,11 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.5 (15 Nov, step 4).
+tests catch (project rules: test the tests). Version 1.6 (16 Nov, step 8).
+Changes at v1.6 (step 8, D-167 to D-171): thirteen faults in the help cards, their names starting "card:": eight caught
+or not by the core test (seen() marks nothing, format 1 no longer read, cards read from format 1, any card kept, a
+caption of 7 words, a class with no keyframes, a card for a gadget the game doesn't have, a moving group with a
+transform attribute) and five by the cards' browser test (the card every time, a tap anywhere closes it, help shows
+the lift for the see-saw, the card seen not saved, the cards' CSS never added). --only TEXT runs the faults whose
+name holds TEXT.
 Changes at v1.5 (D-163): two faults' text follows core.js 1.4's (the seat on a rider's steps); the shared-cup fault becomes 'any number in a cup' (core.js 1.4's seats); two more: three
 in a cup, and the second in a cup stepping out at once.
 Changes at v1.4 (step 4, D-157): the shared-cup fault follows core.js 1.3's text (each cup has its own rider); six
@@ -23,7 +29,7 @@ error, not a catch. Thirty-nine faults caught or not by the core test (seconds e
 progress (progress.js) and the levels; six in the screens (game.js), by the browser test (about two minutes each).
 Usage, from the repo root:
     python3 -B tools/tests/games/mutate_hamster_highway.py [--fast]
---fast skips the faults that need the browser test.
+--fast skips the faults that need a browser test; --only TEXT runs only the faults whose name holds TEXT.
 """
 import os, shutil, subprocess, sys, tempfile
 
@@ -31,6 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 G = 'games/hamster-highway/'
 CORE, E2E = 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py'
+CARDS_E2E = 'test_hamster_highway_cards_e2e.py'
 FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),
@@ -77,6 +84,19 @@ FAULTS = [
     ('nothing kept on the device', G + 'game.js', '  try { localStorage.setItem(ENTRY, JSON.stringify(st)); }', '  try { void st; }', E2E),
     ('the wrapper is not told', G + 'game.js', '  if (S.linked) { S.linked.saveState(st); return; }', '  if (S.linked) { return; }', E2E),
     ('the wrapper\'s sound off is ignored', G + 'game.js', '  if (start.sound === false) { setMuted(true); S.soundLocked = true; }', '  if (start.sound === false) { S.soundLocked = true; }', E2E),
+    ('card: seen() marks nothing', G + 'progress.js', '  if (kinds.includes(kind)) q.cards[kind] = true;', '  void kinds;', CORE),
+    ('card: format 1 no longer read', G + 'progress.js', 'const READS = [1, 2];', 'const READS = [2];', CORE),
+    ('card: cards read from format 1', G + 'progress.js', 'raw.v >= 2 && isMap(raw.cards)', 'isMap(raw.cards)', CORE),
+    ('card: any card kept', G + 'progress.js', 'for (const k of kinds) if (cards[k] === true)', 'for (const k of Object.keys(cards)) if (cards[k] === true)', CORE),
+    ('card: a caption of 7 words', G + 'cards.js', "stick: 'Worn sticks snap. Add another!',", "stick: 'Worn sticks snap, so add another one!',", CORE),
+    ('card: a class with no keyframes', G + 'cards.js', "+ kf('hc-tube-spark', '0%, 64% { opacity: 0 } 66%, 72% { opacity: 1 } 76%, 100% { opacity: 0 }')", '', CORE),
+    ('card: a card for a gadget the game doesn\'t have', G + 'cards.js', '(def && CARDS.includes(def.new) ? def.new : null)', '(def && def.new ? def.new : null)', CORE),
+    ('card: a moving group with a transform attribute', G + 'cards.js', "place(cls('hc-bouncer-squish', gadget('bouncer')), 180, 300, GS)", "place(gadget('bouncer'), 180, 300, GS, 0, ' class=\"hc-bouncer-squish\"')", CORE),
+    ('card: the card every time', G + 'game.js', '  if (k && !S.progress.cards[k]) showCard(k, true);', '  if (k) showCard(k, true);', CARDS_E2E),
+    ('card: a tap anywhere closes it', G + 'game.js', "    if (t.closest('[data-btn=\"cardok\"]')) closeCard();", '    if (true) closeCard();', CARDS_E2E),
+    ('card: help shows the lift for the see-saw', G + 'game.js', "if (!kind && t.closest('[data-saw]')) kind = 'seesaw';", "if (!kind && t.closest('[data-saw]')) kind = 'lift';", CARDS_E2E),
+    ('card: the card seen is not saved', G + 'game.js', '  if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }', '  if (first) { S.progress = seen(CARDS, S.progress, kind); }', CARDS_E2E),
+    ('card: the cards\' CSS never added', G + 'game.js', 'document.head.appendChild(cardCss);', 'void cardCss;', CARDS_E2E),
 ]
 
 
@@ -98,7 +118,8 @@ def run(fault):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] == E2E)]
+only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else ''
+faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] in (E2E, CARDS_E2E)) and only in f[0]]
 results = [run(f) for f in faults]
 for name, res in results:
     print(f'{res:8} {name}')

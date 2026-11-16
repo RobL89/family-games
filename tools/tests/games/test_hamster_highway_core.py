@@ -1,4 +1,11 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.7 (15 Nov).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.8 (16 Nov, step 8).
+
+Changes at v1.8 (step 8, D-167, D-168, D-170, D-171): the help cards (cards.js): 8, one for each gadget and part, in
+order; captions of 3 to 6 words, the bridge's and lift's as agreed; loops of 3 to 8 s; each level's new gadget has its
+card, level 10 none; each card drawn with its caption, a tick, its badge, every svg closed and nothing fetched; every
+class it moves by starts hc-, has its rule and keyframes, and no moving group has a transform attribute; cards.js is
+pure and imports only art.js. Progress format 2: the cards seen (seen()), format 1 still read with none seen, only the
+game's own cards kept, 20 levels and all 8 cards under fg:state's 20,000 characters.
 
 Changes at v1.7 (Rob's look at preview 7, D-163): a teacup takes up to two hamsters, side by side; the second in
 waits SHARE_WAIT (4) ticks at the far end before stepping out, so they keep apart. The one-cup and two-cup lift
@@ -308,16 +315,27 @@ PJS = r"""
 const [progUrl] = process.argv.slice(1);
 const P = await import(progUrl);
 const ids = ['L1', 'L2', 'L3'];
+const kinds = ['bridge', 'ramp'];
 const o = {};
 o.format = P.FORMAT;
 o.fresh = P.fresh();
 o.unpack = {
-  nul: P.unpack(ids, null), str: P.unpack(ids, 'x'), arr: P.unpack(ids, []), noV: P.unpack(ids, { done: { L1: true } }),
-  v2: P.unpack(ids, { v: 2, done: { L1: true } }),
-  good: P.unpack(ids, { v: 1, done: { L1: true, L2: true }, seeds: { L1: true }, tries: { L1: 3, L2: 1 } }),
-  messy: P.unpack(ids, { v: 1, done: { L1: true, L2: 'yes', L9: true, L3: 1 }, seeds: { L2: true, L1: 1, L3: true }, tries: { L1: 2.6, L2: -4, L3: 'many', L7: 5, L4: 1e9 } }),
-  badParts: P.unpack(ids, { v: 1, done: [true], seeds: 'all', tries: null }),
+  nul: P.unpack(ids, null, kinds), str: P.unpack(ids, 'x', kinds), arr: P.unpack(ids, [], kinds), noV: P.unpack(ids, { done: { L1: true } }, kinds),
+  v3: P.unpack(ids, { v: 3, done: { L1: true } }, kinds), v0: P.unpack(ids, { v: 0, done: { L1: true } }, kinds),
+  good: P.unpack(ids, { v: 1, done: { L1: true, L2: true }, seeds: { L1: true }, tries: { L1: 3, L2: 1 } }, kinds),
+  good1cards: P.unpack(ids, { v: 1, done: { L1: true }, seeds: {}, tries: {}, cards: { bridge: true } }, kinds),
+  good2: P.unpack(ids, { v: 2, done: { L1: true }, seeds: { L1: true }, tries: { L1: 2 }, cards: { bridge: true } }, kinds),
+  messy: P.unpack(ids, { v: 1, done: { L1: true, L2: 'yes', L9: true, L3: 1 }, seeds: { L2: true, L1: 1, L3: true }, tries: { L1: 2.6, L2: -4, L3: 'many', L7: 5, L4: 1e9 } }, kinds),
+  messyCards: P.unpack(ids, { v: 2, done: {}, seeds: {}, tries: {}, cards: { bridge: true, ramp: 'yes', lift: true, tube: 1 } }, kinds),
+  badParts: P.unpack(ids, { v: 1, done: [true], seeds: 'all', tries: null }, kinds),
+  badCards: P.unpack(ids, { v: 2, done: { L1: true }, seeds: {}, tries: {}, cards: [true] }, kinds),
+  noKinds: P.unpack(ids, { v: 2, done: {}, seeds: {}, tries: {}, cards: { bridge: true } }),
 };
+const c1 = P.seen(kinds, P.fresh(), 'bridge');
+const c2 = P.seen(kinds, c1, 'bridge');
+const fz = P.fresh();
+o.seen = { c1: c1.cards, c2: c2.cards, same: c1 === fz, untouched: fz.cards, unknown: P.seen(kinds, c1, 'lift').cards,
+  kept: P.seen(kinds, { done: { L1: true }, seeds: { L1: true }, tries: { L2: 3 }, cards: {} }, 'ramp') };
 let p = P.fresh();
 const t1 = P.tried(ids, p, 'L1'); const t2 = P.tried(ids, t1, 'L1');
 o.tried = { first: t1.tries, second: t2.tries, same: t1 === p, untouched: p.tries };
@@ -326,9 +344,14 @@ const f2 = P.finished(ids, f1, 'L1', true);
 const f3 = P.finished(ids, f2, 'L1', false);
 o.finished = { f1, f2, f3, afterDone: P.tried(ids, f3, 'L1').tries, otherTries: P.tried(ids, f3, 'L2').tries };
 o.unknown = { tried: P.tried(ids, p, 'L9'), finished: P.finished(ids, p, 'L9', true) };
-o.pack = P.pack(f2);
-o.round = P.unpack(ids, JSON.parse(JSON.stringify(P.pack(f2))));
-o.size = JSON.stringify(P.pack({ done: Object.fromEntries(ids.map((i) => [i, true])), seeds: Object.fromEntries(ids.map((i) => [i, true])), tries: Object.fromEntries(ids.map((i) => [i, 9999])) })).length;
+const withCard = P.seen(kinds, f2, 'ramp');
+o.cardsKept = { tried: P.tried(ids, withCard, 'L2').cards, finished: P.finished(ids, withCard, 'L2', false).cards };
+o.pack = P.pack(withCard);
+o.round = P.unpack(ids, JSON.parse(JSON.stringify(P.pack(withCard))), kinds);
+const many = Array.from({ length: 20 }, (_, i) => `L${i + 1}`);
+const all8 = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'];
+o.size = JSON.stringify(P.pack({ done: Object.fromEntries(many.map((i) => [i, true])), seeds: Object.fromEntries(many.map((i) => [i, true])),
+  tries: Object.fromEntries(many.map((i) => [i, 9999])), cards: Object.fromEntries(all8.map((k) => [k, true])) })).length;
 o.nextAt = [P.nextAt(ids, P.fresh()), P.nextAt(ids, f2), P.nextAt(ids, { done: { L1: true, L2: true, L3: true }, seeds: {}, tries: {} }),
             P.nextAt(ids, { done: { L2: true }, seeds: {}, tries: {} })];
 console.log(JSON.stringify(o));
@@ -343,14 +366,23 @@ else:
         check(False, 'node ran progress.js')
     else:
         o = json.loads(r.stdout)
-        F = {'done': {}, 'seeds': {}, 'tries': {}}
-        check(o['format'] == 1 and o['fresh'] == F, f'progress: format 1; a new player has nothing done, found or tried ({o["fresh"]})')
+        F = {'done': {}, 'seeds': {}, 'tries': {}, 'cards': {}}
+        check(o['format'] == 2 and o['fresh'] == F, f'progress: format 2 (the help cards seen, D-171); a new player has nothing done, found, tried or seen ({o["fresh"]})')
         u = o['unpack']
-        check(all(u[k] == F for k in ('nul', 'str', 'arr', 'noV', 'v2', 'badParts')),
+        check(all(u[k] == F for k in ('nul', 'str', 'arr', 'noV', 'v3', 'v0', 'badParts')),
               f'progress: nothing, not an object, a list, no format, another format, or broken parts all start afresh ({[k for k in u if u[k] != F]})')
-        check(u['good'] == {'done': {'L1': True, 'L2': True}, 'seeds': {'L1': True}, 'tries': {'L1': 3, 'L2': 1}}, f'progress: a good format 1 entry is read as it is ({u["good"]})')
-        check(u['messy'] == {'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 3}},
+        check(u['good'] == {'done': {'L1': True, 'L2': True}, 'seeds': {'L1': True}, 'tries': {'L1': 3, 'L2': 1}, 'cards': {}}, f'progress: a good format 1 entry is still read, with no cards seen ({u["good"]})')
+        check(u['good1cards']['cards'] == {}, f'progress: format 1 had no cards, so any there are not read ({u["good1cards"]})')
+        check(u['good2'] == {'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 2}, 'cards': {'bridge': True}}, f'progress: a good format 2 entry is read as it is ({u["good2"]})')
+        check(u['messy'] == {'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 3}, 'cards': {}},
               f'progress: a messy entry keeps only true marks of known levels, seeds only on done levels, whole tries 0 to 9999 ({u["messy"]})')
+        check(u['messyCards']['cards'] == {'bridge': True} and u['badCards'] == {**F, 'done': {'L1': True}} and u['noKinds']['cards'] == {},
+              f'progress: only true marks of the game\'s own cards are read; broken cards start with none seen ({u["messyCards"]}, {u["badCards"]}, {u["noKinds"]})')
+        sn = o['seen']
+        check(sn['c1'] == {'bridge': True} and sn['c2'] == {'bridge': True} and not sn['same'] and sn['untouched'] == {} and sn['unknown'] == {'bridge': True},
+              f'progress: seen() marks a card seen, in a new object; again changes nothing; a card the game doesn\'t have changes nothing ({sn})')
+        check(sn['kept'] == {'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L2': 3}, 'cards': {'ramp': True}}, f'progress: seeing a card keeps the rest ({sn["kept"]})')
+        check(o['cardsKept'] == {'tried': {'ramp': True}, 'finished': {'ramp': True}}, f'progress: a GO and a party keep the cards seen ({o["cardsKept"]})')
         check(o['tried']['first'] == {'L1': 1} and o['tried']['second'] == {'L1': 2} and not o['tried']['same'] and o['tried']['untouched'] == {},
               f'progress: each GO counts a try on a level not yet done, in a new object ({o["tried"]})')
         fi = o['finished']
@@ -358,9 +390,9 @@ else:
         check(fi['f2']['seeds'] == {'L1': True} and fi['f3']['seeds'] == {'L1': True}, 'progress: a seed found stays found, even after a party without it')
         check(fi['afterDone'] == {'L1': 2} and fi['otherTries'] == {'L1': 2, 'L2': 1}, f'progress: once a level is done, its GO presses no longer count; another level\'s do ({fi["afterDone"]}, {fi["otherTries"]})')
         check(o['unknown']['tried'] == F and o['unknown']['finished'] == F, 'progress: a level that is not in the game changes nothing')
-        check(o['pack'] == {'v': 1, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 2}} and o['round'] == {k: o['pack'][k] for k in ('done', 'seeds', 'tries')},
+        check(o['pack'] == {'v': 2, 'done': {'L1': True}, 'seeds': {'L1': True}, 'tries': {'L1': 2}, 'cards': {'ramp': True}} and o['round'] == {k: o['pack'][k] for k in ('done', 'seeds', 'tries', 'cards')},
               f'progress: pack adds the format version, and unpack reads it back the same ({o["pack"]})')
-        check(o['size'] < 20000, f'progress: every level done, found and tried 9999 times is under the 20,000 characters fg:state allows ({o["size"]})')
+        check(o['size'] < 20000, f'progress: 20 levels done, found and tried 9999 times, and all 8 cards seen, is under the 20,000 characters fg:state allows ({o["size"]})')
         check(o['nextAt'] == [0, 1, 2, 0], f'progress: the hamster waits at the first level not done, or the last when all are ({o["nextAt"]})')
 
 # the house's path (D-150, D-151): levels 1 to 5's places, then the plan for 6 to 10 and two places kept for later,
@@ -697,6 +729,68 @@ else:
     rf = o['refuse']
     check(all('part' in x for x in rf[:3]) and rf[3:] == ['parsed', 'parsed'], f'parseLevel takes a lift of 1 or 2 cups and refuses 0, 3 or 1.5 ({rf})')
 
+# the help cards (D-167, D-168, D-170): cards.js, one card for each gadget and part a level brings in
+KJS = r"""
+const [cardsUrl, levelsUrl, coreUrl] = process.argv.slice(1);
+const K = await import(cardsUrl);
+const { LEVELS } = await import(levelsUrl);
+const core = await import(coreUrl);
+console.log(JSON.stringify({
+  cards: K.CARDS, caption: K.CAPTION, loops: K.LOOP_S, css: K.CARD_CSS, gadgets: core.GADGETS,
+  art: Object.fromEntries(K.CARDS.map((k) => [k, K.cardArt(k)])),
+  badge: Object.fromEntries(K.CARDS.map((k) => [k, K.badgeArt(k)])),
+  levels: LEVELS.map((d) => [d.id, d.new, K.cardFor(d)]),
+  odd: [K.cardFor({ new: null }), K.cardFor({ new: 'catapult' }), K.cardFor({})],
+  again: K.cardArt('bridge') === K.cardArt('bridge'),
+}));
+"""
+kp = os.path.join(GAME, 'cards.js')
+if not os.path.exists(kp):
+    check(False, 'cards.js exists (the help cards, D-167)')
+else:
+    r = subprocess.run(['node', '--input-type=module', '-e', KJS, 'file://' + kp, 'file://' + os.path.join(GAME, 'levels.js'), 'file://' + os.path.join(GAME, 'core.js')],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout[-2000:], r.stderr[-2000:])
+        check(False, 'node ran cards.js')
+    else:
+        k = json.loads(r.stdout)
+        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift']
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets']) | {'seesaw', 'lift'},
+              f'cards: 8, one for each of the six gadgets and the two parts, in the order they come in (D-167) ({k["cards"]})')
+        words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
+        check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
+        check(k['caption'].get('bridge') == 'Bridges cross the gaps' and k['caption'].get('lift') == 'Hop in and ride up!',
+              f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
+        check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
+        lv = k['levels']
+        check(all(new == card for _, new, card in lv) and [new for _, new, _ in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
+              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing ({lv})')
+        check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
+        css = k['css']
+        frames = set(re.findall(r'@keyframes\s+([\w-]+)', css))
+        rules = {}
+        for sel, body in re.findall(r'((?:\.[\w-]+(?:\s*,\s*)?)+)\s*\{([^{}]*)\}', css):
+            for c in re.findall(r'\.([\w-]+)', sel):
+                rules[c] = rules.get(c, '') + body
+        check(rules and all(c.startswith('hc-') for c in rules) and frames and all(f.startswith('hc-') for f in frames),
+              f'cards: every class and animation in their CSS starts hc-, so none clashes with the game\'s own (.loop, .bob) ({sorted(c for c in rules if not c.startswith("hc-"))})')
+        for c in EIGHT:
+            a = k['art'].get(c, '')
+            used = set(re.findall(r'\bhc-[\w-]+', ' '.join(re.findall(r'class="([^"]*)"', a))))
+            missing = sorted(u for u in used if u not in rules)
+            unframed = sorted(u for u in used if u in rules and not set(re.findall(r'animation:\s*([\w-]+)', rules[u])) <= frames)
+            onTr = re.findall(r'<g[^>]*class="[^"]*hc-[^"]*"[^>]*transform=|<g[^>]*transform="[^"]*"[^>]*class="[^"]*hc-', a)
+            scene = rules.get(f'hc-{c}', '')
+            dur = re.search(r'animation:\s*hc-[\w-]+\s+([\d.]+)s', scene)
+            check(f'data-card="{c}"' in a and f'>{k["caption"].get(c)}<' in a and 'data-btn="cardok"' in a and a.count('<svg') == a.count('</svg>') and 'http' not in a,
+                  f'card {c}: drawn with its caption on screen and a tick to close it, every svg closed, nothing fetched')
+            check(used and not missing and not unframed, f'card {c}: it moves, and every class it moves by has its rule and keyframes ({sorted(used)[:6]}, missing {missing}, no keyframes {unframed})')
+            check(not onTr, f'card {c}: no moving group also has a transform attribute, which the animation would override ({len(onTr)})')
+            check(dur and float(dur.group(1)) == k['loops'].get(c), f'card {c}: its scene loops every {k["loops"].get(c)} s ({dur.group(1) if dur else None})')
+            check(k['badge'].get(c) and k['badge'][c] in a, f'card {c}: its badge shows the gadget or part')
+        check(k['again'], 'cards: the same card is drawn the same each time')
+
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'
                     r'performance|setTimeout|setInterval|requestAnimationFrame|eval|Function|AudioContext|navigator)\b')
@@ -707,7 +801,7 @@ def code_only(text):
     return '\n'.join(re.sub(r'(^|[^:])//.*$', r'\1', line) for line in text.split('\n'))
 
 
-for f in ('core.js', 'levels.js', 'art.js', 'house.js', 'progress.js'):
+for f in ('core.js', 'levels.js', 'art.js', 'house.js', 'progress.js', 'cards.js'):
     p = os.path.join(GAME, f)
     if not os.path.exists(p):
         check(False, f'{f} exists')
@@ -716,7 +810,7 @@ for f in ('core.js', 'levels.js', 'art.js', 'house.js', 'progress.js'):
     hits = sorted({m.group(0) for m in IMPURE.finditer(code)})
     check(not hits, f'{f} is pure: no page, clock or randomness ({hits})')
     specs = re.findall(r"^\s*import\s.*?from\s+'([^']+)'", code, re.M) + re.findall(r'^\s*import\s+[\'"]([^\'"]+)', code, re.M)
-    allowed = ['./art.js'] if f == 'house.js' else []
+    allowed = ['./art.js'] if f in ('house.js', 'cards.js') else []
     check(all(sp in allowed for sp in specs), f'{f} imports {"only art.js" if allowed else "nothing"} ({specs})')
 for f in sorted(os.listdir(GAME)):
     if f.endswith('.js'):

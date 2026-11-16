@@ -1,4 +1,7 @@
-"""Close script for P-034 (Kids Games Development). Version 1.15.
+"""Close script for P-034 (Kids Games Development). Version 1.16.
+
+Changes at v1.16 (16 Nov, Hamster Highway step 8): the help cards' browser test, test_hamster_highway_cards_e2e.py,
+runs when games/hamster-highway/ changes, as the game's other browser test does.
 
 Changes at v1.15 (15 Nov, Hamster Highway step 2): solve_ scripts (the level solver) are design tools the
 run never uses, like the sketches: a change to one runs the fast checks only with --changed.
@@ -102,6 +105,7 @@ FAST = {'test_checks.py', 'test_close_pick.py', 'test_rocket_fleet_core.py', 'te
 STAND = [T + 'stand_in.py', T + 'fixture_map_stand_in.js']  # the stand-in map the older browser tests play (step 2c-3b)
 COVERS = {
     'test_hamster_highway_e2e.py': ['games/hamster-highway/'],
+    'test_hamster_highway_cards_e2e.py': ['games/hamster-highway/'],
     'test_rocket_hangar_e2e.py': STAND,
     'test_rocket_lander_counting.py': ['games/rocket-lander/'],
     'test_rocket_lander_e2e.py': ['games/rocket-lander/'] + STAND,
