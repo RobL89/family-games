@@ -1,4 +1,8 @@
-"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.0 (16 Nov, step 8).
+"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.1 (16 Nov, step 9).
+
+Changes at v1.1 (step 9, D-166): levels are opened by their id, their place read from levels.js's order, as the twins
+now sit straight after their first levels; with format 1 progress (the ten first levels done), every level is opened
+in turn and the twins pop up no card; in the wrapper, a child who did level 1 and its twin opens level 2.
 
 The checks, decided before the build:
   - on a new device, level 1 opens with the bridge's card over the board: its caption on screen, a picture that
@@ -24,10 +28,13 @@ Usage, from the repo root:
     python3 -B tools/tests/games/test_hamster_highway_cards_e2e.py [OUT]
 Exits 1 if a check fails.
 """
-import functools, http.server, json, os, socketserver, sys, threading
+import functools, http.server, json, os, socketserver, subprocess, sys, threading
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+# the levels' ids in play order, from levels.js itself (the twins sit straight after their first levels, D-166)
+IDS = json.loads(subprocess.run(['node', '--input-type=module', '-e', 'const { LEVELS } = await import(process.argv[1]); console.log(JSON.stringify(LEVELS.map((d) => d.id)))',
+                                 'file://' + os.path.join(REPO, 'games', 'hamster-highway', 'levels.js')], capture_output=True, text=True, check=True).stdout)
 OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/hamster-highway-cards'
 os.makedirs(OUT, exist_ok=True)
 problems = []
@@ -111,11 +118,12 @@ def to_house(pg, touch=False):
     pg.wait_for_function('__test.state().screen === "house"')
 
 
-def open_level(pg, i, touch=False):
+def open_level(pg, lid, touch=False):
+    i = IDS.index(lid)
     pg.locator(f'[data-level="{i}"]').first.scroll_into_view_if_needed()   # the house scrolls sideways; a child swipes to the stop
     pg.wait_for_timeout(100)
     tap(pg, f'[data-level="{i}"]', touch)
-    pg.wait_for_function(f'__test.state().screen === "level" && __test.state().level === "L{i + 1}"')
+    pg.wait_for_function(f'__test.state().screen === "level" && __test.state().level === "{lid}"')
     pg.wait_for_timeout(150)
 
 
@@ -143,7 +151,7 @@ with sync_playwright() as pw:
     # ---- the PC, a new device: level 1's card, once
     ctx, pg, errors, asked = open_page(br, 1366, 712)
     to_house(pg)
-    open_level(pg, 0)
+    open_level(pg, 'L1')
     s = state(pg)
     check(s['card'] == 'bridge' and pg.locator('#card [data-card="bridge"]').count() == 1, f'PC: level 1 opens with the bridge\'s card over the board ({s["card"]})')
     check(pg.locator('#card text', has_text=CAPTION['bridge']).count() == 1 and pg.locator('#card text', has_text=CAPTION['bridge']).first.is_visible(),
@@ -195,7 +203,7 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
-    open_level(pg, 0)
+    open_level(pg, 'L1')
     check(state(pg)['card'] is None and pg.locator('#card [data-card]').count() == 0, 'PC: level 1 opened again has no card: once per child (D-170)')
     sizes_ok(pg, 'PC, a new device', errors, asked)
 
@@ -207,8 +215,8 @@ with sync_playwright() as pw:
     to_house(pg)
     check(state(pg)['progress'] == {'done': {i: True for i in ids}, 'seeds': {}, 'tries': {'L1': 2}, 'cards': {}}, 'PC: a format 1 entry is read, with no cards seen')
     shown = []
-    for i in range(10):
-        open_level(pg, i)
+    for lid in IDS:
+        open_level(pg, lid)
         s = state(pg)
         shown.append(s['card'])
         if s['card']:
@@ -216,7 +224,7 @@ with sync_playwright() as pw:
             pg.screenshot(path=os.path.join(OUT, f'pc-card-{s["card"]}.png'))
             check(card_moving(pg) > 0 and pg.locator('#card text', has_text=s['caption']).count() == 1, f'PC: the {s["card"]}\'s card moves and shows its caption "{s["caption"]}"')
             close_card(pg)
-        if i == 7:
+        if lid == 'L8':
             # the see-saw: slide to it, then help, then tap the plank
             while pg.locator('[data-btn="panR"]').count():
                 tap(pg, '[data-btn="panR"]')
@@ -228,7 +236,7 @@ with sync_playwright() as pw:
             s = state(pg)
             check(n == 3 and s['card'] == 'seesaw', f'PC: level 8: help marks its two gadgets and the see-saw; a tap on the plank shows the see-saw\'s card ({n}, {s["card"]})')
             close_card(pg)
-        if i == 8:
+        if lid == 'L9':
             tap(pg, '[data-btn="help"]')
             n = pg.locator('[data-help]').count()
             tap(pg, '#cupfront [data-cupf]')
@@ -241,12 +249,13 @@ with sync_playwright() as pw:
             close_card(pg)
         tap(pg, '[data-btn="house"]')
         pg.wait_for_function('__test.state().screen === "house"')
-    check(shown == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', None, 'seesaw', 'lift', None],
-          f'PC: each card pops up once, on the first level that brings it in; none on level 7 or 10 ({shown})')
+    check([x for lid, x in zip(IDS, shown) if not lid.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', None, 'seesaw', 'lift', None]
+          and all(x is None for lid, x in zip(IDS, shown) if lid.endswith('b')) and len(shown) == len(IDS),
+          f'PC: each card pops up once, on the first level that brings it in; none on level 7 or 10, nor on any twin ({shown})')
     k = kept(pg)
     check(k and k.get('v') == 2 and k.get('cards') == {c: True for c in EIGHT} and k.get('done') == {i: True for i in ids} and k.get('tries') == {'L1': 2},
           f'PC: all eight cards are kept as seen, with the levels done and tries as they were ({k})')
-    open_level(pg, 2)
+    open_level(pg, 'L3')
     check(state(pg)['card'] is None, 'PC: after the reload and every card, level 3 opens with no card')
     sizes_ok(pg, 'PC, format 1 progress', errors, asked)
     ctx.close()
@@ -269,13 +278,13 @@ with sync_playwright() as pw:
         b = f.locator(sel).first.bounding_box()
         p.mouse.click(b['x'] + b['width'] / 2, b['y'] + b['height'] / 2)
 
-    ctx, pg, fr, errs = framed({'sound': False, 'state': {'v': 1, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2}}})
+    ctx, pg, fr, errs = framed({'sound': False, 'state': {'v': 1, 'done': {'L1': True, 'L1b': True}, 'seeds': {}, 'tries': {'L1': 2}}})
     ftap(pg, fr, '#play')
     fr.wait_for_function('__test.state().screen === "house"')
-    ftap(pg, fr, '[data-level="1"]')
+    ftap(pg, fr, f'[data-level="{IDS.index("L2")}"]')
     fr.wait_for_function('__test.state().level === "L2"')
     last = pg.evaluate('window.__states[window.__states.length - 1]')
-    check(fr.evaluate('__test.state().card') == 'ramp' and last == {'v': 2, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2}, 'cards': {'ramp': True}},
+    check(fr.evaluate('__test.state().card') == 'ramp' and last == {'v': 2, 'done': {'L1': True, 'L1b': True}, 'seeds': {}, 'tries': {'L1': 2}, 'cards': {'ramp': True}},
           f'wrapper: level 2 shows the ramp\'s card, and the card seen goes out with fg:state at once, format 2 ({last})')
     check(pg.evaluate(f"localStorage.getItem('{ENTRY}')") is None, 'wrapper: nothing is kept on the device by the game')
     ftap(pg, fr, '#card [data-btn="cardok"]')
@@ -296,7 +305,7 @@ with sync_playwright() as pw:
     for w, h, tag in ((390, 844, 'phone upright'), (844, 390, 'phone sideways')):
         ctx, pg, errors, asked = open_page(br, w, h, touch=True)
         to_house(pg, True)
-        open_level(pg, 0, True)
+        open_level(pg, 'L1', True)
         if pg.locator('#turn').is_visible():
             tap(pg, '#turn', True)
         box = pg.locator('#card [data-card]').bounding_box()

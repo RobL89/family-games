@@ -1,4 +1,7 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.7 (16 Nov, step 8).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.8 (16 Nov, step 9).
+//
+// Changes at v1.8 (step 9, D-166, D-170): a level is open by progress.js 1.2's opens(), so a child who played before
+// the twins came finds them open; the twins of levels 1 to 5 play in pairs, Next going from each level to its twin.
 //
 // Changes at v1.7 (step 8, D-167, D-168, D-170, D-171): the help cards (cards.js). The first time a child opens a level
 // that brings in a gadget or part, its card pops up over the dimmed board, a looping picture with a short caption, and
@@ -48,7 +51,7 @@ import { LEVELS } from './levels.js';
 import { CELL, INK, SUN, CORAL, LOOP, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
-import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt } from './progress.js';
+import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt, opens } from './progress.js';
 import { CARDS, CAPTION, CARD_CSS, cardArt, cardFor } from './cards.js';
 import { linkUp } from '../_common/rocket/link.js';
 
@@ -94,7 +97,7 @@ function show(name) {
 }
 
 function isOpen(i) {
-  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];
+  return opens(IDS, S.progress, i);
 }
 
 function renderHouse() {

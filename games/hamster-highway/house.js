@@ -1,4 +1,9 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.5.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.6.
+//
+// Changes at v1.6 (step 9, D-166, D-169): levels 1 to 5 and their twins: each of those five places holds two stops a
+// little apart (look A), at the step 7 sketch's places (tools/tests/games/sketch_hamster_cards.py 0.1): 116 units
+// apart along the way the route runs there, either side of the place's old stop, the bookshelf's and the cage's set by
+// hand. A twin's spot is its first's with a 2. Levels 6 to 10 keep PLAN's places until their twins come (step 10).
 //
 // Changes at v1.5 (step 4): level 8 at the veg patch, PLAN's place for it; a built level keeps its plan place's
 // bends in the dotted path, so the way to the veg patch still goes over the roof and down the drainpipe.
@@ -32,7 +37,11 @@ export const HOUSE_H = 900;
 const GROUND = 780;
 
 // Where each level's marker sits, by the `spot` levels.js gives it.
-export const SPOTS = { sink: [282, 650], breadbin: [530, 632], tins: [772, 668], bookshelf: [1100, 560], cage: [1102, 300], bath: [300, 360], rafters: [430, 150], veg: [1480, 712], shed: [1862, 560], treehouse: [2322, 352] };
+export const SPOTS = {
+  sink: [224, 654], sink2: [340, 646], breadbin: [472, 630], breadbin2: [588, 634], tins: [714, 675], tins2: [830, 661],
+  bookshelf: [1010, 620], bookshelf2: [1110, 560], cage: [1090, 300], cage2: [974, 290],
+  bath: [300, 360], rafters: [430, 150], veg: [1480, 712], shed: [1862, 560], treehouse: [2322, 352],
+};
 // The plan for the stops after level 5 (D-151), in route order: name, place, the level planned there (null: kept
 // for a level after v1), and any bends before it. Levels 6 to 10 follow D-145. Drawn softly without numbers until
 // a level's spot takes the place's name; test_hamster_highway_core.py checks the whole route never crosses itself.

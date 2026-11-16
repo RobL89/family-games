@@ -1,4 +1,11 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.6 (16 Nov, step 8).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.7 (16 Nov, step 9).
+
+Changes at v1.7 (step 9, D-166, D-170): the twins of levels 1 to 5 play in pairs: the house shows every level (the
+order read from levels.js), only the first open; after level 1, back in the house, its twin is open and level 2
+waits; each twin opens with no card, its answer and spare give a party with the seed, and Next goes on to the next
+level; the saved tries include the twins (1 each); in the wrapper, a child who did level 1 before the twins came
+finds level 1's twin open and waiting and level 2 locked, and plays the twin; level 8 by touch is opened by its own
+place in the order.
 
 Changes at v1.6 (step 8, D-170, D-171): each level's help card, when one pops up, is closed with its tick as a child
 would (opened()); the cards popped up on the way through levels 1 to 10 are bridge to lift with none on 7 or 10;
@@ -110,6 +117,19 @@ COUNT_AUDIO = """(() => { window.__audio = 0; for (const n of ['AudioContext', '
   if (typeof R !== 'function') continue; window[n] = class extends R { constructor(...a) { super(...a); window.__audio++; } }; } })()"""
 
 from playwright.sync_api import sync_playwright  # noqa: E402
+import subprocess  # noqa: E402
+
+# the levels' ids in play order, from levels.js itself (the twins sit straight after their first levels, D-166)
+IDS = json.loads(subprocess.run(['node', '--input-type=module', '-e', 'const { LEVELS } = await import(process.argv[1]); console.log(JSON.stringify(LEVELS.map((d) => d.id)))',
+                                 'file://' + os.path.join(REPO, 'games', 'hamster-highway', 'levels.js')], capture_output=True, text=True, check=True).stdout)
+# each twin's answer then its spare for the seed (Claude's, by hand; test_hamster_highway_core.py 1.9's SOL)
+TWIN = {
+    'L1b': [('bridge', 3, 4), ('bridge', 9, 6), ('bridge', 7, 4)],
+    'L2b': [('bridge', 2, 6), ('ramp', 4, 5), ('ramp', 7, 4), ('ramp', 5, 4)],
+    'L3b': [('bridge', 1, 6), ('bouncer', 2, 5), ('bouncer', 6, 5), ('ramp', 10, 4)],
+    'L4b': [('bridge', 2, 2), ('bridge', 5, 2), ('floater', 6, 1), ('bridge', 8, 2)],
+    'L5b': [('bridge', 1, 6), ('tube', 7, 5), ('tube', 7, 4), ('tube', 7, 3), ('tube', 7, 2), ('tube', 7, 1)],
+}
 
 
 def state(pg):
@@ -156,6 +176,19 @@ def go_and_wait(pg, mode_after, touch=False):
     tap(pg, '[data-btn="go"]', touch)
     pg.wait_for_function('__test.state().mode === "run"', timeout=5000)
     pg.wait_for_function(f'__test.state().mode === "{mode_after}"', timeout=20000)
+
+
+def play_twin(pg, lid, cards, from_party=True):
+    """From a party, Next to level lid's twin (or it is open already): no card; its answer and spare: a party with the seed."""
+    if from_party:
+        tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, lid))
+    for kind, c, r in TWIN[lid]:
+        place(pg, kind, c, r)
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and s['progress']['done'].get(lid) and s['progress']['seeds'].get(lid),
+          f'PC: {lid}, the twin: no card (nothing new), and its answer with the spare: all five home with the seed ({cards[-1]}, {s["home"]}, {s["seedTaken"]})')
 
 
 def kept(pg):
@@ -228,7 +261,7 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == 10 and locked == 9 and future == 2, f'PC: the house shows levels 1 to 10, nine locked, and the plan\'s 2 places still to come (D-151) ({n_markers}, {locked}, {future})')
+    check(n_markers == len(IDS) and locked == len(IDS) - 1 and future == 2, f'PC: the house shows every level ({len(IDS)}), all but the first locked, and the plan\'s 2 places still to come (D-151) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -278,8 +311,8 @@ with sync_playwright() as pw:
     pg.screenshot(path=os.path.join(OUT, 'pc-5-party.png'))
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
-    open2 = pg.locator('[data-level="1"].locked').count() == 0
-    check(open2 and s['progress']['seeds'].get('L1'), 'PC: back in the house, level 2 is open')
+    open2 = pg.locator('[data-level="1"].locked').count() == 0 and pg.locator('[data-level="2"].locked').count() == 1
+    check(open2 and s['progress']['seeds'].get('L1') and state(pg)['at'] == 1, 'PC: back in the house, level 1\'s twin is open and the hamster waits there; level 2 is locked (pairs, D-166)')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-6-house-after.png'))
     tap(pg, '[data-poke="duck"]')
@@ -287,8 +320,10 @@ with sync_playwright() as pw:
     s = state(pg)
     check('quack' in s['heard'] and 'clink' in s['heard'], 'PC: the duck quacks and a jar clinks when tapped')
 
-    # level 2
+    # level 1's twin, then level 2
     tap(pg, '[data-level="1"]')
+    play_twin(pg, 'L1b', cards, from_party=False)
+    tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L2'))
     place(pg, 'bridge', 3, 6)
     go_and_wait(pg, 'build')
@@ -307,7 +342,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'climb' in s['heard'], 'PC: level 2 with both ramps: up the hop for the seed, then home with it')
 
-    # level 3
+    # level 2's twin, then level 3
+    play_twin(pg, 'L2b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L3'))
     go_and_wait(pg, 'build')
@@ -339,7 +375,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and s['progress']['seeds'].get('L3'), 'PC: level 3 with the spare ramp where they land: the seed, and a party')
 
-    # level 4: the floater
+    # level 3's twin, then level 4: the floater
+    play_twin(pg, 'L3b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L4'))
     check(pg.locator('#bg [data-back="living"]').count() == 1, 'PC: level 4 has the living room for its backdrop (D-149)')
@@ -357,7 +394,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'wheee' in s['heard'], 'PC: level 4 with the floater and the spare bridge: they float down past the seed, and home')
 
-    # level 5: the tube
+    # level 4's twin, then level 5: the tube
+    play_twin(pg, 'L4b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L5'))
     check(pg.locator('#bg [data-back="bedroom"]').count() == 1, 'PC: level 5 has the bedroom for its backdrop (D-149)')
@@ -380,7 +418,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and s['progress']['seeds'].get('L5'), 'PC: level 5 with a fourth tube on top: out beside the seed, and home with it')
 
-    # level 6: the worn stick (D-143, D-153)
+    # level 5's twin, then level 6: the worn stick (D-143, D-153)
+    play_twin(pg, 'L5b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L6'))
     check(pg.locator('#bg [data-back="bathroom"]').count() == 1 and pg.locator('[data-slot="stick"]').count() == 1,
@@ -520,11 +559,13 @@ with sync_playwright() as pw:
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
     sizes_ok(pg, 'PC 1366x712', errors, asked)
-    ids = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10']
-    want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids}, 'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1},
+    ids = IDS
+    want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}},
             'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift')}}
-    check(cards == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', None, 'seesaw', 'lift', None], f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed ({cards})')
-    check(kept(pg) == want, f'PC on its own: the entry holds levels 1 to 10 done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1; the replays for seeds not counted) ({kept(pg)})')
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, 'seesaw', 'lift', None],
+          f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
+    check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')
     tap(pg, '#play')
@@ -550,22 +591,21 @@ with sync_playwright() as pw:
     fr.wait_for_function('__test.state().screen === "house"')
     s = fr.evaluate('__test.state()')
     check(fr.locator('[data-level="1"].locked').count() == 0 and fr.locator('[data-level="2"].locked').count() == 1 and s['at'] == 1,
-          f'wrapper: the child\'s progress opens the house where they were: level 2 open and waiting, level 3 locked ({s["at"]})')
+          f'wrapper: a child who did level 1 before the twins came: level 1\'s twin open and waiting, level 2 locked (D-170 (a)) ({s["at"]})')
     check(not fr.locator('#sound').is_visible(), 'wrapper: with sound off, the game\'s own sound button is hidden')
     pg.screenshot(path=os.path.join(OUT, 'wrapper-1-house.png'))
     ftap(pg, fr, '[data-level="1"]')
-    fr.wait_for_function('__test.state().level === "L2"')
+    fr.wait_for_function('__test.state().level === "L1b"')
     fr.wait_for_timeout(100)
-    if fr.evaluate('__test.state().card'):
-        ftap(pg, fr, '#card [data-btn="cardok"]')
+    check(fr.evaluate('__test.state().card') is None, 'wrapper: level 1\'s twin opens with no card')
     fgo(pg, fr, 'build')
     last = pg.evaluate('window.__states[window.__states.length - 1]')
-    check(last == {'v': 2, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2, 'L2': 1}, 'cards': {'ramp': True}}, f'wrapper: a GO goes out with fg:state at once, the try counted ({last})')
-    ftap(pg, fr, '[data-slot="bridge"]'); fcell(pg, fr, 3, 6)
-    ftap(pg, fr, '[data-slot="ramp"]'); fcell(pg, fr, 7, 5)
+    check(last == {'v': 2, 'done': {'L1': True}, 'seeds': {}, 'tries': {'L1': 2, 'L1b': 1}, 'cards': {}}, f'wrapper: a GO goes out with fg:state at once, the try counted ({last})')
+    ftap(pg, fr, '[data-slot="bridge"]'); fcell(pg, fr, 3, 4)
+    fcell(pg, fr, 9, 6)
     fgo(pg, fr, 'party')
     last = pg.evaluate('window.__states[window.__states.length - 1]')
-    check(last == {'v': 2, 'done': {'L1': True, 'L2': True}, 'seeds': {}, 'tries': {'L1': 2, 'L2': 2}, 'cards': {'ramp': True}}, f'wrapper: the party goes out with fg:state: level 2 done (GC7.5) ({last})')
+    check(last == {'v': 2, 'done': {'L1': True, 'L1b': True}, 'seeds': {}, 'tries': {'L1': 2, 'L1b': 2}, 'cards': {}}, f'wrapper: the party goes out with fg:state: level 1\'s twin done (GC7.5) ({last})')
     check(kept(pg) is None, 'wrapper: nothing is kept on the device by the game')
     check(pg.evaluate('[...document.querySelectorAll("iframe")].length') == 1 and fr.evaluate('window.__audio') == 0,
           f'wrapper: with sound off, no audio is made ({fr.evaluate("window.__audio")})')
@@ -619,7 +659,7 @@ with sync_playwright() as pw:
             pg.wait_for_function('window.__test !== undefined && __test.state().ready')
             tap(pg, '#play', True)
             pg.wait_for_function('__test.state().screen === "house"')
-            tap(pg, '[data-level="7"]', True)
+            tap(pg, f'[data-level="{IDS.index("L8")}"]', True)
             opened(pg, 'L8', True)
             tap(pg, '[data-btn="panR"]', True)
             pg.wait_for_timeout(450)

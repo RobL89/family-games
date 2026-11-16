@@ -1,4 +1,13 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.8 (16 Nov, step 8).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.9 (16 Nov, step 9).
+
+Changes at v1.9 (step 9, D-166, D-169, D-170): the twins of levels 1 to 5 (L1b to L5b), each straight after its first
+level: same room and backdrop, its stop the first's spot with a 2, nothing new (so no card), only gadget kinds its
+first level has, and `more` names the gadget it needs one more of: each is solved with its answer, and not with any
+one of its `more` gadgets taken away; its seed needs its spare, in the squares worked out by hand and with the solver
+1.4 (16 Nov). The house: the ten stops of levels 1 to 5 and their twins at the step 7 sketch's places (D-169), no two
+stops' tap circles overlapping, and the whole route still never crossing itself. progress.js 1.2's opens(): a level is
+open if it is the first, the one before it is done, or it or any level after it is done (D-170 (a)). The level rows
+are read by each level's whole id (v1.8 read two characters, so L1b would have been taken for L1).
 
 Changes at v1.8 (step 8, D-167, D-168, D-170, D-171): the help cards (cards.js): 8, one for each gadget and part, in
 order; captions of 3 to 6 words, the bridge's and lift's as agreed; loops of 3 to 8 s; each level's new gadget has its
@@ -133,7 +142,8 @@ out.levels = LEVELS.map((d) => {
   const lv = core.parseLevel(d);
   const fitsBy = {};
   for (const k of core.GADGETS) fitsBy[k] = core.fitCells(lv, {}, k);
-  return { id: lv.id, cols: lv.cols, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back };
+  return { id: lv.id, cols: lv.cols, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back,
+           twin: d.twin || null, more: d.more || null };
 });
 // placing in order, each where it fits
 const placeAll = (lv, list) => {
@@ -155,6 +165,12 @@ const SOL = {
   L8: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['ramp', 10, 3]], seed: [['ramp', 2, 4]] },
   L9: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['floater', 13, 1]], seed: [['bridge', 15, 2]] },
   L10: { solve: [['bridge', 2, 6], ['bouncer', 4, 5], ['floater', 6, 2], ['tube', 9, 5], ['tube', 9, 4], ['tube', 9, 3], ['ramp', 11, 3]], seed: [['ramp', 20, 1]] },
+  // the twins (D-166): Claude's answers, by hand, 16 Nov
+  L1b: { solve: [['bridge', 3, 4], ['bridge', 9, 6]], seed: [['bridge', 7, 4]] },
+  L2b: { solve: [['bridge', 2, 6], ['ramp', 4, 5], ['ramp', 7, 4]], seed: [['ramp', 5, 4]] },
+  L3b: { solve: [['bridge', 1, 6], ['bouncer', 2, 5], ['bouncer', 6, 5]], seed: [['ramp', 10, 4]] },
+  L4b: { solve: [['bridge', 2, 2], ['bridge', 5, 2], ['floater', 6, 1]], seed: [['bridge', 8, 2]] },
+  L5b: { solve: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2]], seed: [['tube', 7, 1]] },
 };
 // all five hamsters (run(), the timed model): 'home' only if every one gets home, else the first other outcome
 const five = (lv, placed) => {
@@ -190,6 +206,8 @@ for (const d of LEVELS) {
     noParts: a.placed ? (d.parts || []).map((p) => [p.kind, without(d, p.kind, a.placed)]) : null,
     oneStickLess: a.placed ? Object.keys(a.placed).filter((k) => a.placed[k] === 'stick').map((k) => { const p = { ...a.placed }; delete p[k]; return five(lv, p).homes; }) : null,
     seedGone: rb ? core.walk(lv, b.placed, false).seed : null,
+    // a twin: its answer with any one of its `more` gadgets taken away
+    noMore: a.placed && d.more ? Object.keys(a.placed).filter((k) => a.placed[k] === d.more).map((k) => { const p = { ...a.placed }; delete p[k]; return five(lv, p).outcome; }) : null,
     leftAfter: a.placed ? core.left(lv, a.placed) : null,
     spare,
   };
@@ -217,7 +235,7 @@ if r.returncode != 0:
 out = json.loads(r.stdout)
 LV_ROWS = {}
 for _line in open(os.path.join(GAME, 'levels.js'), encoding='utf-8').read().split("id: '")[1:]:
-    LV_ROWS[_line[:2]] = re.findall(r"'([.#SG*]{12})'", _line)[:7]
+    LV_ROWS[_line[:_line.index("'")]] = re.findall(r"'([.#SG*]{12,24})'", _line)[:7]
 
 # the sketch model's outcomes
 for name, (_, _, new, no_new) in SKETCH.items():
@@ -242,13 +260,28 @@ for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows
 
 # levels.js
 lv = {x['id']: x for x in out['levels']}
-check(list(lv) == ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10'], f'levels.js holds levels 1 to 10, in order ({list(lv)})')
+ORDER = ['L1', 'L1b', 'L2', 'L2b', 'L3', 'L3b', 'L4', 'L4b', 'L5', 'L5b', 'L6', 'L7', 'L8', 'L9', 'L10']
+check(list(lv) == ORDER, f'levels.js holds levels 1 to 10 with the twins of 1 to 5, each straight after its first level, played in pairs (D-166) ({list(lv)})')
+check([lv[i]['seed'] for i in ('L1b', 'L2b', 'L3b', 'L4b', 'L5b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1]], 'each twin has its golden seed where levels.js says')
+TWINS = [i for i in ORDER if lv[i]['twin']]
+for t in TWINS:
+    f = lv[lv[t]['twin']]
+    check(ORDER.index(t) == ORDER.index(f['id']) + 1 and t == f['id'] + 'b',
+          f'{t}: the twin of {f["id"]}, its id the first\'s with a b (new ids keep saved progress, D-170), straight after it')
+    check((lv[t]['room'], lv[t]['back'], lv[t]['spot']) == (f['room'], f['back'], f['spot'] + '2') and lv[t]['new'] is None,
+          f'{t}: in the same room on the same backdrop, at its own stop ({lv[t]["spot"]}), bringing in nothing new (D-166)')
+    check(set(lv[t]['tray']) <= set(f['tray']) and lv[t]['more'] in f['tray'] and lv[t]['spare'] in f['tray'],
+          f'{t}: only gadget kinds its first level has, one more of the {lv[t]["more"]} (no new kinds early, D-166) ({lv[t]["tray"]} against {f["tray"]})')
 check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2]
       and lv['L6']['seed'] == [7, 3] and lv['L7']['seed'] == [5, 1] and lv['L8']['seed'] == [3, 3] and lv['L9']['seed'] == [16, 1] and lv['L10']['seed'] == [20, 0],
       'each level has its golden seed where levels.js says')
-check([lv[i]['new'] for i in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
+check([lv[i]['new'] for i in lv if not lv[i]['twin']] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
       'each level brings in one new thing, in the agreed order; 6 and 7 the worn stick, 8 the see-saw, 9 the teacup lift; 10, the finale, nothing new (D-136, D-145, D-153, D-156, D-157)')
-check([lv[i]['spare'] for i in lv] == [None, 'ramp', 'ramp', 'bridge', 'tube', 'ramp', 'ramp', 'ramp', 'bridge', 'ramp'], 'levels 2 to 10 each name the spare gadget their seed needs')
+check([lv[i]['spare'] for i in lv] == [None, 'bridge', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'tube', 'tube', 'ramp', 'ramp', 'ramp', 'bridge', 'ramp'],
+      'every level but level 1 names the spare gadget its seed needs, the twins too')
+check([(t, lv[t]['tray'], lv[t]['more']) for t in TWINS] == [('L1b', {'bridge': 3}, 'bridge'), ('L2b', {'bridge': 1, 'ramp': 3}, 'ramp'),
+      ('L3b', {'bridge': 1, 'bouncer': 2, 'ramp': 1}, 'bouncer'), ('L4b', {'bridge': 3, 'floater': 1}, 'bridge'), ('L5b', {'bridge': 1, 'tube': 5}, 'tube')],
+      'the twins\' trays: 3 bridges (2 gaps and a spare); a bridge and 3 ramps (2 steps and a spare); a bridge, 2 bouncers and a spare ramp; 3 bridges (2 gaps and a spare) and a floater; a bridge and 5 tubes (4 up and a spare)')
 check(lv['L9']['tray'] == {'bridge': 2, 'ramp': 1, 'floater': 1} and lv['L9']['cols'] == 20 and (lv['L9']['room'], lv['L9']['spot'], lv['L9']['back']) == ('garden', 'shed', 'shed'),
       f'level 9: 20 squares wide, 2 bridges (one a spare for the seed), a ramp and a floater, at the shed with its own backdrop ({lv["L9"]["tray"]}, {lv["L9"]["cols"]})')
 check(lv['L10']['tray'] == {'bridge': 1, 'ramp': 2, 'bouncer': 1, 'floater': 1, 'tube': 3} and lv['L10']['cols'] == 24
@@ -287,7 +320,12 @@ for i, (lid, p) in enumerate(out['play'].items(), 1):
     check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
     check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
 check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
-check(all(out['play'][i]['solvedSeed'] is False for i in ('L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10')), 'levels 2 to 10: the seed needs the spare gadget')
+check(all(out['play'][i]['solvedSeed'] is False for i in ORDER if i != 'L1'), 'every level but level 1, the twins too: the seed needs the spare gadget')
+for t in TWINS:
+    nm = out['play'][t]['noMore']
+    check(nm and all(o != 'home' for o in nm), f'{t}: not solved with any one of its {lv[t]["more"]}s taken away: it needs the one more (D-166) ({nm})')
+check([out['play'][t]['spare'] for t in TWINS] == [[[7, 4]], [[5, 4], [6, 4]], [[10, 4]], [[8, 2]], [[7, 1]]],
+      f'the twins: the spare takes the seed home only beside the ledge at 7,4; from 5,4 or 6,4 on the first step; on the landing at 10,4; beside the ledge at 8,2; on top of the tubes at 7,1 ({[out["play"][t]["spare"] for t in TWINS]})')
 check(out['play']['L9']['spare'] == [[15, 2]], f'level 9: the spare bridge takes the seed home only at 15,2, the shelf made one longer ({out["play"]["L9"]["spare"]})')
 check(out['play']['L10']['spare'] == [[19, 1], [20, 1]], f'level 10: the spare ramp takes the seed home from 19,1 or 20,1 only, in the treehouse ({out["play"]["L10"]["spare"]})')
 check(out['play']['L9']['noParts'] == [['lift', 'stuck']], f'level 9: without its teacup lift, stuck at the bench ({out["play"]["L9"]["noParts"]})')
@@ -348,10 +386,15 @@ const withCard = P.seen(kinds, f2, 'ramp');
 o.cardsKept = { tried: P.tried(ids, withCard, 'L2').cards, finished: P.finished(ids, withCard, 'L2', false).cards };
 o.pack = P.pack(withCard);
 o.round = P.unpack(ids, JSON.parse(JSON.stringify(P.pack(withCard))), kinds);
-const many = Array.from({ length: 20 }, (_, i) => `L${i + 1}`);
+const many = Array.from({ length: 10 }, (_, i) => [`L${i + 1}`, `L${i + 1}b`]).flat();   // the 20 levels' ids (D-166, D-170)
 const all8 = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'];
 o.size = JSON.stringify(P.pack({ done: Object.fromEntries(many.map((i) => [i, true])), seeds: Object.fromEntries(many.map((i) => [i, true])),
   tries: Object.fromEntries(many.map((i) => [i, 9999])), cards: Object.fromEntries(all8.map((k) => [k, true])) })).length;
+// opens() (D-170 (a)): the first; the one before done; or it or any after it done (old progress: twins before it open)
+const tw = ['L1', 'L1b', 'L2', 'L2b', 'L3'];
+const op = (done) => tw.map((_, i) => P.opens(tw, { done, seeds: {}, tries: {} }, i));
+o.opens = [op({}), op({ L1: true }), op({ L1: true, L1b: true }), op({ L1: true, L2: true }), op({ L2: true }), op({ L1: true, L2: true, L3: true }),
+           P.opens(tw, P.fresh(), -1), P.opens(tw, P.fresh(), 5)];
 o.nextAt = [P.nextAt(ids, P.fresh()), P.nextAt(ids, f2), P.nextAt(ids, { done: { L1: true, L2: true, L3: true }, seeds: {}, tries: {} }),
             P.nextAt(ids, { done: { L2: true }, seeds: {}, tries: {} })];
 console.log(JSON.stringify(o));
@@ -394,6 +437,9 @@ else:
               f'progress: pack adds the format version, and unpack reads it back the same ({o["pack"]})')
         check(o['size'] < 20000, f'progress: 20 levels done, found and tried 9999 times, and all 8 cards seen, is under the 20,000 characters fg:state allows ({o["size"]})')
         check(o['nextAt'] == [0, 1, 2, 0], f'progress: the hamster waits at the first level not done, or the last when all are ({o["nextAt"]})')
+        T, F_ = True, False
+        check(o.get('opens') == [[T, F_, F_, F_, F_], [T, T, F_, F_, F_], [T, T, T, F_, F_], [T, T, T, T, F_], [T, T, T, T, F_], [T, T, T, T, T], F_, F_],
+              f'progress: opens(): a new player has only the first open; each done opens the next; a child who did levels 1 and 2 before the twins finds the twins before them open, not done, and the next after them waits for the twin before it (D-170 (a)); off the list, nothing ({o.get("opens")})')
 
 # the house's path (D-150, D-151): levels 1 to 5's places, then the plan for 6 to 10 and two places kept for later,
 # with its bends; the whole route never crosses itself or runs back along itself
@@ -407,7 +453,8 @@ for (const p of H.PLAN || []) pts.push(...(p.via || []), p.at);
 // the path the house draws now (levels there are, and on to the next place): it must run along that route's start
 const drawn = H.housePath ? H.housePath({ levels: LEVELS }) : null;
 const atPlan = LEVELS.filter((d) => (H.PLAN || []).some((p) => p.name === d.spot)).map((d) => [d.id, JSON.stringify(H.SPOTS[d.spot]) === JSON.stringify(H.PLAN.find((p) => p.name === d.spot).at), H.PLAN.find((p) => p.name === d.spot).level]);
-console.log(JSON.stringify({ pts, drawn, atPlan, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
+const stops = LEVELS.map((d) => [d.id, H.SPOTS[d.spot]]);
+console.log(JSON.stringify({ pts, drawn, atPlan, stops, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
@@ -441,6 +488,14 @@ else:
     check(k > 0 and h['drawn'] == h['pts'][:k], f'the house draws its dotted path along that route, through the levels there are and on to the next place, never back to a place it passed ({h["drawn"]})')
     check(h['atPlan'] == [['L6', True, 6], ['L7', True, 7], ['L8', True, 8], ['L9', True, 9], ['L10', True, 10]],
           f'levels 6 to 10 sit at the plan\'s own places for them, the bath, the rafters, the veg patch, the shed and the treehouse (D-151) ({h["atPlan"]})')
+    # D-169: each place's two stops apart, at the step 7 sketch's places (sketch_hamster_cards.py 0.1, stops 1 to 10)
+    st = dict((i, tuple(xy) if xy else None) for i, xy in h['stops'])
+    SKETCHED = {'L1': (224, 654), 'L1b': (340, 646), 'L2': (472, 630), 'L2b': (588, 634), 'L3': (714, 675), 'L3b': (830, 661),
+                'L4': (1010, 620), 'L4b': (1110, 560), 'L5': (1090, 300), 'L5b': (974, 290)}
+    check(all(st.get(i) == xy for i, xy in SKETCHED.items()), f'levels 1 to 5 and their twins sit at the sketch\'s ten stops, each pair a little apart (D-169) ({ {i: st.get(i) for i in SKETCHED} })')
+    xs = [(i, xy) for i, xy in st.items() if xy]
+    near = min(((a[1][0] - b[1][0]) ** 2 + (a[1][1] - b[1][1]) ** 2) ** 0.5 for k, a in enumerate(xs) for b in xs[k + 1:])
+    check(len(xs) == len(st) and near >= 112, f'every level has its stop, and no two stops\' tap circles (56 across the middle) overlap: the closest are {near:.0f} apart (112 or more)')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -468,6 +523,9 @@ for (const [name, s] of Object.entries(JSON.parse(sketchJson))) {
 const SOL = {
   L1: [['bridge', 5, 6]], L2: [['bridge', 3, 6], ['ramp', 7, 5], ['ramp', 4, 5]], L3: [['bridge', 2, 6], ['bouncer', 5, 5], ['ramp', 9, 4]],
   L4: [['bridge', 3, 2], ['floater', 5, 1], ['bridge', 6, 2]], L5: [['bridge', 3, 6], ['tube', 6, 5], ['tube', 6, 4], ['tube', 6, 3], ['tube', 6, 2]],
+  L1b: [['bridge', 3, 4], ['bridge', 9, 6], ['bridge', 7, 4]], L2b: [['bridge', 2, 6], ['ramp', 4, 5], ['ramp', 7, 4], ['ramp', 5, 4]],
+  L3b: [['bridge', 1, 6], ['bouncer', 2, 5], ['bouncer', 6, 5], ['ramp', 10, 4]], L4b: [['bridge', 2, 2], ['bridge', 5, 2], ['floater', 6, 1], ['bridge', 8, 2]],
+  L5b: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2], ['tube', 7, 1]],
 };
 for (const d of LEVELS) {
   if (d.new === 'stick' || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
@@ -537,7 +595,7 @@ else:
     check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4}, 6, 3],
           f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
-    check(not bad and len(o['same']) == 23, f'timed model: on the 18 sketch boards and levels 1 to 5 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
+    check(not bad and len(o['same']) == 28, f'timed model: on the 18 sketch boards and levels 1 to 5 and their twins with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
     L = o['lift']
     check([h['outcome'] for h in L] == ['home'] * 5, f'teacup lift: all five get home ({[h["outcome"] for h in L]})')
@@ -764,8 +822,10 @@ else:
               f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
         check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
         lv = k['levels']
-        check(all(new == card for _, new, card in lv) and [new for _, new, _ in lv] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
+        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
               f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing ({lv})')
+        check([card for i, _, card in lv if i.endswith('b')] == [None] * sum(1 for i, _, _ in lv if i.endswith('b')) and any(i.endswith('b') for i, _, _ in lv),
+              f'cards: the twins bring in nothing, so no card pops up for them (D-166) ({[x for x in lv if x[0].endswith("b")]})')
         check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
         css = k['css']
         frames = set(re.findall(r'@keyframes\s+([\w-]+)', css))

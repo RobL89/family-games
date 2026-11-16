@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.12 · 16 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10, the house picker, help cards, saving and the wrapper link.
+Version 1.13 · 16 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10 and the twins of 1 to 5, the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.13 (step 9, D-166, D-169, D-170): the twins of levels 1 to 5, a second level at each of those places, played straight after the first: same room and backdrop, its own stop a little way along on the house, nothing new (no card), one more of a gadget the first level has, and its own golden seed with a spare. Levels open by `progress.js`'s `opens()`: a child who played before the twins came finds them open. Not yet released.
 
 Changes at v1.12 (step 8, D-167, D-168, D-170, D-171): help cards, a looping picture of each gadget and part at work with a caption of 3 to 6 words (on screen only), popping up once per child the first time a level brings it in, and any time by the "?" button and a tap on the gadget; progress format 2 keeps the cards seen. Not yet released.
 
@@ -33,6 +35,11 @@ all made in code (D-010).
 
 - **The house:** levels sit in a cross-section of a house and garden, each in a place drawn like
   the level (D-140). Levels open one after another, along a path that never crosses itself (D-150, D-151). Every stop to level 10 is planned in `house.js`'s `PLAN`. The view scrolls sideways.
+- **Twins (D-166, D-169, D-170):** each place gets a second level (its id the first's with a `b`), played straight
+  after the first and drawn as its own stop a little way along. It brings in nothing new and needs one more of a
+  gadget the first level has (`more` in `levels.js`): two gaps, two steps, two walls to bounce over, two gaps before
+  the big drop, a taller tube. A level opens if it is the first, the one before it is done, or it or a later level is
+  done, so a child who played before the twins came finds them open but not done. Levels 1 to 5's twins so far.
 - **Placing gadgets:** anywhere they fit (D-139): a bridge where a hamster would fall through, next
   to ground; a ramp, bouncer or floater on ground or a bridge; a tube in any empty square. On the PC, drag one from the tray or
   click it and then a square; on a phone, tap then tap. A square that doesn't fit shows red.
@@ -86,6 +93,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.13 | 2026-11-16 | The twins of levels 1 to 5 and their stops; opens() (D-166, D-169, D-170) |
 | 1.12 | 2026-11-16 | Help cards and the help button; progress format 2 (D-167, D-168, D-170, D-171) |
 | 1.11 | 2026-11-15 | Its release check; released to P-020 (D-165) |
 | 1.10 | 2026-11-15 | Two hamsters a teacup (D-163) |

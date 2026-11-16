@@ -1,4 +1,9 @@
-// Hamster Highway's saved progress (D-147). Version 1.1 (16 Nov, step 8).
+// Hamster Highway's saved progress (D-147). Version 1.2 (16 Nov, step 9).
+//
+// Changes at v1.2 (step 9, D-166, D-170 (a)): opens(ids, p, i), which levels a child may open, moved here from game.js
+// so it is tested: the first, the one after a level done, and any level with itself or a later level done, so a child
+// who played before the twins came finds the twins before their furthest level open but not done. The format is
+// unchanged: the twins' new ids are new keys.
 //
 // Changes at v1.1 (D-170, D-171): format 2 adds the help cards a player has seen, so each pops up once per child:
 //   { v: 2, done: {...}, seeds: {...}, tries: {...}, cards: { [card kind]: true } }
@@ -69,6 +74,12 @@ export function seen(kinds, p, kind) {
 
 // What is saved: the progress with its format version.
 export const pack = (p) => ({ v: FORMAT, ...copy(p) });
+
+// Whether level i may be opened: the first; or the one before it is done; or it or any level after it is done.
+export function opens(ids, p, i) {
+  if (!Number.isInteger(i) || i < 0 || i >= ids.length) return false;
+  return i === 0 || !!p.done[ids[i - 1]] || ids.slice(i).some((id) => !!p.done[id]);
+}
 
 // Where the hamster waits in the house: the first level not done, or the last when all are.
 export function nextAt(ids, p) {

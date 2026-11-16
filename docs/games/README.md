@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.39 · 2026-11-16 |
+| **Version** | 1.40 · 2026-11-16 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.40:** Hamster Highway step 9 (D-166, D-169, D-170): the twins of levels 1 to 5 (ids `L1b` to `L5b`) and their stops; `progress.js` 1.2's `opens()`; the core test at 1.9, the browser test at 1.7, the cards' browser test at 1.1, the solver at 1.4 (twins, and a near-answer check with full searches for the tube twin), the bench at 1.7 (6 twin faults); the release check still 1.1, not run.
 
 **Changes at v1.39:** Hamster Highway step 8 (D-167, D-168, D-170, D-171): the help cards (`games/hamster-highway/cards.js`), the help button and progress format 2; a new browser test `test_hamster_highway_cards_e2e.py` 1.0, run by `close.py` 1.16 when the game changes; the core test at 1.8, the browser test at 1.6, the bench at 1.6 (13 card faults); the release check at 1.1, not yet run.
 
@@ -184,6 +186,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.40 | 2026-11-16 | Hamster Highway twins of levels 1 to 5 (D-166, D-169, D-170) |
 | 1.39 | 2026-11-16 | Hamster Highway help cards (D-167, D-168, D-170, D-171) |
 | 1.38 | 2026-11-15 | Hamster Highway released to P-020 (D-165), its release check; ER-011 fixed |
 | 1.37 | 2026-11-15 | Hamster Highway levels 6 and 7, the worn stick (D-153, D-154) |

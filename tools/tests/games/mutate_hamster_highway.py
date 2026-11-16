@@ -1,5 +1,9 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.6 (16 Nov, step 8).
+tests catch (project rules: test the tests). Version 1.7 (16 Nov, step 9).
+Changes at v1.7 (step 9, D-166, D-169, D-170): six faults in the twins, their names starting "twin:": five caught or
+not by the core test (opens() forgets old progress, level 1's twin without its spare bridge, its high ledge with no
+gap, a twin's stop on its first level's, a twin bringing in a card) and one by the cards' browser test (the game
+opening levels by the old rule, so a child with old progress finds level 2 locked behind level 1's twin).
 Changes at v1.6 (step 8, D-167 to D-171): thirteen faults in the help cards, their names starting "card:": eight caught
 or not by the core test (seen() marks nothing, format 1 no longer read, cards read from format 1, any card kept, a
 caption of 7 words, a class with no keyframes, a card for a gadget the game doesn't have, a moving group with a
@@ -97,6 +101,12 @@ FAULTS = [
     ('card: help shows the lift for the see-saw', G + 'game.js', "if (!kind && t.closest('[data-saw]')) kind = 'seesaw';", "if (!kind && t.closest('[data-saw]')) kind = 'lift';", CARDS_E2E),
     ('card: the card seen is not saved', G + 'game.js', '  if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }', '  if (first) { S.progress = seen(CARDS, S.progress, kind); }', CARDS_E2E),
     ('card: the cards\' CSS never added', G + 'game.js', 'document.head.appendChild(cardCss);', 'void cardCss;', CARDS_E2E),
+    ('twin: opens() forgets old progress', G + 'progress.js', ' || ids.slice(i).some((id) => !!p.done[id]);', ';', CORE),
+    ('twin: level 1\'s twin has no spare bridge', G + 'levels.js', "tray: { bridge: 3 }, spare: 'bridge',", "tray: { bridge: 2 }, spare: 'bridge',", CORE),
+    ('twin: level 1\'s twin needs one bridge', G + 'levels.js', "      '###.###.....',\n", "      '#######.....',\n", CORE),
+    ('twin: a twin\'s stop on its first\'s', G + 'house.js', 'sink2: [340, 646]', 'sink2: [224, 654]', CORE),
+    ('twin: a twin brings in a card', G + 'levels.js', "new: null, twin: 'L1'", "new: 'bridge', twin: 'L1'", CORE),
+    ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
 ]
 
 
