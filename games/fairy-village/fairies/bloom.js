@@ -45,7 +45,10 @@ function petalArt(noShadow){
   '<path d="M70 200 C70 189 84 189 84 200" stroke="#4E86B0" stroke-width="2.5" fill="none"/>' +
   '<path d="M88 206 L102 196 L104 199 L90 211 Z" fill="#4E86B0"/><circle cx="104" cy="197" r="3" fill="#4E86B0"/>' +
   '<circle cx="80" cy="192" r="6" fill="url(#skinD)"/>' +
-  '<g class="arm"><path d="M136 164 C150 158 158 148 162 138" stroke="#B57650" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="163" cy="136" r="6" fill="url(#skinD)"/></g>' +
+  '<g class="arm"><path d="M136 164 C150 158 158 148 162 138" stroke="#B57650" stroke-width="10" fill="none" stroke-linecap="round"/>' +
+  /* her flower wand: a green stem with a little flower on top */
+  '<path d="M164 140 L178 104" stroke="#3F8A3A" stroke-width="3.5" stroke-linecap="round"/><path d="M172 120 C178 114 184 116 186 120 C180 124 176 124 172 120 Z" fill="#6DBE5A"/>' +
+  '<circle cx="181" cy="96" r="16" fill="#FFF3B0" opacity=".5" filter="url(#fsoft)"/>'+flowerG(181,96,13,'yellow',6)+'<circle cx="163" cy="136" r="6" fill="url(#skinD)"/></g>' +
   '<rect x="114" y="138" width="12" height="16" rx="4" fill="#9E6442"/>' +
   '<g fill="url(#hairDark)"><circle cx="82" cy="106" r="16"/><circle cx="86" cy="132" r="14"/><circle cx="158" cy="106" r="16"/><circle cx="154" cy="132" r="14"/><circle cx="96" cy="76" r="18"/><circle cx="144" cy="76" r="18"/><circle cx="120" cy="68" r="20"/></g>' +
   '<circle cx="120" cy="108" r="40" fill="url(#skinD)"/>' +
@@ -64,7 +67,7 @@ function petalArt(noShadow){
   '<path d="M112 128 Q120 135 128 128" stroke="#6E2E22" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
 }
 function picSVG(word){
-  var inner = word==='flower' ? PICS.flower + flowerG(50,36,30,'pink',6) : PICS[word];
+  var inner = word==='flower' ? PICS.flower + flowerG(50,36,30,'pink',6) : pic2(word);
   return '<svg viewBox="0 0 100 100" role="img" aria-label="'+esc(word)+'">'+inner+'</svg>';
 }
 /* the garden picture used by the jigsaw (an image, so it carries its own gradients) */
@@ -175,13 +178,15 @@ function same(a,b){return a.c===b.c&&a.n===b.n;}
 function pzPattern(area,L){
   var p=shuffle(FCOL), seq=[], miss, opts, ans;
   if(L===1){
-    for(var i=0;i<7;i++)seq.push({c:i%2?p[1]:p[0],n:5});
-    miss=6; ans=seq[6]; opts=[ans,{c:p[1],n:5},{c:p[2],n:5}];
+    /* AB most often, sometimes AAB or ABB, and sometimes a pattern of petal numbers in one colour */
+    var t1=pick(['AB','AB','AAB','ABB','N']);
+    if(t1==='N'){var ns=pick([[4,6],[3,5],[5,8]]);for(var i=0;i<7;i++)seq.push({c:p[0],n:ns[i%2]});miss=6;ans=seq[6];opts=[ans,{c:p[0],n:ns[1-(6%2)]},{c:p[1],n:ans.n}];}
+    else {var m1={A:p[0],B:p[1]};for(var i1=0;i1<(t1.length===2?7:8);i1++)seq.push({c:m1[t1[i1%t1.length]],n:5});miss=seq.length-1;ans=seq[miss];opts=[{c:p[0],n:5},{c:p[1],n:5},{c:p[2],n:5}];}
   } else if(L===2){
-    var t=pick(['ABC','AAB','ABB','AABB']), map={A:p[0],B:p[1],C:p[2]};
+    var t=pick(['ABC','AAB','ABB','AABB','ABAC','ABCC','AABC']), map={A:p[0],B:p[1],C:p[2]};
     for(var j=0;j<8;j++)seq.push({c:map[t[j%t.length]],n:5});
     miss=rnd(3,7); ans=seq[miss];
-    opts=[{c:p[0],n:5},{c:p[1],n:5},{c:(t==='ABC'?p[2]:p[3]),n:5}];
+    opts=[{c:p[0],n:5},{c:p[1],n:5},{c:(t.indexOf('C')>=0?p[2]:p[3]),n:5}];
   } else if(Math.random()<.5){
     var s=rnd(2,3), d=rnd(1,2);
     for(var k=0;k<5;k++)seq.push({c:k%2?p[1]:p[0],n:s+k*d});
@@ -288,10 +293,13 @@ function pzSeeds(area,L){
   });
 }
 /* 4. garden words */
-var WORDS=['sun','bee','apple','leaf','tree','worm','pot','flower'];
+var WORDS=['sun','bee','apple','leaf','tree','worm','pot','flower','frog','snail','log','bird','nest','carrot','ant','mushroom'];
+var SPELL_GARDEN=['flower','apple','leaf','tree','worm','snail','frog','bird','nest','carrot','ant'];
+var lastGardenWord='';
 function pzWords(area,L){
   if(L===1||L===2){
-    var picks=shuffle(WORDS).slice(0,3), target=picks[0];
+    var target=pick(WORDS.filter(function(w){return w!==lastGardenWord;})), picks=[target]; lastGardenWord=target;
+    shuffle(WORDS).forEach(function(w){if(picks.length<3&&picks.every(function(q){return q[0]!==w[0];}))picks.push(w);});
     if(L===1){
       var letter=target[0];
       setSay('Which picture starts with '+letter+'?');
@@ -308,7 +316,7 @@ function pzWords(area,L){
     });
     return;
   }
-  var word=pick(['flower','apple','leaf','tree','worm']);
+  var word=pick(SPELL_GARDEN.filter(function(w){return w!==lastGardenWord;})); lastGardenWord=word;
   var extra=shuffle('bcdghkmnpsu'.split('').filter(function(ch){return word.indexOf(ch)<0;})).slice(0,2);
   var letters=shuffle(word.split('').concat(extra)), built=[];
   setSay('Spell the word for this picture. Tap the letters in order.');
@@ -345,10 +353,11 @@ function pzSort(area,L){
   var items=[], zones=[], venn=null, sel=null;
   var p=shuffle(FCOL);
   if(L===1){
-    var a=p[0], b=p[1];
-    var list=shuffle([a,a,a,b,b,b]);
+    /* two colours, three of each; or sometimes three colours, two of each */
+    var cs1=Math.random()<.4?p.slice(0,3):p.slice(0,2), each=cs1.length===3?2:3, list=[];
+    cs1.forEach(function(c){for(var e=0;e<each;e++)list.push(c);}); list=shuffle(list);
     list.forEach(function(c,i){items.push({id:i,c:c,n:5,zone:null});});
-    zones=[{id:a,label:FC[a].name+' flowers',icon:{c:a,n:5}},{id:b,label:FC[b].name+' flowers',icon:{c:b,n:5}}];
+    zones=cs1.map(function(c){return {id:c,label:FC[c].name+' flowers',icon:{c:c,n:5}};});
     items.forEach(function(it){it.want=it.c;});
     setSay('Sort the flowers by colour. Tap a flower, then tap the right basket. Tap Check when they are all sorted.');
   } else if(L===2){
@@ -438,6 +447,11 @@ Object.assign(PICS,{
   tree:'<rect x="43" y="56" width="14" height="34" rx="3" fill="#8A5A30"/><circle cx="50" cy="40" r="28" fill="#6DBE5A" stroke="#3F8A3A" stroke-width="3"/><circle cx="34" cy="52" r="14" fill="#5FB15B" stroke="#3F8A3A" stroke-width="2.5"/><circle cx="66" cy="52" r="14" fill="#5FB15B" stroke="#3F8A3A" stroke-width="2.5"/><circle cx="42" cy="32" r="4" fill="#E8574C"/><circle cx="60" cy="40" r="4" fill="#E8574C"/>',
   worm:'<path d="M14 70 C24 50 36 50 44 66 C52 82 64 82 72 62 C76 52 82 48 86 50" stroke="#B8467A" stroke-width="18" fill="none" stroke-linecap="round"/><path d="M14 70 C24 50 36 50 44 66 C52 82 64 82 72 62 C76 52 82 48 86 50" stroke="#F49DBE" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="86" cy="47" r="2.6" fill="#3B2A4A"/>',
   pot:'<path d="M22 40 H78 L70 88 H30 Z" fill="url(#terracotta)" stroke="#8A3F22" stroke-width="3"/><rect x="16" y="32" width="68" height="14" rx="4" fill="#E9926A" stroke="#8A3F22" stroke-width="3"/><path d="M50 32 V14 M50 22 C42 14 36 16 34 20 C40 24 46 24 50 22 M50 18 C58 10 64 12 66 16 C60 20 54 20 50 18" stroke="#3F8A3A" stroke-width="3" fill="#7CCB6A" stroke-linecap="round"/>',
+  bird:'<path d="M70 52 L92 38 L90 60 Z" fill="#8A5A30" stroke="#5A3A1A" stroke-width="2.5" stroke-linejoin="round"/><ellipse cx="52" cy="58" rx="26" ry="20" fill="#A0704A" stroke="#5A3A1A" stroke-width="3"/><circle cx="32" cy="42" r="15" fill="#A0704A" stroke="#5A3A1A" stroke-width="3"/><path d="M28 50 C26 64 36 74 50 76 C40 70 36 60 40 50 Z" fill="#E8743A"/><path d="M19 40 L8 44 L19 47 Z" fill="#F5B83A" stroke="#B8861E" stroke-width="2" stroke-linejoin="round"/><circle cx="28" cy="39" r="3" fill="#2A1E1A"/><circle cx="29" cy="38" r="1" fill="#fff"/><path d="M52 52 C60 48 68 52 70 60" stroke="#6E4626" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M46 77 V88 M58 77 V88 M42 88 H50 M54 88 H62" stroke="#B8861E" stroke-width="3" stroke-linecap="round"/>',
+  nest:'<ellipse cx="38" cy="48" rx="10" ry="13" fill="#9CD3F0" stroke="#3E7FB0" stroke-width="2.5"/><ellipse cx="62" cy="48" rx="10" ry="13" fill="#9CD3F0" stroke="#3E7FB0" stroke-width="2.5"/><ellipse cx="50" cy="44" rx="10" ry="13" fill="#B8E2F7" stroke="#3E7FB0" stroke-width="2.5"/><path d="M10 52 C12 80 32 88 50 88 C68 88 88 80 90 52 Z" fill="#B07A44" stroke="#6E4626" stroke-width="3" stroke-linejoin="round"/><path d="M14 60 C34 68 66 68 86 60 M18 70 C36 78 64 78 82 70 M30 82 C42 84 58 84 70 82" stroke="#6E4626" stroke-width="2.5" fill="none"/><path d="M8 52 C30 60 70 60 92 52" stroke="#D9A86A" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M12 50 l-6 -6 M88 50 l7 -5 M30 56 l-4 -9 M70 56 l5 -8" stroke="#8A5A30" stroke-width="2.5" stroke-linecap="round"/>',
+  carrot:'<path d="M50 34 C46 22 38 14 30 12 M50 34 C50 22 52 12 56 6 M50 34 C56 24 64 18 72 16" stroke="#3F8A3A" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M36 34 H64 C66 34 66 38 64 44 L52 90 C51 94 49 94 48 90 L36 44 C34 38 34 34 36 34 Z" fill="#F7943A" stroke="#B8561E" stroke-width="3" stroke-linejoin="round"/><path d="M42 48 H50 M46 60 H54 M46 72 H51" stroke="#B8561E" stroke-width="2.5" stroke-linecap="round"/>',
+  ant:'<g stroke="#3B2A4A" stroke-width="3" stroke-linecap="round" fill="none"><path d="M46 58 L36 44 M46 60 L32 64 M46 62 L38 80 M52 58 L58 42 M52 60 L68 62 M52 62 L60 80"/><path d="M20 44 C14 34 12 28 14 22 M26 42 C26 32 30 26 34 22"/></g><circle cx="24" cy="52" r="11" fill="#4A3A5A"/><ellipse cx="49" cy="58" rx="9" ry="8" fill="#4A3A5A"/><ellipse cx="74" cy="60" rx="16" ry="13" fill="#4A3A5A"/><circle cx="20" cy="49" r="2.8" fill="#fff"/><ellipse cx="70" cy="55" rx="5" ry="3" fill="#fff" opacity=".35"/>',
+  mushroom:'<path d="M38 56 H62 L64 86 C64 90 36 90 36 86 Z" fill="#FFF3DE" stroke="#B8925C" stroke-width="3"/><path d="M10 58 C10 30 30 14 50 14 C70 14 90 30 90 58 C90 62 10 62 10 58 Z" fill="#E8574C" stroke="#9C241C" stroke-width="3"/><circle cx="32" cy="38" r="6" fill="#fff"/><circle cx="56" cy="28" r="5" fill="#fff"/><circle cx="70" cy="46" r="6" fill="#fff"/><circle cx="46" cy="48" r="4" fill="#fff"/>',
   flower:'<path d="M50 56 V92" stroke="#3F8A3A" stroke-width="5" stroke-linecap="round"/><path d="M50 78 C38 68 28 70 24 74 C32 82 42 82 50 78 Z" fill="#7CCB6A" stroke="#3F8A3A" stroke-width="2"/>'
 });
 /* petal icons for her flower (72 x 72) */
@@ -452,7 +466,7 @@ Object.assign(PZICON,{
 /* ---------- Bloom ---------- */
 FAIRIES.petal={id:'petal',name:'Bloom',kind:'Flower fairy',place:"Bloom's garden",art:petalArt,body:tulipBody,houseLabel:"Bloom's tulip cottage",tapClass:'bloom',tapMs:2600,
   facts:FACTS,scene:forestScene,base:'#DCEFD0',foundBg:'#E8F5DF',foundGround:'<ellipse cx="170" cy="340" rx="120" ry="16" fill="#9ED17F"/>',
-  thanks:'Thank you for looking after my garden.',icon:flowerG(50,50,40,'pink',5),
+  thanks:'Thank you for looking after my garden.',jigThings:['sun','bee','flower','apple','worm','tree'],icon:flowerG(50,50,40,'pink',5),
   flowerBase:function(){
     return '<path d="M340 380 C330 470 352 580 340 700" stroke="#2F6B2C" stroke-width="20" fill="none" stroke-linecap="round"/>' +
       '<path d="M340 380 C330 470 352 580 340 700" stroke="#4E9F45" stroke-width="13" fill="none" stroke-linecap="round"/>' +
@@ -461,7 +475,7 @@ FAIRIES.petal={id:'petal',name:'Bloom',kind:'Flower fairy',place:"Bloom's garden
       '<path d="M240 626 C270 622 300 628 330 640 M444 582 C414 580 384 584 352 596" stroke="#fff" stroke-width="3" opacity=".35" fill="none" stroke-linecap="round"/>';
   },
   puz:[
-    {id:'jigsaw',titles:['Garden jigsaw','Garden jigsaw','Garden jigsaw'],run:function(a,L){pzJigsaw(a,L,'garden',gardenPicture,'the garden');}},
+    {id:'jigsaw',titles:['Garden jigsaw','Garden jigsaw','Garden jigsaw'],run:function(a,L){jigsawSet(a,L,'petal',[{key:'garden',fn:gardenPicture,what:'the garden'}]);}},
     {id:'pattern',titles:['Petal pattern','Petal pattern','Petal pattern'],run:pzPattern},
     {id:'seeds',titles:['Plant the seeds','Seed rows','Seed patches'],run:pzSeeds},
     {id:'words',titles:['First sounds','Read the word','Spell it'],run:pzWords},

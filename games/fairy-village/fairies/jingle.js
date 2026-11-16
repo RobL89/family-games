@@ -302,8 +302,10 @@ function pzPitch1(area,L){
   orderer($('#pt-order'),{answer:order,text:true,show:function(l){return l;},label:function(l){return 'Bell '+l;},onPick:function(l){ring(letters.indexOf(l));}},function(ok){finish(ok);});
 }
 /* 4. find the rhyme */
-var RHYME_PAIRS=[['cat','hat'],['dog','log'],['bee','tree'],['bell','shell'],['sun','bun'],['star','car'],['fish','dish']];
-var RHYME_FAM=[['cat','hat','mat','bat','sat'],['dog','log','frog','fog'],['ring','king','sing','wing'],['bell','well','shell','tell'],['cake','lake','snake','make'],['bug','rug','hug','mug'],['ship','lip','dip','zip'],['sun','bun','run','fun'],['bee','tree','see','free'],['night','light','bright','might']];
+/* Little Sprite's rhyming pictures, in rhyming groups: the answer comes from the same group as the word,
+   and the wrong pictures always come from other groups, so only one picture can ever rhyme */
+var RHYME_PAIRS=[['cat','hat'],['dog','log','frog'],['bee','tree','key'],['bell','shell'],['sun','bun'],['star','car'],['fish','dish'],['moon','spoon'],['snail','nail'],['egg','leg'],['drum','thumb'],['clock','sock'],['boat','coat'],['snake','cake']];
+var RHYME_FAM=[['cat','hat','mat','bat','sat'],['dog','log','frog','fog'],['ring','king','sing','wing'],['bell','well','shell','tell'],['cake','lake','snake','make'],['bug','rug','hug','mug'],['ship','lip','dip','zip'],['sun','bun','run','fun'],['bee','tree','see','free'],['night','light','bright','might'],['cap','map','tap','nap'],['pen','ten','hen','men'],['pig','dig','big','wig'],['hop','top','mop','shop'],['coat','boat','goat','float'],['rain','train','chain','brain'],['moon','spoon','soon','noon'],['nest','best','rest','vest'],['jump','bump','lump','pump'],['sock','rock','clock','lock']];
 var VERSES=[
   ['The bluebells ring at break of day','and call the sleepy bees to','play',['tray','sing']],
   ['A little frog sat on a log','and croaked a song into the','fog',['dog','night']],
@@ -311,14 +313,22 @@ var VERSES=[
   ['The wind went whistling up the hill,','then stopped, and all the grass was','still',['pill','quiet']],
   ['We tapped the drum and clapped our hands','and marched along like fairy','bands',['sands','soldiers']],
   ['The moon came up so round and bright','and Jingle sang a song of','night',['kite','stars']],
-  ['A snail went sliding down the lane','and hid beneath a leaf from','rain',['train','wind']]
+  ['A snail went sliding down the lane','and hid beneath a leaf from','rain',['train','wind']],
+  ['The baker made a cherry pie','and put it on a shelf up','high',['fly','top']],
+  ['A bumblebee flew round and round','then landed softly on the','ground',['sound','grass']],
+  ['The kitten curled up on the mat','and dreamed about a big fat','rat',['hat','mouse']],
+  ['We built a sandcastle by the sea','and had a picnic for our','tea',['bee','lunch']],
+  ['The stars came out to shine and play','until the sun brought back the','day',['hay','morning']],
+  ['A little boat with sails of blue','went bobbing out with all its','crew',['shoe','sailors']],
+  ['The rain went pitter-patter down','on every roof in Fairy','Town',['brown','Village']],
+  ['I put my wellies on my feet','and splashed through puddles in the','street',['sweet','road']]
 ];
 function pzRhyme(area,L){
   if(L===1){
     var pairs=shuffle(RHYME_PAIRS).slice(0,3);
     setSay('Which picture rhymes with the word? Tap it.');
     rounds(3,function(k,next){
-      var p=pairs[k], tgt=p[0], ans=p[1];
+      var p=pairs[k], two=shuffle(p).slice(0,2), tgt=two[0], ans=two[1];
       var others=shuffle(RHYME_PAIRS.filter(function(q){return q!==p;})).slice(0,2).map(function(q){return pick(q);});
       var q='Which picture rhymes with '+tgt+'?';
       area.innerHTML=roundNote(k,3)+'<div class="pic">'+picSVG2(tgt,tgt)+'</div><div class="bigword small-word">'+tgt+'</div><p class="say-small">'+esc(q)+'</p><div class="opts" id="ry-opts"></div>';
@@ -349,10 +359,15 @@ function pzRhyme(area,L){
   });
 }
 /* 5. bluebell band jigsaw */
-function pzBand(area,L){ pzJigsaw(area,L,'band',bandPicture,'the bluebell band'); }
+function pzBand(area,L){ jigsawSet(area,L,'jingle',[{key:'band',fn:bandPicture,what:'the bluebell band'}]); }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
   /* ---------- puzzle pictures (100 x 100) ---------- */
+  clock:'<circle cx="50" cy="52" r="38" fill="#fff" stroke="#6C5BC4" stroke-width="6"/><circle cx="26" cy="16" r="9" fill="#F8CF5A" stroke="#B8861E" stroke-width="3"/><circle cx="74" cy="16" r="9" fill="#F8CF5A" stroke="#B8861E" stroke-width="3"/><g stroke="#3B2A4A" stroke-width="3" stroke-linecap="round"><path d="M50 22 v5 M50 77 v5 M20 52 h5 M75 52 h5"/></g><path d="M50 52 V32 M50 52 L64 60" stroke="#3B2A4A" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="52" r="3.5" fill="#E8574C"/><path d="M28 86 L22 94 M72 86 L78 94" stroke="#6C5BC4" stroke-width="5" stroke-linecap="round"/>',
+  sock:'<path d="M36 8 H66 V54 C66 60 70 64 76 68 C88 76 90 92 76 94 H48 C30 94 24 82 30 70 C34 62 36 56 36 50 Z" fill="#E8574C" stroke="#9C241C" stroke-width="3" stroke-linejoin="round"/><path d="M36 8 H66 V22 H36 Z" fill="#fff" stroke="#9C241C" stroke-width="3"/><path d="M36 34 H66 M36 44 H66" stroke="#fff" stroke-width="5"/><path d="M62 94 C64 84 72 78 82 80" stroke="#fff" stroke-width="4" fill="none" opacity=".8"/>',
+  coat:'<path d="M34 12 L50 22 L66 12 L86 24 L92 60 L80 62 L78 44 V90 H22 V44 L20 62 L8 60 L14 24 Z" fill="#7DBDE6" stroke="#2E6290" stroke-width="3" stroke-linejoin="round"/><path d="M50 22 V90" stroke="#2E6290" stroke-width="3"/><path d="M34 12 L44 30 L50 22 M66 12 L56 30 L50 22" fill="#5A9BC8" stroke="#2E6290" stroke-width="2.5" stroke-linejoin="round"/><g fill="#F8CF5A" stroke="#B8861E" stroke-width="1.5"><circle cx="56" cy="44" r="3.5"/><circle cx="56" cy="60" r="3.5"/><circle cx="56" cy="76" r="3.5"/></g><path d="M28 64 H42 M58 64 H72" stroke="#2E6290" stroke-width="2.5" stroke-linecap="round"/>',
+  snake:'<path d="M84 30 C84 16 66 14 60 24 C52 38 72 46 64 60 C56 74 30 60 22 74 C16 84 26 92 40 90" stroke="#357A31" stroke-width="17" fill="none" stroke-linecap="round"/><path d="M84 30 C84 16 66 14 60 24 C52 38 72 46 64 60 C56 74 30 60 22 74 C16 84 26 92 40 90" stroke="#7CCB6A" stroke-width="11" fill="none" stroke-linecap="round"/><path d="M84 30 C84 16 66 14 60 24 C52 38 72 46 64 60 C56 74 30 60 22 74 C16 84 26 92 40 90" stroke="#F8CF5A" stroke-width="3" stroke-dasharray="4 8" fill="none" stroke-linecap="round"/><circle cx="78" cy="22" r="2.6" fill="#2A1E1A"/><path d="M90 30 L97 28 M90 30 L96 35" stroke="#E8574C" stroke-width="2" stroke-linecap="round"/>',
+  cake:'<ellipse cx="50" cy="86" rx="40" ry="7" fill="#fff" stroke="#C9A8B8" stroke-width="2.5"/><path d="M16 48 V78 C16 86 84 86 84 78 V48 Z" fill="#F3D29A" stroke="#9A6A34" stroke-width="3"/><path d="M16 64 C16 70 84 70 84 64" stroke="#E8574C" stroke-width="4" fill="none"/><path d="M16 48 C16 38 84 38 84 48 V52 C80 52 80 60 75 60 C70 60 70 52 64 52 C60 52 60 62 54 62 C48 62 50 52 44 52 C38 52 38 60 32 60 C26 60 26 52 22 52 C18 52 16 58 16 52 Z" fill="#F59AC0" stroke="#B8467A" stroke-width="3" stroke-linejoin="round"/><rect x="47" y="20" width="6" height="20" rx="2" fill="#7FD3B5" stroke="#3E9A7A" stroke-width="1.5"/><path d="M50 8 C54 12 54 17 50 18 C46 17 46 12 50 8 Z" fill="#FFB43A" stroke="#E8743A" stroke-width="1.2"/>',
   cat:'<path d="M26 40 L22 12 L42 28 M74 40 L78 12 L58 28" fill="#F7A055" stroke="#B8661E" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="50" r="28" fill="#F7A055" stroke="#B8661E" stroke-width="3"/><path d="M26 18 L36 26 M74 18 L64 26" stroke="#F49DBE" stroke-width="4"/><circle cx="40" cy="46" r="3.5" fill="#2A1E1A"/><circle cx="60" cy="46" r="3.5" fill="#2A1E1A"/><path d="M46 56 L50 60 L54 56 Z" fill="#E06A98"/><path d="M50 60 Q44 66 40 62 M50 60 Q56 66 60 62 M14 54 H36 M14 62 L36 58 M86 54 H64 M86 62 L64 58" stroke="#8A4A1E" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="88" rx="22" ry="8" fill="#F7A055" stroke="#B8661E" stroke-width="3"/>',
   hat:'<ellipse cx="50" cy="72" rx="42" ry="12" fill="#6C5BC4" stroke="#3B2A6A" stroke-width="3"/><path d="M28 70 V34 C28 24 72 24 72 34 V70 Z" fill="#8A78E0" stroke="#3B2A6A" stroke-width="3"/><rect x="28" y="56" width="44" height="9" fill="#F28CB3"/>',
   dog:'<ellipse cx="50" cy="54" rx="26" ry="24" fill="#E1B479" stroke="#8A5A2A" stroke-width="3"/><path d="M26 40 C10 40 10 70 22 74 C30 70 30 52 28 44 Z M74 40 C90 40 90 70 78 74 C70 70 70 52 72 44 Z" fill="#8A5A2A"/><circle cx="41" cy="48" r="3.5" fill="#2A1E1A"/><circle cx="59" cy="48" r="3.5" fill="#2A1E1A"/><ellipse cx="50" cy="62" rx="10" ry="8" fill="#F3DCB8"/><ellipse cx="50" cy="58" rx="5" ry="4" fill="#2A1E1A"/><path d="M50 62 V68 M44 70 Q50 74 56 70" stroke="#2A1E1A" stroke-width="2" fill="none"/><path d="M48 74 Q50 84 54 74" fill="#E06A98"/>',
@@ -385,7 +400,7 @@ FAIRIES.jingle={id:'jingle',name:'Jingle',kind:'Music fairy',place:"Jingle's blu
   ],
   scene:bluebellScene,base:'#E4E0F7',foundBg:'#ECEAFB',
   foundGround:'<ellipse cx="170" cy="340" rx="150" ry="20" fill="#8790E6"/><g fill="#5960C4"><ellipse cx="80" cy="336" rx="4" ry="5"/><ellipse cx="110" cy="344" rx="4" ry="5"/><ellipse cx="230" cy="340" rx="4" ry="5"/><ellipse cx="262" cy="334" rx="4" ry="5"/></g>',
-  thanks:'Thank you for helping me find my music.',
+  thanks:'Thank you for helping me find my music.',jigThings:['bell','drum','shaker','star','bee','flower'],
   icon:'<path d="M50 14 V22" stroke="#fff" stroke-width="4" stroke-linecap="round"/><path d="M28 68 C28 40 36 24 50 22 C64 24 72 40 72 68 L78 74 L64 70 L58 78 L50 70 L42 78 L36 70 L22 74 Z" fill="#fff" stroke="#4F57B8" stroke-width="3" stroke-linejoin="round"/>',
   flowerBase:function(){
     return '<ellipse cx="340" cy="668" rx="290" ry="44" fill="#8790E6" opacity=".55"/>' +
@@ -395,9 +410,9 @@ FAIRIES.jingle={id:'jingle',name:'Jingle',kind:'Music fairy',place:"Jingle's blu
       '<path d="M340 650 C300 610 250 610 226 630 C258 668 306 670 340 650 Z" fill="url(#ptleaf)" stroke="#2F6B2C" stroke-width="2.5"/>';
   },
   puz:[
-    {id:'bells',titles:['Copy the bells','Copy the tune','Long tune'],run:pzBells},
+    {id:'bells',titles:['Copy the bells','Copy the tune','Play the tune'],run:pzBells},
     {id:'rhythm',titles:['Finish the beat','Finish the rhythm','Build the rhythm'],run:pzRhythm},
-    {id:'pitch',titles:['High or low?','Low to high','Five bells'],run:pzPitch},
+    {id:'pitch',titles:['High or low?','Low to high','Low to high'],run:pzPitch},
     {id:'rhyme',titles:['Find the rhyme','Rhyming words','Finish the verse'],run:pzRhyme},
     {id:'bandjig',titles:['Band jigsaw','Band jigsaw','Band jigsaw'],run:pzBand}
   ]};

@@ -260,7 +260,7 @@ function moneyOpts(box,ans,cands,done){
   var g=0; while(set.length<4&&g<40){var x=ans+pick([-1,1])*pick([1,5,10,20]);if(x>0&&set.indexOf(x)<0)set.push(x);g++;}
   shuffle(set).forEach(function(v){var b=optBtn(money(v),null,'num');b.addEventListener('click',function(){done(v===ans);});box.appendChild(b);});
 }
-var BAKE=[['bun','a bun'],['cupcake','a cupcake'],['biscuit','a biscuit'],['loaf','a loaf of bread'],['cakeslice','a slice of cake']];
+var BAKE=[['bun','a bun'],['cupcake','a cupcake'],['biscuit','a biscuit'],['loaf','a loaf of bread'],['cakeslice','a slice of cake'],['honey','a jar of honey'],['jam','a jar of jam'],['milk','a bottle of milk'],['lemon','a lemon'],['cherry','a bag of cherries']];
 function payBox(box,price,coins,done){
   var paid=[];
   box.insertAdjacentHTML('beforeend','<div class="purse" id="py-purse"><span class="tray-empty">Tap coins to pay</span></div><div class="coinrow" id="py-coins"></div><button class="btn" id="py-done">Pay</button>');
@@ -390,7 +390,14 @@ var RECIPE_STEPS=[
   ['Pour the milk into a jug and add a spoon of honey.','What goes into the jug?',['milk and honey','jam and butter','flour and eggs']],
   ['Bake the buns in the oven for ten minutes.','How long do the buns bake for?',['ten minutes','one hour','two minutes']],
   ['Put a cherry on top of each cupcake.','What goes on top of each cupcake?',['a cherry','a lemon','a biscuit']],
-  ['Sift the flour into the bowl, then add a pinch of salt.','What do you add after the flour?',['a pinch of salt','a cup of milk','some honey']]
+  ['Sift the flour into the bowl, then add a pinch of salt.','What do you add after the flour?',['a pinch of salt','a cup of milk','some honey']],
+  ['Squeeze the lemon and pour the juice over the cake.','What do you squeeze?',['the lemon','the cake','the orange']],
+  ['Roll the dough flat and cut out six star shapes.','How many stars do you cut out?',['six','five','seven']],
+  ['Leave the biscuits to cool for five minutes before you eat them.','What must you do before eating the biscuits?',['let them cool','put jam on them','bake them again']],
+  ['Whisk the cream until it is thick, then spoon it onto the scones.','Where does the cream go?',['on the scones','in the oven','in the teapot']],
+  ['Grease the tin with butter so the cake does not stick.','Why do you grease the tin?',['so the cake does not stick','to make it taste sweet','so it bakes faster']],
+  ['Stir in three spoons of cocoa to make the cake chocolate.','How many spoons of cocoa?',['three','two','four']],
+  ['Ask a grown-up to take the hot tray out of the oven.','Who takes the tray out?',['a grown-up','the baker’s cat','you, on your own']]
 ];
 function pzRecipe(area,L){
   if(L===2){pzRecipe2(area);return;}
@@ -398,14 +405,14 @@ function pzRecipe(area,L){
 }
 function pzRecipe1(area,L,R){
   if(L===3){
-    var w=R.fresh(['flour','sugar','butter','cherry','lemon','honey']), all=[];for(var i=0;i<w.length;i++)all.push(i);
+    var w=R.fresh(['flour','sugar','butter','cherry','lemon','honey','biscuit','cupcake','milk','loaf']), all=[];for(var i=0;i<w.length;i++)all.push(i);
     setSay('Spell the ingredient in this picture. Tap the letters in order.');
     area.innerHTML='<div class="pic">'+picSVG2(w)+'</div>';
     speller(area,w,all,extraLetters(w,2),function(ok){finish(ok);});
     return;
   }
   if(L===1){
-    var all4=['egg','jam','milk','bun'], target=R.fresh(all4), pool=[target].concat(shuffle(all4.filter(function(x){return x!==target;})).slice(0,2));
+    var all4=['egg','jam','milk','bun','loaf','honey','lemon','cake'], target=R.fresh(all4), pool=[target].concat(shuffle(all4.filter(function(x){return x!==target;})).slice(0,2));
     setSay('Which picture goes with this word? Tap the word to hear it.');
     area.innerHTML='<button class="bigword wordbtn" id="rc-word" aria-label="The word '+target+'. Tap to hear it.">'+target+'</button><div class="opts" id="rc-opts"></div>';
     $('#rc-word').addEventListener('click',function(){speak(target,true);});
@@ -422,7 +429,7 @@ function pzRecipe2(area){
   });
 }
 /* 5. cake jigsaw */
-function pzCakeJig(area,L){ pzJigsaw(area,L,'cake',cakePicture,'the cake'); }
+function pzCakeJig(area,L){ jigsawSet(area,L,'crumble',[{key:'cake',fn:cakePicture,what:'the cake'}]); }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
   egg:'<path d="M50 10 C70 10 82 40 82 60 C82 80 68 92 50 92 C32 92 18 80 18 60 C18 40 30 10 50 10 Z" fill="#FFF8EE" stroke="#C9A77A" stroke-width="3"/><ellipse cx="38" cy="40" rx="6" ry="12" fill="#fff"/>',
@@ -459,8 +466,9 @@ FAIRIES.crumble={id:'crumble',name:'Crumble',kind:'Baker fairy',place:"Crumble's
   ],
   scene:kitchenScene,base:'#FCE3E3',foundBg:'#FDEFF2',
   foundGround:'<ellipse cx="170" cy="340" rx="150" ry="20" fill="#fff" stroke="#E9CCD6" stroke-width="4"/><ellipse cx="170" cy="338" rx="110" ry="12" fill="#FCE3EA"/>',
-  thanks:'Thank you for helping me bake for the village.',
-  icon:'<path d="M28 52 L34 86 H66 L72 52 Z" fill="#fff" stroke="#B8467A" stroke-width="3"/><path d="M24 52 C20 34 38 28 44 32 C46 20 60 20 62 30 C72 28 82 38 76 52 Z" fill="#fff" stroke="#B8467A" stroke-width="3"/>',
+  thanks:'Thank you for helping me bake for the village.',jigThings:['cupcake','cherry','honey','loaf','biscuit','cakeslice'],
+  /* a cupcake like the one in Bake and merge: blue striped case, pink swirl, a cherry */
+  icon:'<path d="M26 54 L33 86 H67 L74 54 Z" fill="#6FBDE0" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M37 55 L41 85 M50 55 V85 M63 55 L59 85" stroke="#E9F7FD" stroke-width="3"/><path d="M22 56 C16 44 26 36 33 38 C31 28 41 22 48 26 C52 18 64 20 66 28 C76 26 84 36 80 44 C88 48 86 58 78 58 Z" fill="#F7A3C4" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M32 48 C42 44 58 44 70 48" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M54 16 C56 10 60 7 65 6" stroke="#3F8A3A" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="52" cy="20" r="7.5" fill="#E8443A" stroke="#fff" stroke-width="2"/><circle cx="49.5" cy="17.5" r="2" fill="#fff" opacity=".8"/>',
   flowerBase:function(){
     return '<ellipse cx="340" cy="668" rx="200" ry="30" fill="#fff" stroke="#E9CCD6" stroke-width="4"/><ellipse cx="340" cy="664" rx="140" ry="18" fill="#FCE3EA"/>' +
       '<path d="M340 380 C330 460 352 540 340 610" stroke="#2F6B2C" stroke-width="18" fill="none" stroke-linecap="round"/>' +

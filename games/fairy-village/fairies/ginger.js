@@ -38,6 +38,8 @@ function gingerArt(noShadow){
   '<path d="M120 184 C122 196 132 198 136 192" stroke="#6E7888" stroke-width="3" fill="none"/><circle cx="137" cy="190" r="5" fill="#C3CAD5" stroke="#6E7888" stroke-width="2"/>' +
   '<path d="M104 164 C94 176 90 188 88 198" stroke="'+flat+'" stroke-width="10" fill="none" stroke-linecap="round"/>' +
   '<path d="M104 164 C96 174 93 182 91 188" stroke="#fff" stroke-width="11" fill="none" stroke-linecap="round"/>' +
+  /* her wand, in her lower hand */
+  '<path d="M87 197 L66 160" stroke="#C9A77A" stroke-width="3.5" stroke-linecap="round"/><circle cx="63" cy="154" r="14" fill="#FFF3B0" opacity=".55" filter="url(#fsoft)"/><path d="M63 166 C52 158 47 153 47 147 C47 143 50 140 54 140 C58 140 61 143 63 146 C65 143 68 140 72 140 C76 140 79 143 79 147 C79 153 74 158 63 166 Z" fill="#E8574C" stroke="#9C241C" stroke-width="1.5"/><ellipse cx="55" cy="146" rx="2.5" ry="1.6" fill="#fff" opacity=".7"/>' +
   '<circle cx="88" cy="200" r="6" fill="'+skin+'"/>' +
   /* raised arm with a leaf plaster */
   '<g class="arm"><path d="M136 164 C150 158 158 148 162 138" stroke="'+flat+'" stroke-width="10" fill="none" stroke-linecap="round"/>' +
@@ -154,14 +156,19 @@ function patientSVG(L,marks,who){
     s+='<circle cx="108" cy="58" r="3.5" fill="#2A1E1A"/><circle cx="132" cy="58" r="3.5" fill="#2A1E1A"/><path d="M110 72 Q120 78 130 72" stroke="#7A3428" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="68" rx="5" ry="3" fill="#F28CB3" opacity=".45"/><ellipse cx="140" cy="68" rx="5" ry="3" fill="#F28CB3" opacity=".45"/>';
     var zf='fill="#fff" fill-opacity="0"', zs='stroke="#fff" stroke-opacity="0" fill="none" stroke-linecap="round" stroke-linejoin="round"';
     if(L===1){
-      s+='<path data-part="arm" d="M92 112 L62 160 L48 220 M148 112 L178 160 L192 220" '+zs+' stroke-width="38"/>';
-      s+='<path data-part="leg" d="M104 196 L98 262 L90 318 M136 196 L142 262 L150 318" '+zs+' stroke-width="40"/>';
+      s+='<path data-part="arm" d="M92 112 L62 160 L52 202 M148 112 L178 160 L188 202" '+zs+' stroke-width="38"/>';
+      s+='<path data-part="leg" d="M104 196 L98 262 L96 300 M136 196 L142 262 L144 300" '+zs+' stroke-width="40"/>';
+      s+='<circle data-part="hand" cx="48" cy="221" r="17" '+zf+'/><circle data-part="hand" cx="192" cy="221" r="17" '+zf+'/>';
+      s+='<ellipse data-part="foot" cx="88" cy="317" rx="23" ry="15" '+zf+'/><ellipse data-part="foot" cx="152" cy="317" rx="23" ry="15" '+zf+'/>';
+      s+='<ellipse data-part="tummy" cx="120" cy="168" rx="28" ry="26" '+zf+'/>';
       s+='<circle data-part="head" cx="120" cy="56" r="40" '+zf+'/>';
     } else {
       s+='<circle data-part="elbow" cx="62" cy="160" r="18" '+zf+'/><circle data-part="elbow" cx="178" cy="160" r="18" '+zf+'/>';
       s+='<circle data-part="wrist" cx="51" cy="206" r="14" '+zf+'/><circle data-part="wrist" cx="189" cy="206" r="14" '+zf+'/>';
       s+='<circle data-part="knee" cx="98" cy="262" r="20" '+zf+'/><circle data-part="knee" cx="142" cy="262" r="20" '+zf+'/>';
       s+='<circle data-part="ankle" cx="96" cy="306" r="14" '+zf+'/><circle data-part="ankle" cx="144" cy="306" r="14" '+zf+'/>';
+      s+='<circle data-part="shoulder" cx="92" cy="112" r="16" '+zf+'/><circle data-part="shoulder" cx="148" cy="112" r="16" '+zf+'/>';
+      s+='<circle data-part="hip" cx="104" cy="198" r="15" '+zf+'/><circle data-part="hip" cx="136" cy="198" r="15" '+zf+'/>';
     }
   } else {
     var bone='#FFF8EE', bl='#9A8C78';
@@ -181,6 +188,8 @@ function patientSVG(L,marks,who){
     s+='<ellipse data-part="pelvis" cx="120" cy="228" rx="42" ry="22" '+zf3+'/>';
     s+='<path data-part="femur" d="M102 252 L96 304 M138 252 L144 304" stroke="#fff" stroke-opacity="0" stroke-width="30" stroke-linecap="round"/>';
     s+='<circle data-part="skull" cx="120" cy="56" r="38" '+zf3+'/>';
+    s+='<path data-part="humerus" d="M86 104 L67 146 M154 104 L173 146" stroke="#fff" stroke-opacity="0" stroke-width="22" stroke-linecap="round"/>';
+    s+='<path data-part="tibia" d="M96 318 L94 362 M144 318 L146 362" stroke="#fff" stroke-opacity="0" stroke-width="24" stroke-linecap="round"/>';
   }
   (marks||[]).forEach(function(m){
     s+= L===3 ? '<path d="'+STAR+'" transform="translate('+f2(m[0])+' '+f2(m[1])+') scale(1.4) translate(-182 -146)" fill="url(#ggold)" stroke="#B8861E" stroke-width="1" pointer-events="none"/>'
@@ -189,7 +198,7 @@ function patientSVG(L,marks,who){
   return s+'</svg>';
 }
 function pzBandage(area,L){
-  var targets = L===1 ? shuffle(['head','arm','leg']) : L===2 ? shuffle(['elbow','knee','wrist','ankle']).slice(0,3) : shuffle(['skull','ribs','spine','pelvis','femur']).slice(0,3);
+  var targets = L===1 ? shuffle(['head','arm','leg','hand','foot','tummy']).slice(0,3) : L===2 ? shuffle(['elbow','knee','wrist','ankle','shoulder','hip']).slice(0,3) : shuffle(['skull','ribs','spine','pelvis','femur','humerus','tibia']).slice(0,3);
   var marks=[], whos=shuffle(PATIENTS);
   setSay(L===3?'Ginger is teaching about bones. Tap the bone she names to put a gold star on it.':'Three patients need your help. Tap the sore part of each patient to put a plaster on it.');
   rounds(3,function(k,next){
@@ -221,7 +230,17 @@ var SENSE_FACTS=[
   ['You know the milk has gone off without tasting it.','smell'],
   ['You notice the soup needs a little more salt.','taste'],
   ['You can read the words in a book.','see'],
-  ['You can tell a storm is far away because the thunder is quiet.','hear']
+  ['You can tell a storm is far away because the thunder is quiet.','hear'],
+  ['You know there are biscuits baking in the kitchen.','smell'],
+  ['You can feel that the cat’s fur is soft.','touch'],
+  ['You spot a rainbow in the sky.','see'],
+  ['You know your friend is at the door when the bell rings.','hear'],
+  ['You can tell your toothpaste is minty.','taste'],
+  ['You notice your feet are cold.','touch'],
+  ['You know the flowers in the garden smell sweet.','smell'],
+  ['You can tell which ice cream is strawberry with your eyes shut.','taste'],
+  ['You find your friend in a crowd by the colour of their coat.','see'],
+  ['You know a bee is close because you hear it buzz.','hear']
 ];
 function pzSenses(area,L){
   if(L===3){
@@ -405,13 +424,13 @@ function pzSolids(area,L){
 function pzBodyWords(area,L){ multi(area,L,3,function(R){pzBodyWords1(area,L,R);}); }
 function pzBodyWords1(area,L,R){
   if(L===3){
-    var w=R.fresh(['thumb','tooth','mouth','tongue','elbow','finger']), all=[];for(var i=0;i<w.length;i++)all.push(i);
+    var w=R.fresh(['thumb','tooth','mouth','tongue','elbow','finger','heart','bone','knee']), all=[];for(var i=0;i<w.length;i++)all.push(i);
     setSay('Spell the word for this picture. Tap the letters in order.');
     area.innerHTML='<div class="pic">'+picSVG2(w)+'</div>';
     speller(area,w,all,extraLetters(w,2),function(ok){finish(ok);});
     return;
   }
-  var pool = L===1 ? ['hand','foot','eye','ear','nose'] : ['hand','foot','eye','ear','nose','mouth','tooth','arm','leg'];
+  var pool = L===1 ? ['hand','foot','eye','ear','nose','arm','leg','mouth'] : ['hand','foot','eye','ear','nose','mouth','tooth','arm','leg','thumb','tongue','heart','bone'];
   var target=R.fresh(pool), opts=[target].concat(shuffle(pool.filter(function(x){return x!==target;})).slice(0,L===1?2:3));
   setSay(L===1?'Which picture goes with this word? Tap the word to hear it.':'Read the word. Then tap its picture.');
   area.innerHTML=(L===1?'<button class="bigword wordbtn" id="bw-word" aria-label="The word '+target+'. Tap to hear it.">'+target+'</button>':'<div class="bigword">'+target+'</div>')+'<div class="opts" id="bw-opts"></div>';
@@ -420,6 +439,9 @@ function pzBodyWords1(area,L,R){
 }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
+  heart:'<path d="M50 88 C20 66 8 52 8 34 C8 20 20 10 32 10 C40 10 46 16 50 22 C54 16 60 10 68 10 C80 10 92 20 92 34 C92 52 80 66 50 88 Z" fill="#E8574C" stroke="#9C241C" stroke-width="3"/><path d="M24 26 C20 30 18 36 20 42" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".6"/>',
+  bone:'<g transform="rotate(-35 50 50)"><g fill="#FFF8EE" stroke="#9A8C78" stroke-width="3"><circle cx="20" cy="41" r="11"/><circle cx="20" cy="59" r="11"/><circle cx="80" cy="41" r="11"/><circle cx="80" cy="59" r="11"/></g><rect x="20" y="43" width="60" height="14" fill="#FFF8EE"/><path d="M27 43 H73 M27 57 H73" stroke="#9A8C78" stroke-width="3"/></g>',
+  knee:'<path d="M4 26 H56 C70 26 80 36 80 50 V84 C80 86 82 88 86 88 H94 V96 H62 C60 96 58 94 58 92 V58 C58 55 56 54 53 54 H4 Z" fill="#F3CBB0" stroke="#B57650" stroke-width="3" stroke-linejoin="round"/><path d="M4 26 H50 V54 H4 Z" fill="#7DBDE6" stroke="#2E6290" stroke-width="3" stroke-linejoin="round"/><circle cx="68" cy="40" r="10" fill="#E8A888" opacity=".6"/><path d="M60 32 C66 28 74 30 76 36" stroke="#B57650" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
   eye:'<path d="M8 50 C26 24 74 24 92 50 C74 76 26 76 8 50 Z" fill="#fff" stroke="#3B2A4A" stroke-width="3"/><circle cx="50" cy="50" r="17" fill="#7DBDE6" stroke="#3E7FB0" stroke-width="2"/><circle cx="50" cy="50" r="8" fill="#2A1E1A"/><circle cx="55" cy="44" r="4" fill="#fff"/><path d="M18 34 L12 26 M34 26 L32 16 M50 24 V14 M66 26 L68 16 M82 34 L88 26" stroke="#3B2A4A" stroke-width="3" stroke-linecap="round"/>',
   ear:'<path d="M60 12 C34 12 26 34 28 50 C30 62 40 64 40 76 C40 88 52 92 60 84 C80 66 84 46 80 30 C76 18 70 12 60 12 Z" fill="#F3CBB0" stroke="#B57650" stroke-width="3"/><path d="M62 28 C50 26 44 36 46 46 C48 52 56 50 58 56 C60 62 54 68 50 66" stroke="#B57650" stroke-width="3" fill="none" stroke-linecap="round"/>',
   nose:'<path d="M50 10 C46 30 34 52 28 62 C22 72 30 82 42 80 C46 86 54 86 58 80 C70 82 78 72 72 62 C66 52 54 30 50 10 Z" fill="#F3CBB0" stroke="#B57650" stroke-width="3" stroke-linejoin="round"/><ellipse cx="40" cy="72" rx="5" ry="3.5" fill="#B57650"/><ellipse cx="60" cy="72" rx="5" ry="3.5" fill="#B57650"/>',

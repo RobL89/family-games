@@ -149,7 +149,7 @@ function tallyMarks(n,x,y,h){
 function pzTally(area,L){
   if(L===1){
     /* Weather count: count one kind of weather picture, then tap the right number */
-    var names={cloud:'clouds',sun:'suns',snowflake:'snowflakes',umbrella:'umbrellas'}, kinds=['cloud','sun','snowflake'];
+    var names={cloud:'clouds',sun:'suns',snowflake:'snowflakes',umbrella:'umbrellas',rainbow:'rainbows',lightning:'lightning bolts'}, kinds=['cloud','sun','snowflake','umbrella','rainbow','lightning'];
     multi(area,L,3,function(R){
       var tgt=R.fresh(kinds), others=Object.keys(names).filter(function(x){return x!==tgt;});
       var n=rnd(2,6);
@@ -236,7 +236,7 @@ function pzSeasons(area,L){
   });
 }
 /* 3. rainbow jigsaw */
-function pzRainbow(area,L){ pzJigsaw(area,L,'rainbow',rainbowPicture,'the rainbow'); }
+function pzRainbow(area,L){ jigsawSet(area,L,'breeze',[{key:'rainbow',fn:rainbowPicture,what:'the rainbow'}]); }
 /* 4. what shape is that cloud */
 function cloudShapeSVG(k,label){
   var p=shapePoints(k), s='<svg class="cloudshape" viewBox="-14 -14 128 128" role="img" aria-label="'+esc(label)+'">', puffs=[];
@@ -301,15 +301,16 @@ function pzClouds(area,L){
 function pzWeatherWords(area,L){ multi(area,L,3,function(R){pzWeatherWords1(area,L,R);}); }
 function pzWeatherWords1(area,L,R){
   if(L===3){
-    var w=R.fresh(['rainbow','thunder','lightning','sunshine','snowflake','umbrella']), all=[];for(var i=0;i<w.length;i++)all.push(i);
+    var w=R.fresh(['rainbow','thunder','lightning','sunshine','snowflake','umbrella','cloudy','rainy','windy','snowy','stormy','foggy']), all=[];for(var i=0;i<w.length;i++)all.push(i);
+    var wpic={sunshine:'sun',cloudy:'cloud',rainy:'rain',windy:'wind',snowy:'snow',stormy:'storm',foggy:'fog'}[w]||w;
     setSay('Spell the word for this picture. Tap the letters in order.');
-    area.innerHTML='<div class="pic">'+picSVG2(w==='sunshine'?'sun':w)+'</div>';
+    area.innerHTML='<div class="pic">'+picSVG2(wpic)+'</div>';
     speller(area,w,all,extraLetters(w,2),function(ok){finish(ok);});
     return;
   }
-  var pool = L===1 ? ['sun','rain','snow'] : ['fog','wind','storm','rain','snow','cloud','rainbow'];
-  var target = L===1 ? R.fresh(pool) : R.fresh(['fog','wind','storm','cloud','rainbow']);
-  var opts = L===1 ? pool.slice() : [target].concat(shuffle(pool.filter(function(x){return x!==target;})).slice(0,3));
+  var pool = L===1 ? ['sun','rain','snow','wind','fog','cloud'] : ['fog','wind','storm','rain','snow','cloud','rainbow','umbrella','snowflake','lightning','sun'];
+  var target = R.fresh(L===1 ? pool : ['fog','wind','storm','cloud','rainbow','umbrella','snowflake','lightning']);
+  var opts = [target].concat(shuffle(pool.filter(function(x){return x!==target;})).slice(0,L===1?2:3));
   setSay(L===1?'Which picture goes with this word? Tap the word to hear it.':'Read the word. Then tap its picture.');
   area.innerHTML=(L===1?'<button class="bigword wordbtn" id="ww-word" aria-label="The word '+target+'. Tap to hear it.">'+target+'</button>':'<div class="bigword">'+target+'</div>')+'<div class="opts" id="ww-opts"></div>';
   if(L===1)$('#ww-word').addEventListener('click',function(){speak(target,true);});
@@ -352,8 +353,8 @@ Object.assign(PZICON,{
 FAIRIES.breeze={id:'breeze',name:'Breeze',kind:'Weather fairy',place:"Breeze's cloud tops",art:breezeArt,body:cloudHouseBody,houseLabel:"Breeze's cloud house on a tall stalk",tapClass:'gust',tapMs:2700,
   facts:FACTS_BREEZE,scene:cloudScene,base:'#D6E7F7',foundBg:'#E6EEFA',
   foundGround:'<g transform="translate(170 336) scale(1.1)"><ellipse cx="0" cy="10" rx="120" ry="14" fill="#C3D2EA"/><circle cx="-70" cy="0" r="22" fill="url(#cloudG)"/><circle cx="-30" cy="-6" r="28" fill="url(#cloudG)"/><circle cx="20" cy="-8" r="30" fill="url(#cloudG)"/><circle cx="66" cy="0" r="22" fill="url(#cloudG)"/><rect x="-96" y="0" width="190" height="16" rx="8" fill="url(#cloudG)"/></g>',
-  thanks:'Thank you for helping me tidy the sky.',
-  icon:cloudIcon(50,54,1.3,'#fff','#4E6BA8'),
+  thanks:'Thank you for helping me tidy the sky.',jigThings:['rain','snowflake','rainbow','umbrella','wind','storm'],
+  icon:cloudIcon(50,52,1.08,'#fff','#4E6BA8'),
   flowerBase:function(){
     return '<path d="M340 380 C330 460 352 540 340 610" stroke="#2F6B2C" stroke-width="18" fill="none" stroke-linecap="round"/>' +
       '<path d="M340 380 C330 460 352 540 340 610" stroke="#4E9F45" stroke-width="11" fill="none" stroke-linecap="round"/>' +

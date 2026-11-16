@@ -36,6 +36,8 @@ function gizmoArt(noShadow){
   '<path d="M120 176 V228" stroke="#B9C6C0" stroke-width="1.5"/>' +
   '<rect x="128" y="190" width="14" height="14" rx="2" fill="none" stroke="#B9C6C0" stroke-width="1.5"/><path d="M132 186 V196 M137 184 V196" stroke="#E8574C" stroke-width="2.5" stroke-linecap="round"/><path d="M137 184 V196" stroke="#7DBDE6" stroke-width="2.5" stroke-linecap="round"/>' +
   '<path d="M104 164 C94 176 90 188 88 198" stroke="#F4F6F5" stroke-width="12" fill="none" stroke-linecap="round"/>' +
+  /* her wand, in her lower hand */
+  '<path d="M87 197 L66 160" stroke="#9AA3B0" stroke-width="3.5" stroke-linecap="round"/><circle cx="63" cy="154" r="14" fill="#FFF3B0" opacity=".55" filter="url(#fsoft)"/><path d="M63 141 L66 150 L75 151 L68 157 L71 166 L63 161 L55 166 L58 157 L51 151 L60 150 Z" fill="#FFD84A" stroke="#B8861E" stroke-width="1.2" stroke-linejoin="round"/><path d="M76 142 l3 -3 M78 152 h4 M50 142 l-3 -3" stroke="#FFD84A" stroke-width="2" stroke-linecap="round"/>' +
   '<circle cx="88" cy="200" r="6" fill="'+skin+'"/>' +
   /* raised arm holding a glowing light bulb */
   '<g class="arm"><path d="M136 164 C150 158 158 148 162 138" stroke="#F4F6F5" stroke-width="12" fill="none" stroke-linecap="round"/>' +
@@ -45,11 +47,11 @@ function gizmoArt(noShadow){
   '<rect x="175" y="121" width="14" height="10" rx="2" fill="url(#silverG)" stroke="#6E7888" stroke-width="1"/>' +
   '<circle cx="164" cy="134" r="6" fill="'+skin+'"/></g>' +
   '<rect x="114" y="138" width="12" height="16" rx="4" fill="#BC8260"/>' +
+  /* pencil tucked behind her ear: drawn behind her head, so only the pink end pokes out above the ear */
+  '<g transform="translate(160 98) rotate(68)"><rect x="-3" y="-20" width="6" height="32" fill="#F8CF5A" stroke="#B8861E" stroke-width="1"/><path d="M-3 12 L0 20 L3 12 Z" fill="#F3DCB8"/><rect x="-3" y="-25" width="6" height="6" rx="1.5" fill="#F28CB3" stroke="#B8467A" stroke-width=".8"/><rect x="-3" y="-20" width="6" height="2.5" fill="#C9CDD4"/></g>' +
   '<circle cx="120" cy="108" r="40" fill="'+skin+'"/>' +
   '<path d="M80 104 C78 70 100 58 120 58 C140 58 162 70 160 104 C156 90 148 84 138 86 C130 78 112 78 106 86 C96 82 84 90 80 104 Z" fill="url(#hairPink)"/>' +
   '<path d="M98 70 C108 64 124 63 136 68" stroke="#fff" stroke-width="4" opacity=".35" stroke-linecap="round" fill="none"/>' +
-  /* pencil tucked in her hair */
-  '<g transform="translate(150 70) rotate(40)"><rect x="-3" y="-18" width="6" height="30" fill="#F8CF5A" stroke="#B8861E" stroke-width="1"/><path d="M-3 12 L0 20 L3 12 Z" fill="#F3DCB8"/><rect x="-3" y="-22" width="6" height="5" fill="#F28CB3"/></g>' +
   /* magnifying goggle over one eye */
   '<path d="M99 102 Q105 98 111 101" stroke="#5E3A22" stroke-width="2" fill="none" stroke-linecap="round"/>' +
   '<ellipse cx="106" cy="115" rx="5.5" ry="7" fill="#2A1E1A"/><circle cx="108" cy="112" r="2" fill="#fff"/>' +
@@ -429,14 +431,16 @@ function pzRobot12(area,L){
   drawProg();
 }
 /* ---------- 4. mix potion colours ---------- */
-var PCOL={red:'#E8574C',yellow:'#F8CF5A',blue:'#3E8FD8',orange:'#F7943A',green:'#5DBB4C',purple:'#8E5CC8'};
+var PCOL={red:'#E8574C',yellow:'#F8CF5A',blue:'#3E8FD8',orange:'#F7943A',green:'#5DBB4C',purple:'#8E5CC8',white:'#FFFFFF',black:'#2A1E1A',pink:'#F6A6C6','light blue':'#A9D2F5',grey:'#9C9AA8'};
 var PMIX=[['red','yellow','orange'],['blue','yellow','green'],['red','blue','purple']];
+/* Little Sprite and Clever Pixie also mix with white (and black and white make grey); Nimble Nymph's puzzles use PMIX */
+var PMIX_ALL=PMIX.concat([['red','white','pink'],['blue','white','light blue'],['black','white','grey']]);
 function flaskSVG(col,label){
   return '<svg viewBox="0 0 100 100" '+(label?'role="img" aria-label="'+esc(label)+'"':'aria-hidden="true"')+'><path d="M40 8 H60 V36 L84 80 C88 88 84 94 76 94 H24 C16 94 12 88 16 80 L40 36 Z" fill="#F2FAFE" stroke="#8FB8D6" stroke-width="4" stroke-linejoin="round"/><path d="M29 58 H71 L82 80 C85 86 82 90 76 90 H24 C18 90 15 86 18 80 Z" fill="'+col+'"/><circle cx="44" cy="70" r="4" fill="#fff" opacity=".55"/><circle cx="56" cy="78" r="3" fill="#fff" opacity=".45"/><rect x="36" y="4" width="28" height="8" rx="3" fill="#AEB7C4"/></svg>';
 }
 function pzPotions(area,L){
   if(L<3){
-    var mixes=shuffle(PMIX);
+    var mixes=shuffle(PMIX_ALL);
     setSay(L===1?'Gizmo is mixing potions. What colour will the two potions make together?':'Gizmo needs some new potions. Which two colours should she mix?');
     rounds(3,function(k,next){
       var m=mixes[k];
@@ -444,12 +448,12 @@ function pzPotions(area,L){
         var q='What colour do '+m[0]+' and '+m[1]+' make?';
         area.innerHTML=roundNote(k,3)+'<div class="mixrow"><div class="pic">'+flaskSVG(PCOL[m[0]],m[0]+' potion')+'</div><span class="mixop">+</span><div class="pic">'+flaskSVG(PCOL[m[1]],m[1]+' potion')+'</div><span class="mixop">=</span><div class="pic qpic">?</div></div><p class="say-small">'+esc(q)+'</p><div class="opts" id="pt-opts"></div>';
         if(k>0)speak(q);
-        shuffle(['orange','green','purple']).forEach(function(c){var b=optBtn(flaskSVG(PCOL[c])+'<span class="optlab">'+c+'</span>',c+' potion','picword');b.addEventListener('click',function(){next(c===m[2]);});$('#pt-opts').appendChild(b);});
+        shuffle([m[2]].concat(shuffle(PMIX_ALL.filter(function(x){return x!==m;})).slice(0,2).map(function(x){return x[2];}))).forEach(function(c){var b=optBtn(flaskSVG(PCOL[c])+'<span class="optlab">'+c+'</span>',c+' potion','picword');b.addEventListener('click',function(){next(c===m[2]);});$('#pt-opts').appendChild(b);});
       } else {
         var q2='Gizmo wants '+aOrAn(m[2])+' '+m[2]+' potion. Which two should she mix?';
         area.innerHTML=roundNote(k,3)+'<div class="pic">'+flaskSVG(PCOL[m[2]],m[2]+' potion')+'</div><p class="say-small">'+esc(q2)+'</p><div class="opts" id="pt-opts"></div>';
         if(k>0)speak(q2);
-        shuffle(PMIX).forEach(function(p){var b=optBtn('<span class="pair">'+flaskSVG(PCOL[p[0]])+flaskSVG(PCOL[p[1]])+'</span><span class="optlab">'+p[0]+' and '+p[1]+'</span>',p[0]+' and '+p[1],'picword');b.addEventListener('click',function(){next(p[2]===m[2]);});$('#pt-opts').appendChild(b);});
+        shuffle([m].concat(shuffle(PMIX_ALL.filter(function(x){return x!==m;})).slice(0,2))).forEach(function(p){var b=optBtn('<span class="pair">'+flaskSVG(PCOL[p[0]])+flaskSVG(PCOL[p[1]])+'</span><span class="optlab">'+p[0]+' and '+p[1]+'</span>',p[0]+' and '+p[1],'picword');b.addEventListener('click',function(){next(p[2]===m[2]);});$('#pt-opts').appendChild(b);});
       }
     });
     return;
@@ -482,7 +486,7 @@ function pzPotions(area,L){
   });
 }
 /* ---------- 5. invention jigsaw ---------- */
-function pzInventJig(area,L){ pzJigsaw(area,L,'invent',inventPicture,'Gizmo’s inventions'); }
+function pzInventJig(area,L){ jigsawSet(area,L,'gizmo',[{key:'invent',fn:inventPicture,what:'Gizmo’s inventions'}]); }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
   /* ---------- puzzle pictures (100 x 100) ---------- */
@@ -513,8 +517,9 @@ FAIRIES.gizmo={id:'gizmo',name:'Gizmo',kind:'Inventor fairy',place:"Gizmo's glas
   ],
   scene:labScene,base:'#D2DEEC',foundBg:'#E6F2F4',
   foundGround:'<ellipse cx="170" cy="340" rx="150" ry="20" fill="#C9D2DE"/><g transform="translate(70 318) scale(.25)">'+flaskSVG('#8E5CC8').replace(/<\/?svg[^>]*>/g,'')+'</g><g transform="translate(246 318) scale(.25)">'+flaskSVG('#5DBB4C').replace(/<\/?svg[^>]*>/g,'')+'</g>',
-  thanks:'Thank you for helping me finish my inventions.',
-  icon:'<path d="M40 70 C26 58 30 26 50 26 C70 26 74 58 60 70 Z" fill="#fff" stroke="#5E6878" stroke-width="3"/><rect x="40" y="70" width="20" height="12" rx="3" fill="#fff" stroke="#5E6878" stroke-width="3"/><path d="M44 62 L47 46 L53 54 L56 44" stroke="#5E6878" stroke-width="2.5" fill="none"/>',
+  thanks:'Thank you for helping me finish my inventions.',jigThings:['magnet','rocket','telescope','satellite','drill','clip'],
+  /* a lit bulb: yellow glass, a glowing filament and rays */
+  icon:'<g stroke="#FFF3B0" stroke-width="4" stroke-linecap="round"><path d="M50 8 V16 M22 20 L28 26 M78 20 L72 26 M12 46 H20 M80 46 H88"/></g><circle cx="50" cy="46" r="26" fill="#FFF3B0" opacity=".45"/><path d="M40 72 C26 60 30 28 50 28 C70 28 74 60 60 72 Z" fill="#FFD84A" stroke="#fff" stroke-width="3"/><path d="M44 64 L47 48 L53 56 L56 46" stroke="#E8743A" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="40" y="72" width="20" height="13" rx="3" fill="#E4E8EE" stroke="#fff" stroke-width="2.5"/><path d="M41 77 H59 M41 81 H59" stroke="#9AA3B0" stroke-width="2"/>',
   flowerBase:function(){
     return '<rect x="96" y="652" width="488" height="22" rx="8" fill="#8C96A6"/><rect x="96" y="652" width="488" height="7" rx="3" fill="#C9CFD8"/>' +
       '<path d="M340 380 C330 460 352 540 340 606" stroke="#2F6B2C" stroke-width="18" fill="none" stroke-linecap="round"/>' +

@@ -3,9 +3,10 @@
    A calm puzzle with no timer. Crumble's baking tray has squares (5 by 4 for Little Sprite, 4 by 4
    for Clever Pixie and Nimble Nymph). Drag a bake onto a matching bake it is touching (beside it,
    above, below or corner to corner) and the two bake into the next one up:
-   flour, dough, bun, cupcake, layer cake, then a giant celebration cake.
+   flour, dough, biscuit, bun, cupcake, layer cake, then a giant celebration cake. Nimble Nymph has a
+   cherry pie between the cupcake and the layer cake too, and about two bags in five are bowls of dough.
    Drag a bake onto an empty square to move it there. After every move or bake a new bag of flour
-   lands on a free square (for Nimble Nymph, one go in four it is a bowl of dough instead).
+   lands on a free square (for Nimble Nymph it is sometimes a bowl of dough instead).
    A celebration cake is carried off the tray to Crumble's party table beside it, freeing its square;
    the table counts the cakes made (just for fun: the score is still bakes made).
    Tap a bake, then tap where it should go, works too. Keyboard: arrow keys move a frame,
@@ -13,17 +14,23 @@
    Ends when the tray is full and no two touching bakes match. Score: bakes made.
    Touching includes corners because a simulation showed sides-only trays fill up in about
    40 bakes with no celebration cake; with corners (and cakes still on the tray) a simple player made
-   about 200 bakes on Little Sprite's tray and 145 on the 4 by 4 tray. Cakes now leave the tray, so games run longer.
+   about 200 bakes on Little Sprite's tray and 145 on the 4 by 4 tray. Once cakes left the tray the six-step game
+   hardly ever ended (a simulated player made over 1,000 bakes), so in phase 11 the ladder grew: with seven steps a
+   simple player makes about 300 to 400 bakes and 3 to 5 cakes on Little Sprite's tray and about 200 to 250 bakes
+   and 2 cakes on the 4 by 4 tray; with eight steps (Nimble Nymph) about 150 to 215 bakes and about one cake.
    Names in this file start with bm or BM so they don't clash with other files.
    ================================================================ */
 var BM_SET={
   tray:[[4,5],[4,4],[4,4]],   /* rows and columns of the tray (turned round on a tall phone) */
-  dough:[0,0,.25],            /* chance the new bag is a bowl of dough instead of flour */
-  start:4                     /* bags of flour on the tray at the start */
+  dough:[0,0,.4],             /* chance the new bag is a bowl of dough instead of flour */
+  start:4,                    /* bags of flour on the tray at the start */
+  /* which bakes (from BM_ART) make up each level's ladder, bottom to top. Little Sprite and Clever Pixie
+     have seven steps (the biscuit was added); Nimble Nymph has all eight (the cherry pie too) */
+  ladder:[[0,1,2,3,4,6,7],[0,1,2,3,4,6,7],[0,1,2,3,4,5,6,7]]
 };
-var BM_NAMES=['flour','dough','bun','cupcake','layer cake','celebration cake'];
-var BM_TOP=5;
-/* the six bakes, each in a 0 0 100 100 box, lit from the top left */
+var BM_NAMES=['flour','dough','biscuit','bun','cupcake','cherry pie','layer cake','celebration cake'];
+var BM_TOP=7;   /* the top of the longest ladder; inside a game BM_TOP is that level's own top step */
+/* the eight bakes, each in a 0 0 100 100 box, lit from the top left (gradient ids keep the numbers they were first given) */
 var BM_ART=[
   /* flour: a tied sack with a wheat ear */
   '<defs><radialGradient id="bm0a" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#FFFDF8"/><stop offset=".6" stop-color="#F1E7D6"/><stop offset="1" stop-color="#CDB894"/></radialGradient></defs>'+
@@ -49,6 +56,16 @@ var BM_ART=[
   '<path d="M13 49 A37 8.5 0 0 0 87 49" stroke="#BFE3F8" stroke-width="3.5" fill="none" stroke-linecap="round"/>'+
   '<path d="M20 62 C22 71 28 78 36 82" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".55"/>'+
   '<g fill="#fff" opacity=".9"><circle cx="40" cy="71" r="3"/><circle cx="50" cy="74" r="3"/><circle cx="60" cy="71" r="3"/></g>',
+  /* biscuit: a round shortbread biscuit with a crinkly edge and a jam heart */
+  '<defs><radialGradient id="bm6a" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="#FFF0C8"/><stop offset=".6" stop-color="#F0C77A"/><stop offset="1" stop-color="#C08A3A"/></radialGradient>'+
+  '<radialGradient id="bm6b" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FF8FA8"/><stop offset=".6" stop-color="#E0405E"/><stop offset="1" stop-color="#9A1E36"/></radialGradient></defs>'+
+  '<ellipse cx="50" cy="86" rx="36" ry="6" fill="#3B2A4A" opacity=".18"/>'+
+  '<path d="'+(function(){var d='';for(var k=0;k<=24;k++){var a=k/24*Math.PI*2, r=k%2?36:39.5;d+=(k?' L':'M')+(50+r*Math.cos(a)).toFixed(2)+' '+(52+r*.86*Math.sin(a)).toFixed(2);}return d+' Z';})()+'" fill="url(#bm6a)" stroke="#9A6A2A" stroke-width="3" stroke-linejoin="round"/>'+
+  '<ellipse cx="50" cy="52" rx="27" ry="23" fill="none" stroke="#C99A52" stroke-width="2" stroke-dasharray="3 4" opacity=".8"/>'+
+  '<path d="M50 64 C38 56 34 50 34 45 C34 40 38 37 42 37 C45 37 48 39 50 42 C52 39 55 37 58 37 C62 37 66 40 66 45 C66 50 62 56 50 64 Z" fill="url(#bm6b)" stroke="#8A1A30" stroke-width="2.5" stroke-linejoin="round"/>'+
+  '<ellipse cx="43" cy="44" rx="3.5" ry="2.2" fill="#fff" opacity=".7" transform="rotate(-30 43 44)"/>'+
+  '<g fill="#C08A3A" opacity=".7"><circle cx="30" cy="40" r="1.6"/><circle cx="70" cy="40" r="1.6"/><circle cx="30" cy="64" r="1.6"/><circle cx="70" cy="64" r="1.6"/><circle cx="50" cy="74" r="1.6"/></g>'+
+  '<ellipse cx="32" cy="36" rx="8" ry="4" fill="#fff" opacity=".35" transform="rotate(-30 32 36)"/>',
   /* bun: a golden round bun with a criss-cross top and seeds */
   '<defs><radialGradient id="bm2a" cx=".36" cy=".28" r=".85"><stop offset="0" stop-color="#FFE3A0"/><stop offset=".5" stop-color="#E9A54A"/><stop offset="1" stop-color="#A9601E"/></radialGradient></defs>'+
   '<ellipse cx="50" cy="88" rx="38" ry="6" fill="#3B2A4A" opacity=".2"/>'+
@@ -68,6 +85,20 @@ var BM_ART=[
   '<path d="M30 50 C40 46 58 46 70 50 M38 38 C46 35 56 36 62 39" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/>'+
   '<path d="M54 18 C56 12 60 8 66 6" stroke="#3F8A3A" stroke-width="3" fill="none" stroke-linecap="round"/>'+
   '<circle cx="52" cy="22" r="8" fill="url(#bm3c)" stroke="#7A1614" stroke-width="2"/><circle cx="49" cy="19" r="2.2" fill="#fff" opacity=".8"/>',
+  /* cherry pie: a golden lattice pie in a blue dish, cherries peeping through */
+  '<defs><linearGradient id="bm7a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9FD3F2"/><stop offset=".5" stop-color="#5BA8DE"/><stop offset="1" stop-color="#2F72A8"/></linearGradient>'+
+  '<radialGradient id="bm7b" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#FF7A86"/><stop offset=".6" stop-color="#C8243A"/><stop offset="1" stop-color="#7A0E1E"/></radialGradient>'+
+  '<linearGradient id="bm7c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE3A0"/><stop offset="1" stop-color="#D99A44"/></linearGradient></defs>'+
+  '<ellipse cx="50" cy="88" rx="42" ry="6" fill="#3B2A4A" opacity=".2"/>'+
+  '<path d="M8 52 C10 72 24 84 50 84 C76 84 90 72 92 52 Z" fill="url(#bm7a)" stroke="#245E8E" stroke-width="3" stroke-linejoin="round"/>'+
+  '<path d="M16 62 C24 74 40 78 50 78" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".5"/>'+
+  '<ellipse cx="50" cy="50" rx="40" ry="15" fill="url(#bm7b)" stroke="#7A0E1E" stroke-width="2.5"/>'+
+  '<g stroke="#A86A24" stroke-width="1.5" fill="url(#bm7c)"><path d="M22 41 L30 39 L44 62 L36 63 Z"/><path d="M40 36 L48 35 L62 64 L54 65 Z"/><path d="M58 35 L66 36 L76 60 L68 62 Z"/>'+
+  '<path d="M14 54 L16 47 L86 44 L87 51 Z"/><path d="M22 60 L20 54 L82 53 L80 59 Z"/></g>'+
+  '<path d="M10 50 C10 60 90 60 90 50 C90 56 84 58 80 56 C76 60 70 60 66 58 C62 62 56 62 50 60 C44 62 38 62 34 58 C30 60 24 60 20 56 C16 58 10 56 10 50 Z" fill="url(#bm7c)" stroke="#A86A24" stroke-width="2"/>'+
+  '<g fill="url(#bm7b)" stroke="#5A0A16" stroke-width="1.2"><circle cx="37" cy="47" r="3.6"/><circle cx="55" cy="44" r="3.6"/><circle cx="68" cy="48" r="3.2"/></g>'+
+  '<path d="M48 26 C50 20 54 18 58 18 M48 26 C46 21 42 19 38 20" stroke="#3F8A3A" stroke-width="2.5" fill="none" stroke-linecap="round"/>'+
+  '<circle cx="44" cy="30" r="5.5" fill="url(#bm7b)" stroke="#5A0A16" stroke-width="1.5"/><circle cx="54" cy="30" r="5.5" fill="url(#bm7b)" stroke="#5A0A16" stroke-width="1.5"/><circle cx="42.5" cy="28" r="1.6" fill="#fff" opacity=".8"/><circle cx="52.5" cy="28" r="1.6" fill="#fff" opacity=".8"/>',
   /* layer cake: two sponge layers with jam and cream, pink icing drips and strawberries */
   '<defs><linearGradient id="bm4a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFF0D2"/><stop offset=".5" stop-color="#F3D29A"/><stop offset="1" stop-color="#C99A58"/></linearGradient>'+
   '<radialGradient id="bm4b" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#FFE9F2"/><stop offset=".6" stop-color="#F59AC0"/><stop offset="1" stop-color="#D2628C"/></radialGradient>'+
@@ -101,7 +132,7 @@ function bmHowArt(k){
   var tray='<rect x="2" y="6" width="60" height="52" rx="8" fill="#E9EEF4" stroke="#8C98A8" stroke-width="2.5"/>';
   if(k==='mix') return tray+mini(0,4,16,.26)+mini(0,22,16,.26)+'<path d="M44 26 H50 M47 23 L50 26 L47 29" stroke="#B8467A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'+mini(1,40,34,.22);
   if(k==='land') return tray+mini(0,18,24,.3)+'<path d="M22 10 V20 M32 8 V18 M42 10 V20" stroke="#B8A27A" stroke-width="2.5" stroke-linecap="round"/><g fill="#fff" stroke="#D9C9A8" stroke-width="1"><circle cx="14" cy="52" r="3.5"/><circle cx="50" cy="52" r="3.5"/><circle cx="20" cy="55" r="2.5"/></g>';
-  return tray+mini(5,14,10,.38);
+  return tray+mini(7,14,10,.38);
 }
 /* a little five-point star for sparkles */
 function bmStar(c,x,y,r,rot){c.beginPath();for(var k=0;k<10;k++){var a=rot-Math.PI/2+k*Math.PI/5, rr=k%2?r*.45:r;c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.closePath();}
@@ -109,7 +140,7 @@ function bmSfx(name,lv){
   if(!mem.sound)return;
   if(name==='lift'){tone(587.33,0,.08,'sine',.07);}
   else if(name==='put'){tone(392,0,.1,'triangle',.06);tone(523.25,.05,.1,'sine',.05);}
-  else if(name==='bake'){var f=[523.25,587.33,659.25,783.99,880,1046.5][lv]||1046.5;tone(f,0,.18,'sine',.12);tone(f*1.5,.08,.26,'sine',.08);}
+  else if(name==='bake'){var f=[523.25,587.33,659.25,698.46,783.99,880,987.77,1046.5][lv]||1046.5;tone(f,0,.18,'sine',.12);tone(f*1.5,.08,.26,'sine',.08);}
   else if(name==='land'){noiseHit(0,'lowpass',600,.18,.16);tone(196,0,.12,'triangle',.05);}
   else if(name==='no'){tone(247,0,.14,'triangle',.06);}
 }
@@ -124,8 +155,9 @@ GAMES.crumble={
   said:function(n){return n===0?'No bakes made this time.':'You made '+n+' bake'+(n===1?'':'s')+'!';},
   make:function(K){
     var i=K.L-1, RW=BM_SET.tray[i][0], CL=BM_SET.tray[i][1], grid=[], made=0, dead=false, t2=0, endWait=-1;
+    var LAD=BM_SET.ladder[i], BM_TOP=LAD.length-1;   /* grid squares hold a step on this level's ladder (0 = flour) */
     var held=null, sel=null, kb=false, cur={r:0,c:0}, sparks=[], ghosts=[], msg=null, cakes=0, cjump=-1;
-    var imgs=BM_ART.map(function(a,k){return K.img('bm-'+k,a,'0 0 100 100',120,120);});
+    var imgs=LAD.map(function(a){return K.img('bm-'+a,BM_ART[a],'0 0 100 100',120,120);});
     var cr=K.img('bm-crumble',K.F.art(),'0 0 240 320',96,128), bg=gmScene('crumble');
     var flyers=[];   /* celebration cakes on their way to the party table */
     for(var r=0;r<RW;r++){grid.push([]);for(var c=0;c<CL;c++)grid[r].push({k:-1,pop:-1,land:-1,sx:0,sy:0,shake:-1,leave:-1});}
@@ -205,7 +237,7 @@ GAMES.crumble={
       if(a!=null)c.restore();
     }
     function drawLadder(c,g){
-      var cs=g.cs, n=6;
+      var cs=g.cs, n=LAD.length;
       c.save(); c.fillStyle='rgba(255,255,255,.82)'; gmRound(c,g.lx,g.ly,g.lw,g.lh,cs*.2); c.fill(); c.strokeStyle='#E9CCD6'; c.lineWidth=2; c.stroke(); c.restore();
       var best=-1; for(var r=0;r<RW;r++)for(var cc=0;cc<CL;cc++)best=Math.max(best,grid[r][cc].k);
       for(var k=0;k<n;k++){

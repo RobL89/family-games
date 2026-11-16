@@ -295,6 +295,78 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('#ov').h
 /* glow on focused houses, fairies and petals only when someone is using the keyboard */
 document.addEventListener('keydown',function(e){if(e.key==='Tab')document.body.classList.add('kbd');});
 document.addEventListener('pointerdown',function(){document.body.classList.remove('kbd');});
+/* ---------------- picture cues for children who can't read yet ----------------
+   Every word button gets a small picture in front of its words: a tick for Done and Check, a play arrow for
+   Go and Start, a jigsaw piece for puzzles, a house for the village, a speaker for Read to me, and so on.
+   It is done in one place: whenever buttons appear, any .btn without a picture is matched by its words
+   against BTN_ICONS. Instruction cards can also be tapped to hear them again (see the puzzle screen). */
+function bi(d,extra){return '<svg class="bi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+(extra||'')+'</svg>';}
+var BI={
+  tick:bi('<path d="M4 12.5l5 5L20 6.5"/>'),
+  play:bi('<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>'),
+  stop:bi('<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>'),
+  undo:bi('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>'),
+  turn:bi('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3v5h-5"/>'),
+  plus:bi('<path d="M12 5v14M5 12h14"/>'),
+  minus:bi('<path d="M5 12h14"/>'),
+  pourIn:bi('<path d="M6 10h12l-1.5 10h-9z"/><path d="M12 2v6M9.5 5.5L12 8l2.5-2.5"/>'),
+  pourOut:bi('<path d="M6 10h12l-1.5 10h-9z"/><path d="M12 8V2M9.5 4.5L12 2l2.5 2.5"/>'),
+  float:bi('<path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><circle cx="12" cy="9" r="3.5" fill="currentColor"/>'),
+  sink:bi('<path d="M2 6c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0"/><circle cx="12" cy="17" r="3.5" fill="currentColor"/><path d="M4 21h16"/>'),
+  stick:bi('<path d="M5 3v8a7 7 0 0 0 14 0V3h-4v8a3 3 0 0 1-6 0V3z"/><path d="M5 6.5h4M15 6.5h4"/>'),
+  nostick:bi('<path d="M5 3v8a7 7 0 0 0 14 0V3h-4v8a3 3 0 0 1-6 0V3z"/><path d="M3 22L21 2" stroke-width="2.8"/>'),
+  jigsaw:bi('<path d="M4 7h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v4h-4a2 2 0 1 0-4 0H4v-4a2 2 0 1 0 0-4z" fill="currentColor" fill-opacity=".25"/>'),
+  house:bi('<path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>'),
+  back:bi('<path d="M15 5l-7 7 7 7"/>'),
+  speak:bi('<path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>'),
+  wings:bi('<path d="M12 12C9 5 3 4 3 8.5S8 14 12 12zM12 12c3-7 9-8 9-3.5S16 14 12 12zM12 12c-2 3-5 6-7 5s2-4 7-5zM12 12c2 3 5 6 7 5s-2-4-7-5z" fill="currentColor" fill-opacity=".25"/>'),
+  flower:bi('<circle cx="12" cy="8" r="2.4"/><path d="M12 5.6a2.6 2.6 0 1 1 2.3-1.2M14.3 9.2a2.6 2.6 0 1 1-.4 2.6M9.7 9.2a2.6 2.6 0 1 0 .4 2.6M9.7 4.4a2.6 2.6 0 1 0 2.3 1.2"/><path d="M12 10.5V22M12 17c-2-2-4-2-5.5-1.5M12 15c2-2 4-2 5.5-1.5"/>'),
+  star:bi('<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" fill="currentColor" fill-opacity=".3"/>'),
+  pencil:bi('<path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M13.5 6.5l4 4"/>'),
+  people:bi('<circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 20c.5-4 3-6 5.5-6s5 2 5.5 6M13.5 15.5c1-1.3 2-1.7 3-1.7 2 0 4 1.6 4.5 5"/>'),
+  bin:bi('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+  heart:bi('<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z" fill="currentColor" fill-opacity=".25"/>'),
+  fairy:bi('<circle cx="12" cy="7" r="3" fill="currentColor"/><path d="M12 10.5c-1.5 0-2.5 1-3 3l-1 6h8l-1-6c-.5-2-1.5-3-3-3z" fill="currentColor"/><path d="M11 12C8 8 3 8 3 11.5S8 15 11 13.5M13 12c3-4 8-4 8-.5S16 15 13 13.5" fill="currentColor" fill-opacity=".3"/>'),
+  coin:bi('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 10a2.5 2 0 0 1 5 0c0 2.5-5 1.5-5 4a2.5 2 0 0 0 5 0"/>')
+};
+/* checked in order; the first match wins */
+var BTN_ICONS=[
+  [/puzzles$/i,'jigsaw'],
+  [/^(done|check|fit it in|check the gears|save my fairy)$/i,'tick'],
+  [/^pay$/i,'coin'],
+  [/^(go|start|keep playing|play again|play .*|turn on the water|turn the handle|roll the cart|test the bridge|test the circuit|let's go!)$/i,'play'],
+  [/^stop/i,'stop'],
+  [/^take (one|back)|^take one off/i,'undo'],
+  [/^turn$/i,'turn'],
+  [/^pour in/i,'pourIn'],[/^pour out/i,'pourOut'],
+  [/^add /i,'plus'],
+  [/will float/i,'float'],[/will sink/i,'sink'],
+  [/won.t stick/i,'nostick'],[/will stick/i,'stick'],
+  [/^read to me/i,'speak'],
+  [/back to the village|^take .* home$/i,'house'],
+  [/^back to /i,'back'],
+  [/^fly to|^find a fairy/i,'fairy'],
+  [/^pick the flower/i,'flower'],
+  [/^see what happens/i,'star'],
+  [/^change my fairy/i,'pencil'],
+  [/^who.s playing/i,'people'],
+  [/^remove/i,'bin'],
+  [/^keep /i,'heart']
+];
+function iconButtons(root){
+  (root||document).querySelectorAll('.btn').forEach(function(b){
+    var first=b.firstElementChild;
+    if(first&&first.tagName.toLowerCase()==='svg')return;              /* it already has a picture (Play the tune...) */
+    var host=b.querySelector(':scope > span')||b;                       /* two-line buttons: the picture goes with the big words */
+    if(host.querySelector(':scope > .bi'))return;
+    var t=(host.textContent||'').trim(); if(!t)return;
+    for(var i=0;i<BTN_ICONS.length;i++){if(BTN_ICONS[i][0].test(t)){host.insertAdjacentHTML('afterbegin',BI[BTN_ICONS[i][1]]);b.classList.add('hasbi');return;}}
+  });
+}
+(function(){
+  var pending=false;
+  try{new MutationObserver(function(){if(pending)return;pending=true;(window.requestAnimationFrame||setTimeout)(function(){pending=false;iconButtons();});}).observe(document.body,{childList:true,subtree:true,characterData:true});}catch(e){}
+})();
 /* ---------------- who's playing ---------------- */
 function renderWho(){
   $('#who-hero').innerHTML='<svg x="20" y="10" width="200" height="182" viewBox="0 0 220 200">'+toadstoolArt()+'</svg><g class="bob"><svg x="190" y="40" width="120" height="160" viewBox="0 0 240 320">'+fairyArt({hair:'chestnut',skin:'s2',dress:'lilac',wing:'lilac'})+'</svg></g>';
@@ -380,7 +452,7 @@ $('#make-remove').addEventListener('click',function(){
 /* ---------------- village ---------------- */
 var LAYOUTS = {
   land:{w:900,h:820,toad:{x:450,y:565,s:1.18},me:[572,412,112,150],plaza:[450,592,132],sign:[75,584],
-    fairies:{petal:[241,392,112,150],ripple:[197,586,112,150],breeze:[232,150,112,150],jingle:[543,134,112,150],ginger:[379,624,112,150],twinkle:[330,100,112,150],crumble:[784,252,112,150],rivet:[601,626,112,150],gizmo:[798,556,112,150]},
+    fairies:{petal:[241,392,112,150],ripple:[197,586,112,150],breeze:[232,150,112,150],jingle:[543,134,112,150],ginger:[379,624,112,150],twinkle:[330,100,112,150],crumble:[808,360,112,150],rivet:[601,626,112,150],gizmo:[798,556,112,150]},
     paths:{petal:'M450 598 C350 612 172 602 165 537',ripple:'M392 614 C320 660 176 676 149 766',breeze:'M368 580 C336 512 318 380 182 286',jingle:'M532 580 C564 512 582 380 718 286',ginger:'M420 620 C404 676 366 724 345 784',twinkle:'M450 560 C450 470 452 360 450 258',crumble:'M450 598 C550 612 728 602 735 537',rivet:'M482 618 C500 676 540 724 560 784',gizmo:'M520 606 C620 640 740 680 766 766'},
     trees:[[42,236,1],[862,244,.9]],hills:'M0 205 C150 140 330 160 450 186 C600 150 760 140 900 196 V260 H0 Z',meadow:'M0 214 C250 192 520 226 900 208 V820 H0 Z',
     clouds:[[150,70],[640,52]],
@@ -440,9 +512,10 @@ function renderVillage(moveIn){
   homes.forEach(function(h){
     var p=h.plot, side=p.x<V.w/2?-1:1, k=(vmode==='port'?1.2:1)*Math.max(.85,p.s), n=potOf(ex,h.id);
     var px=Math.max(31*k,Math.min(V.w-31*k,p.x+side*(vmode==='port'?92:84)*p.s)), py=p.y+4;
+    if(V.potAt&&V.potAt[h.id]){px=V.potAt[h.id][0];py=V.potAt[h.id][1];}   /* a pot moved so it isn't hidden behind its fairy */
     draw.push({y:py+.5,html:'<g class="tap pot'+(h.grow?' grow':'')+'" id="pot-'+h.id+'" tabindex="0" role="button" aria-label="'+esc(h.F.name+"'s petal pot, "+petalWord(n))+'">'+nested(px-30*k,py-58*k,60*k,60*k,'0 0 64 64',potArt(n))+'</g>'});
   });
-  draw.push({y:V.toad.y,html:'<g class="tap house" id="h-toad" tabindex="0" role="button" aria-label="Your red toadstool house">'+houseAt(V.toad,toadstoolArt())+'</g>'});
+  draw.push({y:V.toad.y,html:'<g class="tap house" id="h-toad" tabindex="0" role="button" aria-label="Your red toadstool house">'+houseAt(V.toad,'<g id="tfx-back"></g>'+toadstoolArt()+'<g id="tfx-front"></g>')+'</g>'});
   draw.sort(function(a,b){return a.y-b.y;}).forEach(function(d){s+=d.html;});
   var me=V.me;
   s+='<g class="tap" id="f-me" tabindex="0" role="button" aria-label="'+esc(ex.name)+', your fairy"><g class="bob">'+nested(me[0],me[1],me[2],me[3],'0 0 240 320',fairyArt(ex.look))+'</g></g>';
@@ -456,7 +529,7 @@ function renderVillage(moveIn){
   /* a tap or click shouldn't leave the house or fairy focused (that is what drew a box round it) */
   v.addEventListener('mousedown',function(e){if(e.target.closest&&e.target.closest('.tap'))e.preventDefault();});
   function on(id,fn){var el=document.getElementById(id);if(!el)return;el.addEventListener('click',fn);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fn();}});}
-  on('h-toad',function(){var g=$('#h-toad');var f=$('#f-me');g.classList.add('open');f.classList.add('waving');tick();setTimeout(function(){g.classList.remove('open');f.classList.remove('waving');},2400);speak('Hello from your toadstool!');});
+  on('h-toad',toadSurprise);
   on('f-me',function(){var f=$('#f-me');f.classList.remove('waving');void f.getBoundingClientRect();f.classList.add('waving');chime();setTimeout(function(){f.classList.remove('waving');},2200);});
   homes.forEach(function(h){
     on('h-'+h.id,function(){
@@ -469,10 +542,31 @@ function renderVillage(moveIn){
     on('pot-'+h.id,function(){clearTimeout(menuT);openVisit(h.id,true);});
   });
   v.querySelectorAll('.plot').forEach(function(pl){
-    function hit(){toast('A fairy will live here one day. Fly to a fairy world to find her.');speak('A fairy will live here one day. Fly to a fairy world to find her.');}
+    function hit(){toast('A fairy will live here one day. Tap Find a fairy to look for her.');speak('A fairy will live here one day. Tap Find a fairy to look for her.');}
     pl.addEventListener('click',hit);
     pl.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();hit();}});
   });
+}
+/* Tapping your toadstool brings a different surprise each time, in turn: a ladybird peeps out of the door,
+   a bird flies round the cap, a fox peeks out from behind, a frog jumps out of the window, butterflies flutter up.
+   Each is drawn in the toadstool's own 220 by 200 box, into #tfx-back (behind the house) or #tfx-front. */
+var toadN=-1, toadT=null;
+var TOAD_FX=[
+  {say:'A ladybird lives by your door!',door:true,ms:2600,front:'<g class="tfx-lady"><ellipse cx="0" cy="0" rx="8" ry="6.5" fill="#E8443A" stroke="#7A1614" stroke-width="1.2"/><path d="M0 -6.5 V6.5" stroke="#2A1E1A" stroke-width="1.2"/><circle cx="-3.5" cy="-1" r="1.6" fill="#2A1E1A"/><circle cx="3.5" cy="2" r="1.6" fill="#2A1E1A"/><circle cx="-8" cy="0" r="4" fill="#2A1E1A"/><circle cx="-9.3" cy="-1.3" r="1" fill="#fff"/><path d="M-10 -3 L-14 -8 M-8 -3.5 L-10 -9" stroke="#2A1E1A" stroke-width="1" stroke-linecap="round"/></g>'},
+  {say:'Tweet tweet! A bird is flying round your house.',ms:3000,front:'<g class="tfx-bird"><g class="tfx-birdin"><path d="M10 0 L20 -6 L19 4 Z" fill="#6E4626"/><ellipse cx="0" cy="0" rx="11" ry="8" fill="#A0704A"/><circle cx="-9" cy="-5" r="6" fill="#A0704A"/><path d="M-9 -1 C-10 5 -5 8 1 8 C-4 5 -6 2 -5 -2 Z" fill="#E8743A"/><path d="M-15 -5 L-20 -3 L-15 -2 Z" fill="#F5B83A"/><circle cx="-10" cy="-6" r="1.4" fill="#2A1E1A"/><path class="tfx-wing" d="M-2 -3 C2 -16 10 -16 12 -12 C8 -8 4 -4 -2 -3 Z" fill="#8A5A30"/></g></g>'},
+  {say:'Peekaboo! A fox is hiding behind your toadstool.',ms:3000,back:'<g class="tfx-fox"><path d="M-16 -8 L-12 -26 L-3 -12 Z M16 -8 L12 -26 L3 -12 Z" fill="#E8743A" stroke="#9A4A1A" stroke-width="1.5" stroke-linejoin="round"/><path d="M-12 -12 L-11 -21 L-6 -13 Z M12 -12 L11 -21 L6 -13 Z" fill="#3B2A2A"/><path d="M-18 -10 C-18 -18 18 -18 18 -10 C18 0 8 12 0 14 C-8 12 -18 0 -18 -10 Z" fill="#F08A44" stroke="#9A4A1A" stroke-width="1.5"/><path d="M-17 -4 C-10 -2 -6 4 0 14 C-8 12 -16 4 -17 -4 Z M17 -4 C10 -2 6 4 0 14 C8 12 16 4 17 -4 Z" fill="#fff"/><circle cx="-6" cy="-6" r="2.2" fill="#2A1E1A"/><circle cx="6" cy="-6" r="2.2" fill="#2A1E1A"/><circle cx="-5.4" cy="-6.7" r=".7" fill="#fff"/><circle cx="6.6" cy="-6.7" r=".7" fill="#fff"/><ellipse cx="0" cy="11" rx="3" ry="2.2" fill="#2A1E1A"/></g>'},
+  {say:'Ribbit! A frog jumped out of your window.',ms:2900,front:'<g class="tfx-shut"><circle cx="110" cy="132" r="10" fill="#4E2E1B"/><g class="tfx-shutter"><circle cx="110" cy="132" r="10" fill="url(#gwood)" stroke="#7A4E2A" stroke-width="1.2"/><path d="M101 132 H119" stroke="#7A4E2A" stroke-width="1.2"/></g></g><g class="tfx-frog"><g class="tfx-frogin"><ellipse cx="0" cy="2" rx="9" ry="7" fill="#6DBE5A" stroke="#357A31" stroke-width="1.3"/><circle cx="-4.5" cy="-5" r="3.6" fill="#6DBE5A" stroke="#357A31" stroke-width="1.2"/><circle cx="4.5" cy="-5" r="3.6" fill="#6DBE5A" stroke="#357A31" stroke-width="1.2"/><circle cx="-4.5" cy="-5.3" r="1.7" fill="#2A1E1A"/><circle cx="4.5" cy="-5.3" r="1.7" fill="#2A1E1A"/><path d="M-4 3 Q0 6 4 3" stroke="#2F6B2C" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M-9 7 l-4 3 M9 7 l4 3" stroke="#357A31" stroke-width="2.4" stroke-linecap="round"/></g></g>'},
+  {say:'Look, butterflies in your garden!',ms:3000,front:[['#F28CB3',40,176,0],['#7DBDE6',172,178,.35],['#F8CF5A',64,180,.7]].map(function(b){return '<g class="tfx-fly" style="animation-delay:'+b[3]+'s;--fx:'+(b[1]<110?'-':'')+'30px" transform="translate('+b[1]+' '+b[2]+')"><g class="tfx-flyin"><g class="tfx-flap"><path d="M0 0 C-10 -12 -16 -4 -10 2 C-14 8 -6 10 0 2 C6 10 14 8 10 2 C16 -4 10 -12 0 0 Z" fill="'+b[0]+'" stroke="#3B2A4A" stroke-width="1"/></g><path d="M0 -4 V5" stroke="#3B2A4A" stroke-width="2" stroke-linecap="round"/></g></g>';}).join('')}
+];
+function toadSurprise(){
+  var g=$('#h-toad'), f=$('#f-me'), bk=$('#tfx-back'), fr=$('#tfx-front'); if(!g||!bk)return;
+  clearTimeout(toadT); g.classList.remove('open'); bk.innerHTML=''; fr.innerHTML=''; void g.getBoundingClientRect();
+  toadN=(toadN+1)%TOAD_FX.length; var fx=TOAD_FX[toadN];
+  if(fx.door)g.classList.add('open');
+  bk.innerHTML=fx.back||''; fr.innerHTML=fx.front||'';
+  f.classList.remove('waving'); void f.getBoundingClientRect(); f.classList.add('waving'); tick();
+  toadT=setTimeout(function(){g.classList.remove('open');f.classList.remove('waving');bk.innerHTML='';fr.innerHTML='';},fx.ms);
+  speak(fx.say);
 }
 var rzT=null, menuT=null;
 window.addEventListener('resize',function(){clearTimeout(rzT);rzT=setTimeout(function(){if(!$('#s-village').hidden&&pickMode()!==vmode)renderVillage(false);},200);});
@@ -482,6 +576,8 @@ function renderBar(){
   $('#v-chip').querySelector('span').textContent=ex.name;
   $('#v-chip').setAttribute('aria-label',ex.name+', '+levelOf(ex.level).name+'. Open the explorer menu');
   var r=$('#v-read'); r.setAttribute('aria-pressed',String(!!ex.read)); r.innerHTML=ex.read?IC.speak:IC.speakOff; r.setAttribute('aria-label','Read to me '+(ex.read?'on':'off'));
+  /* Find a fairy shows a little picture of the player's own fairy */
+  $('#v-fly').innerHTML='<svg class="bi flyfairy" viewBox="60 40 120 250" aria-hidden="true">'+fairyArt(ex.look,true)+'</svg><span>Find a fairy</span>';
   var sn=$('#v-sound'); sn.setAttribute('aria-pressed',String(!!mem.sound)); sn.innerHTML=mem.sound?IC.note:IC.noteOff; sn.setAttribute('aria-label','Sounds '+(mem.sound?'on':'off'));
 }
 function enterVillage(opts){
@@ -493,12 +589,12 @@ function enterVillage(opts){
     var gm=GAMES[opts.moveIn], msg=gm?nm+' has moved in, with five petals in her pot! Tap her house to play '+gm.name+'.':nm+' has moved in! Tap her house or tap '+nm+' to visit.';
     setTimeout(function(){toast(msg);speak(msg);},2600);
   } else {
-    speak('Welcome home, '+ex.name+'. Tap Fly to a fairy world to find a fairy.');
+    speak('Welcome home, '+ex.name+'. Tap Find a fairy to go and look for one.');
   }
 }
 $('#v-read').addEventListener('click',function(){var ex=cur();if(!ex)return;ex.read=!ex.read;save();renderBar();if(ex.read)speak('Read to me is on.',true);else stopTalk();});
 $('#v-sound').addEventListener('click',function(){mem.sound=!mem.sound;save();renderBar();if(mem.sound)chime();});
-$('#v-fly').addEventListener('click',function(){renderWorlds();show('s-worlds');speak('Where shall we fly? Pick a fairy world.');});
+$('#v-fly').addEventListener('click',function(){renderWorlds();show('s-worlds');speak('Which fairy shall we find? Tap a fairy.');});
 $('#v-chip').addEventListener('click',function(){
   var ex=cur(); if(!ex)return;
   ovClose=closeOv;
@@ -546,14 +642,28 @@ var WORLDS=[
   {id:'rivet',name:"Rivet's cog mill",who:'Engineer fairy',color:'#D4825A'},
   {id:'gizmo',name:"Gizmo's lab",who:'Inventor fairy',color:'#A9B3C1'}
 ];
+/* Each world card shows the fairy herself with her type symbol in a coloured badge (flower, water drop, cloud...),
+   so children who can't read yet can find a fairy by her picture. Progress is drawn too: five petals (pink when
+   grown), or her little house once she lives in the village. The words stay underneath for readers and screen readers. */
+function petalStrip(n){
+  var s='<svg class="wpetals" viewBox="0 0 110 26" aria-hidden="true">';
+  for(var i=0;i<5;i++){var x=11+i*22; s+=i<n?'<ellipse cx="'+x+'" cy="13" rx="7" ry="11" fill="url(#ptfront)" stroke="#B8467A" stroke-width="2"/>':'<ellipse cx="'+x+'" cy="13" rx="7" ry="11" fill="#fff" stroke="#D9C9E6" stroke-width="2" stroke-dasharray="4 3"/>';}
+  return s+'</svg>';
+}
 function renderWorlds(){
   var ex=cur(), box=$('#worlds'); box.innerHTML='';
   WORLDS.forEach(function(w){
     var F=FAIRIES[w.id], open=!!F;
     var b=document.createElement('button'); b.type='button'; b.className='world'+(open?'':' locked');
-    var status = open ? (movedIn(ex,w.id)?F.name+' lives in your village':petalCount(ex,w.id)+' of 5 petals') : 'Coming soon';
-    b.innerHTML='<span class="dot" style="background:'+w.color+'">'+(open?'<svg viewBox="0 0 100 100" width="40" height="40" aria-hidden="true">'+F.icon+'</svg>':'<span style="color:#fff">'+IC.lock+'</span>')+'</span><b></b><span></span><span></span>';
-    var sp=b.querySelectorAll(':scope > span'); b.querySelector('b').textContent=w.name; sp[1].textContent=w.who; sp[2].textContent=status;
+    var home=open&&movedIn(ex,w.id), n=open?petalCount(ex,w.id):0;
+    var status = open ? (home?F.name+' lives in your village':n+' of 5 petals') : 'Coming soon';
+    var pic = open ? '<span class="wpic" style="background:radial-gradient(circle at 50% 42%,#fff 0,#fff 30%,'+w.color+'55 72%,'+w.color+'99 100%)"><svg class="wfairy" viewBox="18 26 204 266" aria-hidden="true">'+F.art(true)+'</svg>' +
+        '<span class="wbadge" style="background:'+w.color+'"><svg viewBox="0 0 100 100" aria-hidden="true">'+F.icon+'</svg></span>' +
+        (home?'<span class="whome"><svg viewBox="0 0 220 200" aria-hidden="true">'+F.body()+'</svg></span>':'')+'</span>'
+      : '<span class="wpic" style="background:#E2DAEC"><span class="wbadge" style="background:'+w.color+';color:#fff">'+IC.lock+'</span></span>';
+    b.innerHTML=pic+(open&&!home?petalStrip(n):'')+'<b></b><span></span><span></span>';
+    var sp=b.querySelectorAll(':scope > span:not(.wpic)'); b.querySelector('b').textContent=w.name; sp[0].textContent=w.who; sp[1].textContent=status;
+    b.setAttribute('aria-label',w.name+', '+w.who+'. '+status);
     if(open){ b.addEventListener('click',function(){openGarden(w.id);}); }
     else { b.setAttribute('aria-disabled','true'); b.addEventListener('click',function(){toast(w.name+' is coming soon.');}); }
     box.appendChild(b);
@@ -679,6 +789,10 @@ function startPuzzle(i){
 }
 $('#p-back').addEventListener('click',function(){if(cleanup){cleanup();cleanup=null;}clearLater();MR=null;openGarden();});
 $('#p-read').addEventListener('click',function(){speak(sayText,true);});
+/* tap the instruction card, or a question card, to hear it again */
+$('#pz-say').addEventListener('click',function(){if(sayText)speak(sayText,true);});
+$('#pz-area').addEventListener('click',function(e){var q=e.target.closest&&e.target.closest('.say-small');if(q&&q.textContent.trim())speak(q.textContent.trim(),true);});
+$('#s-garden .g-status').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('button'))return;speak($('#meter-title').textContent+'. '+$('#meter-text').textContent,true);});
 var finishing=false;
 function finish(ok){
   /* a timer can fire after the player has left the puzzle; ignore it then */
@@ -724,15 +838,22 @@ function pzJigsaw(area,L,key,picFn,what){
   setSay(L===1?'Drag the pieces onto the picture to finish '+what+'.':'Drag the '+total+' pieces into place to finish '+what+'.');
   if(!JIG_PICS[key])JIG_PICS[key]=picFn();
   var PIC_URL=JIG_PICS[key];
-  area.innerHTML='<p class="count-note" id="jig-note" aria-live="polite"></p><div class="jig" id="jig"><div class="jig-board" id="jig-board"></div></div>';
-  var jig=$('#jig'), board=$('#jig-board'), note=$('#jig-note');
+  /* Nimble Nymph's board is blank, so a small copy of the finished picture sits beside it to work from */
+  var guide=L===3;
+  area.innerHTML='<p class="count-note" id="jig-note" aria-live="polite"></p><div class="jig" id="jig"><div class="jig-board" id="jig-board"></div>'+(guide?'<div class="jig-guide" id="jig-guide"><img alt="The picture to copy" src="'+PIC_URL+'"></div>':'')+'</div>';
+  var jig=$('#jig'), board=$('#jig-board'), note=$('#jig-note'), gd=$('#jig-guide');
   var placed=0, z=10, pieces=[], geo=null;
   function setNote(){note.textContent=placed+' of '+total+' pieces in place';}
   function layout(first){
-    var W=jig.clientWidth, H=jig.clientHeight, B, bx, by, tray;
-    if(W>H*1.25){ B=Math.min(H-16,W*.56,560); bx=8; by=Math.max(8,(H-B)/2); tray={x0:B+28,x1:W,y0:8,y1:H}; }
-    else { B=Math.min(W-8,H*.56,520); bx=(W-B)/2; by=4; tray={x0:0,x1:W,y0:B+22,y1:H}; }
+    var W=jig.clientWidth, H=jig.clientHeight, B, bx, by, tray, G=0, gx=0, gy=0;
+    if(W>H*1.25){ B=Math.min(H-16,W*.56,560); bx=8; by=Math.max(8,(H-B)/2); tray={x0:B+28,x1:W,y0:8,y1:H};
+      if(guide){G=Math.round(Math.min(B*.36,(W-B-28)*.5,200));gx=W-G-6;gy=8;} }
+    else { B=Math.min(W-8,H*.56,520); bx=(W-B)/2; by=4; tray={x0:0,x1:W,y0:B+22,y1:H};
+      if(guide){G=Math.round(Math.min(B*.3,(H-B-22)*.7,170));gx=W-G-4;gy=B+16;} }
     var pw=B/cols, ph=B/rows; geo={B:B,bx:bx,by:by,pw:pw,ph:ph};
+    if(gd){gd.style.cssText='left:'+gx+'px;top:'+gy+'px;width:'+G+'px;height:'+G+'px;';}
+    /* a loose piece shouldn't start on top of the picture to copy */
+    function onGuide(x,y){return guide&&x+pw>gx-6&&x<gx+G+6&&y+ph>gy-6&&y<gy+G+6;}
     board.style.cssText='left:'+bx+'px;top:'+by+'px;width:'+B+'px;height:'+B+'px;'+(L===1?'background-image:linear-gradient(rgba(255,255,255,.62),rgba(255,255,255,.62)),url("'+PIC_URL+'");background-size:'+B+'px '+B+'px;':L===2?'background-image:linear-gradient(#E4DAF0 2px,transparent 2px),linear-gradient(90deg,#E4DAF0 2px,transparent 2px);background-size:'+pw+'px '+ph+'px;':'');
     pieces.forEach(function(pc){
       pc.el.style.width=pw+'px'; pc.el.style.height=ph+'px';
@@ -740,8 +861,9 @@ function pzJigsaw(area,L,key,picFn,what){
       pc.el.style.backgroundPosition=(-pc.c*pw)+'px '+(-pc.r*ph)+'px';
       if(pc.done){ pc.el.style.left=(bx+pc.c*pw)+'px'; pc.el.style.top=(by+pc.r*ph)+'px'; }
       else if(first||pc.fx===undefined){
-        var x0=tray.x0, x1=Math.max(tray.x0+1,tray.x1-pw), y0=tray.y0, y1=Math.max(tray.y0+1,tray.y1-ph);
-        pc.fx=(x0+Math.random()*(x1-x0))/W; pc.fy=(y0+Math.random()*(y1-y0))/H;
+        var x0=tray.x0, x1=Math.max(tray.x0+1,tray.x1-pw), y0=tray.y0, y1=Math.max(tray.y0+1,tray.y1-ph), px, py, tries=0;
+        do{px=x0+Math.random()*(x1-x0);py=y0+Math.random()*(y1-y0);tries++;}while(onGuide(px,py)&&tries<40);
+        pc.fx=px/W; pc.fy=py/H;
         pc.el.style.left=(pc.fx*W)+'px'; pc.el.style.top=(pc.fy*H)+'px';
       } else { pc.el.style.left=Math.min(pc.fx*W,W-pw)+'px'; pc.el.style.top=Math.min(pc.fy*H,H-ph)+'px'; }
     });
@@ -788,6 +910,45 @@ function pzJigsaw(area,L,key,picFn,what){
   window.addEventListener('resize',onResize);
   cleanup=function(){window.removeEventListener('resize',onResize);};
 }
+/* More jigsaw pictures, so a replayed jigsaw isn't always the same one. Each fairy's jigsaw petal now has
+   three pictures: her own picture (garden, rainbow, band...), her house in her world, and a poster of her with
+   her things. They take turns: all three come up before one repeats, and never the same one twice in a row. */
+var JIG_Q={}, JIG_LAST={};
+function jigsawSet(area,L,id,own){
+  var F=FAIRIES[id], set=own.concat([{key:id+'-home',fn:homeJig(id),what:F.name+'’s house'},{key:id+'-poster',fn:posterJig(id),what:'the picture of '+F.name}]);
+  if(!JIG_Q[id]||!JIG_Q[id].length){var q=shuffle(set.map(function(p,i){return i;}));if(q.length>1&&set[q[0]].key===JIG_LAST[id])q.push(q.shift());JIG_Q[id]=q;}
+  var p=set[JIG_Q[id].shift()]; JIG_LAST[id]=p.key;
+  pzJigsaw(area,L,p.key,p.fn,p.what);
+}
+/* an SVG picture as base64, so it can sit inside another picture without its own encoding getting in the way */
+function svgB64(url){var raw=decodeURIComponent(url.slice(url.indexOf(',')+1));return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(raw)));}
+function jigWrap(inner){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">'+allDefs()+inner+'</svg>');}
+function thingArt(k){return k==='flower'?PICS.flower+flowerG(50,36,30,'pink',6):pic2(k);}
+/* her house standing in her world, with her beside it */
+function homeJig(id){return function(){
+  var F=FAIRIES[id];
+  var s='<image href="'+svgB64(sceneFor(id))+'" x="0" y="0" width="600" height="600" preserveAspectRatio="xMidYMid slice"/>';
+  s+='<ellipse cx="270" cy="560" rx="250" ry="40" fill="#fff" opacity=".25"/>';
+  s+='<g transform="translate(18 150) scale(2.1)">'+houseGround()+F.body()+'</g>';
+  s+='<g transform="translate(400 250) scale(.74)">'+F.art()+'</g>';
+  return jigWrap(s);
+};}
+/* a bright poster: the fairy in the middle, her type badge, and her things round the edge */
+function posterJig(id){return function(){
+  var F=FAIRIES[id], w=WORLDS.filter(function(x){return x.id===id;})[0], col=w?w.color:'#F28CB3', things=(F.jigThings||[]).slice(0,6);
+  var s='<radialGradient id="jgp-bg" cx=".5" cy=".46" r=".72"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="'+col+'" stop-opacity=".35"/><stop offset="1" stop-color="'+col+'"/></radialGradient>';
+  s+='<rect width="600" height="600" fill="url(#jgp-bg)"/>';
+  for(var i=0;i<16;i++){var a=i*Math.PI/8;s+='<path d="M300 280 L'+f2(300+520*Math.cos(a-.09))+' '+f2(280+520*Math.sin(a-.09))+' L'+f2(300+520*Math.cos(a+.09))+' '+f2(280+520*Math.sin(a+.09))+' Z" fill="#fff" opacity="'+(i%2?.12:.22)+'"/>';}
+  [[40,40],[560,48],[300,24],[26,250],[574,250],[300,584],[40,584],[560,584]].forEach(function(p,i){s+='<path d="'+STAR+'" transform="translate('+p[0]+' '+p[1]+') scale('+(i%2?.9:1.3)+') translate(-182 -146)" fill="url(#ggold)" opacity=".9"/>';});
+  var spots=[[96,118],[504,118],[78,322],[522,322],[112,500],[488,500]];
+  things.forEach(function(k,i){var p=spots[i];
+    s+='<circle cx="'+p[0]+'" cy="'+(p[1]+5)+'" r="64" fill="#3B2A4A" opacity=".14"/><circle cx="'+p[0]+'" cy="'+p[1]+'" r="64" fill="#fff" stroke="'+col+'" stroke-width="6"/>';
+    s+='<svg x="'+(p[0]-46)+'" y="'+(p[1]-46)+'" width="92" height="92" viewBox="0 0 100 100" overflow="visible">'+thingArt(k)+'</svg>';});
+  s+='<ellipse cx="300" cy="520" rx="110" ry="18" fill="#3B2A4A" opacity=".16"/>';
+  s+='<g transform="translate(156 128) scale(1.2)">'+F.art(true)+'</g>';
+  s+='<circle cx="300" cy="72" r="46" fill="'+col+'" stroke="#fff" stroke-width="6"/><svg x="264" y="36" width="72" height="72" viewBox="0 0 100 100">'+F.icon+'</svg>';
+  return jigWrap(s);
+};}
 function numberOptions(ans,cands){
   var set=[ans];
   cands.forEach(function(x){if(x>0&&set.indexOf(x)<0&&set.length<4)set.push(x);});
@@ -1071,4 +1232,5 @@ function startGame(){
   load();
   renderWho();
   show('s-who');
+  iconButtons();
 }

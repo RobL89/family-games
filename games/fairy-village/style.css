@@ -85,6 +85,16 @@ body.kbd .tap:focus > *{filter:drop-shadow(0 0 6px #F5C842)}
 .world .dot{width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
 .world b{font-family:var(--display);font-weight:600;font-size:19px}
 .world span{font-size:14px;color:var(--ink-soft);font-weight:700}
+.world{align-items:center;text-align:center;padding:10px 10px 14px}
+.world .wpic{position:relative;display:block;width:100%;aspect-ratio:1/1.05;border-radius:18px;overflow:visible}
+.world .wfairy{position:absolute;inset:4% 8% 0;width:84%;height:96%}
+.world .wbadge{position:absolute;left:-6px;top:-6px;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 3px 0 rgba(59,42,74,.18)}
+.world .wbadge svg{width:40px;height:40px}
+.world .whome{position:absolute;right:-6px;bottom:-6px;width:58px;height:54px;border-radius:16px;background:#fff;display:grid;place-items:center;box-shadow:0 3px 0 rgba(59,42,74,.18)}
+.world .whome svg{width:52px;height:48px}
+.world .wpetals{width:96px;height:23px;margin-top:4px}
+.world.locked .wpic{display:grid;place-items:center}
+.world.locked .wbadge{position:static;width:58px;height:58px}
 .world.locked{background:#EDE7F4;box-shadow:none;cursor:default}
 .world.locked b{color:var(--ink-soft)}
 
@@ -579,3 +589,36 @@ body.kbd .bgap:focus rect,body.kbd .bay:focus rect{stroke:#F5C842;stroke-width:4
   .gm-how svg{width:40px;height:40px}
 }
 @media (prefers-reduced-motion: reduce){.drop{animation:none;opacity:0}.pot.grow{animation:none}}
+.jig-guide{position:absolute;border-radius:12px;background:#fff;box-shadow:0 0 0 4px #fff,0 4px 12px rgba(59,42,74,.22);overflow:hidden;pointer-events:none;z-index:0}
+.jig-guide img{display:block;width:100%;height:100%}
+/* picture cues on word buttons, and instruction cards that can be tapped to hear them */
+.btn .bi{width:24px;height:24px;flex:none;margin-left:-4px}
+.btn.twoline > span .bi{width:20px;height:20px;vertical-align:-3px;margin:0 6px 0 0}
+#pz-say,.pz-area .say-small,#s-garden .g-status{cursor:pointer}
+#pz-say::before,.pz-area .say-small::before{content:"";display:inline-block;width:.95em;height:.95em;margin-right:.35em;vertical-align:-.1em;opacity:.55;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233B2A4A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9v6h4l5 4V5L8 9z' fill='%233B2A4A'/%3E%3Cpath d='M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12'/%3E%3C/svg%3E")}
+#pz-say:empty::before{display:none}
+#v-fly .flyfairy{width:30px;height:44px;margin:-6px 2px -6px -6px}
+/* the picture to copy looks like a photo pinned beside the board, not another piece */
+.jig-guide{box-shadow:0 0 0 5px #fff,0 0 0 9px #F5C842,0 8px 16px rgba(59,42,74,.3);transform:rotate(-3deg);border-radius:6px}
+/* pattern answers sit in their own tray below the pattern, so they don't look like more of it */
+.seq ~ .opts{margin-top:14px;padding:14px 16px;background:rgba(255,255,255,.72);border:3px dashed #D9C9E6;border-radius:26px}
+/* toadstool surprises (toadSurprise in core.js); everything is drawn in the toadstool's 220 x 200 box */
+#tfx-back g,#tfx-front g{pointer-events:none}
+.tfx-lady{animation:tfxlady 2.6s ease-in-out both}
+@keyframes tfxlady{0%{transform:translate(118px,172px) scale(0)}20%{transform:translate(118px,172px) scale(1.4)}35%,55%{transform:translate(104px,174px) scale(1.4)}45%{transform:translate(104px,170px) scale(1.4)}80%{transform:translate(118px,172px) scale(1.4)}100%{transform:translate(118px,172px) scale(0)}}
+.tfx-bird{animation:tfxbird 3s linear both}
+@keyframes tfxbird{0%{transform:translate(-30px,120px) scale(-1.3,1.3);opacity:0}8%{opacity:1}25%{transform:translate(40px,10px) scale(-1.3,1.3)}45%{transform:translate(170px,0px) scale(-1.3,1.3)}60%{transform:translate(250px,80px) scale(-1.3,1.3)}61%{transform:translate(250px,82px) scale(1.3)}80%{transform:translate(110px,150px) scale(1.3)}92%{opacity:1}100%{transform:translate(-30px,110px) scale(1.3);opacity:0}}
+.tfx-wing{transform-box:fill-box;transform-origin:20% 100%;animation:tfxflap .18s ease-in-out infinite alternate}
+@keyframes tfxflap{to{transform:scaleY(-.6)}}
+.tfx-fox{animation:tfxfox 3s ease-in-out both}
+@keyframes tfxfox{0%{transform:translate(112px,150px)}25%,70%{transform:translate(160px,148px)}40%{transform:translate(160px,148px) rotate(8deg) scale(1.1)}55%{transform:translate(160px,148px) rotate(-6deg)}100%{transform:translate(112px,150px)}}
+.tfx-shutter{transform-box:fill-box;transform-origin:0% 50%;animation:tfxshut 2.9s ease both}
+@keyframes tfxshut{0%{transform:scaleX(1)}15%,85%{transform:scaleX(.12)}100%{transform:scaleX(1)}}
+.tfx-frog{animation:tfxfrog 2.9s ease-in-out both}
+@keyframes tfxfrog{0%,15%{transform:translate(110px,134px) scale(0)}25%{transform:translate(112px,130px) scale(1.4)}45%{transform:translate(150px,120px) scale(1.4)}60%{transform:translate(180px,176px) scale(1.4)}72%{transform:translate(200px,160px) scale(1.4)}85%{transform:translate(222px,178px) scale(1.4);opacity:1}100%{transform:translate(240px,178px) scale(1.4);opacity:0}}
+.tfx-flyin{animation:tfxflyup 3s ease-in-out both;animation-delay:inherit}
+.tfx-fly{animation:none}
+@keyframes tfxflyup{0%{transform:translate(0,0);opacity:0}10%{opacity:1}35%{transform:translate(var(--fx),-50px)}65%{transform:translate(0,-100px)}90%{opacity:1}100%{transform:translate(var(--fx),-150px);opacity:0}}
+.tfx-flap{transform-box:fill-box;transform-origin:50% 50%;animation:tfxbfly .16s ease-in-out infinite alternate}
+@keyframes tfxbfly{to{transform:scaleX(.35)}}
+@media (prefers-reduced-motion:reduce){#tfx-back *,#tfx-front *{animation-duration:.01s!important}}

@@ -139,17 +139,24 @@ var CONSTEL={
   heart:function(){return shapePoints('heart');},
   house:function(){return [[18,92],[18,44],[50,12],[82,44],[82,92]];},
   fish:function(){return [[6,50],[26,28],[58,26],[78,44],[96,26],[96,74],[78,56],[58,74],[26,72]];},
-  kite:function(){return [[50,6],[86,40],[50,94],[14,40]];}
+  kite:function(){return [[50,6],[86,40],[50,94],[14,40]];},
+  /* these four use their corners as the stars, so the picture keeps its shape */
+  rocket:function(){return [[50,4],[68,28],[68,68],[86,94],[14,94],[32,68],[32,28]];},
+  crown:function(){return [[8,92],[8,26],[30,54],[50,12],[70,54],[92,26],[92,92]];},
+  boat:function(){return [[8,62],[46,62],[46,6],[86,56],[94,62],[78,92],[22,92]];},
+  tree:function(){return [[50,4],[80,46],[64,46],[88,82],[56,82],[56,96],[44,96],[44,82],[12,82],[36,46],[20,46]];}
 };
+var CONSTEL_CORNERS={star:1,rocket:1,crown:1,boat:1,tree:1};
 /* 1. join the constellation dots */
 function pzDots(area,L){ multi(area,L,3,function(R){pzDots1(area,L,R);}); }
 function pzDots1(area,L,R){
   var shape=R.fresh(Object.keys(CONSTEL)), n=rnd(8,10), base=CONSTEL[shape]();
-  var pts=shape==='star'?base.slice():perimeterPts(base,n); n=pts.length;
-  var step=L===1?1:L===2?pick([2,5,10]):pick([25,50,100]), start=L===1?1:step;
+  var pts=CONSTEL_CORNERS[shape]?base.slice():perimeterPts(base,n); n=pts.length;
+  var step=L===1?1:L===2?pick([2,5,10]):pick([6,8,9,12,15,20,25,30,40,50]), start=L===1?1:step;
   var nums=[];for(var i=0;i<n;i++)nums.push(start+i*step);
   var dots=pts.map(function(p,i){return {x:30+p[0]*3,y:20+p[1]*2.6,v:nums[i],real:true};});
-  if(L>1){
+  /* Clever Pixie also has two stars that aren't in the count; Nimble Nymph's harder steps are enough on their own */
+  if(L===2){
     var decoys=[nums[n-1]+step,start+Math.round(step/2)*(rnd(1,n-1)*2+1)];
     if(decoys[1]%step===0)decoys[1]+=Math.max(1,Math.round(step/2));
     var cx=dots.reduce(function(a,d){return a+d.x;},0)/n, cy=dots.reduce(function(a,d){return a+d.y;},0)/n;
@@ -164,7 +171,7 @@ function pzDots1(area,L,R){
       dots.push({x:best[0],y:best[1],v:v,real:false});
     });
   }
-  setSay(L===1?'Join the stars to make a picture. Tap them from 1 to '+n+'.':'Join the stars by counting in '+step+'s. Start at '+start+'. Some stars are not in the count.');
+  setSay(L===1?'Join the stars to make a picture. Tap them from 1 to '+n+'.':(L===2?'Join the stars by counting in '+step+'s. Start at '+start+'. Some stars are not in the count.':'Join the stars by counting in '+step+'s. Start at '+start+'.'));
   var s='<svg class="skysvg" id="dt-svg" viewBox="0 0 360 300" role="group" aria-label="Stars with numbers"><rect width="360" height="300" rx="18" fill="#1E2660"/>';
   for(var k=0;k<40;k++){s+='<circle cx="'+f2((k*83)%360)+'" cy="'+f2((k*47)%300)+'" r="'+(k%3?0.8:1.4)+'" fill="#fff" opacity=".5"/>';}
   s+='<g id="dt-lines"></g>';
@@ -285,7 +292,7 @@ function starBtn(ch,id){return '<button type="button" class="lstar" id="'+id+'" 
 function pzLetterStars(area,L){ multi(area,L,3,function(R){pzLetterStars1(area,L,R);}); }
 function pzLetterStars1(area,L,R){
   if(L===1){
-    var tgt=R.fresh(['s','a','t','m','o']), n=rnd(3,4), others='samtonrep'.split('').filter(function(c){return c!==tgt;}), letters=[];
+    var tgt=R.fresh(['s','a','t','m','o','p','n','e','r','c','d','g']), n=rnd(3,4), others='samtonrepcdg'.split('').filter(function(c){return c!==tgt;}), letters=[];
     for(var i=0;i<n;i++)letters.push(tgt); for(var j=0;j<10-n;j++)letters.push(pick(others));
     letters=shuffle(letters);
     setSay('Tap every star with the letter '+tgt+' on it.');
@@ -300,14 +307,15 @@ function pzLetterStars1(area,L,R){
     return;
   }
   if(L===2){
-    var w=R.fresh(['moon','star','sun','comet','rocket']), all=[];for(var k=0;k<w.length;k++)all.push(k);
+    var w=R.fresh(['moon','star','sun','comet','rocket','planet','earth']), all=[];for(var k=0;k<w.length;k++)all.push(k);
     setSay('Spell the word for this picture. Tap the stars in order.');
     area.innerHTML='<div class="pic">'+picSVG2(w)+'</div><div class="starry or-box" id="sp-wrap"></div>';
     speller($('#sp-wrap'),w,all,extraLetters(w,3),function(ok){finish(ok);});
     return;
   }
   /* word search */
-  var words=[R.fresh(['moon','star','comet','orbit','planet','rocket','mars','sun'])]; words.push(R.fresh(['moon','star','comet','orbit','planet','rocket','mars','sun'])); var N=6, grid=[], placed=[], tries=0;
+  var SKYWORDS=['moon','star','comet','orbit','planet','rocket','mars','sun','venus','night','space','glow','dark','sky'];
+  var words=[R.fresh(SKYWORDS)]; words.push(R.fresh(SKYWORDS)); var N=6, grid=[], placed=[], tries=0;
   function attempt(){
     grid=[];for(var r=0;r<N;r++){grid.push([]);for(var c=0;c<N;c++)grid[r].push('');}
     placed=[];
@@ -343,14 +351,14 @@ function pzLetterStars1(area,L,R){
   });});
 }
 /* 5. night sky jigsaw */
-function pzNightJig(area,L){ pzJigsaw(area,L,'night',nightPicture,'the night sky'); }
+function pzNightJig(area,L){ jigsawSet(area,L,'twinkle',[{key:'night',fn:nightPicture,what:'the night sky'}]); }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
   /* ---------- puzzle pictures (100 x 100) ---------- */
   moon:'<path d="M42 12 A40 40 0 1 0 88 66 A32 32 0 1 1 42 12 Z" fill="#FFF3C4" stroke="#C9A64A" stroke-width="3"/>',
   comet:'<path d="M14 86 L58 42" stroke="#C9B8F5" stroke-width="14" stroke-linecap="round" opacity=".5"/><path d="M24 90 L60 50 M10 76 L50 38" stroke="#FFE07A" stroke-width="4" stroke-linecap="round" opacity=".7"/><circle cx="66" cy="34" r="18" fill="url(#ggold)" stroke="#B8861E" stroke-width="3"/>',
   rocket:'<path d="M50 6 C66 18 70 40 68 66 H32 C30 40 34 18 50 6 Z" fill="#fff" stroke="#3E4A98" stroke-width="3"/><circle cx="50" cy="36" r="9" fill="#7DBDE6" stroke="#3E4A98" stroke-width="3"/><path d="M32 50 L18 70 H32 Z M68 50 L82 70 H68 Z" fill="#E8574C" stroke="#9C241C" stroke-width="2.5" stroke-linejoin="round"/><path d="M40 68 C40 82 50 94 50 94 C50 94 60 82 60 68 Z" fill="#F7A055"/>',
-  planet:'<ellipse cx="50" cy="52" rx="44" ry="13" fill="none" stroke="#C9A64A" stroke-width="6" transform="rotate(-16 50 52)"/><circle cx="50" cy="50" r="25" fill="#F7A055" stroke="#B8661E" stroke-width="3"/><path d="M28 42 C40 46 60 46 73 42 M26 54 C40 58 62 58 74 54" stroke="#FBC28E" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M7 64 C24 64 40 60 50 57" stroke="#C9A64A" stroke-width="6" fill="none" stroke-linecap="round" transform="rotate(-16 50 52)"/>',
+  planet:'<ellipse cx="50" cy="52" rx="44" ry="13" fill="none" stroke="#C9A64A" stroke-width="6" transform="rotate(-16 50 52)"/><circle cx="50" cy="50" r="25" fill="#F7A055" stroke="#B8661E" stroke-width="3"/><path d="M28 42 C40 46 60 46 73 42 M26 54 C40 58 62 58 74 54" stroke="#FBC28E" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M6 52 A44 13 0 0 0 94 52" stroke="#C9A64A" stroke-width="6" fill="none" transform="rotate(-16 50 52)"/>',
   earth:'<circle cx="50" cy="50" r="38" fill="#4FA9DE" stroke="#2E6290" stroke-width="3"/><path d="M30 26 C40 22 50 30 46 40 C42 48 30 46 26 54 C20 46 22 32 30 26 Z M56 52 C66 46 80 52 78 64 C74 76 62 82 56 74 C52 66 50 58 56 52 Z M60 18 C68 18 74 24 70 30 C64 32 58 26 60 18 Z" fill="#6DBE5A" stroke="#357A31" stroke-width="2"/><ellipse cx="38" cy="34" rx="8" ry="4" fill="#fff" opacity=".35"/>',
   astronaut:'<path d="M18 96 C18 72 32 64 50 64 C68 64 82 72 82 96 Z" fill="#F4F6FA" stroke="#6E7888" stroke-width="3"/><rect x="40" y="72" width="20" height="14" rx="3" fill="#7DBDE6" stroke="#3E7FB0" stroke-width="2"/><circle cx="50" cy="38" r="28" fill="#F4F6FA" stroke="#6E7888" stroke-width="3"/><rect x="30" y="26" width="40" height="26" rx="12" fill="#3E4A98" stroke="#2A3170" stroke-width="2"/><path d="M36 32 C40 28 46 28 48 30" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>',
   telescope:'<path d="M50 60 L32 94 M50 60 L68 94 M50 60 V94" stroke="#6A3F20" stroke-width="5" stroke-linecap="round"/><g transform="rotate(-30 50 54)"><rect x="12" y="44" width="70" height="20" rx="5" fill="#7DBDE6" stroke="#2E6290" stroke-width="3"/><rect x="78" y="40" width="12" height="28" rx="3" fill="#3E7FB0" stroke="#2E6290" stroke-width="3"/><rect x="4" y="48" width="10" height="12" rx="2" fill="#3E7FB0" stroke="#2E6290" stroke-width="2"/></g><circle cx="50" cy="58" r="5" fill="#2E6290"/>',
@@ -380,7 +388,7 @@ FAIRIES.twinkle={id:'twinkle',name:'Twinkle',kind:'Star fairy',place:"Twinkle's 
   ],
   scene:nightScene,base:'#2E3A86',foundBg:'#DCDFF5',
   foundGround:'<ellipse cx="170" cy="340" rx="150" ry="20" fill="#2E5E5A"/><g fill="#E4DDFC"><circle cx="70" cy="334" r="4"/><circle cx="120" cy="344" r="4"/><circle cx="236" cy="340" r="4"/><circle cx="280" cy="334" r="4"/></g>',
-  thanks:'Thank you for helping me light up the sky.',
+  thanks:'Thank you for helping me light up the sky.',jigThings:['moon','comet','rocket','planet','telescope','astronaut'],
   icon:'<path d="'+STAR+'" transform="translate(50 54) scale(3.2) translate(-182 -146)" fill="#FFE07A" stroke="#fff" stroke-width=".6"/>',
   flowerBase:function(){
     return '<ellipse cx="340" cy="672" rx="290" ry="44" fill="#2E5E5A" opacity=".75"/>' +

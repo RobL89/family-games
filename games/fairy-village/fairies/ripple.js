@@ -368,7 +368,7 @@ function pzJugs(area,L){ multi(area,L,3,function(R){pzJugs1(area,L,R);}); }
 function pzJugs1(area,L,R){
   var max,step,labelEvery,unit,target,start,lvl;
   if(L===1){
-    var words=[['empty',0],['half full',2],['full',4]], t=R.fresh(words);
+    var words=[['empty',0],['half full',2],['full',4],['nearly full',3],['nearly empty',1]], t=R.fresh(words);
     target=t[1]; start=pick([0,1,2,3,4].filter(function(x){return x!==target;}));
     max=4; lvl=start;
     setSay('Make the jug '+t[0]+'. Tap Pour in or Pour out. Then tap Done.');
@@ -490,9 +490,9 @@ function pzStones(area,L){
   });
 }
 /* 5. missing letters */
-var POND_WORDS1=['fish','frog','duck','crab','net','log'];
-var POND_WORDS2=['frog','duck','crab','snail','shell','fish'];
-var POND_WORDS3=['splash','ripple','pebble','bubble','tadpole','puddle','stream','otter','heron','river','water'];
+var POND_WORDS1=['fish','frog','duck','crab','net','log','boat','shell','snail','stone'];
+var POND_WORDS2=['frog','duck','crab','snail','shell','fish','boat','stone','sponge','net','log'];
+var POND_WORDS3=['splash','ripple','pebble','bubble','tadpole','puddle','stream','otter','heron','river','water','dragonfly','minnow','paddle','island','pondweed','beaver','kingfisher','swan','reeds'];
 function pzLetters(area,L){ multi(area,L,3,function(R){pzLetters1(area,L,R);}); }
 function pzLetters1(area,L,R){
   var canSpeak='speechSynthesis' in window;

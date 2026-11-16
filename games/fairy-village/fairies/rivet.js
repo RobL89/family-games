@@ -661,7 +661,7 @@ function pzBridge(area,L){
 function pzTools(area,L){ multi(area,L,3,function(R){pzTools1(area,L,R);}); }
 function pzTools1(area,L,R){
   if(L===1){
-    var all4=['hammer','saw','nut','nail'], target=R.fresh(all4), pool=[target].concat(shuffle(all4.filter(function(x){return x!==target;})).slice(0,2));
+    var all4=['hammer','saw','nut','nail','bolt','screw','drill','ruler'], target=R.fresh(all4), pool=[target].concat(shuffle(all4.filter(function(x){return x!==target;})).slice(0,2));
     setSay('Which picture goes with this word? Tap the word to hear it.');
     area.innerHTML='<button class="bigword wordbtn" id="tw-word" aria-label="The word '+target+'. Tap to hear it.">'+target+'</button><div class="opts" id="tw-opts"></div>';
     $('#tw-word').addEventListener('click',function(){speak(target,true);});
@@ -669,13 +669,13 @@ function pzTools1(area,L,R){
     return;
   }
   if(L===3){
-    var w=R.fresh(['hammer','spanner','pliers','screw','ruler','chisel','drill']), all=[];for(var i=0;i<w.length;i++)all.push(i);
+    var w=R.fresh(['hammer','spanner','pliers','screw','ruler','chisel','drill','anvil','bolt','nail']), all=[];for(var i=0;i<w.length;i++)all.push(i);
     setSay('Spell the name of this tool. Tap the letters in order.');
     area.innerHTML='<div class="pic">'+picSVG2(w,'A tool')+'</div>';
     speller(area,w,all,extraLetters(w,2),function(ok){finish(ok);});
     return;
   }
-  var tools=[], toolPool=['hammer','saw','nut','bolt','nail','ruler','drill','spanner','screw','pliers'], at={}, sel=null;
+  var tools=[], toolPool=['hammer','saw','nut','bolt','nail','ruler','drill','spanner','screw','pliers','chisel','anvil'], at={}, sel=null;
   for(var ti=0;ti<3;ti++)tools.push(R.fresh(toolPool));
   setSay('Hang a label under each tool. Tap a word, then tap the space under its tool. Tap Check when every tool has a label.');
   area.innerHTML='<div class="wchips" id="tl-chips" aria-label="Labels"></div><div class="pegboard" id="tl-board"></div><button class="btn" id="tl-check" disabled>Check</button>';
@@ -699,7 +699,7 @@ function pzTools1(area,L,R){
   render();
 }
 /* 5. building site jigsaw */
-function pzBuildJig(area,L){ pzJigsaw(area,L,'build',buildPicture,'the building site'); }
+function pzBuildJig(area,L){ jigsawSet(area,L,'rivet',[{key:'build',fn:buildPicture,what:'the building site'}]); }
 /* her puzzle pictures (100 x 100), added to the shared picture list; any fairy can use them by name */
 Object.assign(PICS2,{
   /* ---------- puzzle pictures (100 x 100) ---------- */
@@ -737,7 +737,7 @@ FAIRIES.rivet={id:'rivet',name:'Rivet',kind:'Engineer fairy',place:"Rivet's cog 
   ],
   scene:millScene,base:'#94CC76',foundBg:'#FBEEDF',
   foundGround:'<ellipse cx="170" cy="340" rx="150" ry="20" fill="#B9E49C"/><path d="M44 346 C100 338 240 354 296 344" stroke="#7DBDE6" stroke-width="8" fill="none" stroke-linecap="round"/>',
-  thanks:'Thank you for getting my mill wheel turning again.',
+  thanks:'Thank you for getting my mill wheel turning again.',jigThings:['hammer','saw','spanner','drill','ruler','nut'],
   icon:'<path transform="translate(50 52)" d="'+gearD(10,25,0,8,4)+'" fill="#fff"/><circle cx="50" cy="52" r="9" fill="#D4825A"/>',
   flowerBase:function(){
     return '<ellipse cx="340" cy="676" rx="300" ry="42" fill="#7DBDE6" opacity=".6"/><path d="M90 676 q30 -10 60 0 t60 0 M420 690 q30 -10 60 0 t60 0" stroke="#fff" stroke-width="4" fill="none" opacity=".55"/>' +
