@@ -1,4 +1,10 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.9 (16 Nov, step 9).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.10 (16 Nov, step 10).
+
+Changes at v1.10 (step 10, D-166, D-169, D-170): the twins of levels 6 to 10 (L6b to L10b), so 20 levels in pairs:
+the same checks as v1.9's twins, with the worn sticks still only at the bath and the loft (D-170 (b)) and level 10's
+twin a second finale at the treehouse with the see-saw and the lift (D-170 (c)); each twin with parts not solved
+without either part. The house: all 20 stops at the sketch's places, house.js's PLAN with both stops of each place
+numbered 11 to 20; the timed-model check skips every level with worn sticks or parts, twins too.
 
 Changes at v1.9 (step 9, D-166, D-169, D-170): the twins of levels 1 to 5 (L1b to L5b), each straight after its first
 level: same room and backdrop, its stop the first's spot with a 2, nothing new (so no card), only gadget kinds its
@@ -143,7 +149,7 @@ out.levels = LEVELS.map((d) => {
   const fitsBy = {};
   for (const k of core.GADGETS) fitsBy[k] = core.fitCells(lv, {}, k);
   return { id: lv.id, cols: lv.cols, start: lv.start, home: lv.home, seed: lv.seed, tray: lv.tray, fitsBy, spare: d.spare || null, new: d.new, room: d.room, spot: d.spot, back: d.back,
-           twin: d.twin || null, more: d.more || null };
+           twin: d.twin || null, more: d.more || null, parts: d.parts || [] };
 });
 // placing in order, each where it fits
 const placeAll = (lv, list) => {
@@ -171,6 +177,11 @@ const SOL = {
   L3b: { solve: [['bridge', 1, 6], ['bouncer', 2, 5], ['bouncer', 6, 5]], seed: [['ramp', 10, 4]] },
   L4b: { solve: [['bridge', 2, 2], ['bridge', 5, 2], ['floater', 6, 1]], seed: [['bridge', 8, 2]] },
   L5b: { solve: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2]], seed: [['tube', 7, 1]] },
+  L6b: { solve: [['stick', 5, 4], ['stick', 5, 5], ['ramp', 7, 4]], seed: [['ramp', 8, 3]] },
+  L7b: { solve: [['stick', 5, 3], ['stick', 6, 3], ['stick', 5, 4], ['stick', 6, 4], ['ramp', 8, 3]], seed: [['ramp', 4, 2]] },
+  L8b: { solve: [['bridge', 3, 5], ['bridge', 15, 6], ['ramp', 5, 4], ['ramp', 10, 3]], seed: [['ramp', 14, 5]] },
+  L9b: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['floater', 13, 1], ['ramp', 16, 5]], seed: [['bridge', 15, 2]] },
+  L10b: { solve: [['bridge', 2, 6], ['bouncer', 4, 5], ['floater', 6, 2], ['tube', 9, 5], ['tube', 9, 4], ['tube', 9, 3], ['ramp', 11, 3], ['ramp', 20, 1]], seed: [['ramp', 15, 4]] },
 };
 // all five hamsters (run(), the timed model): 'home' only if every one gets home, else the first other outcome
 const five = (lv, placed) => {
@@ -260,9 +271,12 @@ for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows
 
 # levels.js
 lv = {x['id']: x for x in out['levels']}
-ORDER = ['L1', 'L1b', 'L2', 'L2b', 'L3', 'L3b', 'L4', 'L4b', 'L5', 'L5b', 'L6', 'L7', 'L8', 'L9', 'L10']
-check(list(lv) == ORDER, f'levels.js holds levels 1 to 10 with the twins of 1 to 5, each straight after its first level, played in pairs (D-166) ({list(lv)})')
-check([lv[i]['seed'] for i in ('L1b', 'L2b', 'L3b', 'L4b', 'L5b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1]], 'each twin has its golden seed where levels.js says')
+ORDER = [x for n in range(1, 11) for x in (f'L{n}', f'L{n}b')]
+check(list(lv) == ORDER, f'levels.js holds 20 levels: levels 1 to 10, each with its twin straight after it, played in pairs (D-166) ({list(lv)})')
+check([lv[i]['seed'] for i in ORDER if i.endswith('b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1], [8, 2], [5, 1], [15, 4], [16, 2], [15, 3]], 'each twin has its golden seed where levels.js says')
+check([i for i in ORDER if 'stick' in lv[i]['tray']] == ['L6', 'L6b', 'L7', 'L7b'], 'worn sticks on the 4 levels at the bath and the loft only (D-154, D-170 (b))')
+check(lv['L10b']['parts'] == lv['L10']['parts'] and lv['L10b']['cols'] == 24 and lv['L10b']['back'] == 'treehouse',
+      f'level 10\'s twin is a second finale at the treehouse: 24 wide, the see-saw and the lift (D-170 (c))')
 TWINS = [i for i in ORDER if lv[i]['twin']]
 for t in TWINS:
     f = lv[lv[t]['twin']]
@@ -277,11 +291,14 @@ check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['se
       'each level has its golden seed where levels.js says')
 check([lv[i]['new'] for i in lv if not lv[i]['twin']] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
       'each level brings in one new thing, in the agreed order; 6 and 7 the worn stick, 8 the see-saw, 9 the teacup lift; 10, the finale, nothing new (D-136, D-145, D-153, D-156, D-157)')
-check([lv[i]['spare'] for i in lv] == [None, 'bridge', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'tube', 'tube', 'ramp', 'ramp', 'ramp', 'bridge', 'ramp'],
+check([lv[i]['spare'] for i in lv] == [None, 'bridge', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'tube', 'tube', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'ramp', 'ramp'],
       'every level but level 1 names the spare gadget its seed needs, the twins too')
 check([(t, lv[t]['tray'], lv[t]['more']) for t in TWINS] == [('L1b', {'bridge': 3}, 'bridge'), ('L2b', {'bridge': 1, 'ramp': 3}, 'ramp'),
-      ('L3b', {'bridge': 1, 'bouncer': 2, 'ramp': 1}, 'bouncer'), ('L4b', {'bridge': 3, 'floater': 1}, 'bridge'), ('L5b', {'bridge': 1, 'tube': 5}, 'tube')],
-      'the twins\' trays: 3 bridges (2 gaps and a spare); a bridge and 3 ramps (2 steps and a spare); a bridge, 2 bouncers and a spare ramp; 3 bridges (2 gaps and a spare) and a floater; a bridge and 5 tubes (4 up and a spare)')
+      ('L3b', {'bridge': 1, 'bouncer': 2, 'ramp': 1}, 'bouncer'), ('L4b', {'bridge': 3, 'floater': 1}, 'bridge'), ('L5b', {'bridge': 1, 'tube': 5}, 'tube'),
+      ('L6b', {'stick': 2, 'ramp': 2}, 'ramp'), ('L7b', {'stick': 4, 'ramp': 2}, 'ramp'), ('L8b', {'bridge': 2, 'ramp': 3}, 'bridge'),
+      ('L9b', {'bridge': 2, 'ramp': 2, 'floater': 1}, 'ramp'), ('L10b', {'bridge': 1, 'ramp': 3, 'bouncer': 1, 'floater': 1, 'tube': 3}, 'ramp')],
+      'the twins\' trays: 3 bridges (2 gaps and a spare); a bridge and 3 ramps (2 steps and a spare); a bridge, 2 bouncers and a spare ramp; 3 bridges (2 gaps and a spare) and a floater; a bridge and 5 tubes (4 up and a spare); '
+      '2 sticks and 2 ramps (a step and a spare); 4 sticks and 2 ramps; 2 bridges (2 gaps) and 3 ramps; 2 bridges (one a spare), 2 ramps (2 steps) and a floater; level 10\'s tray and one more ramp (a step in the treehouse)')
 check(lv['L9']['tray'] == {'bridge': 2, 'ramp': 1, 'floater': 1} and lv['L9']['cols'] == 20 and (lv['L9']['room'], lv['L9']['spot'], lv['L9']['back']) == ('garden', 'shed', 'shed'),
       f'level 9: 20 squares wide, 2 bridges (one a spare for the seed), a ramp and a floater, at the shed with its own backdrop ({lv["L9"]["tray"]}, {lv["L9"]["cols"]})')
 check(lv['L10']['tray'] == {'bridge': 1, 'ramp': 2, 'bouncer': 1, 'floater': 1, 'tube': 3} and lv['L10']['cols'] == 24
@@ -324,8 +341,11 @@ check(all(out['play'][i]['solvedSeed'] is False for i in ORDER if i != 'L1'), 'e
 for t in TWINS:
     nm = out['play'][t]['noMore']
     check(nm and all(o != 'home' for o in nm), f'{t}: not solved with any one of its {lv[t]["more"]}s taken away: it needs the one more (D-166) ({nm})')
-check([out['play'][t]['spare'] for t in TWINS] == [[[7, 4]], [[5, 4], [6, 4]], [[10, 4]], [[8, 2]], [[7, 1]]],
-      f'the twins: the spare takes the seed home only beside the ledge at 7,4; from 5,4 or 6,4 on the first step; on the landing at 10,4; beside the ledge at 8,2; on top of the tubes at 7,1 ({[out["play"][t]["spare"] for t in TWINS]})')
+check([out['play'][t]['spare'] for t in TWINS] == [[[7, 4]], [[5, 4], [6, 4]], [[10, 4]], [[8, 2]], [[7, 1]], [[8, 3]], [[4, 2]], [[14, 5], [15, 5]], [[15, 2], [15, 3]], [[15, 4]]],
+      f'the twins: the spare takes the seed home only beside the ledge at 7,4; from 5,4 or 6,4 on the first step; on the landing at 10,4; beside the ledge at 8,2; on top of the tubes at 7,1; '
+      f'on the step at 8,3; before the gap at 4,2; where they land off the see-saw, 14,5 or 15,5; beside the bench, 15,2 or 15,3; where they step off the see-saw, 15,4 ({[out["play"][t]["spare"] for t in TWINS]})')
+for t in ('L8b', 'L9b', 'L10b'):
+    check(out['play'][t]['noParts'] and all(o != 'home' for _, o in out['play'][t]['noParts']), f'{t}: not solved without its see-saw or lift ({out["play"][t]["noParts"]})')
 check(out['play']['L9']['spare'] == [[15, 2]], f'level 9: the spare bridge takes the seed home only at 15,2, the shelf made one longer ({out["play"]["L9"]["spare"]})')
 check(out['play']['L10']['spare'] == [[19, 1], [20, 1]], f'level 10: the spare ramp takes the seed home from 19,1 or 20,1 only, in the treehouse ({out["play"]["L10"]["spare"]})')
 check(out['play']['L9']['noParts'] == [['lift', 'stuck']], f'level 9: without its teacup lift, stuck at the bench ({out["play"]["L9"]["noParts"]})')
@@ -481,18 +501,20 @@ else:
            if (j == i + 1 and (orient(*segs[i], segs[j][1]) == 0 and on(*segs[i], segs[j][1]) or orient(*segs[j], segs[i][0]) == 0 and on(*segs[j], segs[i][0])))
            or (j > i + 1 and meet(*segs[i], *segs[j]))]
     check(not bad, f'the house\'s whole planned route never crosses itself or runs back along itself (D-151) ({bad or len(segs)} segments)')
-    check(h['plan'] == [['bath', 6], ['rafters', 7], ['suitcases', None], ['veg', 8], ['shed', 9], ['pond', None], ['treehouse', 10]],
-          f'the plan (D-151, plan A): 6 the bath, 7 the loft\'s rafters, a later place by the suitcases, 8 the veg patch, 9 the shed, a later place at the pond, 10 the treehouse ({h["plan"]})')
+    check(h['plan'] == [['bath', 11], ['bath2', 12], ['rafters', 13], ['rafters2', 14], ['suitcases', None], ['veg', 15], ['veg2', 16], ['shed', 17], ['shed2', 18], ['pond', None], ['treehouse', 19], ['treehouse2', 20]],
+          f'the plan (D-151, plan A; D-169 pairs): 11 and 12 the bath, 13 and 14 the loft\'s rafters, a later place by the suitcases, 15 and 16 the veg patch, 17 and 18 the shed, a later place at the pond, 19 and 20 the treehouse ({h["plan"]})')
     check(h['future'] == h['planAt'], 'the soft places in the house are the plan\'s places, in its order')
     k = len(h['drawn'] or [])
     check(k > 0 and h['drawn'] == h['pts'][:k], f'the house draws its dotted path along that route, through the levels there are and on to the next place, never back to a place it passed ({h["drawn"]})')
-    check(h['atPlan'] == [['L6', True, 6], ['L7', True, 7], ['L8', True, 8], ['L9', True, 9], ['L10', True, 10]],
-          f'levels 6 to 10 sit at the plan\'s own places for them, the bath, the rafters, the veg patch, the shed and the treehouse (D-151) ({h["atPlan"]})')
+    check(h['atPlan'] == [[i, True, ORDER.index(i) + 1] for i in ORDER[10:]],
+          f'levels 6 to 10 and their twins (11 to 20 in play) sit at the plan\'s own places for them, numbered as they play (D-151, D-169) ({h["atPlan"]})')
     # D-169: each place's two stops apart, at the step 7 sketch's places (sketch_hamster_cards.py 0.1, stops 1 to 10)
     st = dict((i, tuple(xy) if xy else None) for i, xy in h['stops'])
     SKETCHED = {'L1': (224, 654), 'L1b': (340, 646), 'L2': (472, 630), 'L2b': (588, 634), 'L3': (714, 675), 'L3b': (830, 661),
-                'L4': (1010, 620), 'L4b': (1110, 560), 'L5': (1090, 300), 'L5b': (974, 290)}
-    check(all(st.get(i) == xy for i, xy in SKETCHED.items()), f'levels 1 to 5 and their twins sit at the sketch\'s ten stops, each pair a little apart (D-169) ({ {i: st.get(i) for i in SKETCHED} })')
+                'L4': (1010, 620), 'L4b': (1110, 560), 'L5': (1090, 300), 'L5b': (974, 290),
+                'L6': (357, 373), 'L6b': (243, 347), 'L7': (376, 170), 'L7b': (484, 130), 'L8': (1424, 726), 'L8b': (1536, 698),
+                'L9': (1804, 559), 'L9b': (1920, 561), 'L10': (2292, 402), 'L10b': (2352, 302)}
+    check(all(st.get(i) == xy for i, xy in SKETCHED.items()) and len(st) == 20, f'all 20 levels sit at the sketch\'s 20 stops, each pair a little apart (D-169) ({ {i: st.get(i) for i in SKETCHED} })')
     xs = [(i, xy) for i, xy in st.items() if xy]
     near = min(((a[1][0] - b[1][0]) ** 2 + (a[1][1] - b[1][1]) ** 2) ** 0.5 for k, a in enumerate(xs) for b in xs[k + 1:])
     check(len(xs) == len(st) and near >= 112, f'every level has its stop, and no two stops\' tap circles (56 across the middle) overlap: the closest are {near:.0f} apart (112 or more)')
@@ -528,7 +550,7 @@ const SOL = {
   L5b: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2], ['tube', 7, 1]],
 };
 for (const d of LEVELS) {
-  if (d.new === 'stick' || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
+  if (d.new === 'stick' || (d.tray || {}).stick || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
   const lv = core.parseLevel(d);
   const placed = {};
   for (const [k, c, r] of SOL[d.id]) placed[core.key(c, r)] = k;

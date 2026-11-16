@@ -4,10 +4,13 @@ Version 1.4 (16 Nov, step 9). Not part of the close: a design tool, kept so each
 Changes at v1.4 (step 9, D-166): a level's twin (`twin` in levels.js) brings in nothing new and names in `more` the
 gadget it needs one more of than its first level: it is checked to need it, with that gadget's count cut to the first
 level's need (one fewer than the twin needs: the tray's count less one, less one more if it is also the spare), no
-placement gets home. "Without the new" is skipped for a level that brings in nothing and has no parts. A twin too big
+placement gets home. "Without the new" is skipped for a level that brings in nothing; a twin with parts (a see-saw or
+a lift) is checked without each of them instead (no placement gets home). A twin too big
 to try every placement with its whole tray (L5b: a bridge and 5 tubes, over 16 million, more than node's Set holds) is
 checked from its answer as level 10 is, and also by trying every placement with one spare fewer (none takes the seed)
-and with its first level's count of `more` (none gets home), which are small enough (`full` in ANSWERS).
+and with its first level's count of `more` (none gets home), which are small enough (`full` in ANSWERS). Level 10's
+twin, too big even for that, is checked for its `more` near its answer: each of its bridges taken away in turn, and
+every way of moving one or two of the rest (none gets home).
 
 Changes at v1.3 (step 4, D-157): a level with any part (a see-saw or a lift) is judged by run() for every placement
 (a hamster may drop into a lift's shaft, which walk() with time standing still would show wrongly). And a level too
@@ -160,20 +163,26 @@ for (const d of LEVELS) {
     const nearLess = near(lv, A.answer, {});
     const noPart = (lv.parts || []).map((p) => { const lv2 = core.parseLevel({ ...d, parts: (d.parts || []).filter((q) => q.kind !== p.kind) }); const n = near(lv2, A.answer, A.seed); return [p.kind, n.tried, n.home]; });
     const base = d.more ? lv.tray[d.more] - 1 - (d.spare === d.more ? 1 : 0) : null;
-    const noMore = d.more ? count(lv, { ...lv.tray, [d.more]: base }) : null;
+    // with its first level's count of `more`: every placement if small enough (full), else near the answer with each of
+    // its `more` gadgets taken away in turn (moving one or two of the rest)
+    const noMore = !d.more ? null : A.full ? count(lv, { ...lv.tray, [d.more]: base })
+      : Object.keys(A.answer).filter((k) => A.answer[k] === d.more).map((k) => { const a = { ...A.answer }; delete a[k]; return near(lv, a, {}); })
+          .reduce((x, y) => ({ tried: x.tried + y.tried, home: x.home + y.home }), { tried: 0, home: 0 });
     const lessAll = A.full && d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
     out.push({ id: d.id, near: true, ans, each, spareAt, nearAll, nearLess, noPart, spare: d.spare, more: d.more || null, base, noMore, lessAll });
     continue;
   }
   const all = count(lv, lv.tray);
   const noNew = core.GADGETS.includes(d.new) ? count(lv, { ...lv.tray, [d.new]: 0 })
-    : d.new || (d.parts || []).length ? count(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), lv.tray) : null;
+    : d.new ? count(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), lv.tray) : null;
+  // a level that brings in nothing new but has parts (a twin of 8 or 9): without each part, nothing gets home
+  const partsOff = !d.new ? (d.parts || []).map((p) => [p.kind, count(core.parseLevel({ ...d, parts: (d.parts || []).filter((q) => q.kind !== p.kind) }), lv.tray).home]) : [];
   // a twin: with its `more` gadget cut to its first level's need, nothing gets home
   const base = d.more ? lv.tray[d.more] - 1 - (d.spare === d.more ? 1 : 0) : null;
   const noMore = d.more ? count(lv, { ...lv.tray, [d.more]: base }) : null;
   const less = d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
   const fewer = lv.tray.stick ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
-  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore });
+  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff });
 }
 console.log(JSON.stringify(out));
 '''
@@ -191,6 +200,9 @@ ANSWERS = {
     'L10': {'answer': {'2,6': 'bridge', '4,5': 'bouncer', '6,2': 'floater', '9,5': 'tube', '9,4': 'tube', '9,3': 'tube', '11,3': 'ramp'},
             'seed': {'20,1': 'ramp'}},
     # L5b, the tube twin (16 Nov, step 9; test_hamster_highway_core.py 1.9's SOL)
+    # L10b, the second finale (16 Nov, step 10; test_hamster_highway_core.py 1.10's SOL)
+    'L10b': {'answer': {'2,6': 'bridge', '4,5': 'bouncer', '6,2': 'floater', '9,5': 'tube', '9,4': 'tube', '9,3': 'tube', '11,3': 'ramp', '20,1': 'ramp'},
+             'seed': {'15,4': 'ramp'}},
     'L5b': {'answer': {'1,6': 'bridge', '7,5': 'tube', '7,4': 'tube', '7,3': 'tube', '7,2': 'tube'}, 'seed': {'7,1': 'tube'}, 'full': True},
 }
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(GAME, 'core.js'),
@@ -211,15 +223,16 @@ for L in json.loads(r.stdout):
               f"without any one of its gadgets: {sum(1 for _, _, h in L['each'] if h)} of {len(L['each'])} still home; the spare {L['spare']} takes the seed at {L['spareAt']}; "
               f"moving one or two gadgets: {na['tried']} ways, {na['home']} home, {na['seed']} with the seed; with one {L['spare']} fewer: {nl['tried']} ways, {nl['home']} home, {nl['seed']} with the seed"
               + ''.join(f'; without the {k}: {t} ways, {h} home' for k, t, h in L['noPart'])
-              + (f"; every placement with {L['base']} {L['more']} (its first level's need): {L['noMore']['tried']} ways, {L['noMore']['home']} home" if L['noMore'] else '')
+              + (f"; {'every placement' if L['lessAll'] else 'near the answer'} with {L['base']} {L['more']} (its first level's need): {L['noMore']['tried']} ways, {L['noMore']['home']} home" if L['noMore'] else '')
               + (f"; every placement with one {L['spare']} fewer: {L['lessAll']['tried']} ways, {L['lessAll']['home']} home, {L['lessAll']['seed']} with the seed" if L['lessAll'] else ''))
         continue
     a, n, s, f, m = L['all'], L['noNew'], L['less'], L['fewer'], L['noMore']
     ok = (a['home'] > 0 and (n is None or n['home'] == 0) and a['seed'] > 0 and (s is None or s['seed'] == 0) and (f is None or f['home'] == 0)
-          and (m is None or m['home'] == 0) and (n is not None or m is not None))
+          and (m is None or m['home'] == 0) and (n is not None or m is not None) and all(h == 0 for _, h in L['partsOff']))
     bad += not ok
     print(f"{'ok  ' if ok else 'FAIL'} {L['id']}: {a['tried']} ways to put the tray down; {a['home']} get home, {a['seed']} with the seed; "
           + (f"without the {L['new']}: {n['home']} home" if n else f"with {L['base']} {L['more']} (its first level's need): {m['home']} home")
+          + ''.join(f"; without the {k}: {h} home" for k, h in L['partsOff'])
           + (f"; with one {L['spare']} fewer: {s['seed']} with the seed" if s else '; no spare named')
           + (f"; with one stick fewer: {f['home']} home" if f else '')
           + f"; first seed solutions {a['firstSeed']}")

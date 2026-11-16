@@ -1,4 +1,19 @@
-// Hamster Highway's levels. Version 1.5. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.6. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.6 (step 10, D-166, D-170): the twins of levels 6 to 10, so 20 levels in pairs. As v1.5's, each needs
+// one more of a gadget its first level has (`more`), with its own seed and spare; checked by solve_hamster_highway.py
+// 1.4 (every placement, but L10b near its answer, as level 10):
+//   L6b Crack and climb: the bath's gap with 2 worn sticks one under the other, then a step up: one more ramp than
+//       level 6 needs (none); the seed above the step, by the spare ramp on it (8,3). Worn sticks still only at the
+//       bath and the loft (D-170 (b)).
+//   L7b Two by two, up: the loft's two-square gap with 4 sticks in two layers, then a step up to home: one more ramp;
+//       the seed as level 7's, by the spare ramp before the gap (4,2).
+//   L8b Tip and cross: level 8's see-saw, then a gap after it: one more bridge; the seed over that gap, by the spare
+//       ramp where they land off the see-saw (14,5, or 15,5 on the bridge).
+//   L9b Teacup and step: level 9's lift and bench, then a step up to home after the drop: one more ramp; the seed just
+//       past the bench, by the spare bridge beside it (15,2 or 15,3).
+//   L10b Treehouse party again, the second finale (D-170 (c)): level 10's board with a step up in the treehouse: one
+//       more ramp; the seed past the see-saw, by the spare ramp where they step off it (15,4).
 //
 // Changes at v1.5 (step 9, D-166, D-170): the twins of levels 1 to 5, each straight after its first level, so they
 // play in pairs. A twin has the first's id with a b (new ids, so saved progress stays valid), its room and backdrop,
@@ -202,6 +217,19 @@ export const LEVELS = [
     ],
   },
   {
+    id: 'L6b', name: 'Crack and climb', room: 'bathroom', spot: 'bath2', back: 'bathroom', new: null, twin: 'L6', more: 'ramp',
+    tray: { stick: 2, ramp: 2 }, spare: 'ramp',
+    rows: [
+      '............',
+      '............',
+      '........*...',
+      'S.........G.',
+      '#####...####',
+      '#####.######',
+      '#####.######',
+    ],
+  },
+  {
     id: 'L7', name: 'Two by two', room: 'loft', spot: 'rafters', back: 'loft', new: 'stick',
     tray: { stick: 4, ramp: 1 }, spare: 'ramp',
     rows: [
@@ -209,6 +237,19 @@ export const LEVELS = [
       '.....*......',
       'S...........',
       '#####.....G.',
+      '#####..#####',
+      '#####..#####',
+      '#####..#####',
+    ],
+  },
+  {
+    id: 'L7b', name: 'Two by two, up', room: 'loft', spot: 'rafters2', back: 'loft', new: null, twin: 'L7', more: 'ramp',
+    tray: { stick: 4, ramp: 2 }, spare: 'ramp',
+    rows: [
+      '............',
+      '.....*......',
+      'S.........G.',
+      '#####....###',
       '#####..#####',
       '#####..#####',
       '#####..#####',
@@ -229,6 +270,20 @@ export const LEVELS = [
     ],
   },
   {
+    id: 'L8b', name: 'Tip and cross', room: 'garden', spot: 'veg2', back: 'veg', new: null, twin: 'L8', more: 'bridge',
+    tray: { bridge: 2, ramp: 3 }, spare: 'ramp',
+    parts: [{ kind: 'seesaw', c: 11, r: 3 }],
+    rows: [
+      '..................',
+      '..................',
+      '..................',
+      '..................',
+      'S.....#####....*..',
+      '###.#######.....G.',
+      '###.#######.#.#.##',
+    ],
+  },
+  {
     id: 'L9', name: 'Teacup ride', room: 'garden', spot: 'shed', back: 'shed', new: 'lift',
     tray: { bridge: 2, ramp: 1, floater: 1 }, spare: 'bridge',
     parts: [{ kind: 'lift', c: 8, top: 2, bottom: 5, cups: 2 }],
@@ -243,6 +298,20 @@ export const LEVELS = [
     ],
   },
   {
+    id: 'L9b', name: 'Teacup and step', room: 'garden', spot: 'shed2', back: 'shed', new: null, twin: 'L9', more: 'ramp',
+    tray: { bridge: 2, ramp: 2, floater: 1 }, spare: 'bridge',
+    parts: [{ kind: 'lift', c: 8, top: 2, bottom: 5, cups: 2 }],
+    rows: [
+      '....................',
+      '....................',
+      '.........######.*...',
+      '.........######.....',
+      'S.....#..######...G.',
+      '###.####.######..###',
+      '###.################',
+    ],
+  },
+  {
     id: 'L10', name: 'Treehouse party', room: 'garden', spot: 'treehouse', back: 'treehouse', new: null,
     tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 3 }, spare: 'ramp',
     parts: [{ kind: 'seesaw', c: 12, r: 3 }, { kind: 'lift', c: 17, top: 2, bottom: 5, cups: 2 }],
@@ -251,6 +320,20 @@ export const LEVELS = [
       '......................G.',
       '..................######',
       '.....###................',
+      '.....###..##............',
+      'S....###..##...##.......',
+      '##.#########.#.#########',
+    ],
+  },
+  {
+    id: 'L10b', name: 'Treehouse party again', room: 'garden', spot: 'treehouse2', back: 'treehouse', new: null, twin: 'L10', more: 'ramp',
+    tray: { bridge: 1, ramp: 3, bouncer: 1, floater: 1, tube: 3 }, spare: 'ramp',
+    parts: [{ kind: 'seesaw', c: 12, r: 3 }, { kind: 'lift', c: 17, top: 2, bottom: 5, cups: 2 }],
+    rows: [
+      '......................G.',
+      '.....................###',
+      '..................######',
+      '.....###.......*........',
       '.....###..##............',
       'S....###..##...##.......',
       '##.#########.#.#########',

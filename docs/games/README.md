@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.40 · 2026-11-16 |
+| **Version** | 1.41 · 2026-11-16 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.41:** Hamster Highway step 10 (D-166, D-169, D-170): the twins of levels 6 to 10, so 20 levels; every place's two stops; the core test at 1.10, the browser test at 1.8, the solver's answers for L10b, the bench at 1.8 (9 twin faults; two older faults' text repaired, ER-012); the release check still 1.1, not run.
 
 **Changes at v1.40:** Hamster Highway step 9 (D-166, D-169, D-170): the twins of levels 1 to 5 (ids `L1b` to `L5b`) and their stops; `progress.js` 1.2's `opens()`; the core test at 1.9, the browser test at 1.7, the cards' browser test at 1.1, the solver at 1.4 (twins, and a near-answer check with full searches for the tube twin), the bench at 1.7 (6 twin faults); the release check still 1.1, not run.
 
@@ -186,6 +188,7 @@ python3 -B tools/tests/games/close.py
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.41 | 2026-11-16 | Hamster Highway twins of levels 6 to 10: 20 levels (D-166, D-169, D-170) |
 | 1.40 | 2026-11-16 | Hamster Highway twins of levels 1 to 5 (D-166, D-169, D-170) |
 | 1.39 | 2026-11-16 | Hamster Highway help cards (D-167, D-168, D-170, D-171) |
 | 1.38 | 2026-11-15 | Hamster Highway released to P-020 (D-165), its release check; ER-011 fixed |

@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.13 · 16 Nov 2026 · P-034 (Kids Games Development) · levels 1 to 10 and the twins of 1 to 5, the house picker, help cards, saving and the wrapper link.
+Version 1.14 · 16 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.14 (step 10, D-166, D-169, D-170): the twins of levels 6 to 10, so 20 levels in pairs: the bath's and the loft's with worn sticks and a step up, the veg patch's with a gap after the see-saw, the shed's with a step up after the drop, and a second treehouse finale with a step up to the party. Every place now has its two stops. Not yet released.
 
 Changes at v1.13 (step 9, D-166, D-169, D-170): the twins of levels 1 to 5, a second level at each of those places, played straight after the first: same room and backdrop, its own stop a little way along on the house, nothing new (no card), one more of a gadget the first level has, and its own golden seed with a spare. Levels open by `progress.js`'s `opens()`: a child who played before the twins came finds them open. Not yet released.
 
@@ -39,7 +41,8 @@ all made in code (D-010).
   after the first and drawn as its own stop a little way along. It brings in nothing new and needs one more of a
   gadget the first level has (`more` in `levels.js`): two gaps, two steps, two walls to bounce over, two gaps before
   the big drop, a taller tube. A level opens if it is the first, the one before it is done, or it or a later level is
-  done, so a child who played before the twins came finds them open but not done. Levels 1 to 5's twins so far.
+  done, so a child who played before the twins came finds them open but not done. All ten places have their twin:
+  20 levels, numbered 1 to 20 on the house.
 - **Placing gadgets:** anywhere they fit (D-139): a bridge where a hamster would fall through, next
   to ground; a ramp, bouncer or floater on ground or a bridge; a tube in any empty square. On the PC, drag one from the tray or
   click it and then a square; on a phone, tap then tap. A square that doesn't fit shows red.
@@ -93,6 +96,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.14 | 2026-11-16 | The twins of levels 6 to 10: 20 levels (D-166, D-169, D-170) |
 | 1.13 | 2026-11-16 | The twins of levels 1 to 5 and their stops; opens() (D-166, D-169, D-170) |
 | 1.12 | 2026-11-16 | Help cards and the help button; progress format 2 (D-167, D-168, D-170, D-171) |
 | 1.11 | 2026-11-15 | Its release check; released to P-020 (D-165) |

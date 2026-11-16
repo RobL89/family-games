@@ -1,4 +1,8 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.7 (16 Nov, step 9).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.8 (16 Nov, step 10).
+
+Changes at v1.8 (step 10, D-166, D-170): the twins of levels 6 to 10 too, each played straight after its first level
+(the worn sticks', the see-saw's and the lift's on their wide boards, and level 10's twin, the second finale); no Next
+after level 10's twin, the last of 20.
 
 Changes at v1.7 (step 9, D-166, D-170): the twins of levels 1 to 5 play in pairs: the house shows every level (the
 order read from levels.js), only the first open; after level 1, back in the house, its twin is open and level 2
@@ -129,6 +133,11 @@ TWIN = {
     'L3b': [('bridge', 1, 6), ('bouncer', 2, 5), ('bouncer', 6, 5), ('ramp', 10, 4)],
     'L4b': [('bridge', 2, 2), ('bridge', 5, 2), ('floater', 6, 1), ('bridge', 8, 2)],
     'L5b': [('bridge', 1, 6), ('tube', 7, 5), ('tube', 7, 4), ('tube', 7, 3), ('tube', 7, 2), ('tube', 7, 1)],
+    'L6b': [('stick', 5, 4), ('stick', 5, 5), ('ramp', 7, 4), ('ramp', 8, 3)],
+    'L7b': [('stick', 5, 3), ('stick', 6, 3), ('stick', 5, 4), ('stick', 6, 4), ('ramp', 8, 3), ('ramp', 4, 2)],
+    'L8b': [('bridge', 3, 5), ('ramp', 5, 4), ('ramp', 10, 3), ('bridge', 15, 6), ('ramp', 14, 5)],
+    'L9b': [('bridge', 3, 5), ('ramp', 5, 4), ('floater', 13, 1), ('bridge', 15, 2), ('ramp', 16, 5)],
+    'L10b': [('bridge', 2, 6), ('bouncer', 4, 5), ('floater', 6, 2), ('tube', 9, 5), ('tube', 9, 4), ('tube', 9, 3), ('ramp', 11, 3), ('ramp', 15, 4), ('ramp', 20, 1)],
 }
 
 
@@ -440,7 +449,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'], 'PC: level 6 with a stick under the stick and the spare ramp past the bath: all five home, with the seed')
 
-    # level 7: two layers of sticks
+    # level 6's twin, then level 7: two layers of sticks
+    play_twin(pg, 'L6b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L7'))
     check(pg.locator('#bg [data-back="loft"]').count() == 1, 'PC: level 7 has the loft for its backdrop (D-154)')
@@ -452,7 +462,8 @@ with sync_playwright() as pw:
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'snap' in s['heard'], 'PC: level 7 with four sticks in two layers and the ramp before the gap: a snap, then all five home with the seed')
 
-    # level 8: the wide board (D-158) and the see-saw (D-156)
+    # level 7's twin, then level 8: the wide board (D-158) and the see-saw (D-156)
+    play_twin(pg, 'L7b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L8'))
     v = pg.evaluate('__test.view()')
@@ -509,7 +520,8 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and mid > 0, f'PC: level 8 with the ramp to the see-saw and the spare at the first gap: all five home with the seed; the window followed them ({mid})')
-    # level 9: the shed and the teacup lift with two cups (D-157, D-161)
+    # level 8's twin, then level 9: the shed and the teacup lift with two cups (D-157, D-161)
+    play_twin(pg, 'L8b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L9'))
     v = pg.evaluate('__test.view()')
@@ -538,7 +550,8 @@ with sync_playwright() as pw:
     go_and_wait(pg, 'party')
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'], 'PC: level 9 with the floater and the spare bridge: all five ride the lift home, with the seed')
-    # level 10: the treehouse finale
+    # level 9's twin, then level 10: the treehouse finale
+    play_twin(pg, 'L9b', cards)
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L10'))
     v = pg.evaluate('__test.view()')
@@ -553,7 +566,10 @@ with sync_playwright() as pw:
     check(s['home'] == 5 and s['seedTaken'] and all(x in s['heard'] for x in ('boing', 'creak', 'clink')),
           f'PC: level 10 with its answer and the spare ramp: a bounce, the see-saw, the lift, all five home with the seed ({s["heard"][-8:]})')
     pg.screenshot(path=os.path.join(OUT, 'pc-18-level10-party.png'))
-    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level there is no Next')
+    # level 10's twin, the second finale (D-170 (c)), the last of 20
+    play_twin(pg, 'L10b', cards)
+    pg.screenshot(path=os.path.join(OUT, 'pc-19-level10b-party.png'))
+    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level, level 10\'s twin, there is no Next')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
@@ -563,7 +579,7 @@ with sync_playwright() as pw:
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
             'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}},
             'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift')}}
-    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, 'seesaw', 'lift', None],
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
     check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
@@ -653,7 +669,7 @@ with sync_playwright() as pw:
         pg.screenshot(path=os.path.join(OUT, f'{w}x{h}-party.png'))
         if (w, h) == (844, 390):
             # level 8 by touch: the arrows slide the wide board, and a ramp goes down along it
-            done7 = {f'L{i}': True for i in range(1, 8)}
+            done7 = {i: True for i in IDS[:IDS.index('L8')]}   # every level before level 8, the twins too
             pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 1, done: {json.dumps(done7)}, seeds: {{}}, tries: {{}}}}))")
             pg.reload()
             pg.wait_for_function('window.__test !== undefined && __test.state().ready')

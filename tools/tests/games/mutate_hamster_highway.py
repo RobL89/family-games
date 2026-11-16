@@ -1,5 +1,10 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.7 (16 Nov, step 9).
+tests catch (project rules: test the tests). Version 1.8 (16 Nov, step 10).
+Changes at v1.8 (step 10, D-166, D-169, D-170): three more twin faults, by the core test: level 6's twin with one stick,
+level 10's twin with no step in the treehouse (so it needs no more ramps than level 10), and the shed's second stop
+missing from the plan. Two older faults' text follows the code again (ER-012): 'any format is read' (progress.js 1.1
+reads formats 1 and 2 through READS, so its old text was not found from step 8 on) and 'level 10 has two tubes'
+(level 10's twin has the same tube count, so its tray is named whole).
 Changes at v1.7 (step 9, D-166, D-169, D-170): six faults in the twins, their names starting "twin:": five caught or
 not by the core test (opens() forgets old progress, level 1's twin without its spare bridge, its high ledge with no
 gap, a twin's stop on its first level's, a twin bringing in a card) and one by the cards' browser test (the game
@@ -75,13 +80,13 @@ FAULTS = [
     ('a lift may have three cups', G + 'core.js', '&& (cups === 1 || cups === 2);', '&& (cups >= 1 && cups <= 3);', CORE),
     ('a rider\'s cup is not named', G + 'core.js', "act: 'ride', cup: stop.cup, seat: stop.seat }", "act: 'ride', seat: stop.seat }", CORE),
     ('level 9 has no spare bridge', G + 'levels.js', 'tray: { bridge: 2, ramp: 1, floater: 1 }', 'tray: { bridge: 1, ramp: 1, floater: 1 }', CORE),
-    ('level 10 has two tubes', G + 'levels.js', 'floater: 1, tube: 3 }', 'floater: 1, tube: 2 }', CORE),
+    ('level 10 has two tubes', G + 'levels.js', 'tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 3 }', 'tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 2 }', CORE),
     ('the cups stand still during a run', G + 'game.js', '  moveCups(R);\n', '', E2E),
     ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
     ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),
     ('a seed is kept on a level not done', G + 'progress.js', 'if (seeds[id] === true && p.done[id])', 'if (seeds[id] === true)', CORE),
-    ('any format is read', G + 'progress.js', '  if (!isMap(raw) || raw.v !== FORMAT) return p;', '  if (!isMap(raw)) return p;', CORE),
+    ('any format is read', G + 'progress.js', '  if (!isMap(raw) || !READS.includes(raw.v)) return p;', '  if (!isMap(raw)) return p;', CORE),
     ('no format version saved', G + 'progress.js', 'export const pack = (p) => ({ v: FORMAT, ...copy(p) });', 'export const pack = (p) => ({ ...copy(p) });', CORE),
     ('the house always opens at level 1', G + 'progress.js', '  return i < 0 ? Math.max(0, ids.length - 1) : i;', '  return 0;', CORE),
     ('level 4 has no spare bridge', G + 'levels.js', 'tray: { bridge: 2, floater: 1 }', 'tray: { bridge: 1, floater: 1 }', CORE),
@@ -106,6 +111,9 @@ FAULTS = [
     ('twin: level 1\'s twin needs one bridge', G + 'levels.js', "      '###.###.....',\n", "      '#######.....',\n", CORE),
     ('twin: a twin\'s stop on its first\'s', G + 'house.js', 'sink2: [340, 646]', 'sink2: [224, 654]', CORE),
     ('twin: a twin brings in a card', G + 'levels.js', "new: null, twin: 'L1'", "new: 'bridge', twin: 'L1'", CORE),
+    ('twin: level 6\'s twin has one stick', G + 'levels.js', 'tray: { stick: 2, ramp: 2 }', 'tray: { stick: 1, ramp: 2 }', CORE),
+    ('twin: level 10\'s twin has no step', G + 'levels.js', "      '.....................###',\n", "      '........................',\n", CORE),
+    ('twin: the shed\'s second stop not in the plan', G + 'house.js', "  { name: 'shed2', at: [1920, 561], level: 18 },\n", '', CORE),
     ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
 ]
 
