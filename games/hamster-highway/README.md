@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.15 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.16 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.16 (step 11, D-181, D-182): released to P-020 (Family Games Launcher): the 20 levels, the help cards and the three fixes of v1.13 to v1.15. Its release check is at 1.2. The game itself is unchanged.
 
 Changes at v1.15 (step 10b, D-177 to D-179, ER-013): three fixes from Rob's test of preview 11. Worn sticks one under the other go down in either order (the lower one first was refused). The see-saw's help card goes on after the tip: a ramp drops in at the bank's end and a third hamster climbs it onto the raised end and crosses. A hamster that picks up the dandelion clock holds it over its head until it lands. Not yet released.
 
