@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.16 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.17 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.17 (step 13, the spike for levels 21 to 30: D-185, D-190, D-196): the rules and screens are ready for boards 7 to 9 rows tall (a 9-row board shows 16 squares across), for hamsters walking both ways (the twig signpost turns them round; a left ramp; dizzy at the third turn at one signpost; a nap back in the start tube) and for the zip-line (placed in two taps, high end then low end; a hamster slides down it hanging from a cotton reel). No level uses them yet: they are tried on a test board that opens only from a preview's test panel. Levels 1 to 20 play exactly as before. Not yet released.
 
 Changes at v1.16 (step 11, D-181, D-182): released to P-020 (Family Games Launcher): the 20 levels, the help cards and the three fixes of v1.13 to v1.15. Its release check is at 1.2. The game itself is unchanged.
 
@@ -71,14 +73,14 @@ all made in code (D-010).
 
 | File | What |
 |---|---|
-| `core.js` | The rules: the board (12 to 24 wide), where gadgets fit, each hamster's trip, and all five together, tick by tick, with any teacup lift (one or two cups) or see-saw (`run()`). Pure |
+| `core.js` | The rules: the board (7 to 9 rows, 12 to 24 wide), where gadgets fit (the zip-line's two ends too), each hamster's trip, either way, and all five together, tick by tick, with any teacup lift (one or two cups) or see-saw (`run()`). Pure |
 | `levels.js` | The levels, as text boards with their trays. Data only |
 | `art.js` | The drawings, as SVG text. Pure |
 | `house.js` | The house-and-garden picker and the title card, as SVG text. Pure |
 | `sound.js` | Sounds made in the browser (helpers copied from Rocket Lander's) |
 | `progress.js` | What is saved: levels done, seeds found, GO presses until each level is first done, help cards seen. Pure |
 | `cards.js` | The 8 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
-| `game.js` | The screens, taps and animation; saving and the wrapper link |
+| `game.js` | The screens, taps and animation (the window the level's own size); saving and the wrapper link |
 | `index.html`, `style.css` | The page |
 
 **Progress (D-147, D-171, P-034's data map 1.10):** format 2, `{ v: 2, done, seeds, tries, cards }`, no name or
@@ -100,6 +102,8 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.17 | 2026-11-17 | The spike: 9-row boards, walking both ways, the signpost, the left ramp and the zip-line in the rules and screens, on a test board only (D-185, D-190, D-196) |
+| 1.16 | 2026-11-17 | Released to P-020 (D-181, D-182) |
 | 1.15 | 2026-11-17 | Feedback items 1 to 3: sticks in either order, the see-saw card's ramp, the dandelion held (D-177 to D-179, ER-013) |
 | 1.14 | 2026-11-16 | The twins of levels 6 to 10: 20 levels (D-166, D-169, D-170) |
 | 1.13 | 2026-11-16 | The twins of levels 1 to 5 and their stops; opens() (D-166, D-169, D-170) |

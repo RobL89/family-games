@@ -1,4 +1,10 @@
-// Hamster Highway's drawings, as SVG text. Version 1.5.
+// Hamster Highway's drawings, as SVG text. Version 1.6.
+//
+// Changes at v1.6 (step 13, the spike: D-189, D-190, D-196): the left ramp (the ramp turned round), the twig signpost
+// (look A: a round sun-yellow sign with a turn-round arrow on a twig), the zip-line in the tray (a hook, a line, a peg)
+// and on the board (zipHook under its block, zipPeg on its floor, zipLine between their middles), and a hanging pose,
+// 'zip': both arms up holding a cotton reel (the teacup lift's, as the treehouse ride's look, D-189 A), feet dangling.
+// A hamster facing left is this drawing mirrored (game.js), so no new art for walking left.
 //
 // Changes at v1.5 (step 10b, D-177 (3), D-178): two carrying poses, carry1 and carry2: walking feet (walk1's and
 // walk2's), both arms up and the float pose's dandelion clock held overhead, for a hamster walking along with one.
@@ -101,7 +107,7 @@ const motionBelow = () => [-12, 0, 12].map((x) => line(x, 8 + Math.abs(x) * 0.2,
 
 // ---------------------------------------------------------------- the Nibbles
 const FEET = {
-  walk1: [[-14, 0], [16, -5]], walk2: [[-8, -5], [20, 0]], float: [[-8, 8], [14, 10]], boing: [[-8, 6], [12, 6]],
+  walk1: [[-14, 0], [16, -5]], walk2: [[-8, -5], [20, 0]], float: [[-8, 8], [14, 10]], zip: [[-8, 8], [14, 10]], boing: [[-8, 6], [12, 6]],
   carry1: [[-14, 0], [16, -5]], carry2: [[-8, -5], [20, 0]],
   fall: [[-8, 6], [12, 6]], stuck: [[-4, 0], [24, 0]], bonk: [],
 };
@@ -111,7 +117,7 @@ export function hamster(pose) {
   const eyes = { stuck: 'closed', bonk: 'swirl', home: 'happy' }[pose] || 'open';
   const feet = FEET[pose] || [[-12, 0], [14, 0]];
   const [sx, sy] = SQUASH[pose] || [1, 1];
-  const armsUp = ['boing', 'fall', 'float', 'home', 'carry1', 'carry2'].includes(pose);
+  const armsUp = ['boing', 'fall', 'float', 'home', 'carry1', 'carry2', 'zip'].includes(pose);
   let b = circle(-34, -26, 5.5, FUR, 2.4);
   if (armsUp) b += ellipse(-12, -70, 6, 9, FUR, 2.4, INK, -25) + ellipse(28, -71, 6, 9, FUR, 2.4, INK, 25);
   b += circle(-15, -60, 10, FUR) + circle(-15, -60, 5, PINK, 0);
@@ -134,7 +140,8 @@ export function hamster(pose) {
         + circle(8 + 21 * Math.cos(a), -126 + 21 * Math.sin(a), 1.8, '#C9C4E6', 0);
     }
     s = line(8, -72, 8, -106, '#3E9B4F', 3.5) + circle(8, -126, 23, WHITE, 2, '#B9B4D6') + puff + circle(8, -126, 4, '#E9E4FF', 1.4, '#B9B4D6') + s;
-  } else if (pose === 'stuck') s = g(s + zzz(36, -62), '', ' opacity="0.7"');
+  } else if (pose === 'zip') s = reel(8, -92) + s;   // hanging from a cotton reel on the zip-line (D-196)
+  else if (pose === 'stuck') s = g(s + zzz(36, -62), '', ' opacity="0.7"');
   else if (pose === 'bonk') {
     s += g(star(-26, -38, 6) + star(0, -46, 7) + star(26, -38, 6), '', ' class="dizzy"');
   } else if (pose === 'home') s = g(s, 'translate(0 -8)') + star(-36, -80, 6) + star(42, -84, 5) + heart(6, -98, 9);
@@ -180,7 +187,33 @@ export function gadget(kind, count = 1) {
       + circle(50, 34, 26, WHITE, 2, '#B9B4D6') + puff + circle(50, 34, 4.5, '#E9E4FF', 1.4, '#B9B4D6');
   }
   if (kind === 'stick') return stickArt(0);
+  if (kind === 'rampL') return g(gadget('ramp'), 'translate(100 0) scale(-1 1)');   // the ramp turned round (D-190)
+  if (kind === 'signpost') return signpostArt();
+  if (kind === 'zip') {   // in the tray: a hook top left, the line, a peg bottom right, a reel on the line
+    return path('M 18 8 L 18 18 q 0 6 -5 6 q -5 0 -5 -5', 'none', 3.5, '#7A8597') + line(14, 24, 84, 78, INK, 3) + zipPeg(84, 100, 0.8)
+      + g(reel(50, 46), 'rotate(38 50 46) translate(50 46) scale(0.7) translate(-50 -46)');
+  }
   return tube(TUBE_ICON, '#A8ECFF', '#6CCBE8');
+}
+
+// The twig signpost (D-189 A, D-190): a round sun-yellow sign with a turn-round arrow, on a twig with a leaf.
+const UTURN = 'M 62 48 L 62 30 A 12 12 0 0 0 38 30 L 38 42';
+export function signpostArt() {
+  return path('M 50 100 L 50 60', 'none', 7, '#8B5A3C') + path('M 50 74 L 62 64', 'none', 4, '#8B5A3C') + ellipse(66, 60, 7, 4, LEAF, 2, INK, -30)
+    + circle(50, 34, 28, SUN, 3) + path(UTURN, 'none', 5, INK) + path('M 30 40 L 38 52 L 46 40 Z', INK, 2, INK);
+}
+
+// The zip-line on the board (D-196), in board units: a hook under the block above its high end (x the square's middle,
+// y the block's underside), a peg on the floor at its low end (y the floor), and the line between the two middles.
+export function zipHook(x, y) {
+  const d = `M ${x} ${y + 4} L ${x} ${y + 20} q 0 10 -9 10 q -9 0 -9 -9`;
+  return rect(x - 11, y - 2, 22, 8, '#AEB6C6', 3, 2.6) + path(d, 'none', 8) + path(d, 'none', 4.5, '#AEB6C6');
+}
+export function zipPeg(x, y, k = 1) {
+  return g(rect(-5, -40, 10, 40, '#C98B5A', 3, 2.6) + circle(0, -40, 6, '#E2A867', 2.4), `translate(${x} ${y}) scale(${k})`);
+}
+export function zipLine(x1, y1, x2, y2) {
+  return line(x1, y1, x2, y2, INK, 6.5) + line(x1, y1, x2, y2, '#F3D9A4', 3);
 }
 
 // The worn lolly stick (D-143, D-153), in a 100-wide square: paler than the sturdy bridge, already a little

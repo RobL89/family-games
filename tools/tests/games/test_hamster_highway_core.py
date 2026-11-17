@@ -1095,6 +1095,8 @@ o.zip = tryy(() => {
 o.zipRide = tryy(() => { const lv = P(Z); const w = core.walk(lv, core.zipPair(4, 3, 12, 5)); const r = core.run(lv, core.zipPair(4, 3, 12, 5));
   return { out: w.outcome, steps: strip(w.steps), none: core.walk(lv, {}).outcome, outs: r.hamsters.map((h) => h.outcome),
            zipTicks: r.hamsters[0].steps.filter((s) => s.act === 'zip').map((s) => s.t1 - s.t0) }; });
+o.zipBounce = tryy(() => { const lv = P(['............', '....#.......', '............', '............', '............', 'S..........G', '############']);
+  const w = core.walk(lv, { '3,5': 'bouncer', ...core.zipPair(4, 2, 9, 5) }); return { out: w.outcome, steps: strip(w.steps) }; });
 const ZL = ['................', '................', '.........###....', '.........S......', '.........#......', '.G..............', '####............', '................', '................'];
 o.zipLeft = tryy(() => { const lv = P(ZL); const p = core.zipPair(10, 3, 2, 5); const w = core.walk(lv, p);
   return { ok: core.fitsZip(lv, {}, 10, 3, 2, 5), out: w.outcome, steps: strip(w.steps), none: core.walk(lv, {}).outcome }; });
@@ -1219,6 +1221,10 @@ check(isinstance(zr, dict) and zr['out'] == 'home' and zr['steps'] == zsteps and
       f'({zr if not isinstance(zr, dict) else (zr["out"], zr["steps"][4:7], zr["none"])})')
 check(isinstance(zr, dict) and zr['outs'] == ['home'] * 5 and zr['zipTicks'] == [1] * 8,
       f'zip-line: run(): all five ride their own reel home, a column a tick (twice walking speed, D-196) ({zr.get("outs") if isinstance(zr, dict) else zr}, {zr.get("zipTicks") if isinstance(zr, dict) else ""})')
+zb = E('zipBounce')
+check(zb == {'out': 'home', 'steps': [[0, 5, 'start', 1], [1, 5, 'walk', 1], [2, 5, 'walk', 1], [3, 5, 'walk', 1], [4, 2, 'bounce', 1]]
+             + [[4 + i, 2 + 3 * i / 5, 'zip', 1] for i in range(1, 6)] + [[10, 5, 'walk', 1], [11, 5, 'walk', 1]]},
+      f'zip-line: a bouncer throws a hamster into a high end and it grabs the reel (a block above, so it can\'t fall in), by hand ({zb})')
 zl = E('zipLeft')
 zlsteps = [[9, 3, 'start', 1], [10, 3, 'walk', 1]] + [[10 - i, 3 + 2 * i / 8, 'zip', L] for i in range(1, 9)] + [[1, 5, 'walk', L]]
 check(isinstance(zl, dict) and zl['ok'] and zl['out'] == 'home' and zl['steps'] == zlsteps and zl['none'] == 'splash',

@@ -1,5 +1,13 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.9 (17 Nov, step 10b).
+tests catch (project rules: test the tests). Version 1.10 (17 Nov, step 13, the spike).
+Changes at v1.10 (step 13: D-185, D-190, D-196): thirty-one faults in the spike's new code, their names starting
+"spike:": twenty-four by the core test (heights, the signpost, dizzy, the nap, facing left, a bouncer, tubes, ramps
+and the lift both ways, falling into a signpost, the see-saw, every zip-line rule, the slide, a bounce into a high
+end) and seven by the spike's browser test (the window, mirroring, taking a zip-line back, the glows, saving, and two
+in the preview's tap counter). The spike's browser test builds the preview, so its copy gets a git of its own;
+--control runs the copy with no fault, which must pass. Seven older faults' text follows core.js 1.7 and game.js
+1.10 (HOLDS with the left ramp, a ramp climbing the way it faces, fits()'s empty square, a placed gadget picked up,
+the step marked facing left, the carrying pose's test of the zip pose).
 Changes at v1.9 (step 10b, D-177, D-178, D-179): ten faults in the three feedback items, their names starting "fix:":
 nine by the core test (sticks stack only top first again, a bridge fits above a stick, no ramp on the see-saw's
 card, its ramp dropping in before the tip, its third hamster climbing before the ramp lands, no hamster ever
@@ -54,14 +62,15 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 G = 'games/hamster-highway/'
 CORE, E2E = 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py'
 CARDS_E2E = 'test_hamster_highway_cards_e2e.py'
+SPIKE_E2E = 'test_hamster_highway_spike_e2e.py'
 FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),
-    ('a bridge holds nobody', G + 'core.js', "const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick']);", "const HOLDS = new Set(['#', 'ramp', 'tube', 'stick']);", CORE),
+    ('a bridge holds nobody', G + 'core.js', "const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick', 'rampL']);", "const HOLDS = new Set(['#', 'ramp', 'tube', 'stick', 'rampL']);", CORE),
     ('a bridge fits where they stand', G + 'core.js', 'const open = !HOLDS.has(below) ||', 'const open = HOLDS.has(below) ||', CORE),
     ('a ramp fits in mid-air', G + 'core.js', '  return FLOOR.has(below);\n}', '  return below !== null;\n}', CORE),
     ('a wall does not stop them', G + 'core.js', "if (next === null || next === '#') return done('stuck');", "if (next === null) return done('stuck');", CORE),
-    ('a ramp does not lift', G + 'core.js', '      c += 1;\n      r -= 1;\n', '      c += 1;\n', CORE),
+    ('a ramp does not lift', G + 'core.js', '      c += d;\n      r -= 1;\n', '      c += d;\n', CORE),
     ('the seed is missed on foot', G + 'core.js', "    yield mark(touch(st, c, r));\n  }\n  return done('stuck');", "    yield mark(st);\n  }\n  return done('stuck');", CORE),
     ('an empty tray entry is allowed', G + 'core.js', 'n < 1) throw', 'n < 0) throw', CORE),
     ('a placed gadget stays in the tray', G + 'core.js', 'n[kind] = (n[kind] || 0) - 1;', 'n[kind] = (n[kind] || 0) - 0;', CORE),
@@ -81,7 +90,7 @@ FAULTS = [
     ('the see-saw tips at once', G + 'core.js', 'dur: Math.max(1, s.tippedAt + TIP - t)', 'dur: 1', CORE),
     ('a lone hamster waits for ever', G + 'core.js', 'if (++waited > SEESAW_WAIT)', 'if (++waited > 1e9)', CORE),
     ('they step up onto its raised end', G + 'core.js', "    if (ctx.plank(c + 1, r)) return done('stuck');", '', CORE),
-    ('a gadget fits in its space', G + 'core.js', ' || (level.space && level.space.has(key(c, r)))) return false;', ') return false;', CORE),
+    ('a gadget fits in its space', G + 'core.js', '\n  && !(level.shaft && level.shaft.has(key(c, r))) && !(level.space && level.space.has(key(c, r)));', '\n  && !(level.shaft && level.shaft.has(key(c, r)));', CORE),
     ('the second cup is a third of a loop on', G + 'core.js', 'const u = t + (k * all) / 2;', 'const u = t + (k * all) / 3;', CORE),
     ('a lift keeps only its first cup', G + 'core.js', 'Array.from({ length: p.cups || 1 }, (_, k) => k)', 'Array.from({ length: 1 }, (_, k) => k)', CORE),
     ('a lift may have three cups', G + 'core.js', '&& (cups === 1 || cups === 2);', '&& (cups >= 1 && cups <= 3);', CORE),
@@ -89,7 +98,7 @@ FAULTS = [
     ('level 9 has no spare bridge', G + 'levels.js', 'tray: { bridge: 2, ramp: 1, floater: 1 }', 'tray: { bridge: 1, ramp: 1, floater: 1 }', CORE),
     ('level 10 has two tubes', G + 'levels.js', 'tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 3 }', 'tray: { bridge: 1, ramp: 2, bouncer: 1, floater: 1, tube: 2 }', CORE),
     ('the cups stand still during a run', G + 'game.js', '  moveCups(R);\n', '', E2E),
-    ('a click on a placed gadget keeps it down', G + 'game.js', '    delete S.placed[k];\n', '    void k;\n', E2E),
+    ('a click on a placed gadget keeps it down', G + 'game.js', '    const kind = S.placed[k];\n    delete S.placed[k];\n', '    const kind = S.placed[k];\n    void k;\n', E2E),
     ('no party when all five are home', G + 'game.js', "if (R.res.outcome === 'home' && R.home === WALKERS) {", "if (R.res.outcome === 'home' && R.home > WALKERS) {", E2E),
     ('tries count after a level is done', G + 'progress.js', '  if (!ids.includes(id) || q.done[id]) return q;', '  if (!ids.includes(id)) return q;', CORE),
     ('a seed is kept on a level not done', G + 'progress.js', 'if (seeds[id] === true && p.done[id])', 'if (seeds[id] === true)', CORE),
@@ -126,14 +135,46 @@ FAULTS = [
     ('fix: no ramp on the see-saw\'s card', G + 'cards.js', "  + fit(60, 180, 'seesaw') + cls('hc-seesaw-drop', place(gadget('ramp'), 60, 180, GS)) + sparks('seesaw', 82, 180)\n", '', CORE),
     ('fix: the see-saw card\'s ramp before the tip', G + 'cards.js', "dropIn('seesaw', SL, 52)", "dropIn('seesaw', SL, 30)", CORE),
     ('fix: the third climbs before the ramp lands', G + 'cards.js', '44%, 60% { ${T(30, 240)} } 66% { ${T(124, 180)} }', '44%, 50% { ${T(30, 240)} } 56% { ${T(124, 180)} }', CORE),
-    ('fix: never carries the dandelion', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; return st; };', 'const mark = (st) => st;', CORE),
+    ('fix: never carries the dandelion', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; if (d < 0) st.dir = -1; return st; };', 'const mark = (st) => { if (d < 0) st.dir = -1; return st; };', CORE),
     ('fix: carries it on the floater\'s own square', G + 'core.js', "    yield mark(touch(st, c, r));\n  }\n  return done('stuck');",
      "    if (at(c, r) === 'floater') st.carry = true;\n    yield mark(touch(st, c, r));\n  }\n  return done('stuck');", CORE),
-    ('fix: still carries it after landing', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; return st; };',
-     'let held = false; const mark = (st) => { if (floater) held = true; if (held) st.carry = true; return st; };', CORE),
+    ('fix: still carries it after landing', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; if (d < 0) st.dir = -1; return st; };',
+     'let held = false; const mark = (st) => { if (floater) held = true; if (held) st.carry = true; if (d < 0) st.dir = -1; return st; };', CORE),
     ('fix: the carrying poses without the dandelion', G + 'art.js', "else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {", "else if (pose === 'float') {", CORE),
-    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing')", E2E),
+    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip')", E2E),
     ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
+    # step 13, the spike (core.js 1.7, game.js 1.10, preview_debug_hamster_highway.js 1.0): by the core test, then the spike's browser test
+    ('spike: 9-row boards refused', G + 'core.js', 'export const MAX_ROWS = 9;', 'export const MAX_ROWS = 7;', CORE),
+    ('spike: the bottom is always row 6', G + 'core.js', 'const tall = (level) => level.height || ROWS;', 'const tall = (level) => ROWS;', CORE),
+    ('spike: a signpost doesn\'t turn them', G + 'core.js', "      d = -d;\n      yield mark({ c, r, act: 'turn' });", "      yield mark({ c, r, act: 'turn' });", CORE),
+    ('spike: dizzy at the second turn', G + 'core.js', 'export const DIZZY = 3;', 'export const DIZZY = 2;', CORE),
+    ('spike: no nap in the start tube', G + 'core.js', "    if (k === 'S' && away) return done('nap');", "    if (k === 'S' && away && false) return done('nap');", CORE),
+    ('spike: steps never say they face left', G + 'core.js', ' if (d < 0) st.dir = -1; return st; };', ' return st; };', CORE),
+    ('spike: a bouncer always throws right', G + 'core.js', "      const on = at(c + d, r);\n      if (on !== null && on !== '#') c += d;", "      const on = at(c + 1, r);\n      if (on !== null && on !== '#') c += 1;", CORE),
+    ('spike: tubes always join rightwards', G + 'core.js', '[[lc, lr - 1], [lc + d, lr], [lc, lr + 1], [lc - d, lr]]', '[[lc, lr - 1], [lc + 1, lr], [lc, lr + 1], [lc - 1, lr]]', CORE),
+    ('spike: a ramp\'s back is no step', G + 'core.js', "    if (next === (d > 0 ? 'rampL' : 'ramp')) return done('stuck');   // a ramp's back: a step (D-190)\n", '', CORE),
+    ('spike: a left ramp doesn\'t climb', G + 'core.js', "    if (next === (d > 0 ? 'ramp' : 'rampL')) {", "    if (next === 'ramp' && d > 0) {", CORE),
+    ('spike: falling into a signpost doesn\'t turn them', G + 'core.js', "    if (fell && at(c, r) === 'signpost') continue;", '', CORE),
+    ('spike: the see-saw both ways', G + 'core.js', "    if (d < 0 && (ctx.plank(c, r + 1) || ctx.plank(c + d, r) || at(c + d, r) === 'seesaw')) return done('stuck');", '', CORE),
+    ('spike: the lift only from the left', G + 'core.js', '      const stop = ctx.stop(c + d, r);', '      const stop = ctx.stop(c + 1, r);', CORE),
+    ('spike: a zip-line\'s low end on its high end\'s row', G + 'core.js', '  for (let r = hr + 1; r < tall(level); r++) {', '  for (let r = hr; r < tall(level); r++) {', CORE),
+    ('spike: zip-lines 11 across', G + 'core.js', 'export const ZIP_MAX = 10;', 'export const ZIP_MAX = 11;', CORE),
+    ('spike: a zip-line crosses blocks', G + 'core.js', "if (level.rows[r][c] === '#' && crosses(a, b, c, r)) return false;", "if (level.rows[r][c] === '#' && crosses(a, b, c, r) && false) return false;", CORE),
+    ('spike: touching a corner blocks a zip-line', G + 'core.js', '  return less(lo, hi);\n}', '  return !less(hi, lo);\n}', CORE),
+    ('spike: a high end needs no block above', G + 'core.js', "const under = (level, c, r) => r >= 1 && level.rows[r - 1][c] === '#';", 'const under = (level, c, r) => r >= 1;', CORE),
+    ('spike: a low end needs no floor', G + 'core.js', ' || !empty(level, placed, c, r) || !FLOOR.has(terrain(level, placed, c, r + 1))) continue;', ' || !empty(level, placed, c, r)) continue;', CORE),
+    ('spike: a zip-line counted twice in the tray', G + 'core.js', "    if (kind !== 'peg') n[kind] = (n[kind] || 0) - 1;", "    const kk = kind === 'peg' ? 'zip' : kind;\n    n[kk] = (n[kk] || 0) - 1;", CORE),
+    ('spike: the slide two ticks a column', G + 'core.js', 'turn: 2, zip: 1 };', 'turn: 2, zip: 2 };', CORE),
+    ('spike: off the zip-line always facing right', G + 'core.js', '      d = lc > hc ? 1 : -1;\n', '      d = 1;\n', CORE),
+    ('spike: the slide stays on the high end\'s row', G + 'core.js', '        r = hr + ((lr - hr) * i) / n;', '        r = hr + (i === n ? lr - hr : 0);', CORE),
+    ('spike: a bounce into a high end doesn\'t grab the reel', G + 'core.js', "      if (at(c, r) === 'zip') continue;   // thrown into a zip-line's high end: it grabs the reel\n", '', CORE),
+    ('spike: the window stays 7 rows', G + 'game.js', '  BH = lv.height * CELL;', '  BH = ROWS * CELL;', SPIKE_E2E),
+    ('spike: walkers never drawn mirrored', G + 'game.js', 'scale(${dir < 0 ?', 'scale(${dir < -9 ?', SPIKE_E2E),
+    ('spike: a zip-line\'s other end stays when one is tapped', G + 'game.js', '    delete S.placed[key(oc, or)];\n', '', SPIKE_E2E),
+    ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
+    ('spike: the test board saves its tries', G + 'game.js', '  if (!S.test) S.progress = tried(IDS, S.progress, id);', '  S.progress = tried(IDS, S.progress, id);', SPIKE_E2E),
+    ('spike: the panel counts a tap on the ring as wrong', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (cell[0] === t.c && cell[1] === t.r) T.gadgetHits += 1;', '      if (false) T.gadgetHits += 1;', SPIKE_E2E),
+    ('spike: the panel misses a line let go of', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (before.zipFrom && !after.zipFrom && lines(after.placed) === lines(before.placed)) T.zipCancelled += 1;', '', SPIKE_E2E),
 ]
 
 
@@ -148,6 +189,10 @@ def run(fault):
         if text.count(old) != 1:
             return name, 'error: the fault\'s text is not found exactly once'
         open(path, 'w', encoding='utf-8').write(text.replace(old, new))
+        if test == SPIKE_E2E:   # it builds the preview, whose stamp names a commit: give the copy a git of its own
+            env = dict(os.environ, GIT_AUTHOR_NAME='bench', GIT_AUTHOR_EMAIL='bench@localhost', GIT_COMMITTER_NAME='bench', GIT_COMMITTER_EMAIL='bench@localhost')
+            for cmd in (['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'bench copy']):
+                subprocess.run(['git', '-C', tmp] + cmd, capture_output=True, env=env, check=True)
         r = subprocess.run([sys.executable, '-B', os.path.join(tmp, 'tools/tests/games', test), os.path.join(tmp, 'pics')],
                            capture_output=True, text=True, timeout=600)
         return name, 'caught' if r.returncode != 0 else 'MISSED'
@@ -156,7 +201,10 @@ def run(fault):
 
 
 only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else ''
-faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] in (E2E, CARDS_E2E)) and only in f[0]]
+faults = [f for f in FAULTS if not ('--fast' in sys.argv and f[4] in (E2E, CARDS_E2E, SPIKE_E2E)) and only in f[0]]
+if '--control' in sys.argv:   # no fault: the copy (and its git, for the spike's browser test) must pass, or every catch means nothing
+    faults = [('control: no fault', 'games/hamster-highway/core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 3;', SPIKE_E2E),
+              ('control: no fault', 'games/hamster-highway/core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 3;', CORE)]
 results = [run(f) for f in faults]
 for name, res in results:
     print(f'{res:8} {name}')

@@ -348,7 +348,7 @@ export function* trip(level, ctx) {
     }
     let fell = 0;
     let last = null;
-    drop: for (;;) {
+    for (;;) {
       for (;;) {
         const moved = ctx.carry(c, r);   // a see-saw tipping from under it, or up through it
         if (moved) {
@@ -365,11 +365,9 @@ export function* trip(level, ctx) {
         fell += 1;
         last = mark(touch({ c, r, act: floater ? 'float' : 'fall' }, c, r));
         yield last;
-        if (at(c, r) === 'zip') break drop;   // falling past a zip-line's high end: it grabs the reel
       }
       if (!ctx.stand(c, r)) break;   // a worn stick that snaps under it: on down
     }
-    if (at(c, r) === 'zip') continue;
     if (fell) last.land = fell;
     if (fell >= BIG_FALL && !floater) return done('bonk', fell);
     if (fell) floater = false;

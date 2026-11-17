@@ -1,4 +1,15 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.9 (17 Nov, step 10b).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.10 (17 Nov, step 13, the spike).
+//
+// Changes at v1.10 (step 13: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2): the window onto the board is
+// the level's own height and VIEW's width for it (7 rows: 12 squares, as levels 1 to 20; 9 rows: 16), the tray, GO, the
+// arrows and the card's dimming following it, and a backdrop drawn 420 tall scaled up to fill a taller window. A
+// hamster facing left (run()'s dir) is drawn mirrored; it turns at a signpost, sits down dizzy with the bonk's stars,
+// naps in the start tube as a stuck one does. The zip-line (D-196): picked from the tray, its high ends glow; a tap
+// on one holds it (pink) and the low ends it reaches glow green; on the PC a ghost line follows the mouse, green over a
+// good end, grey elsewhere; a tap on a green end places it, on any other square lets go of the first end; a tap on
+// either end of a placed one takes it back, both ends. It is drawn as a hook under its block, the line and a peg, and a
+// hamster hangs from a cotton reel down it (art.js 1.6's zip pose). Test hooks: zipFrom; openBoard(def) opens a board
+// that isn't one of the levels (the spike's test board, from the preview's test panel), saving nothing; where(x, y).
 //
 // Changes at v1.9 (step 10b, D-177 (3), D-178, D-179): a hamster that has picked up the dandelion clock holds it up
 // over its head (art.js's carry poses) from the step after the floater until it lands, as run() says (carry); the
@@ -50,18 +61,19 @@
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
 // Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
-import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow } from './core.js';
+import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, LOOP, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt, opens } from './progress.js';
 import { CARDS, CAPTION, CARD_CSS, cardArt, cardFor } from './cards.js';
 import { linkUp } from '../_common/rocket/link.js';
 
-const BW = COLS * CELL;   // 720: the window onto the board, 12 squares
+let BW = COLS * CELL;     // 720: the window onto the board, 12 squares (16 on a 9-row board: setWindow)
 const SLANT = 45;         // degrees a see-saw's plank lies at (a row a square)
-const BH = ROWS * CELL;   // 420
+let BH = ROWS * CELL;     // 420 (540 on a 9-row board)
+const VIEW = { 7: 12, 8: 14, 9: 16 };   // squares across the window for a board this many rows tall (D-185)
 const WALKERS = 5;
 const TICK = 0.2;         // seconds a tick of the timed model lasts (walk 2 ticks, a hamster every 6)
 const SC = 0.56;          // a hamster's size on the board, as in the mock-ups
@@ -76,7 +88,7 @@ const S = {
   progress: fresh(),   // progress.js, format 1 (D-147)
   ready: false, linked: null, soundLocked: false, playAsked: false,
   at: 0,
-  li: 0, level: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
+  li: 0, level: null, def: null, test: false, zipFrom: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
   vx: 0, pan: null, edge: 0,   // the window's place along a wide board (board units), a swipe, a drag at its edge
   card: null, help: false,     // the help card showing (its kind), and help's "?" marks on (D-170)
@@ -133,7 +145,22 @@ function openLevel(i) {
   if (!isOpen(i)) return;
   S.li = i;
   S.at = i;
-  S.level = parseLevel(LEVELS[i]);
+  openDef(LEVELS[i], false);
+}
+// A board: one of the levels, or (test) the spike's test board from the preview's test panel, which saves nothing.
+function setWindow(lv) {
+  BH = lv.height * CELL;
+  BW = Math.min(lv.cols, VIEW[lv.height] || COLS) * CELL;
+  const clip = $('window').firstElementChild;
+  clip.setAttribute('width', BW);
+  clip.setAttribute('height', BH);
+}
+function openDef(def, test) {
+  S.def = def;
+  S.test = test;
+  S.level = parseLevel(def);
+  setWindow(S.level);
+  S.zipFrom = null;
   S.placed = {};
   S.selected = null;
   S.hover = null;
@@ -141,7 +168,7 @@ function openLevel(i) {
   S.mode = 'build';
   S.run = null;
   S.seedTaken = false;
-  S.fresh = LEVELS[i].new;
+  S.fresh = def.new;
   S.vx = 0;
   S.pan = null;
   S.card = null;
@@ -151,7 +178,7 @@ function openLevel(i) {
   show('level');
   renderLevel();
   setView(0);
-  const k = cardFor(LEVELS[i]);
+  const k = test ? null : cardFor(def);
   if (k && !S.progress.cards[k]) showCard(k, true);   // once per child (D-170)
 }
 
@@ -165,7 +192,7 @@ function showCard(kind, first) {
   S.drag = null;
   if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }
   renderAll();
-  layer('card').innerHTML = rect(-20, -20, 900, 580, 'rgba(27,20,70,0.5)', 0, 0, 'none') + cardArt(kind);
+  layer('card').innerHTML = rect(-20, -20, BW + 180, BH + 160, 'rgba(27,20,70,0.5)', 0, 0, 'none') + cardArt(kind);
   play('pick');
 }
 function closeCard() {
@@ -217,8 +244,9 @@ function slideView(dx) {
 function renderArrows() {
   let s = '';
   if (S.level && maxView() > 0 && S.mode === 'build') {
-    const arrow = (x, dir) => g(rect(x, 150, 44, 120, 'rgba(255,255,255,0.8)', 20, 2.5)
-      + path(`M ${x + 22 + 8 * dir} 186 L ${x + 22 - 8 * dir} 210 L ${x + 22 + 8 * dir} 234`, 'none', 6, INK, ' stroke-linecap="round" stroke-linejoin="round"'),
+    const m = BH / 2;
+    const arrow = (x, dir) => g(rect(x, m - 60, 44, 120, 'rgba(255,255,255,0.8)', 20, 2.5)
+      + path(`M ${x + 22 + 8 * dir} ${m - 24} L ${x + 22 - 8 * dir} ${m} L ${x + 22 + 8 * dir} ${m + 24}`, 'none', 6, INK, ' stroke-linecap="round" stroke-linejoin="round"'),
     '', ` class="btn pan" data-btn="${dir > 0 ? 'panL' : 'panR'}"`);
     if (S.vx > 1) s += arrow(4, 1);
     if (S.vx < maxView() - 1) s += arrow(BW - 48, -1);
@@ -228,13 +256,14 @@ function renderArrows() {
 
 function renderLevel() {
   const lv = S.level;
-  const def = LEVELS[S.li];
-  let bg = backdrop(def.back, lv.cols * CELL);
+  const def = S.def;
+  // a backdrop is drawn 420 tall: on a taller board, drawn narrower and scaled up to fill it
+  let bg = BH === 420 ? backdrop(def.back, lv.cols * CELL) : g(backdrop(def.back, (lv.cols * CELL * 420) / BH), `scale(${BH / 420})`);
   let duckDone = false;
-  for (let r = 0; r < ROWS; r++) {
+  for (let r = 0; r < lv.height; r++) {
     for (let c = 0; c < lv.cols; c++) {
       if (lv.rows[r][c] === '#') bg += block(c, r, r === 0 || lv.rows[r - 1][c] !== '#');
-      else if (r === ROWS - 1) {
+      else if (r === lv.height - 1) {
         bg += water(c, r);
         if (!duckDone) {
           bg += place(g(g(duck(), '', ' class="bob"'), '', ' class="poke duck" data-poke="duck"'), c * CELL + 30, r * CELL + 44, 0.62);
@@ -250,7 +279,7 @@ function renderLevel() {
   bg += place(homeArt(), hc * CELL, hr * CELL, CELL / 100);
   for (const p of lv.parts.filter((q) => q.kind === 'seesaw')) {
     let ground = p.r + 1;
-    while (ground < ROWS && lv.rows[ground][p.c + 1] !== '#') ground += 1;
+    while (ground < lv.height && lv.rows[ground][p.c + 1] !== '#') ground += 1;
     bg += potArt((p.c + 1.5) * CELL, (p.r + 1) * CELL, ground * CELL);
   }
   for (const p of lv.parts.filter((q) => q.kind === 'lift')) bg += liftArt((p.c + 0.5) * CELL, (p.top - 1) * CELL - 20, (p.bottom + 0.6) * CELL);
@@ -328,8 +357,22 @@ function renderAll() {
 }
 
 function renderGadgets() {
-  layer('gads').innerHTML = Object.entries(S.placed).map(([k, kind]) => {
+  // zip-lines (D-196): the line behind, then a hook at the high end and a peg at the low end, each a whole square to tap
+  let lines = '';
+  for (const [k, v] of Object.entries(S.placed)) {
+    if (!v.startsWith('zip:')) continue;
     const [c, r] = k.split(',').map(Number);
+    const [lc, lr] = v.slice(4).split(',').map(Number);
+    lines += zipLine((c + 0.5) * CELL, (r + 0.5) * CELL, (lc + 0.5) * CELL, (lr + 0.5) * CELL);
+  }
+  layer('gads').innerHTML = g(lines, '', ' pointer-events="none"') + Object.entries(S.placed).map(([k, v]) => {
+    const [c, r] = k.split(',').map(Number);
+    if (v.startsWith('zip:') || v.startsWith('peg:')) {
+      const hit = rect(c * CELL, r * CELL, CELL, CELL, 'rgba(0,0,0,0)', 0, 0, 'none');
+      const art = v.startsWith('zip:') ? zipHook((c + 0.5) * CELL, r * CELL) : zipPeg((c + 0.5) * CELL, (r + 1) * CELL, 0.85);
+      return g(hit + art, '', ` data-placed="${k}"${k === S.justPlaced ? ' class="drop"' : ''}`);
+    }
+    const kind = v;
     const hit = rect(0, 0, 100, 100, 'rgba(0,0,0,0)', 0, 0, 'none');   // the whole square answers a click, not just the drawing
     const art = kind === 'tube' ? tubePiece(tubeSides(c, r)) : gadget(kind);
     return place(hit + g(art, '', k === S.justPlaced ? ' class="drop"' : ''), c * CELL, r * CELL, CELL / 100, 0, ` data-placed="${k}"`);
@@ -355,8 +398,15 @@ function tubeSides(c, r) {
 
 function renderFits() {
   if (S.mode !== 'build' || !S.selected) { layer('fits').innerHTML = ''; return; }
+  const box = (c, r, fill, edge, extra = '') => rect(c * CELL + 3, r * CELL + 3, CELL - 6, CELL - 6, fill, 8, 2, edge, extra);
+  if (S.selected === 'zip' && S.zipFrom) {   // a held high end (pink) and the low ends it reaches (green)
+    const [hc, hr] = S.zipFrom;
+    layer('fits').innerHTML = box(hc, hr, 'rgba(255,155,179,0.6)', '#E0527A', ' data-held="1"')
+      + zipLows(S.level, S.placed, hc, hr).map(([c, r]) => box(c, r, 'rgba(160,236,190,0.75)', '#2BB673', ' data-low="1"')).join('');
+    return;
+  }
   layer('fits').innerHTML = fitCells(S.level, S.placed, S.selected)
-    .map(([c, r]) => rect(c * CELL + 3, r * CELL + 3, CELL - 6, CELL - 6, 'rgba(255,246,199,0.75)', 8, 2, '#F0A51C')).join('');
+    .map(([c, r]) => box(c, r, 'rgba(255,246,199,0.75)', '#F0A51C', S.selected === 'zip' ? ' data-high="1"' : '')).join('');
 }
 
 function renderGhost() {
@@ -364,6 +414,16 @@ function renderGhost() {
   const kind = S.drag ? S.drag.kind : S.selected;
   layer('drag').innerHTML = '';
   if (S.mode !== 'build' || !kind || !h) { layer('ghost').innerHTML = ''; return; }
+  if (kind === 'zip' && S.zipFrom && h.cell) {   // the ghost line from the held high end (D-196): green over a good low end
+    const [hc, hr] = S.zipFrom;
+    const [c, r] = h.cell;
+    const ok = fitsZip(S.level, S.placed, hc, hr, c, r);
+    const col = ok ? '#2BB673' : '#9AA0B4';
+    layer('ghost').innerHTML = `<line data-zipghost="1" x1="${(hc + 0.5) * CELL}" y1="${(hr + 0.5) * CELL}" x2="${(c + 0.5) * CELL}" y2="${(r + 0.5) * CELL}" stroke="${col}" stroke-width="5" stroke-dasharray="10 7" stroke-linecap="round"/>`
+      + (ok ? g(zipPeg((c + 0.5) * CELL, (r + 1) * CELL, 0.85), '', ' opacity="0.6"') : '');
+    return;
+  }
+  if (kind === 'zip') { layer('ghost').innerHTML = ''; return; }
   if (h.cell) {
     const [c, r] = h.cell;
     const ok = fits(S.level, S.placed, kind, c, r);
@@ -401,7 +461,7 @@ function trayKinds() {
 function slotBoxes() {
   const kinds = trayKinds();
   if (S.layout === 'side') {
-    const step = Math.min(84, 246 / kinds.length);
+    const step = Math.min(84, (BH - 174) / kinds.length);   // from 80 down to GO (BH - 84), less a gap
     return kinds.map((kind, i) => ({ kind, x: BW + 17, y: 80 + i * step, w: 96, h: step - 8 }));
   }
   return kinds.map((kind, i) => ({ kind, x: 100 + 94 * i, y: BH + 11, w: 84, h: 78 }));
@@ -416,12 +476,12 @@ function renderTray() {
     s += rect(BW, 0, 130, BH, '#8B5A3C', 0, 0) + line0(BW, 0, BW, BH);
     s += houseButton(BW + 65, 40, 28);
     s += slots;
-    s += goButton(BW + 9, 336, 112, 72, run ? 'stop' : 'go');
+    s += goButton(BW + 9, BH - 84, 112, 72, run ? 'stop' : 'go');
   } else {
     s += rect(0, BH, BW, 110, '#8B5A3C', 0, 0) + line0(0, BH, BW, BH);
     s += houseButton(46, BH + 55, 30);
     s += slots;
-    s += goButton(578, BH + 17, 128, 76, run ? 'stop' : 'go');
+    s += goButton(BW - 142, BH + 17, 128, 76, run ? 'stop' : 'go');
   }
   layer('tray').innerHTML = s;
   const go = board.querySelector('.btn.go');
@@ -435,10 +495,10 @@ function fitBoard() {
   const st = $('stage');
   const W = st.clientWidth;
   const H = st.clientHeight;
-  const bottom = Math.min(W / 720, H / 530);
-  const side = Math.min(W / 850, H / 420);
+  const bottom = Math.min(W / BW, H / (BH + 110));
+  const side = Math.min(W / (BW + 130), H / BH);
   const lay = side > bottom ? 'side' : 'bottom';
-  const [vw, vh] = lay === 'side' ? [850, 420] : [720, 530];
+  const [vw, vh] = lay === 'side' ? [BW + 130, BH] : [BW, BH + 110];
   const k = Math.min(W / vw, H / vh);
   board.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
   board.style.width = `${Math.floor(vw * k)}px`;
@@ -459,6 +519,28 @@ function cellAt(p) {
   if (p.x < 0 || p.y < 0 || p.x >= BW || p.y >= BH) return null;
   const c = Math.floor((p.x + S.vx) / CELL);
   return c < S.level.cols ? [c, Math.floor(p.y / CELL)] : null;
+}
+
+// The zip-line (D-196): a tap on a high end holds it; then a tap on a low end it reaches places it, any other lets go.
+function zipTap(c, r) {
+  if (!S.zipFrom) {
+    if (left(S.level, S.placed).zip > 0 && fits(S.level, S.placed, 'zip', c, r)) { S.zipFrom = [c, r]; play('pick'); return true; }
+    play('nope');
+    return false;
+  }
+  const [hc, hr] = S.zipFrom;
+  S.zipFrom = null;
+  if (fitsZip(S.level, S.placed, hc, hr, c, r)) {
+    Object.assign(S.placed, zipPair(hc, hr, c, r));
+    S.justPlaced = key(hc, hr);
+    if (S.fresh === 'zip') S.fresh = null;
+    play('place');
+    puff(c * CELL + 30, r * CELL + CELL - 4);
+    if (left(S.level, S.placed).zip <= 0) S.selected = null;
+    return true;
+  }
+  play('nope');
+  return false;
 }
 
 function tryPlace(kind, c, r) {
@@ -505,6 +587,7 @@ function onDown(e) {
     if (left(S.level, S.placed)[kind] <= 0) { play('nope'); bump(sl, 'shake'); return; }
     const again = S.selected === kind;
     S.selected = kind;
+    S.zipFrom = null;
     S.drag = { kind, from: null, x0: e.clientX, y0: e.clientY, moved: false, again };
     board.setPointerCapture(e.pointerId);
     play('pick');
@@ -513,6 +596,17 @@ function onDown(e) {
     return;
   }
   const pl = t.closest('[data-placed]');
+  if (pl && /^(zip|peg):/.test(S.placed[pl.dataset.placed] || '')) {   // either end takes a zip-line back, both ends
+    const k = pl.dataset.placed;
+    const [oc, or] = S.placed[k].slice(4).split(',').map(Number);
+    delete S.placed[k];
+    delete S.placed[key(oc, or)];
+    S.selected = null;
+    S.zipFrom = null;
+    play('back');
+    renderAll();
+    return;
+  }
   if (pl) {
     const k = pl.dataset.placed;
     const kind = S.placed[k];
@@ -526,6 +620,14 @@ function onDown(e) {
     return;
   }
   const cell = cellAt(p);
+  if (cell && S.selected === 'zip') {
+    const held = !!S.zipFrom;
+    const ok = zipTap(cell[0], cell[1]);
+    S.hover = S.zipFrom ? { x: p.x, y: p.y, cell } : null;
+    renderAll();
+    if (!ok && !held) bump(layer('fits'), 'shake');
+    return;
+  }
   if (cell && S.selected) {
     S.hover = { x: p.x, y: p.y, cell };
     if (tryPlace(S.selected, cell[0], cell[1])) S.hover = null;
@@ -590,7 +692,10 @@ function onUp(e) {
   if (!d) return;
   S.drag = null;
   if (board.hasPointerCapture(e.pointerId)) board.releasePointerCapture(e.pointerId);
-  if (d.moved) {
+  if (d.moved && d.kind === 'zip') {
+    const cell = cellAt(toBoard(e));   // dragged from the tray onto a high end: it is held there
+    if (!cell || !zipTap(cell[0], cell[1])) { S.selected = null; S.zipFrom = null; }
+  } else if (d.moved) {
     const cell = cellAt(toBoard(e));
     if (cell && tryPlace(d.kind, cell[0], cell[1])) S.selected = null;
     else if (d.from) { play('back'); S.selected = null; }
@@ -600,7 +705,7 @@ function onUp(e) {
   } else if (d.again) {
     S.selected = null;            // a second click on the same gadget puts it down again
   }
-  S.hover = null;
+  if (!S.zipFrom) S.hover = null;
   renderAll();
 }
 
@@ -608,15 +713,17 @@ function button(name) {
   if (S.mode === 'party') { partyAct(name === 'house' ? 'house' : 'again'); return; }
   if (name === 'house') { stopRun(); S.selected = null; play('tap'); show('house'); return; }
   if (name === 'go') { startRun(); return; }
-  if (name === 'help') { if (S.mode === 'build') { play('pick'); S.selected = null; renderAll(); setHelp(true); } return; }
+  if (name === 'help') { if (S.mode === 'build') { play('pick'); S.selected = null; S.zipFrom = null; renderAll(); setHelp(true); } return; }
   if (name === 'stop') { play('back'); stopRun(); renderAll(); }
   if (name === 'panL' || name === 'panR') { play('whoosh'); slideView((name === 'panL' ? -1 : 1) * 6 * CELL); }
 }
 
 // ---------------------------------------------------------------- the hamsters' trip
 function feet(c, r) {
+  if (!Number.isInteger(r)) return { x: (c + 0.5) * CELL, y: (r + 1) * CELL };   // on a zip-line, between rows
   let y = (r + 1) * CELL;
-  if (terrain(S.level, S.placed, c, r + 1) === 'ramp') y = (r + 1.5) * CELL;
+  const under = terrain(S.level, S.placed, c, r + 1);
+  if (under === 'ramp' || under === 'rampL') y = (r + 1.5) * CELL;
   if (terrain(S.level, S.placed, c, r) === 'bouncer') y = (r + 0.55) * CELL;
   return { x: (c + 0.5) * CELL, y };
 }
@@ -651,31 +758,42 @@ function segmentsOf(st, offs = []) {
     const b = st[i];
     const p0 = segs.length ? segs[segs.length - 1].p1 : feet(a.c, a.r);
     at = b.t0;
+    if (b.act === 'zip') {   // down the zip-line, hanging from a reel (D-196): one piece from the high end to the low
+      let j = i;
+      while (j + 1 < st.length && st[j + 1].act === 'zip') j += 1;
+      const last = st[j];
+      let seed = false;
+      for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
+      add({ kind: 'zip', p0, l0: { x: (a.c + 0.5) * CELL, y: (a.r + 0.5) * CELL }, l1: { x: (last.c + 0.5) * CELL, y: (last.r + 0.5) * CELL },
+        p1: feet(last.c, last.r), end: last.t1, seed, sound: 'wheee', dir: last.dir || 1 });
+      i = j;
+      continue;
+    }
     if (b.act === 'walk' || b.act === 'climb') {
       const p1 = feet(b.c, b.r);
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
-      const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
+      const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (b.c < a.c ? a.c : a.c + 1) * CELL, y: (a.r + 1) * CELL };   // the edge it crosses
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry,
+      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, dir: b.dir || 1,
         sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
-      add({ kind: 'bounce', carry: !!b.carry, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+      add({ kind: 'bounce', carry: !!b.carry, dir: b.dir || 1, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
     } else if (b.act === 'wait') {
-      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry });
+      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1 });
     } else if (b.act === 'fall' || b.act === 'float') {
       let j = i;
       let seed = !!b.seed;
       while (j + 1 < st.length && st[j + 1].act === b.act) { j += 1; if (st[j].seed) seed = true; }
       const last = st[j];
       const rows = j - i + 1;
-      const p1 = last.r >= ROWS ? { x: p0.x, y: BH - 16 } : feet(last.c, last.r);
-      add({ kind: b.act, p0, p1, end: last.t1, seed, rows,
+      const p1 = last.r >= S.level.height ? { x: p0.x, y: BH - 16 } : feet(last.c, last.r);
+      add({ kind: b.act, p0, p1, end: last.t1, seed, rows, dir: b.dir || 1,
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
     } else {
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, dir: b.dir || 1, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt, turn
         lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup, dx: offs[i] || 0 });
     }
   }
@@ -686,15 +804,16 @@ function startRun() {
   if (S.mode !== 'build') return;
   const id = S.level.id;
   const before = S.progress.tries[id];
-  S.progress = tried(IDS, S.progress, id);
+  if (!S.test) S.progress = tried(IDS, S.progress, id);   // the test board saves nothing
   if (S.progress.tries[id] !== before) keep();
+  S.zipFrom = null;
   const res = run(S.level, S.placed);
   const offs = seatOffsets(res.hamsters);
   const hs = res.hamsters.map((h, n) => {
     const segs = segmentsOf(h.steps, offs[n]);
     const [c, r] = S.level.start;
     return { outcome: h.outcome, segs, start: h.steps[0].t0 * TICK, total: segs.length ? segs[segs.length - 1].t1 : h.steps[0].t0 * TICK,
-      last: segs.length ? segs[segs.length - 1].p1 : feet(c, r) };
+      last: segs.length ? segs[segs.length - 1].p1 : feet(c, r), dir: segs.length ? segs[segs.length - 1].dir : 1 };
   });
   const bad = res.hamsters.find((h) => h.outcome !== 'home');
   S.mode = 'run';
@@ -798,7 +917,7 @@ function setPose(w, pose) {
   if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
   w.el.firstElementChild.innerHTML = hamster(pose);
 }
-function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
+function setAt(w, x, y, rot = 0, sc = SC, op = 1, dir = 1) {
   // two hamsters on one square are drawn a little apart, so a child sees both
   const R = S.run;
   if (R && R.drawn) {
@@ -806,7 +925,8 @@ function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
     R.drawn.push([x, y]);
   }
   w.x = x;
-  w.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${sc.toFixed(3)})`);
+  // facing left (D-190): the same drawing mirrored
+  w.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${dir < 0 ? `${(-sc).toFixed(3)} ${sc.toFixed(3)}` : sc.toFixed(3)})`);
   w.el.setAttribute('opacity', op.toFixed(2));
   w.el.removeAttribute('visibility');
 }
@@ -837,7 +957,7 @@ function moveWalker(R, w) {
       const [a, b, u] = d <= l1 ? [s.p0, s.mid, l1 ? d / l1 : 1] : [s.mid, s.p1, l2 ? (d - l1) / l2 : 1];
       x = a.x + (b.x - a.x) * u;
       y = a.y + (b.y - a.y) * u - 2.5 * Math.abs(Math.sin(local * 14));
-      rot = Math.max(-24, Math.min(24, (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI * 0.5));
+      rot = s.dir * Math.max(-24, Math.min(24, (Math.atan2(b.y - a.y, Math.abs(b.x - a.x)) * 180) / Math.PI * 0.5));
     } else if (s.kind === 'bounce') {
       const v = 1 - f;
       x = v * v * s.p0.x + 2 * v * f * s.ctrl.x + f * f * s.p1.x;
@@ -855,6 +975,10 @@ function moveWalker(R, w) {
       x = s.p0.x + 4 * Math.sin(f * Math.PI * 3);
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       pose = 'float';
+    } else if (s.kind === 'zip') {   // hanging under the line from a reel: feet 52 below it
+      x = s.l0.x + (s.l1.x - s.l0.x) * f;
+      y = s.l0.y + (s.l1.y - s.l0.y) * f + 52;
+      pose = 'zip';
     } else if (s.kind === 'ride' && s.lift) {
       ({ x, y } = cupXY(s.lift, s.cup || 0, local / TICK));   // inside its cup, wherever the cup is
       x += s.dx;
@@ -864,9 +988,9 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
-    if (s.carry && pose !== 'float' && pose !== 'boing') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
+    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
-    setAt(w, x, y, rot);
+    setAt(w, x, y, rot, SC, 1, s.dir);
     return;
   }
   if (w.seg >= 0 && !w.endedSeg) { onSegEnd(R, w, H.segs[w.seg]); w.endedSeg = true; }
@@ -881,6 +1005,7 @@ function onSegEnd(R, w, s) {
 function endWalker(R, w, e) {
   const p = R.hs[w.i].last;
   const out = R.hs[w.i].outcome;
+  const dir = R.hs[w.i].dir;
   const once = (name, fn) => { if (!w.endFx[name]) { w.endFx[name] = true; fn(); } };
   if (out === 'home') {
     once('home', () => { play('home'); R.home += 1; renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
@@ -892,19 +1017,20 @@ function endWalker(R, w, e) {
     once('splash', () => { play('splash'); splash(p.x, BH - 22); });
     w.el.setAttribute('visibility', 'hidden');
     if (e >= 1) finishWalker(w);
-  } else if (out === 'bonk' || out === 'bonk-head') {
+  } else if (out === 'bonk' || out === 'bonk-head' || out === 'dizzy') {   // dizzy at a signpost: the bonk's stars (D-190)
     once('flump', () => { play('flump'); });
     if (e > 0.25) once('dizzy', () => play('dizzy'));
     setPose(w, 'bonk');
     const fade = e < 1.6 ? 1 : Math.max(0, 1 - (e - 1.6) / 0.6);
     if (e >= 1.6) once('poof', () => { play('poof'); puff(p.x, p.y - 8, 3); });
-    setAt(w, p.x, p.y, 0, SC, fade);
+    setAt(w, p.x, p.y, 0, SC, fade, dir);
     if (e >= 2.2) finishWalker(w);
   } else {
     // stuck: a bump, a puzzled look, a nap, then gone (≈3 s, brief 0.3)
-    if (e < 0.3) { setPose(w, 'walk1'); setAt(w, p.x + 6 * Math.sin((e / 0.3) * Math.PI), p.y); }
-    else if (e < 1.0) { once('huh', () => { play('huh'); fxRise(text(0, 0, '?', 26, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"'), p.x + 4, p.y - 58); }); setPose(w, 'walk1'); setAt(w, p.x, p.y); }
-    else { once('snore', () => play('snore')); setPose(w, 'stuck'); setAt(w, p.x, p.y, 0, SC, e < 2.6 ? 1 : Math.max(0, 1 - (e - 2.6) / 0.6)); }
+    // (a nap back in the start tube, D-190, is drawn the same)
+    if (e < 0.3) { setPose(w, 'walk1'); setAt(w, p.x + 6 * dir * Math.sin((e / 0.3) * Math.PI), p.y, 0, SC, 1, dir); }
+    else if (e < 1.0) { once('huh', () => { play('huh'); fxRise(text(0, 0, '?', 26, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"'), p.x + 4, p.y - 58); }); setPose(w, 'walk1'); setAt(w, p.x, p.y, 0, SC, 1, dir); }
+    else { once('snore', () => play('snore')); setPose(w, 'stuck'); setAt(w, p.x, p.y, 0, SC, e < 2.6 ? 1 : Math.max(0, 1 - (e - 2.6) / 0.6), dir); }
     if (e >= 3.2) finishWalker(w);
   }
 }
@@ -919,8 +1045,7 @@ function finishRun() {
   if (!R) return;
   const id = S.level.id;
   if (R.res.outcome === 'home' && R.home === WALKERS) {
-    S.progress = finished(IDS, S.progress, id, S.seedTaken);
-    keep();
+    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }
     S.mode = 'party';
     party();
   } else {
@@ -951,7 +1076,7 @@ function party() {
     s += place(g(art, '', ` class="confetti" style="--dx:${Math.round(rnd() * 80 - 40)}px;--rot:${Math.round(rnd() * 720 - 360)}deg;--t:${(2.2 + rnd() * 1.6).toFixed(2)}s;--d:${(rnd() * 1.2).toFixed(2)}s"`), x, -20, 0.9);
   }
   for (let i = 0; i < WALKERS; i++) {
-    s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + i * 60, 150, 0.6, 0, ' data-walker="party"');
+    s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + (BW - 720) / 2 + i * 60, 150, 0.6, 0, ' data-walker="party"');
   }
   s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
     const x = 196 + i * 46;
@@ -962,7 +1087,7 @@ function party() {
   layer('pfx').innerHTML = s;
   layer('walkers').innerHTML = '';
   renderTray();
-  const nextOk = S.li + 1 < LEVELS.length;
+  const nextOk = !S.test && S.li + 1 < LEVELS.length;
   $('party').querySelector('[data-act="next"]').hidden = !nextOk;
   $('party').hidden = false;
 }
@@ -972,7 +1097,7 @@ function partyAct(act) {
   $('party').hidden = true;
   layer('fx').innerHTML = '';
   layer('pfx').innerHTML = '';
-  if (act === 'house') { S.at = Math.min(S.li + 1, LEVELS.length - 1); S.mode = 'build'; S.run = null; show('house'); return; }
+  if (act === 'house') { if (!S.test) S.at = Math.min(S.li + 1, LEVELS.length - 1); S.mode = 'build'; S.run = null; show('house'); return; }
   if (act === 'next') { openLevel(S.li + 1); return; }
   S.mode = 'build';
   S.run = null;
@@ -1108,7 +1233,19 @@ window.__test = {
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
     outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,
     card: S.card, caption: S.card ? CAPTION[S.card] : null, help: S.help, poses: S.run && S.run.poses ? S.run.poses : null,
+    zipFrom: S.zipFrom, test: S.test,
   }),
+  // a board that isn't one of the levels (the spike's test board, from the preview's test panel): nothing is saved
+  openBoard: (def) => { S.selected = null; openDef(def, true); },
+  // where a point on the screen falls: a square of the board (as the game reads a tap), the tray, or neither
+  where: (x, y) => {
+    const p = toBoard({ clientX: x, clientY: y });
+    if (S.screen !== 'level') return { cell: null, area: 'none' };
+    const cell = cellAt(p);
+    if (cell) return { cell, area: 'board' };
+    const tray = S.layout === 'side' ? p.x >= BW && p.y >= 0 && p.y < BH : p.y >= BH && p.x >= 0 && p.x < BW;
+    return { cell: null, area: tray ? 'tray' : 'none' };
+  },
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();
     const p = new DOMPoint((c + 0.5) * CELL - S.vx, (r + 0.5) * CELL).matrixTransform(m);

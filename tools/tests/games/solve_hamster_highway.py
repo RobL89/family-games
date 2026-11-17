@@ -1,5 +1,13 @@
 """Hamster Highway's level solver: tries every way to put a level's tray down and says what each gives.
-Version 1.4 (16 Nov, step 9). Not part of the close: a design tool, kept so each level's claims can be re-run.
+Version 1.5 (17 Nov, step 13). Not part of the close: a design tool, kept so each level's claims can be re-run.
+
+Changes at v1.5 (step 13, the spike: D-185, D-190, D-196): the left ramp and the signpost are tried like the other
+gadgets, and a zip-line as a pair (every high end, then every low end it reaches); squares are ordered by the board's
+own height (9-row boards); hamsters walking both ways need nothing of the solver's own, as it judges every placement
+with core.js's walk() and run(). --board FILE.json solves a board that isn't one of the levels (a def with rows and
+tray, and an `answer`: [kind, c, r] or ['zip', hc, hr, lc, lr] each, checked near its answer as level 10 is, a
+zip-line kept where the answer puts it); it prints how long the search took. Levels 1 to 20's results are unchanged
+(the whole run compared with 1.4's, 17 Nov).
 
 Changes at v1.4 (step 9, D-166): a level's twin (`twin` in levels.js) brings in nothing new and names in `more` the
 gadget it needs one more of than its first level: it is checked to need it, with that gadget's count cut to the first
@@ -50,7 +58,7 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'hamster-highway')
 
 JS = r'''
-const [coreUrl, levelsUrl, want, explore] = process.argv.slice(1);
+const [coreUrl, levelsUrl, want, explore, , boardJson] = process.argv.slice(1);
 const core = await import(coreUrl);
 let { LEVELS } = await import(levelsUrl);
 if (explore) {
@@ -65,7 +73,7 @@ if (explore) {
     return { ...d, rows, tray, spare: kind };
   });
 }
-const ORDER = ['bridge', 'stick', 'ramp', 'bouncer', 'floater', 'tube'];
+const ORDER = ['bridge', 'stick', 'ramp', 'rampL', 'bouncer', 'floater', 'signpost', 'tube', 'zip'];
 const ANSWERS = JSON.parse(process.argv[5] || '{}');
 // all five home: one hamster's walk() first (quick); run() only where something wears out or moves
 function home(lv, placed) {
@@ -84,7 +92,7 @@ function count(lv, tray) {
   // every set of gadgets up to the tray: tubes fit anywhere, so they go in square order (each set once);
   // the others go in every order (a bridge may need another beside it first), each set counted once
   const seen = new Set();
-  const idx = (key) => { const [c, r] = key.split(',').map(Number); return c * core.ROWS + r; };
+  const idx = (key) => { const [c, r] = key.split(',').map(Number); return c * (lv.height || core.ROWS) + r; };
   const go = (i, placed, last) => {
     if (i === kinds.length) {
       const sig = Object.keys(placed).sort().map((k) => k + placed[k]).join(' ');
@@ -98,6 +106,17 @@ function count(lv, tray) {
     const k = kinds[i];
     let j = i; while (j < kinds.length && kinds[j] === k) j++;
     go(j, placed, -1);   // the rest of this kind stay in the tray
+    if (k === 'zip') {   // a zip-line: every high end, then every low end it reaches
+      for (const [c, r] of core.fitCells(lv, placed, k)) {
+        for (const [lc, lr] of core.zipLows(lv, placed, c, r)) {
+          const pair = core.zipPair(c, r, lc, lr);
+          Object.assign(placed, pair);
+          go(i + 1, placed, -1);
+          for (const key of Object.keys(pair)) delete placed[key];
+        }
+      }
+      return;
+    }
     for (const [c, r] of core.fitCells(lv, placed, k)) {
       const key = core.key(c, r);
       if (k === 'tube' && i > 0 && kinds[i - 1] === 'tube' && idx(key) <= last) continue;
@@ -111,11 +130,16 @@ function count(lv, tray) {
 }
 // Near the answer: every way of moving one or two of its gadgets (anywhere each fits, or back to the tray).
 function near(lv, answer, extra) {
+  // a zip-line's two ends stay where the answer puts them (moving one is a pair of squares: not tried)
+  const fixed = Object.fromEntries(Object.entries({ ...answer, ...extra }).filter(([, v]) => /^(zip|peg):/.test(v)));
+  answer = Object.fromEntries(Object.entries(answer).filter(([k]) => !(k in fixed)));
+  extra = Object.fromEntries(Object.entries(extra).filter(([k]) => !(k in fixed)));
   const base = Object.entries(answer).map(([k, kind]) => [k, kind]);
-  const put = (placed, kind) => core.fitCells(lv, placed, kind).map(([c, r]) => core.key(c, r));
+  const put = (placed, kind) => core.fitCells(lv, { ...placed, ...fixed }, kind).map(([c, r]) => core.key(c, r));
   const seen = new Set();
   const res = { tried: 0, home: 0, seed: 0, seedWays: [] };
-  const judge = (placed) => {
+  const judge = (placed0) => {
+    const placed = { ...placed0, ...fixed };
     const sig = Object.keys(placed).sort().map((k) => k + placed[k]).join(' ');
     if (seen.has(sig)) return;
     seen.add(sig);
@@ -151,6 +175,29 @@ function near(lv, answer, extra) {
   return res;
 }
 const out = [];
+if (boardJson) {
+  // a board that isn't a level (--board): near its answer, with how long it took
+  const d = JSON.parse(boardJson);
+  const lv = core.parseLevel(d);
+  const answer = {};
+  for (const [k, c, r, lc, lr] of d.answer) {
+    const fine = k === 'zip' ? core.fitsZip(lv, answer, c, r, lc, lr) : core.fits(lv, answer, k, c, r);
+    if (!fine) { console.log(JSON.stringify([{ id: d.id, board: true, error: `${k} does not fit at ${c},${r}` }])); process.exit(0); }
+    Object.assign(answer, k === 'zip' ? core.zipPair(c, r, lc, lr) : { [core.key(c, r)]: k });
+  }
+  const t0 = process.hrtime.bigint();
+  const ans = home(lv, answer);
+  const each = Object.entries(answer).filter(([, v]) => !v.startsWith('peg:')).map(([k, v]) => {
+    const p = { ...answer };
+    delete p[k];
+    if (v.startsWith('zip:')) delete p[v.slice(4)];
+    return [k, v.split(':')[0], home(lv, p).home];
+  });
+  const n = near(lv, answer, {});
+  out.push({ id: d.id, board: true, ans, each, near: n, ms: Number(process.hrtime.bigint() - t0) / 1e6 });
+  console.log(JSON.stringify(out));
+  process.exit(0);
+}
 for (const d of LEVELS) {
   if (want && !want.split(',').includes(d.id)) continue;
   const lv = core.parseLevel(d);
@@ -189,6 +236,11 @@ console.log(JSON.stringify(out));
 
 args = sys.argv[1:]
 explore = ''
+board = ''
+if '--board' in args:
+    i = args.index('--board')
+    board = open(args[i + 1], encoding='utf-8').read()
+    args = args[:i] + args[i + 2:]
 if '--explore' in args:
     i = args.index('--explore')
     explore = ' '.join(args[i + 1:i + 3])
@@ -206,12 +258,23 @@ ANSWERS = {
     'L5b': {'answer': {'1,6': 'bridge', '7,5': 'tube', '7,4': 'tube', '7,3': 'tube', '7,2': 'tube'}, 'seed': {'7,1': 'tube'}, 'full': True},
 }
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(GAME, 'core.js'),
-                    'file://' + os.path.join(GAME, 'levels.js'), want, explore, json.dumps(ANSWERS)], capture_output=True, text=True)
+                    'file://' + os.path.join(GAME, 'levels.js'), want, explore, json.dumps(ANSWERS), board], capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout, r.stderr)
     sys.exit(1)
 bad = 0
 for L in json.loads(r.stdout):
+    if L.get('board'):
+        if L.get('error'):
+            print('FAIL', L['id'], L['error'])
+            sys.exit(1)
+        ok = L['ans']['home'] and not any(h for _, _, h in L['each'])
+        bad += not ok
+        n = L['near']
+        print(f"{'ok  ' if ok else 'FAIL'} {L['id']} (a board, near its answer): the answer gets all five home: {L['ans']['home']}; without any one of its "
+              f"gadgets: {sum(1 for _, _, h in L['each'] if h)} of {len(L['each'])} still home; moving one or two gadgets (the zip-line kept): "
+              f"{n['tried']} ways, {n['home']} home; {L['ms'] / 1000:.1f} s")
+        continue
     if L.get('near'):
         each_ok = all(not h for _, _, h in L['each'])
         less_seed = L['nearLess']['seed'] if L['spare'] else 0
