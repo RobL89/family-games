@@ -1,0 +1,94 @@
+{
+ "from": "core.js 1.6 (sha256 5ab951de9da8, last changed at 6baeeb3)",
+ "by": "pin_hamster_runs.py 1.0",
+ "kinds": [
+  "bridge",
+  "ramp",
+  "bouncer",
+  "floater",
+  "tube",
+  "stick"
+ ],
+ "levels": {
+  "L1": {
+   "n": 5,
+   "sha256": "6b4ba501db1cbcc40e05740f37d78abadfcb70908909b0c0f4f859c96f061fc7"
+  },
+  "L1b": {
+   "n": 16,
+   "sha256": "4a8ea9db42aec04d40dd1c01d9a6afd17ed1d3ac1dfd1c2886c8c16ce7a76e83"
+  },
+  "L2": {
+   "n": 32,
+   "sha256": "dd1f8597d8d06cd94721aa3e751f410d292207498d76cf5bbf496b1bcbb90396"
+  },
+  "L2b": {
+   "n": 31,
+   "sha256": "c0819366626b0918d5743649c91e2dddf9cc6c9fb69136fbe77e508e0c3d66d5"
+  },
+  "L3": {
+   "n": 66,
+   "sha256": "3c2281a371635f222f83e42987d23f18724d57492fc1438af06ec8c69238c580"
+  },
+  "L3b": {
+   "n": 69,
+   "sha256": "c752a9648526e69ccbcba309945d3031ad8e6334a8721bcf52755172952a2683"
+  },
+  "L4": {
+   "n": 46,
+   "sha256": "b62a23d9b253eb61d02e5aca4f1d924ffc83b49d1d2ce4901e1357eb2b7dc52c"
+  },
+  "L4b": {
+   "n": 47,
+   "sha256": "330100847f7ed27ff54e50c845dc969a7050cc00f96a9750d0922c1d70ee09ea"
+  },
+  "L5": {
+   "n": 201,
+   "sha256": "f69bbd36280a0a9fb56d40937ddf5f5e7ad5351cc19bfbe1860ff62310cd6fee"
+  },
+  "L5b": {
+   "n": 197,
+   "sha256": "ffeaa819196312d6aed2faa87b4243b012fc11fd62c581b81ccb80370ce9459d"
+  },
+  "L6": {
+   "n": 36,
+   "sha256": "a3c5746d78fdb42d2ea0b093f7752904a19f0b8262a2fcf9ba2f457ec9ebeca0"
+  },
+  "L6b": {
+   "n": 35,
+   "sha256": "e0d808649978020c9c95104b3b83764c1947b6a8dc019eabf209b554334b3270"
+  },
+  "L7": {
+   "n": 45,
+   "sha256": "641f1611941a7c1c35a571f17e1ad665f2febce89893d6bd30768dbcf16490c1"
+  },
+  "L7b": {
+   "n": 44,
+   "sha256": "21ff32a3393d92209ce9c90c55c32aed3b7cfed38d121eb85782706425493126"
+  },
+  "L8": {
+   "n": 49,
+   "sha256": "3460397845c54bd191fd97eabcde7768261bff991e9eb1ccb356a318bac13c4b"
+  },
+  "L8b": {
+   "n": 50,
+   "sha256": "375542428196de30448c7f9917ddc46b844fedbd953317d26cd240f4f7af4912"
+  },
+  "L9": {
+   "n": 113,
+   "sha256": "3c8ad0b0422b7fa44c8dd0dbe6b6b48a03aa616d369da700946b9bcafd737911"
+  },
+  "L9b": {
+   "n": 109,
+   "sha256": "026e24337782cdfc00bbd4f2d0cf62c7a6b7b7d5be3a3b355c2f022c61f3a67d"
+  },
+  "L10": {
+   "n": 519,
+   "sha256": "503c0686af944eeebb86e9dd382441202ddcdfdd72a8d097f2de973f896964b5"
+  },
+  "L10b": {
+   "n": 503,
+   "sha256": "2f24701c1783a03f9999caa2420c4c639b8df822e9bd7c60d97081dded751c16"
+  }
+ }
+}
