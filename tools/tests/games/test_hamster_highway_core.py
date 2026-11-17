@@ -1,4 +1,16 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.11 (17 Nov, step 10b).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.12 (17 Nov, step 13, the spike).
+
+Changes at v1.12 (step 13: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2): worked out by hand before
+core.js 1.7, on test boards (the section "step 13, the spike" says what each expects): boards 7 to 9 rows, each its
+own height; hamsters walking both ways (a step's dir: -1 facing left; the signpost, falling in too; dizzy at the third
+turn at one signpost; the nap back in the start tube; the left edge; the left ramp and a ramp's back either way; a
+bouncer, tubes and a teacup lift walked into from the right; a see-saw from the right is a step); the zip-line (its
+high and low ends cross-checked on every square of a 16 x 9 board against an exact test of this file's own, in
+fractions; placed as a pair, counted once; the slide a column a tick, both ways). Nine gadgets now; TICKS gain turn 2
+and zip 1; the cards stay one for each of levels 1 to 20's six gadgets and two parts. And levels 1 to 20 run
+byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py 1.0: 2213 placements).
+Two of the new boards first had their start where the walk back left passes it (a nap, not the see-saw or the lift);
+the start was moved a row up on both before core.js 1.7 was committed.
 
 Changes at v1.11 (step 10b, D-177 (1), ER-013): every level's answer and spare go down in every order, each where it
 fits, but for a bridge or stick put down before the one beside it that holds it up (D-139's build out from the edge,
@@ -329,7 +341,7 @@ check(out['sketch']['level 3']['route'] == want3, 'level 3 (sketch model): the r
 
 # parseLevel refusals
 ref = out['refuse']
-for name, frag in (('short', 'must be 7 rows of 12'), ('narrow', 'must be 7 rows of 12'), ('mark', 'unknown mark'),
+for name, frag in (('short', 'must be 7 to 9 rows of 12'), ('narrow', 'must be 7 to 9 rows of 12'), ('mark', 'unknown mark'),
                    ('twoStarts', 'one start and one home'), ('noHome', 'one start and one home'), ('twoSeeds', 'at most one golden seed'),
                    ('badTray', 'bad tray entry'), ('zeroTray', 'bad tray entry')):
     check(frag in ref[name], f'parseLevel refuses a board or tray that is {name} ({ref[name]})')
@@ -448,7 +460,8 @@ check(sorted(k for k, v in ca.items() if v['carried']) == sorted(k for k, v in c
 check(out['terrain'] == ['bridge', '.', None, None, '.', '.', 'S', 'G'], f'terrain(): a bridge, air, off the side, below the bottom, above the top, a seed\'s square, start, home ({out["terrain"]})')
 check(out['holds'] == [True, False, True, False], 'holds(): a bridge and ground hold a hamster; air and a seed\'s square do not')
 check(out['key'] == '3,6', 'key(3, 6) is "3,6"')
-check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'], 3, 3], 'the board is 12 x 7; six gadgets (the worn stick, D-153); a fall of 3 bonks; a bounce is 3 up')
+check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip'], 3, 3],
+      'the board is 12 x 7 for levels 1 to 20; nine gadgets (the worn stick, D-153; the left ramp and the signpost, D-190; the zip-line, D-196); a fall of 3 bonks; a bounce is 3 up')
 check(out['noStack'] == [False, False, False, False, False, False], 'nothing fits on a gadget, the start, the home or the seed, nor an unknown gadget, nor off the board')
 
 # progress.js (D-147): what is saved, on the device or through the wrapper, made safe on the way in
@@ -697,8 +710,8 @@ if r.returncode != 0:
     check(False, 'node ran the timed model (run, cupRow)')
 else:
     o = json.loads(r.stdout)
-    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4}, 6, 3],
-          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156); the cup stops 6, moves a row in 3 ({o["consts"]})')
+    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4, 'turn': 2, 'zip': 1}, 6, 3],
+          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156), turn 2 (at a signpost, D-190), zip 1 (a square across, twice walking speed, D-196); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
     check(not bad and len(o['same']) == 28, f'timed model: on the 18 sketch boards and levels 1 to 5 and their twins with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
@@ -748,7 +761,7 @@ if r.returncode != 0:
     check(False, 'node ran the worn lolly stick')
 else:
     o = json.loads(r.stdout)
-    check(o['snap'] == 4 and o['kinds'] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'], f'the worn stick is a sixth gadget and snaps under the fourth hamster (D-143, D-153) ({o["snap"]}, {o["kinds"]})')
+    check(o['snap'] == 4 and o['kinds'][:6] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'], f'the worn stick is a sixth gadget and snaps under the fourth hamster (D-143, D-153) ({o["snap"]}, {o["kinds"]})')
     five_three = ['home', 'home', 'home', 'splash', 'splash']
     check(o['top']['out'] == five_three and o['top']['ev'] == [[10, 'crack', 5, 4, 1], [16, 'crack', 5, 4, 2], [22, 'crack', 5, 4, 3], [28, 'snap', 5, 4, 4]],
           f'worn stick on top: cracks at 10, 16, 22, snaps under the fourth at 28; three home, two splash, by hand ({o["top"]})')
@@ -929,8 +942,9 @@ else:
     else:
         k = json.loads(r.stdout)
         EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift']
-        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets']) | {'seesaw', 'lift'},
-              f'cards: 8, one for each of the six gadgets and the two parts, in the order they come in (D-167) ({k["cards"]})')
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift'},
+              f'cards: 8, one for each of levels 1 to 20\'s six gadgets and the two parts, in the order they come in (D-167); the left ramp, '
+              f'signpost and zip-line get theirs with their levels (steps 15 and 18) ({k["cards"]})')
         words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
         check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
         check(k['caption'].get('bridge') == 'Bridges cross the gaps' and k['caption'].get('lift') == 'Hop in and ride up!',
@@ -998,6 +1012,224 @@ else:
         check(len(arms) == 2 and all(a in po[c] for a in arms for c in ('carry1', 'carry2')), 'art: the carrying poses have both arms up, holding it')
         check(feet(po['carry1']) == feet(po['walk1']) and feet(po['carry2']) == feet(po['walk2']) and po['carry1'] != po['carry2'],
               'art: the carrying poses step like walking (walk1\'s and walk2\'s feet), so the hamster walks along holding it')
+
+# ================================================================ step 13, the spike (D-185, D-190, D-196): boards 9 tall,
+# hamsters walking both ways, and the zip-line. Worked out by hand before core.js 1.7 (17 Nov), on test boards, not levels:
+#   - heights: a level is 7 to 9 rows (MAX_ROWS 9), its own height read from its rows (height); a 9-row board's bottom
+#     row is water, so a hamster walking off a ledge at row 6 falls 2 rows and splashes below row 8 (fell 3); nothing
+#     is below row 8, a tube fits on row 8, a see-saw and a lift fit as low as a 9-row board allows; 6 or 10 rows refused;
+#   - a step says dir: -1 while its hamster faces left (an added field: none on levels 1 to 20, pinned below); a signpost
+#     turns a hamster that ends a step in its square (a 'turn' step, 2 ticks), falling in too; at the same signpost a
+#     third time it sits down dizzy ('dizzy', no turn); back into the start square it naps ('nap'); off the left edge
+#     it is stuck; a left ramp (rampL) climbs walking left, and a ramp's back is a step either way; a bouncer throws it
+#     one square on the way it faces, tubes join up the way it faces, a teacup lift takes it from either side; a
+#     left-walker reaching a see-saw is stuck (the see-saw stays left to right only, assessment 0.2);
+#   - the zip-line: a high end in an empty square under a block, with at least one low end; a low end in an empty
+#     square with ground or a bridge below, 1 or more rows lower, 2 to 10 across either way, the line between the two
+#     middles crossing no block (touching a corner isn't crossing, as the sketch's exact test); placed as a pair
+#     (zipPair: the high end 'zip:lc,lr', the low end 'peg:hc,hr'), counted once in the tray; a hamster that ends a
+#     step in the high end slides a column a tick ('zip' steps, the row on the line), lets go at the low end and walks
+#     on the way it slid. Highs and lows are cross-checked against this file's own exact test (fractions, below).
+from fractions import Fraction as _Fr
+
+BW_JS = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const o = {};
+const tryy = (f) => { try { return f(); } catch (e) { return 'ERROR ' + e.message; } };
+const P = (rows, parts) => core.parseLevel({ id: 't', rows, tray: {}, parts });
+const strip = (steps) => steps.map((s) => [s.c, s.r, s.act, s.dir || 1]);
+const W = (rows, placed, parts) => tryy(() => { const w = core.walk(P(rows, parts), placed); return { out: w.outcome, steps: strip(w.steps), fell: w.fell }; });
+const refuse = (rows) => { try { P(rows); return 'parsed'; } catch (e) { return 'refused'; } };
+// part 1: heights
+const H9 = ['................', '................', '................', '................', '................', '................',
+            'S..............G', '####............', '................'];
+o.maxRows = core.MAX_ROWS;
+o.heights = tryy(() => [P(H9).height, P(H9.slice(1)).height, P(H9.slice(2)).height]);
+o.refuse = [refuse(H9.slice(3)), refuse([...H9, H9[0]]), refuse(H9.map((r, i) => (i === 8 ? r + '.' : r)))];
+o.h9 = tryy(() => { const lv = P(H9); return { terrain: [core.terrain(lv, {}, 0, 7), core.terrain(lv, {}, 0, 8), core.terrain(lv, {}, 0, 9)],
+  fits: [core.fits(lv, {}, 'tube', 10, 8), core.fits(lv, {}, 'ramp', 5, 8), core.fits(lv, {}, 'ramp', 3, 6)],
+  tubeRows: [...new Set(core.fitCells(lv, {}, 'tube').map(([, r]) => r))].sort(),
+  parts: [P(H9, [{ kind: 'seesaw', c: 5, r: 6 }]).parts.length, P(H9, [{ kind: 'lift', c: 10, top: 2, bottom: 8 }]).parts.length] }; });
+o.h9walk = W(H9, {});
+// part 2: both ways
+const B = (r4, r5, extra = {}) => Object.assign(['............', '............', '............', '............', r4, r5, '############'], extra);
+o.nap = W(B('............', 'S.......G...'), { '3,5': 'signpost' });
+o.napNone = W(B('............', 'S.......G...'), {});
+const T2 = B('.G...S......', '##..........');
+o.rampL = W(T2, { '8,5': 'signpost', '2,5': 'rampL' });
+o.rampBack = W(T2, { '8,5': 'signpost', '2,5': 'ramp' });
+o.rampLBack = W(B('............', 'S.......G...'), { '3,5': 'rampL' });
+o.dizzy = W(B('.....S......', '...........G'), { '2,5': 'signpost', '8,5': 'signpost' });
+o.bounce = W(['............', '............', '...G........', '...###......', '.........S..', '............', '############'], { '10,5': 'signpost', '6,5': 'bouncer' });
+o.tubes = W(['............', '............', '............', '....G.......', '....##...S..', '............', '############'], { '10,5': 'signpost', '6,5': 'tube', '6,4': 'tube', '6,3': 'tube' });
+o.edge = W(B('...S........', '...........G'), { '5,5': 'signpost' });
+o.fallIn = W(['............', '............', '............', 'S...........', '##..........', '...........G', '############'], { '2,5': 'signpost' });
+o.saw = W(['............', '............', '............', '.........S..', 'G...........', '......######', '############'], { '10,4': 'signpost' }, [{ kind: 'seesaw', c: 3, r: 3 }]);
+o.lift = tryy(() => {
+  const lv = P(['............', '.G..........', '#####.......', '.........S..', '............', '......######', '############'], [{ kind: 'lift', c: 5, top: 2, bottom: 5, cups: 2 }]);
+  const r = core.run(lv, { '10,4': 'signpost' });
+  return { outs: r.hamsters.map((h) => h.outcome), first: strip(r.hamsters[0].steps.filter((s) => s.act !== 'wait')) };
+});
+o.fitsNew = tryy(() => { const lv = P(T2); return [core.fits(lv, {}, 'signpost', 8, 5), core.fits(lv, {}, 'rampL', 2, 5), core.fits(lv, {}, 'signpost', 8, 3),
+  core.fits(lv, {}, 'rampL', 8, 3), core.holds(lv, { '2,5': 'rampL' }, 2, 5), core.holds(lv, { '8,5': 'signpost' }, 8, 5)]; });
+o.runTurn = tryy(() => { const r = core.run(P(T2), { '8,5': 'signpost', '2,5': 'rampL' }); const t = r.hamsters[0].steps.find((s) => s.act === 'turn');
+  return { outs: r.hamsters.map((h) => h.outcome), turnTicks: t.t1 - t.t0 }; });
+// part 3: the zip-line
+const Z = ['................', '................', '.######.........', 'S...............', '#####...........', '#####.........G.',
+           '#####....#..####', '#####....#..####', '#####....#..####'];
+o.zip = tryy(() => {
+  const lv = P(Z);
+  const highs = core.zipHighs(lv, {});
+  const lows = {};
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 16; c++) lows[`${c},${r}`] = core.zipLows(lv, {}, c, r);
+  const pair = core.zipPair(4, 3, 12, 5);
+  return { highs, lows, fitCells: core.fitCells(lv, {}, 'zip'), fitsZip: [core.fits(lv, {}, 'zip', 4, 3), core.fits(lv, {}, 'zip', 1, 3), core.fits(lv, {}, 'zip', 4, 1)],
+    pairOk: [core.fitsZip(lv, {}, 4, 3, 12, 5), core.fitsZip(lv, {}, 4, 3, 13, 5), core.fitsZip(lv, {}, 4, 3, 8, 4), core.fitsZip(lv, {}, 1, 3, 9, 5),
+             core.fitsZip(lv, {}, 4, 3, 15, 5), core.fitsZip(lv, {}, 4, 3, 4, 3), core.fitsZip(lv, pair, 4, 3, 9, 5), core.fitsZip(lv, pair, 5, 3, 12, 5)],
+    onBridge: [core.zipLows(lv, {}, 4, 3).some(([c, r]) => c === 10 && r === 5), core.zipLows(lv, { '10,6': 'bridge' }, 4, 3).some(([c, r]) => c === 10 && r === 5)],
+    pair, terrain: [core.terrain(lv, pair, 4, 3), core.terrain(lv, pair, 12, 5)], holds: [core.holds(lv, pair, 4, 3), core.holds(lv, pair, 12, 4)],
+    left: core.left(core.parseLevel({ id: 'z', rows: Z, tray: { zip: 2, bridge: 1 } }), pair),
+    noFit: [core.fits(lv, pair, 'tube', 4, 3), core.fits(lv, pair, 'tube', 12, 5)] };
+});
+o.zipRide = tryy(() => { const lv = P(Z); const w = core.walk(lv, core.zipPair(4, 3, 12, 5)); const r = core.run(lv, core.zipPair(4, 3, 12, 5));
+  return { out: w.outcome, steps: strip(w.steps), none: core.walk(lv, {}).outcome, outs: r.hamsters.map((h) => h.outcome),
+           zipTicks: r.hamsters[0].steps.filter((s) => s.act === 'zip').map((s) => s.t1 - s.t0) }; });
+const ZL = ['................', '................', '.........###....', '.........S......', '.........#......', '.G..............', '####............', '................', '................'];
+o.zipLeft = tryy(() => { const lv = P(ZL); const p = core.zipPair(10, 3, 2, 5); const w = core.walk(lv, p);
+  return { ok: core.fitsZip(lv, {}, 10, 3, 2, 5), out: w.outcome, steps: strip(w.steps), none: core.walk(lv, {}).outcome }; });
+console.log(JSON.stringify(o));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', BW_JS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr[-1500:])
+    check(False, 'node ran the spike\'s checks (step 13)')
+    o = {}
+else:
+    o = json.loads(r.stdout)
+E = lambda k: o.get(k, 'missing')
+# part 1
+check(E('maxRows') == 9 and E('heights') == [9, 8, 7], f'boards 7 to 9 rows, each its own height (D-185) ({E("maxRows")}, {E("heights")})')
+check(E('refuse') == ['refused'] * 3, f'6 rows, 10 rows and a ragged 9-row board are refused ({E("refuse")})')
+check(E('h9') == {'terrain': ['#', '.', None], 'fits': [True, False, True], 'tubeRows': list(range(9)), 'parts': [1, 1]},
+      f'a 9-row board: row 8 is the bottom, nothing below it; a tube fits on row 8, a ramp needs a floor; a see-saw and a lift fit low down ({E("h9")})')
+check(E('h9walk') == {'out': 'splash', 'steps': [[0, 6, 'start', 1], [1, 6, 'walk', 1], [2, 6, 'walk', 1], [3, 6, 'walk', 1], [4, 6, 'walk', 1],
+                                                  [4, 7, 'fall', 1], [4, 8, 'fall', 1], [4, 9, 'fall', 1]], 'fell': 3},
+      f'a 9-row board: off the ledge at row 6, down rows 7 and 8 and a splash below the bottom, by hand ({E("h9walk")})')
+# part 2
+L = -1
+check(E('nap') == {'out': 'nap', 'steps': [[0, 5, 'start', 1], [1, 5, 'walk', 1], [2, 5, 'walk', 1], [3, 5, 'walk', 1], [3, 5, 'turn', L],
+                                           [2, 5, 'walk', L], [1, 5, 'walk', L], [0, 5, 'walk', L]], 'fell': 0},
+      f'a signpost turns a hamster round; walking back into the start tube it naps (D-190), by hand ({E("nap")})')
+check(isinstance(E('napNone'), dict) and E('napNone')['out'] == 'home', 'the same board without the signpost: home')
+check(E('rampL') == {'out': 'home', 'steps': [[5, 4, 'start', 1], [5, 5, 'fall', 1], [6, 5, 'walk', 1], [7, 5, 'walk', 1], [8, 5, 'walk', 1],
+                                              [8, 5, 'turn', L], [7, 5, 'walk', L], [6, 5, 'walk', L], [5, 5, 'walk', L], [4, 5, 'walk', L],
+                                              [3, 5, 'walk', L], [2, 4, 'climb', L], [1, 4, 'walk', L]], 'fell': 0},
+      f'walking left, a left ramp climbs (D-190 (a)); every step after the turn says dir -1, by hand ({E("rampL")})')
+check(isinstance(E('rampBack'), dict) and E('rampBack')['out'] == 'stuck' and E('rampBack')['steps'][-1] == [3, 5, 'walk', L],
+      f'walking left into a right ramp\'s back: stuck before it ({E("rampBack") if not isinstance(E("rampBack"), dict) else E("rampBack")["steps"][-1:]})')
+check(E('rampLBack') == {'out': 'stuck', 'steps': [[0, 5, 'start', 1], [1, 5, 'walk', 1], [2, 5, 'walk', 1]], 'fell': 0},
+      f'walking right into a left ramp\'s back: stuck before it ({E("rampLBack")})')
+want = [[5, 4, 'start', 1], [5, 5, 'fall', 1]]
+for lap in range(5):   # B, A, B, A, then B a third time: dizzy
+    d = 1 if lap % 2 == 0 else L
+    cols = range(6 if lap == 0 else 3, 9) if d == 1 else range(7, 1, -1)
+    want += [[c, 5, 'walk', d] for c in cols]
+    if lap < 4:
+        want.append([8 if d == 1 else 2, 5, 'turn', -d])
+check(E('dizzy') == {'out': 'dizzy', 'steps': want, 'fell': 0},
+      f'two signposts facing: turned twice at each, at the third turn it sits down dizzy (D-190), by hand ({len(want)} steps; got {E("dizzy") if not isinstance(E("dizzy"), dict) else (E("dizzy")["out"], len(E("dizzy")["steps"]))})')
+check(E('bounce') == {'out': 'home', 'steps': [[9, 4, 'start', 1], [9, 5, 'fall', 1], [10, 5, 'walk', 1], [10, 5, 'turn', L], [9, 5, 'walk', L],
+                                               [8, 5, 'walk', L], [7, 5, 'walk', L], [6, 5, 'walk', L], [5, 2, 'bounce', L], [4, 2, 'walk', L], [3, 2, 'walk', L]], 'fell': 0},
+      f'walking left, a bouncer throws it up and one square left, by hand ({E("bounce")})')
+check(E('tubes') == {'out': 'home', 'steps': [[9, 4, 'start', 1], [9, 5, 'fall', 1], [10, 5, 'walk', 1], [10, 5, 'turn', L], [9, 5, 'walk', L],
+                                              [8, 5, 'walk', L], [7, 5, 'walk', L], [6, 5, 'walk', L], [6, 4, 'tube', L], [6, 3, 'tube', L], [5, 3, 'walk', L], [4, 3, 'walk', L]], 'fell': 0},
+      f'walking left, up three tubes and out on the left, by hand ({E("tubes")})')
+check(E('edge') == {'out': 'stuck', 'steps': [[3, 4, 'start', 1], [3, 5, 'fall', 1], [4, 5, 'walk', 1], [5, 5, 'walk', 1], [5, 5, 'turn', L],
+                                              [4, 5, 'walk', L], [3, 5, 'walk', L], [2, 5, 'walk', L], [1, 5, 'walk', L], [0, 5, 'walk', L]], 'fell': 0},
+      f'walking off the board\'s left edge: stuck, as the right edge (D-190), by hand ({E("edge")})')
+check(E('fallIn') == {'out': 'stuck', 'steps': [[0, 3, 'start', 1], [1, 3, 'walk', 1], [2, 3, 'walk', 1], [2, 4, 'fall', 1], [2, 5, 'fall', 1],
+                                                [2, 5, 'turn', L], [1, 5, 'walk', L], [0, 5, 'walk', L]], 'fell': 0},
+      f'falling into a signpost\'s square turns it round too, by hand ({E("fallIn")})')
+check(isinstance(E('saw'), dict) and E('saw')['out'] == 'stuck' and E('saw')['steps'][-1] == [6, 4, 'walk', L],
+      f'walking left to a see-saw: stuck before it (the see-saw stays left to right only, assessment 0.2) ({E("saw") if not isinstance(E("saw"), dict) else E("saw")["steps"][-1:]})')
+check(E('lift') == {'outs': ['home'] * 5, 'first': [[9, 3, 'start', 1], [9, 4, 'fall', 1], [10, 4, 'walk', 1], [10, 4, 'turn', L], [9, 4, 'walk', L], [8, 4, 'walk', L],
+                                                      [7, 4, 'walk', L], [6, 4, 'walk', L], [5, 4, 'walk', L], [5, 3, 'ride', L], [5, 2, 'ride', L], [5, 1, 'ride', L],
+                                                      [4, 1, 'walk', L], [3, 1, 'walk', L], [2, 1, 'walk', L], [1, 1, 'walk', L]]},
+      f'walking left, a teacup lift takes them up from its right side; all five home (run()), by hand ({E("lift")})')
+check(E('fitsNew') == [True, True, False, False, True, False],
+      f'a signpost and a left ramp go on a floor, not in the air; a left ramp holds a hamster, a signpost doesn\'t ({E("fitsNew")})')
+check(E('runTurn') == {'outs': ['home'] * 5, 'turnTicks': 2}, f'run(): all five turn, climb the left ramp and get home; a turn takes 2 ticks ({E("runTurn")})')
+
+
+# the zip-line's rules, by an exact test of this file's own (fractions), to cross-check core.js's
+def _zip_expect(rows, placed=None):
+    placed = placed or {}
+    R, C = len(rows), len(rows[0])
+    solid = lambda c, r: 0 <= r < R and 0 <= c < C and rows[r][c] == '#'
+    empty = lambda c, r: 0 <= r < R and 0 <= c < C and rows[r][c] == '.' and f'{c},{r}' not in placed
+    floor = lambda c, r: solid(c, r) or placed.get(f'{c},{r}') == 'bridge'
+
+    def crosses(a, b, c, r):   # does the segment between the middles of a and b cross the open square (c, r)? (Liang-Barsky, exact)
+        x0, y0, x1, y1 = _Fr(2 * a[0] + 1, 2), _Fr(2 * a[1] + 1, 2), _Fr(2 * b[0] + 1, 2), _Fr(2 * b[1] + 1, 2)
+        dx, dy, t0, t1 = x1 - x0, y1 - y0, _Fr(0), _Fr(1)
+        for p, q in ((-dx, x0 - c), (dx, c + 1 - x0), (-dy, y0 - r), (dy, r + 1 - y0)):
+            if p == 0:
+                if q <= 0:
+                    return False
+            elif p < 0:
+                t0 = max(t0, q / p)
+            else:
+                t1 = min(t1, q / p)
+        return t0 < t1
+
+    def lows(h):
+        hc, hr = h
+        if not (empty(hc, hr) and solid(hc, hr - 1)):
+            return []
+        return [[c, r] for r in range(R) for c in range(C) if r > hr and 2 <= abs(c - hc) <= 10 and empty(c, r) and floor(c, r + 1)
+                and not any(crosses(h, (c, r), cc, rr) for rr in range(R) for cc in range(C) if solid(cc, rr))]
+    return {f'{c},{r}': lows((c, r)) for r in range(R) for c in range(C)}
+
+
+ZB = ['................', '................', '.######.........', 'S...............', '#####...........', '#####.........G.',
+      '#####....#..####', '#####....#..####', '#####....#..####']
+zx = _zip_expect(ZB)
+z = E('zip')
+zhighs = [[int(v) for v in k.split(',')] for k, ls in zx.items() if ls]
+check(isinstance(z, dict) and z['lows'] == zx, f'zip-line: the low ends from every square of the 16 x 9 test board match an exact test of this file\'s own '
+      f'({sum(len(v) for v in zx.values())} pairs; {"same" if isinstance(z, dict) and z["lows"] == zx else z if not isinstance(z, dict) else "differ"})')
+check(isinstance(z, dict) and z['highs'] == zhighs == z['fitCells'] and zx['4,3'] == [[9, 5], [12, 5], [13, 5]] and zx['1,3'] == [],
+      f'zip-line: the high ends are the squares under a block with a low end; from 4,3 the lows are 9,5, 12,5 and 13,5, by hand; '
+      f'1,3 has none (its line to 9,5 crosses the block at 4,4) ({zhighs})')
+check(isinstance(z, dict) and z['fitsZip'] == [True, False, False] and z['pairOk'] == [True, True, False, False, False, False, False, False],
+      f'zip-line: fits at 4,3, not at 1,3 (no low) nor 4,1 (no block above); 4,3 to 12,5 and 13,5 yes; to 8,4 (no floor), from 1,3 to 9,5 (a block across), '
+      f'11 across, to itself, from a used high end or to a used low end: no ({z.get("fitsZip") if isinstance(z, dict) else z}, {z.get("pairOk") if isinstance(z, dict) else ""})')
+check(isinstance(z, dict) and z['onBridge'] == [False, True] and _zip_expect(ZB, {'10,6': 'bridge'})['4,3'] == [[9, 5], [10, 5], [12, 5], [13, 5]],
+      f'zip-line: a low end may be on a bridge (D-196 "on a floor") ({z.get("onBridge") if isinstance(z, dict) else z})')
+check(isinstance(z, dict) and z['pair'] == {'4,3': 'zip:12,5', '12,5': 'peg:4,3'} and z['terrain'] == ['zip', 'peg'] and z['holds'] == [False, False]
+      and z['left'] == {'zip': 1, 'bridge': 1} and z['noFit'] == [False, False],
+      f'zip-line: placed as a pair, each end naming the other; counted once in the tray; nothing else fits on either end; neither end holds a hamster '
+      f'({ {k: z.get(k) for k in ("pair", "terrain", "holds", "left", "noFit")} if isinstance(z, dict) else z})')
+zr = E('zipRide')
+zsteps = [[0, 3, 'start', 1], [1, 3, 'walk', 1], [2, 3, 'walk', 1], [3, 3, 'walk', 1], [4, 3, 'walk', 1]] \
+    + [[4 + i, 3 + 2 * i / 8, 'zip', 1] for i in range(1, 9)] + [[13, 5, 'walk', 1], [14, 5, 'walk', 1]]
+check(isinstance(zr, dict) and zr['out'] == 'home' and zr['steps'] == zsteps and zr['none'] == 'splash',
+      f'zip-line: into the high end at 4,3, eight columns down the line a square a step, off at 12,5 and on home; without it, a splash, by hand '
+      f'({zr if not isinstance(zr, dict) else (zr["out"], zr["steps"][4:7], zr["none"])})')
+check(isinstance(zr, dict) and zr['outs'] == ['home'] * 5 and zr['zipTicks'] == [1] * 8,
+      f'zip-line: run(): all five ride their own reel home, a column a tick (twice walking speed, D-196) ({zr.get("outs") if isinstance(zr, dict) else zr}, {zr.get("zipTicks") if isinstance(zr, dict) else ""})')
+zl = E('zipLeft')
+zlsteps = [[9, 3, 'start', 1], [10, 3, 'walk', 1]] + [[10 - i, 3 + 2 * i / 8, 'zip', L] for i in range(1, 9)] + [[1, 5, 'walk', L]]
+check(isinstance(zl, dict) and zl['ok'] and zl['out'] == 'home' and zl['steps'] == zlsteps and zl['none'] == 'splash',
+      f'zip-line leftwards: a hamster walking right slides left and walks on left, facing the way it slid (D-196), by hand '
+      f'({zl if not isinstance(zl, dict) else (zl["out"], zl["steps"][-2:], zl["none"])})')
+
+# levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
+sys.path.insert(0, HERE)
+import pin_hamster_runs
+_ok, _what = pin_hamster_runs.pinned()
+check(_ok, _what)
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

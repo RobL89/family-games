@@ -1,4 +1,21 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.6.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.7.
+//
+// Changes at v1.7 (step 13, the spike: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2):
+//   - boards 7 to 9 rows (MAX_ROWS), each level its own height, read from its rows (level.height), as v1.2 made the
+//     width; levels 1 to 20 stay 7 rows, and run byte-identically (tools/tests/games/pin_hamster_runs.py);
+//   - hamsters walk both ways: a trip keeps a facing (d, +1 right, -1 left), and a step says dir: -1 while its hamster
+//     faces left (an added field, as v1.6's carry). The twig signpost ('signpost', on a floor) turns round a hamster
+//     that ends a step in its square, falling in too (a 'turn' step); at the same signpost a third time it sits down
+//     dizzy ('dizzy'); walking back into the start square it naps ('nap'); off the left edge it is stuck. A left ramp
+//     ('rampL', its own tray slot, D-190 (a)) climbs walking left; a ramp's back is a step either way. A bouncer throws
+//     it one square on the way it faces, tubes join up the way it faces, a teacup lift takes it from either side; a
+//     left-walker reaching a see-saw is stuck (the see-saw stays left to right only);
+//   - the zip-line ('zip', D-196): placed as a pair, the high end 'zip:lc,lr' in an empty square under a block, the
+//     low end 'peg:hc,hr' in an empty square on a floor (ground or a bridge), 1 or more rows lower and ZIP_MIN to
+//     ZIP_MAX across either way, the line between the two middles crossing no block (exactly: touching a corner isn't
+//     crossing); zipHighs(), zipLows(), fitsZip(), zipPair(). A hamster that ends a step in the high end slides down
+//     the line a column a step ('zip', 1 tick: twice walking speed), lets go at the low end and walks on the way it
+//     slid. Each hamster has its own reel, so nobody waits.
 //
 // Changes at v1.6 (step 10b, D-177 (3), D-178, D-179): a step taken while a hamster holds the dandelion clock says
 // carry: true, from the step after it reaches the floater's square until it lands (its last float step), so game.js
@@ -40,14 +57,18 @@
 // "anywhere it fits" (D-139); golden seeds are D-138's. tools/tests/games/test_hamster_highway_core.py
 // checks every function here, against the sketch model's own outcomes.
 //
-// A level's board is 7 rows of 12 characters, top row first:
+// A level's board is 7 to 9 rows of 12 to 24 characters, top row first:
 //   '#' ground   '.' air   'S' where the hamsters come out   'G' their home   '*' a golden seed (in air)
-// Placed gadgets are { 'c,r': kind }, kind one of GADGETS.
+// Placed gadgets are { 'c,r': kind }, kind one of GADGETS, but a zip-line's two ends: 'zip:lc,lr' and 'peg:hc,hr'.
 
 export const COLS = 12;       // a board's narrowest, and levels 1 to 7's width
 export const MAX_COLS = 24;   // the widest (D-158)
-export const ROWS = 7;
-export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick'];
+export const ROWS = 7;       // a board's lowest, and levels 1 to 20's height
+export const MAX_ROWS = 9;   // the tallest (D-185)
+export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip'];
+export const ZIP_MIN = 2;    // squares across a zip-line spans, at least (D-196)
+export const ZIP_MAX = 10;   // and at most
+export const DIZZY = 3;      // turned round at one signpost this many times, a hamster sits down dizzy (D-190)
 export const BIG_FALL = 3;   // squares: a drop of 3 or more is a funny fall (D-136)
 export const BOUNCE = 3;     // squares a bouncer throws a hamster straight up, before one square on
 export const SNAP = 4;       // a worn stick snaps under its fourth hamster (D-143)
@@ -60,21 +81,24 @@ export const SEATS = 2;      // hamsters a teacup takes at once, side by side (D
 export const SHARE_WAIT = 4; // ticks the second in a cup waits at the other end before stepping out (D-163)
 export const PAIR = 2;       // hamsters on its far end that tip it (D-144)
 export const SEESAW_WAIT = 24;   // ticks a hamster waits on a see-saw's high end for a friend before it naps
-export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP };   // a step's length
+export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP, turn: 2, zip: 1 };   // a step's length
 const MAX_TICKS = 3000;      // a run ends here, anyone still out counted stuck
 
 const MARKS = '#.SG*';
-const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick']);   // what a hamster can stand on
+const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick', 'rampL']);   // what a hamster can stand on
 const FLOOR = new Set(['#', 'bridge']);                    // what a ramp, bouncer or floater can stand on (not a worn stick)
 const SIDE = new Set(['#', 'bridge', 'stick']);            // what a bridge or worn stick can go beside
 
 export const key = (c, r) => `${c},${r}`;
+const kindOf = (v) => (v ? v.split(':')[0] : v);   // a placed square's kind ('zip:12,5' is a zip-line's high end)
+const tall = (level) => level.height || ROWS;
 
 export function parseLevel(def) {
   const rows = def && def.rows;
   const cols = Array.isArray(rows) && typeof rows[0] === 'string' ? rows[0].length : 0;
-  if (!Array.isArray(rows) || rows.length !== ROWS || cols < COLS || cols > MAX_COLS || rows.some((row) => typeof row !== 'string' || row.length !== cols)) {
-    throw new Error(`level ${def && def.id}: the board must be ${ROWS} rows of ${COLS} to ${MAX_COLS} squares, all the same`);
+  const height = Array.isArray(rows) ? rows.length : 0;
+  if (!Array.isArray(rows) || height < ROWS || height > MAX_ROWS || cols < COLS || cols > MAX_COLS || rows.some((row) => typeof row !== 'string' || row.length !== cols)) {
+    throw new Error(`level ${def && def.id}: the board must be ${ROWS} to ${MAX_ROWS} rows of ${COLS} to ${MAX_COLS} squares, all the same`);
   }
   const found = { S: [], G: [], '*': [] };
   rows.forEach((row, r) => {
@@ -96,11 +120,11 @@ export function parseLevel(def) {
   const space = new Set();
   for (const p of def.parts || []) {
     if (p && p.kind === 'seesaw') {
-      const fine = [p.c, p.r].every(Number.isInteger) && p.c >= 1 && p.c + 2 < cols && p.r >= 1 && p.r + 2 < ROWS;
+      const fine = [p.c, p.r].every(Number.isInteger) && p.c >= 1 && p.c + 2 < cols && p.r >= 1 && p.r + 2 < height;
       if (!fine) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
       const sq = [];
       for (let c = p.c; c <= p.c + 2; c++) for (let r = p.r - 1; r <= p.r + 2; r++) sq.push([c, r]);
-      for (let r = p.r + 3; r < ROWS && rows[r][p.c + 1] !== '#'; r++) sq.push([p.c + 1, r]);   // the flowerpot, down to the ground
+      for (let r = p.r + 3; r < height && rows[r][p.c + 1] !== '#'; r++) sq.push([p.c + 1, r]);   // the flowerpot, down to the ground
       for (const [c, r] of sq) {
         if (rows[r][c] !== '.') throw new Error(`level ${def.id}: the see-saw part's space must be clear at ${c},${r}`);
         space.add(key(c, r));
@@ -109,7 +133,7 @@ export function parseLevel(def) {
       continue;
     }
     const cups = p && p.cups === undefined ? 1 : p && p.cups;
-    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < cols && p.top >= 1 && p.bottom < ROWS && p.top < p.bottom
+    const ok = p && p.kind === 'lift' && [p.c, p.top, p.bottom].every(Number.isInteger) && p.c >= 0 && p.c < cols && p.top >= 1 && p.bottom < height && p.top < p.bottom
       && (cups === 1 || cups === 2);
     if (!ok) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
     for (let r = p.top - 1; r <= p.bottom; r++) {
@@ -118,7 +142,7 @@ export function parseLevel(def) {
     }
     parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom, cups });
   }
-  return { id: def.id, rows, cols, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space };
+  return { id: def.id, rows, cols, height, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space };
 }
 
 // A teacup lift's loop: stopped at the bottom for LIFT_STOP ticks, up a row every LIFT_MOVE, stopped at the top,
@@ -153,10 +177,10 @@ export function plankStand(p, i, tipped) {
 // the bottom.
 // Above the top is open air. A golden seed's square is air.
 export function terrain(level, placed, c, r) {
-  if (c < 0 || c >= (level.cols || COLS) || r >= ROWS) return null;
+  if (c < 0 || c >= (level.cols || COLS) || r >= tall(level)) return null;
   if (r < 0) return '.';
   const g = placed[key(c, r)];
-  if (g) return g;
+  if (g) return kindOf(g);
   if (level.shaft && level.shaft.has(key(c, r))) return 'shaft';
   if (level.space && level.space.has(key(c, r))) return 'seesaw';
   const ch = level.rows[r][c];
@@ -167,11 +191,13 @@ export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c
 
 // Anywhere it fits (D-139): never on the start, home, seed, ground or another gadget. A bridge (or worn stick) goes
 // where a hamster would fall through, beside ground or another bridge; a worn stick also above a worn stick (D-177
-// (1)); a ramp, bouncer or floater
-// on ground or a bridge; a tube on any empty square.
+// (1)); a ramp, left ramp, bouncer, floater or signpost
+// on ground or a bridge; a tube on any empty square; a zip-line's high end where zipHighs() says.
+const empty = (level, placed, c, r) => c >= 0 && c < (level.cols || COLS) && r >= 0 && r < tall(level) && level.rows[r][c] === '.' && !placed[key(c, r)]
+  && !(level.shaft && level.shaft.has(key(c, r))) && !(level.space && level.space.has(key(c, r)));
 export function fits(level, placed, kind, c, r) {
-  if (!GADGETS.includes(kind) || c < 0 || c >= (level.cols || COLS) || r < 0 || r >= ROWS) return false;
-  if (level.rows[r][c] !== '.' || placed[key(c, r)] || (level.shaft && level.shaft.has(key(c, r))) || (level.space && level.space.has(key(c, r)))) return false;
+  if (!GADGETS.includes(kind) || !empty(level, placed, c, r)) return false;
+  if (kind === 'zip') return zipLows(level, placed, c, r).length > 0;
   const below = terrain(level, placed, c, r + 1);
   if (kind === 'bridge' || kind === 'stick') {
     const side = (dc) => SIDE.has(terrain(level, placed, c + dc, r));
@@ -184,14 +210,63 @@ export function fits(level, placed, kind, c, r) {
 
 export function fitCells(level, placed, kind) {
   const out = [];
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < (level.cols || COLS); c++) if (fits(level, placed, kind, c, r)) out.push([c, r]);
+  for (let r = 0; r < tall(level); r++) for (let c = 0; c < (level.cols || COLS); c++) if (fits(level, placed, kind, c, r)) out.push([c, r]);
   return out;
 }
 
-// How many of each gadget are still in the tray.
+// The zip-line (D-196). Does the line between the middles of squares a and b cross the inside of square (c, r)? Exact,
+// in whole numbers (Liang-Barsky on doubled units, comparing fractions by cross-multiplying): touching a corner or an
+// edge isn't crossing.
+function crosses(a, b, c, r) {
+  const x0 = 2 * a[0] + 1;
+  const y0 = 2 * a[1] + 1;
+  const dx = 2 * (b[0] - a[0]);
+  const dy = 2 * (b[1] - a[1]);
+  let lo = [0, 1];   // the part of the line inside the square runs from t = lo to t = hi (fractions [n, d], d > 0)
+  let hi = [1, 1];
+  const less = (p, q) => p[0] * q[1] < q[0] * p[1];
+  for (const [p, q] of [[-dx, x0 - 2 * c], [dx, 2 * c + 2 - x0], [-dy, y0 - 2 * r], [dy, 2 * r + 2 - y0]]) {
+    if (p === 0) { if (q <= 0) return false; continue; }
+    const t = p < 0 ? [-q, -p] : [q, p];
+    if (p < 0) { if (less(lo, t)) lo = t; } else if (less(t, hi)) hi = t;
+  }
+  return less(lo, hi);
+}
+const clearLine = (level, a, b) => {
+  for (let r = Math.min(a[1], b[1]); r <= Math.max(a[1], b[1]); r++) {
+    for (let c = Math.min(a[0], b[0]); c <= Math.max(a[0], b[0]); c++) if (level.rows[r][c] === '#' && crosses(a, b, c, r)) return false;
+  }
+  return true;
+};
+const under = (level, c, r) => r >= 1 && level.rows[r - 1][c] === '#';   // a block straight above to hook under
+// Where a zip-line's low end can go from a high end at hc, hr: empty, on a floor, lower, ZIP_MIN to ZIP_MAX across, the
+// line clear (rows top first, then columns, as fitCells).
+export function zipLows(level, placed, hc, hr) {
+  if (!empty(level, placed, hc, hr) || !under(level, hc, hr)) return [];
+  const out = [];
+  for (let r = hr + 1; r < tall(level); r++) {
+    for (let c = 0; c < (level.cols || COLS); c++) {
+      const across = Math.abs(c - hc);
+      if (across < ZIP_MIN || across > ZIP_MAX || !empty(level, placed, c, r) || !FLOOR.has(terrain(level, placed, c, r + 1))) continue;
+      if (clearLine(level, [hc, hr], [c, r])) out.push([c, r]);
+    }
+  }
+  return out;
+}
+export const zipHighs = (level, placed) => fitCells(level, placed, 'zip');
+export function fitsZip(level, placed, hc, hr, lc, lr) {
+  return zipLows(level, placed, hc, hr).some(([c, r]) => c === lc && r === lr);
+}
+// A placed zip-line, as the two squares it takes, each naming the other.
+export const zipPair = (hc, hr, lc, lr) => ({ [key(hc, hr)]: `zip:${lc},${lr}`, [key(lc, lr)]: `peg:${hc},${hr}` });
+
+// How many of each gadget are still in the tray (a zip-line counted once, by its high end).
 export function left(level, placed) {
   const n = { ...level.tray };
-  for (const kind of Object.values(placed)) n[kind] = (n[kind] || 0) - 1;
+  for (const v of Object.values(placed)) {
+    const kind = kindOf(v);
+    if (kind !== 'peg') n[kind] = (n[kind] || 0) - 1;
+  }
   return n;
 }
 
@@ -201,40 +276,68 @@ export function left(level, placed) {
 // canBoard(stop), board(stop) (which sets stop.cup, the cup it boards), leaves(stop) and leave(stop), and now(), the tick;
 // for a see-saw, plank(c, r) (the plank's square there now, if any: { part, i }), standAt(part, i), tipped(part),
 // weigh(part) (it stands on the far end; true once it has tipped), unweigh(part) and carry(c, r) (where a tipping
-// plank takes it: { r, dur }, or null).
-// It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait', 'ride' or 'tilt';
-// dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a landing's
-// last step, set when it lands; carry: true while it holds the dandelion clock, D-179) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' | 'stuck' | 'bonk-head'.
+// plank takes it: { r, dur }, or null); for a zip-line, zip(c, r): the low end of one whose high end is there, or null.
+// It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait', 'ride', 'tilt',
+// 'turn' or 'zip'; dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a
+// landing's last step, set when it lands; carry: true while it holds the dandelion clock, D-179; dir: -1 while it faces
+// left, D-190; a zip step's r is on the line, between rows) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' |
+// 'stuck' | 'bonk-head' | 'dizzy' | 'nap'.
 export function* trip(level, ctx) {
   const at = ctx.at;
   let [c, r] = level.start;
+  let d = 1;                 // the way it faces: +1 right, -1 left (D-190)
+  let away = false;          // it has left the start square
   let floater = false;
   let riding = null;
   let waited = 0;
   const tubed = new Set();
+  const turns = new Map();   // times turned at each signpost
   const touch = (st, cc, rr) => { if (ctx.take(cc, rr)) st.seed = true; return st; };
-  const mark = (st) => { if (floater) st.carry = true; return st; };   // holding the dandelion clock (D-179)
+  const mark = (st) => { if (floater) st.carry = true; if (d < 0) st.dir = -1; return st; };   // holding the dandelion clock (D-179); facing left (D-190)
   const done = (outcome, fell = 0) => { if (riding) ctx.leave(riding); riding = null; return { outcome, fell }; };
   yield { c, r, act: 'start' };
   for (let guard = 0; guard < 600; guard++) {
     const k = at(c, r);
     if (k === 'G') return done('home');
+    if (k === 'S' && away) return done('nap');   // back into the start tube (D-190)
+    if (c !== level.start[0] || r !== level.start[1]) away = true;
+    if (k === 'signpost') {
+      const n = (turns.get(key(c, r)) || 0) + 1;
+      turns.set(key(c, r), n);
+      if (n >= DIZZY) return done('dizzy');
+      d = -d;
+      yield mark({ c, r, act: 'turn' });
+    }
+    if (k === 'zip') {
+      // grab a reel and slide down the line a column a step, then let go and walk on the way it slid (D-196)
+      const [lc, lr] = ctx.zip(c, r);
+      const [hc, hr] = [c, r];
+      const n = Math.abs(lc - hc);
+      d = lc > hc ? 1 : -1;
+      for (let i = 1; i <= n; i++) {
+        c = hc + d * i;
+        r = hr + ((lr - hr) * i) / n;
+        yield mark(touch({ c, r, act: 'zip' }, c, Math.round(r)));
+      }
+      continue;
+    }
     if (k === 'bouncer') {
       for (let i = 1; i <= BOUNCE; i++) if (r - i < 0 || at(c, r - i) === '#') return done('bonk-head');
       const c0 = c;
       r -= BOUNCE;
-      const on = at(c + 1, r);
-      if (on !== null && on !== '#') c += 1;
+      const on = at(c + d, r);
+      if (on !== null && on !== '#') c += d;
       const st = { c, r, act: 'bounce' };
       for (let i = 1; i <= BOUNCE; i++) touch(st, c0, r + BOUNCE - i);
       yield mark(touch(st, c, r));
+      if (at(c, r) === 'zip') continue;   // thrown into a zip-line's high end: it grabs the reel
     }
     if (k === 'floater') floater = true;
     if (k === 'tube' && !tubed.has(key(c, r))) {
       const chain = [[c, r]];
       for (;;) {
         const [lc, lr] = chain[chain.length - 1];
-        const next = [[lc, lr - 1], [lc + 1, lr], [lc, lr + 1], [lc - 1, lr]]
+        const next = [[lc, lr - 1], [lc + d, lr], [lc, lr + 1], [lc - d, lr]]
           .find(([nc, nr]) => at(nc, nr) === 'tube' && !chain.some(([pc, pr]) => pc === nc && pr === nr));
         if (!next) break;
         chain.push(next);
@@ -245,7 +348,7 @@ export function* trip(level, ctx) {
     }
     let fell = 0;
     let last = null;
-    for (;;) {
+    drop: for (;;) {
       for (;;) {
         const moved = ctx.carry(c, r);   // a see-saw tipping from under it, or up through it
         if (moved) {
@@ -254,7 +357,7 @@ export function* trip(level, ctx) {
           continue;
         }
         if (ctx.holds(c, r + 1)) break;
-        if (r + 1 >= ROWS) {
+        if (r + 1 >= tall(level)) {
           yield mark({ c, r: r + 1, act: floater ? 'float' : 'fall' });
           return done('splash', fell + 1);
         }
@@ -262,13 +365,17 @@ export function* trip(level, ctx) {
         fell += 1;
         last = mark(touch({ c, r, act: floater ? 'float' : 'fall' }, c, r));
         yield last;
+        if (at(c, r) === 'zip') break drop;   // falling past a zip-line's high end: it grabs the reel
       }
       if (!ctx.stand(c, r)) break;   // a worn stick that snaps under it: on down
     }
+    if (at(c, r) === 'zip') continue;
     if (fell) last.land = fell;
     if (fell >= BIG_FALL && !floater) return done('bonk', fell);
     if (fell) floater = false;
     if (at(c, r) === 'G') return done('home');
+    if (fell && at(c, r) === 'signpost') continue;   // fallen into a signpost's square: it turns round there
+    if (d < 0 && (ctx.plank(c, r + 1) || ctx.plank(c + d, r) || at(c + d, r) === 'seesaw')) return done('stuck');   // the see-saw: left to right only
     const on = ctx.plank(c, r + 1);
     if (on && on.i === 2 && !ctx.tipped(on.part)) {
       // a see-saw's high end: wait here for a friend; two tip it, and the carry above takes them down with it
@@ -289,15 +396,15 @@ export function* trip(level, ctx) {
       }
     }
     if (ctx.plank(c + 1, r)) return done('stuck');   // a see-saw's raised end: a step up from outside
-    const next = at(c + 1, r);
+    const next = at(c + d, r);
     if (next === 'shaft') {
       // a teacup lift: wait at the edge for the empty cup, step in, ride to the other end, then on as usual
-      const stop = ctx.stop(c + 1, r);
+      const stop = ctx.stop(c + d, r);
       if (!stop) return done('stuck');
       while (!ctx.canBoard(stop)) yield mark({ c, r, act: 'wait' });
       ctx.board(stop);
       riding = stop;
-      c += 1;
+      c += d;
       yield mark(touch({ c, r, act: 'walk', seat: stop.seat }, c, r));
       const leaves = ctx.leaves(stop);
       if (leaves > ctx.now()) yield mark({ c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat });
@@ -312,13 +419,14 @@ export function* trip(level, ctx) {
     if (next === null || next === '#') return done('stuck');
     if (riding) { ctx.leave(riding); riding = null; }
     let st;
-    if (next === 'ramp') {
-      if (at(c + 1, r - 1) === '#') return done('stuck');
-      c += 1;
+    if (next === (d > 0 ? 'rampL' : 'ramp')) return done('stuck');   // a ramp's back: a step (D-190)
+    if (next === (d > 0 ? 'ramp' : 'rampL')) {
+      if (at(c + d, r - 1) === '#') return done('stuck');
+      c += d;
       r -= 1;
       st = { c, r, act: 'climb' };
     } else {
-      c += 1;
+      c += d;
       st = { c, r, act: 'walk' };
     }
     yield mark(touch(st, c, r));
@@ -395,6 +503,10 @@ function world(level, placed0, seedLeft) {
         events.push({ t, kind: snap ? 'snap' : 'crack', c, r: r + 1, n: by.size, who });
         if (snap) delete placed[k];
         return snap;
+      },
+      zip: (c, r) => {
+        const v = placed[key(c, r)];
+        return v && v.startsWith('zip:') ? v.slice(4).split(',').map(Number) : null;
       },
       take: (c, r) => {
         if (!seed || level.seed[0] !== c || level.seed[1] !== r) return false;
