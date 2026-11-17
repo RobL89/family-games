@@ -1,7 +1,11 @@
 """Hamster Highway: sketches for levels 21 to 30 (step 12, D-184 to D-187): the five new things (the spoon catapult,
 the twig signpost, the bottle-top button, Pudding the heavy hamster and the sandpit), the signpost's open questions
 (Q-065 to Q-067), the zip-line and the park scene, drawn with the game's own art (art.js 1.5) for Rob to pick from.
-Not a check of the game and nothing here is built: a sketch page. Version 0.1 (17 Nov, step 12).
+Not a check of the game and nothing here is built: a sketch page. Version 0.2 (17 Nov, step 12b).
+
+Changes at 0.2: section 8, the zip-line gadget (Q-070, D-195): placing it on the PC and the phone and the ride, on a
+16 x 9 board (option B), with its proposed rules worked out here (valid_highs, valid_lows) and cross-checked by an
+exact line-and-square test; faults 4 and 5 added. Sections 1 to 7 unchanged.
 
 Each new thing is shown doing its job under the rule plan-levels-21-30.md 0.2 proposes, in two or three looks
 where its look is open. The park is a wide picture like the house view (house.js 1.7: 2420 x 900, stops 56 across
@@ -11,7 +15,8 @@ Checks (exit 1 if one fails): the park's path never crosses itself or runs back 
 sketch_hamster_cards.py 0.1 uses); ten stops, 21 to 30 in order; no two stops' tap circles overlap (112 apart or
 more); every stop inside the picture; nothing in the page would be fetched; every svg closed.
 --fault N plants a fault the checks must catch (1: stop 26 on top of 25; 2: the path doubles back across itself;
-3: a web address in the page), for testing the checks.
+3: a web address in the page; 4: the line test lets a line through a block; 5: a drawn green end that isn't valid),
+for testing the checks.
 
 Usage, from the repo root:
     python3 -B tools/tests/games/sketch_hamster_park.py OUT.html [--fault N]
@@ -34,7 +39,7 @@ const [artUrl] = process.argv.slice(1);
 const A = await import(artUrl);
 const out = { ham: {}, block: {}, water: {}, gadget: {} };
 for (const p of ['walk1', 'walk2', 'home', 'stuck', 'bonk', 'boing', 'fall', 'carry1']) out.ham[p] = A.hamster(p);
-for (let c = 0; c < 12; c++) for (let r = 0; r < 7; r++) { out.block[`${c},${r},1`] = A.block(c, r, true); out.block[`${c},${r},0`] = A.block(c, r, false); out.water[`${c},${r}`] = A.water(c, r); }
+for (let c = 0; c < 16; c++) for (let r = 0; r < 9; r++) { out.block[`${c},${r},1`] = A.block(c, r, true); out.block[`${c},${r},0`] = A.block(c, r, false); out.water[`${c},${r}`] = A.water(c, r); }
 for (const k of ['bridge', 'ramp', 'bouncer', 'floater', 'tube']) out.gadget[k] = A.gadget(k);
 out.stick3 = A.stickArt(3);
 out.saw = A.seesawArt();
@@ -503,12 +508,176 @@ close = min(math.dist(p['at'], q['at']) for i, p in enumerate(STOPS) for q in ST
 check(close >= 112, f'no two stops\' tap circles overlap: the closest are {close:.0f} units apart (112 or more)')
 check(all(56 <= s['at'][0] <= PW - 56 and 56 <= s['at'][1] <= PH - 56 for s in STOPS), 'every stop sits inside the park picture')
 
+
+# ================================================================ 8. the zip-line gadget (Q-070, D-195): proposed rules
+# High end: an empty square with a block straight above it to hook under (the hamster reaches it walking, falling or
+# bouncing). Low end: an empty square with a floor below (ground or a bridge), at least 1 row lower, 2 to 10 squares
+# across, either way. The line, between the two squares' middles, must not cross a block.
+Z_ROWS = ['................',
+          '................',
+          '.######.........',
+          '................',
+          '#####...........',
+          '#####...........',
+          '#####....#..####',
+          '#####....#..####',
+          '#####....#..####']
+Z_WATER = [(c, 8) for c in (5, 6, 7, 8, 10, 11)]
+ZR, ZC = len(Z_ROWS), len(Z_ROWS[0])
+
+
+def solid(c, r):
+    return 0 <= r < ZR and 0 <= c < ZC and Z_ROWS[r][c] == '#'
+
+
+def valid_highs():
+    return [(c, r) for r in range(1, ZR) for c in range(ZC) if not solid(c, r) and solid(c, r - 1)]
+
+
+def clear(a, b, steps=400):
+    # sampled: every point along the line between the two squares' middles is outside every block
+    if FAULT == 4:
+        return True
+    (c1, r1), (c2, r2) = a, b
+    for i in range(steps + 1):
+        t = i / steps
+        x, y = c1 + 0.5 + (c2 - c1) * t, r1 + 0.5 + (r2 - r1) * t
+        if solid(int(math.floor(x)), int(math.floor(y))):
+            return False
+    return True
+
+
+def valid_lows(high):
+    hc, hr = high
+    out = []
+    for r in range(hr + 1, ZR - 1):
+        for c in range(ZC):
+            if not solid(c, r) and solid(c, r + 1) and 2 <= abs(c - hc) <= 10 and clear(high, (c, r)):
+                out.append((c, r))
+    return out
+
+
+def hits_square(a, b, c, r):
+    # exact (Liang-Barsky): does the segment between the middles of squares a and b cross the open square (c, r)?
+    x0, y0, x1, y1 = a[0] + .5, a[1] + .5, b[0] + .5, b[1] + .5
+    dx, dy, t0, t1 = x1 - x0, y1 - y0, 0.0, 1.0
+    for p, q in ((-dx, x0 - c), (dx, c + 1 - x0), (-dy, y0 - r), (dy, r + 1 - y0)):
+        if p == 0:
+            if q <= 0:
+                return False
+        else:
+            t = q / p
+            if p < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+    return t1 - t0 > 1e-9
+
+
+def exact_clear(a, b):
+    return not any(hits_square(a, b, c, r) for r in range(ZR) for c in range(ZC) if solid(c, r))
+
+
+Z_HIGH, Z_GOOD, Z_BAD = (4, 3), (13, 5), (8, 4)
+highs = valid_highs()
+lows = valid_lows(Z_HIGH)
+if FAULT == 5:
+    Z_GOOD = (8, 5)
+pairs = [(h, (c, r)) for h in highs for r in range(h[1] + 1, ZR - 1) for c in range(ZC) if not solid(c, r) and solid(c, r + 1) and 2 <= abs(c - h[0]) <= 10]
+agree = [((h, e) in [(h, x) for x in valid_lows(h)]) == exact_clear(h, e) for h, e in pairs]
+check(all(agree), f'zip-line: the sampled line test agrees with the exact one on all {len(pairs)} high-and-low pairs ({sum(agree)} agree); from {Z_HIGH}: {lows}')
+blocked = [(h, e) for h in highs for e in [(c, r) for r in range(h[1] + 1, ZR - 1) for c in range(ZC) if not solid(c, r) and solid(c, r + 1) and 2 <= abs(c - h[0]) <= 10] if not exact_clear(h, e)]
+check(len(blocked) > 0, f'zip-line: the test board has lines a block stops ({len(blocked)} of them), so the sketch shows the rule biting')
+check(Z_HIGH in highs and Z_GOOD in lows and Z_BAD not in lows, f'zip-line: the drawn first end {Z_HIGH} can hang, the green end {Z_GOOD} is valid, the grey end {Z_BAD} is not')
+
+ZW, ZH = ZC * 60, ZR * 60
+
+
+def reel(x, y, sc=1.0):
+    b = rect(-14, -8, 28, 18, PINK, 3, 2.4) + rect(-18, -12, 36, 6, '#E2A867', 2, 2) + rect(-18, 8, 36, 6, '#E2A867', 2, 2)
+    return place(b, x, y, sc)
+
+
+def hook(c, r):
+    x, y = c * 60 + 30, r * 60
+    return path(f'M {x} {y} L {x} {y + 12} q 0 8 -7 8 q -7 0 -7 -7', 'none', 4, '#7A8597')
+
+
+def peg(c, r):
+    x, y = c * 60 + 30, (r + 1) * 60
+    return rect(x - 5, y - 40, 10, 40, WOOD, 3, 2.6) + circ(x, y - 40, 6, '#E2A867', 2.4)
+
+
+def mid(sq):
+    return sq[0] * 60 + 30, sq[1] * 60 + 30
+
+
+def glow(squares, col, op=0.45):
+    return ''.join(rect(c * 60 + 4, r * 60 + 4, 52, 52, col, 10, 2.6, col, f' fill-opacity="{op}"') for c, r in squares)
+
+
+def zip_tray(selected):
+    s = rect(ZW, 0, 130, ZH, '#8B5A3C', 0, 0) + line(ZW, 0, ZW, ZH, INK, 3)
+    s += rect(ZW + 17, 80, 96, 84, CREAM, 14, 5 if selected else 3, SUN if selected else INK)
+    s += reel(ZW + 65, 108, 1.0) + path(f'M {ZW + 40} 140 q 25 -14 50 0', 'none', 3, TWIG) + circ(ZW + 65, 154, 4.5, SUN, 2)
+    s += rect(ZW + 17, 182, 96, 84, CREAM, 14, 3) + place(ART['gadget']['bridge'], ZW + 35, 196, 0.6)
+    return s
+
+
+def zboard():
+    return sky(ZW + 130, ZH) + board(Z_ROWS, Z_WATER) + place(ART['start'], 0, 120, 0.6) + place(ART['home'], 15 * 60, 300, 0.6)
+
+
+def cursor(x, y):
+    return path(f'M {x} {y} l 0 34 l 9 -8 l 7 16 l 6 -3 l -7 -15 l 12 0 Z', '#FFF', 2.6)
+
+
+def finger(x, y):
+    return (circ(x, y, 26, 'none', 3, '#5FA8C9', ' opacity="0.7"') + rect(x - 9, y - 4, 18, 46, '#FFE0C2', 9, 2.6)
+            + rect(x - 16, y + 30, 32, 36, '#FFE0C2', 12, 2.6))
+
+
+def ghost(a, b, col, dash='10 10', w=5):
+    (x1, y1), (x2, y2) = mid(a), b
+    return line(x1, y1, x2, y2, col, w, f' stroke-dasharray="{dash}"')
+
+
+def zip_figs_all():
+    hx, hy = mid(Z_HIGH)
+    gx, gy = mid(Z_GOOD)
+    bx, by = mid(Z_BAD)
+    f1 = zboard() + glow(highs, SUN) + zip_tray(True) + ham(60 * 2 + 30, 240, 'walk1')
+    f2 = zboard() + glow(lows, GREEN, 0.18) + hook(*Z_HIGH) + reel(hx, hy - 14) + ghost(Z_HIGH, (bx, by), '#9AA3B2') + txt(bx + 4, by - 26, '✕', 30, '#9AA3B2') + cursor(bx, by) + zip_tray(True)
+    f3 = zboard() + glow(lows, GREEN, 0.18) + glow([Z_GOOD], GREEN, 0.6) + hook(*Z_HIGH) + reel(hx, hy - 14) + ghost(Z_HIGH, (gx, gy), GREEN) + cursor(gx, gy) + zip_tray(True)
+    f4 = zboard() + glow(lows, GREEN, 0.5) + hook(*Z_HIGH) + reel(hx, hy - 14) + finger(gx, gy + 6) + zip_tray(True)
+    t = 0.5
+    rx, ry = hx + (gx - hx) * t, hy + (gy - hy) * t
+    f5 = zboard() + hook(*Z_HIGH) + line(hx, hy - 6, gx, gy - 6, TWIG, 4) + peg(*Z_GOOD)
+    f5 += place(ham(0, 0, 'walk1'), hx - 50, 240, 1, ' opacity="0.45"') + reel(rx, ry - 10) + ham(rx + 2, ry + 46, 'fall', SC)
+    f5 += dashed(f'M {rx + 40} {ry + 2} L {rx + 110} {ry + 22}', '#5FA8C9', 3) + ham(gx + 40, 360, 'walk2') + zip_tray(False)
+    W = ZW + 130
+    return [fig(W, ZH, f1, '1. Pick up the zip-line: the squares it can hang from glow (under the branch)'),
+            fig(W, ZH, f2, '2. PC: the first click hooks it on; a ghost line follows the mouse, grey where it can\'t go'),
+            fig(W, ZH, f3, '3. PC: over a good end the line turns green; click to fix it'),
+            fig(W, ZH, f4, '4. Phone: after the first tap, every good end glows green; tap one'),
+            fig(W, ZH, f5, '5. The ride: walk in under the hook, grab the reel, whizz down, let go at the peg')]
+
+
+def zip_gadget_section():
+    figs = '<div class="row wide">' + ''.join(zip_figs_all()) + '</div>'
+    return f"""<h2>8. A zip-line gadget (Q-070)</h2>
+<p class="rule">Proposed. In the tray, like the others. <b>The high end</b> hooks under something solid: a square with a block straight above it. <b>The low end</b> pegs into a floor: a square with ground or a bridge below, at least 1 row lower and 2 to 10 squares across, either way. Nothing solid may cross the line. A hamster that reaches the high end grabs a cotton reel (as in the treehouse ride, D-189), whizzes down at a square a tick (twice walking speed), lets go at the low end and walks on the way it slid. Each hamster has its own reel, so nobody waits. Tap either end to take it back.</p>
+<p>The board here is the size proposed for levels 21 to 30 (16 x 9 in view), with the tray beside it as in the game. Green ends are worked out by the rule above, not drawn by hand.</p>
+{figs}"""
+
+
 # ================================================================ the page
 CSS = '''
 body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #FFF8EE; color: #1B1446; }
 h1 { font-size: 1.3rem; margin: 0 0 8px; } h2 { font-size: 1.12rem; margin: 26px 0 4px; } h3 { font-size: 1rem; margin: 14px 0 4px; }
 p, li { margin: 4px 0 8px; max-width: 70ch; line-height: 1.4; }
 .row { display: flex; flex-wrap: wrap; gap: 14px; }
+.wide figure { flex: 1 1 420px; max-width: 640px; }
 figure { margin: 0; flex: 1 1 260px; max-width: 420px; min-width: 0; }
 figure svg { width: 100%; height: auto; border: 2px solid #1B1446; border-radius: 12px; display: block; background: #FFF; }
 figcaption { font-size: .95rem; margin-top: 4px; font-weight: 600; }
@@ -538,6 +707,7 @@ pud_figs = row(fig(480, 240, pudding_look(k), f'{k}. {name}') for k, name in PUD
 pud_rules = row(fig(240, 240, s, cap_) for s, cap_ in pudding_rules())
 sand_figs = row([fig(420, 300, sand_scene(sand_a), 'A. A wooden sandbox with a spade'), fig(420, 300, sand_scene(sand_b), 'B. A soft sand heap with a little castle'),
                  fig(420, 300, sand_scene(None, False), 'The same drop onto grass: bonk (as today)')])
+ZIP_SECTION = zip_gadget_section()
 zip_figs = row([fig(480, 300, zip_scene('A'), 'A. Holding on under a cotton reel'), fig(480, 300, zip_scene('B'), 'B. Riding in a teacup on a ribbon')])
 
 page = f'''<!DOCTYPE html>
@@ -584,7 +754,8 @@ page = f'''<!DOCTYPE html>
 <div class="scroll">{park('A')}</div>
 <p><b>Look B: a sunny day all the way, the fair's lanterns unlit</b></p>
 <div class="scroll">{park('B')}</div>
-<p><small>Sketch only: tools/tests/games/sketch_hamster_park.py 0.1 on claude/games.</small></p>
+{ZIP_SECTION}
+<p><small>Sketch only: tools/tests/games/sketch_hamster_park.py 0.2 on claude/games.</small></p>
 </body></html>
 '''
 if FAULT == 3:
