@@ -3,8 +3,9 @@ tests catch (project rules: test the tests). Version 1.10 (17 Nov, step 13, the 
 Changes at v1.10 (step 13: D-185, D-190, D-196): thirty-one faults in the spike's new code, their names starting
 "spike:": twenty-four by the core test (heights, the signpost, dizzy, the nap, facing left, a bouncer, tubes, ramps
 and the lift both ways, falling into a signpost, the see-saw, every zip-line rule, the slide, a bounce into a high
-end) and seven by the spike's browser test (the window, mirroring, taking a zip-line back, the glows, saving, and two
-in the preview's tap counter). The spike's browser test builds the preview, so its copy gets a git of its own and
+end) and seven by the spike's browser test (the window, mirroring, taking a zip-line back, the glows, the party saved,
+and two in the preview's tap counter). (The test board's tries saved was tried and dropped: progress.js's tried()
+ignores an id that isn't a level, so it changes nothing.) The spike's browser test builds the preview, so its copy gets a git of its own and
 P-020's shared/ folder (the preview bundles shared/bridge.js);
 --control runs the copy with no fault, which must pass. Seven older faults' text follows core.js 1.7 and game.js
 1.10 (HOLDS with the left ramp, a ramp climbing the way it faces, fits()'s empty square, a placed gadget picked up,
@@ -173,7 +174,7 @@ FAULTS = [
     ('spike: walkers never drawn mirrored', G + 'game.js', 'scale(${dir < 0 ?', 'scale(${dir < -9 ?', SPIKE_E2E),
     ('spike: a zip-line\'s other end stays when one is tapped', G + 'game.js', '    delete S.placed[key(oc, or)];\n', '', SPIKE_E2E),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
-    ('spike: the test board saves its tries', G + 'game.js', '  if (!S.test) S.progress = tried(IDS, S.progress, id);', '  S.progress = tried(IDS, S.progress, id);', SPIKE_E2E),
+    ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),
     ('spike: the panel counts a tap on the ring as wrong', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (cell[0] === t.c && cell[1] === t.r) T.gadgetHits += 1;', '      if (false) T.gadgetHits += 1;', SPIKE_E2E),
     ('spike: the panel misses a line let go of', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (before.zipFrom && !after.zipFrom && lines(after.placed) === lines(before.placed)) T.zipCancelled += 1;', '', SPIKE_E2E),
 ]

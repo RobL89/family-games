@@ -220,7 +220,9 @@ with sync_playwright() as pw:
     check(res.count() == 1 and res.is_visible() and 'Wrong taps: 1 of 11' in text and 'Zip-lines: 5' in text and 'Cancelled: 1' in text
           and '43.3 px' in text and '844 × 390' in text,
           f'{tag}: the panel shows the results: wrong taps, zip-lines, cancelled, the screen and square sizes ({text!r})')
-    check(s['progress']['done'] == {} and s['progress']['tries'] == {}, f'{tag}: the test board saves nothing to the progress ({s["progress"]["done"]}, {s["progress"]["tries"]})')
+    kept = pg.evaluate("localStorage.getItem('family-games:hamster-highway:progress')")
+    check(s['progress']['done'] == {} and s['progress']['tries'] == {} and kept is None,
+          f'{tag}: the test board saves nothing: no level done or tried, and nothing kept on the device ({s["progress"]["done"]}, {s["progress"]["tries"]}, {kept})')
     pg.screenshot(path=os.path.join(OUT, 'phone-results.png'))
     finish(pg, tag, errors, asked)
     ctx.close()

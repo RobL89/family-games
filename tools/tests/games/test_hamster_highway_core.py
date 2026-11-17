@@ -1063,6 +1063,8 @@ o.rampLBack = W(B('............', 'S.......G...'), { '3,5': 'rampL' });
 o.dizzy = W(B('.....S......', '...........G'), { '2,5': 'signpost', '8,5': 'signpost' });
 o.bounce = W(['............', '............', '...G........', '...###......', '.........S..', '............', '############'], { '10,5': 'signpost', '6,5': 'bouncer' });
 o.tubes = W(['............', '............', '............', '....G.......', '....##...S..', '............', '############'], { '10,5': 'signpost', '6,5': 'tube', '6,4': 'tube', '6,3': 'tube' });
+o.tubeTurn = W(['............', '............', '............', '............', '...G.....S..', '...###......', '############'],
+  { '10,5': 'signpost', '6,5': 'tube', '6,4': 'tube', '5,4': 'tube', '7,4': 'tube' });
 o.edge = W(B('...S........', '...........G'), { '5,5': 'signpost' });
 o.fallIn = W(['............', '............', '............', 'S...........', '##..........', '...........G', '############'], { '2,5': 'signpost' });
 o.saw = W(['............', '............', '............', '.........S..', 'G...........', '......######', '############'], { '10,4': 'signpost' }, [{ kind: 'seesaw', c: 3, r: 3 }]);
@@ -1147,6 +1149,9 @@ check(E('bounce') == {'out': 'home', 'steps': [[9, 4, 'start', 1], [9, 5, 'fall'
 check(E('tubes') == {'out': 'home', 'steps': [[9, 4, 'start', 1], [9, 5, 'fall', 1], [10, 5, 'walk', 1], [10, 5, 'turn', L], [9, 5, 'walk', L],
                                               [8, 5, 'walk', L], [7, 5, 'walk', L], [6, 5, 'walk', L], [6, 4, 'tube', L], [6, 3, 'tube', L], [5, 3, 'walk', L], [4, 3, 'walk', L]], 'fell': 0},
       f'walking left, up three tubes and out on the left, by hand ({E("tubes")})')
+check(E('tubeTurn') == {'out': 'home', 'steps': [[9, 4, 'start', 1], [9, 5, 'fall', 1], [10, 5, 'walk', 1], [10, 5, 'turn', L], [9, 5, 'walk', L],
+                                                 [8, 5, 'walk', L], [7, 5, 'walk', L], [6, 5, 'walk', L], [6, 4, 'tube', L], [5, 4, 'tube', L], [4, 4, 'walk', L], [3, 4, 'walk', L]], 'fell': 0},
+      f'walking left, up a tube where it branches both ways: on along the left branch, the way it faces, by hand ({E("tubeTurn")})')
 check(E('edge') == {'out': 'stuck', 'steps': [[3, 4, 'start', 1], [3, 5, 'fall', 1], [4, 5, 'walk', 1], [5, 5, 'walk', 1], [5, 5, 'turn', L],
                                               [4, 5, 'walk', L], [3, 5, 'walk', L], [2, 5, 'walk', L], [1, 5, 'walk', L], [0, 5, 'walk', L]], 'fell': 0},
       f'walking off the board\'s left edge: stuck, as the right edge (D-190), by hand ({E("edge")})')
