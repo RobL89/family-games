@@ -1,4 +1,9 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.8 (16 Nov, step 10).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.9 (17 Nov, step 10b).
+
+Changes at v1.9 (step 10b, D-177 (1) and (3), ER-013): worn sticks one under the other go down bottom first, the order
+Rob found refused: on level 7 by mouse (the lower layer, then the upper), checked placed before the run, and in level
+6's and 7's twins' answers; on level 4, the hamsters walk along holding the dandelion clock overhead (game.js's carry
+poses) after picking it up, before they float, and never after their last float.
 
 Changes at v1.8 (step 10, D-166, D-170): the twins of levels 6 to 10 too, each played straight after its first level
 (the worn sticks', the see-saw's and the lift's on their wide boards, and level 10's twin, the second finale); no Next
@@ -133,8 +138,8 @@ TWIN = {
     'L3b': [('bridge', 1, 6), ('bouncer', 2, 5), ('bouncer', 6, 5), ('ramp', 10, 4)],
     'L4b': [('bridge', 2, 2), ('bridge', 5, 2), ('floater', 6, 1), ('bridge', 8, 2)],
     'L5b': [('bridge', 1, 6), ('tube', 7, 5), ('tube', 7, 4), ('tube', 7, 3), ('tube', 7, 2), ('tube', 7, 1)],
-    'L6b': [('stick', 5, 4), ('stick', 5, 5), ('ramp', 7, 4), ('ramp', 8, 3)],
-    'L7b': [('stick', 5, 3), ('stick', 6, 3), ('stick', 5, 4), ('stick', 6, 4), ('ramp', 8, 3), ('ramp', 4, 2)],
+    'L6b': [('stick', 5, 5), ('stick', 5, 4), ('ramp', 7, 4), ('ramp', 8, 3)],   # the lower stick first (ER-013)
+    'L7b': [('stick', 5, 4), ('stick', 6, 4), ('stick', 5, 3), ('stick', 6, 3), ('ramp', 8, 3), ('ramp', 4, 2)],
     'L8b': [('bridge', 3, 5), ('ramp', 5, 4), ('ramp', 10, 3), ('bridge', 15, 6), ('ramp', 14, 5)],
     'L9b': [('bridge', 3, 5), ('ramp', 5, 4), ('floater', 13, 1), ('bridge', 15, 2), ('ramp', 16, 5)],
     'L10b': [('bridge', 2, 6), ('bouncer', 4, 5), ('floater', 6, 2), ('tube', 9, 5), ('tube', 9, 4), ('tube', 9, 3), ('ramp', 11, 3), ('ramp', 15, 4), ('ramp', 20, 1)],
@@ -402,6 +407,13 @@ with sync_playwright() as pw:
     pg.wait_for_function('__test.state().mode === "party"', timeout=20000)
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'wheee' in s['heard'], 'PC: level 4 with the floater and the spare bridge: they float down past the seed, and home')
+    held = []
+    for ps in (s.get('poses') or []):
+        carry = [i for i, p in enumerate(ps) if p in ('carry1', 'carry2')]
+        floats = [i for i, p in enumerate(ps) if p == 'float']
+        held.append(bool(carry and floats and carry[0] < floats[0] and not [i for i in carry if i > floats[-1]]))
+    check(len(held) == 5 and held[0] and sum(held) >= 3,
+          f'PC: level 4: having picked up the dandelion, a hamster walks on holding it overhead, then floats, and doesn\'t hold it once landed (D-177 (3), D-178) ({held}, {[ps[:12] for ps in (s.get("poses") or [])][:1]})')
 
     # level 4's twin, then level 5: the tube
     play_twin(pg, 'L4b', cards)
@@ -454,8 +466,10 @@ with sync_playwright() as pw:
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L7'))
     check(pg.locator('#bg [data-back="loft"]').count() == 1, 'PC: level 7 has the loft for its backdrop (D-154)')
-    for cc, rr in ((5, 3), (6, 3), (5, 4), (6, 4)):
+    for cc, rr in ((5, 4), (6, 4), (5, 3), (6, 3)):   # the lower layer first, as Rob did (ER-013)
         place(pg, 'stick', cc, rr)
+    check(state(pg)['placed'] == {'5,4': 'stick', '6,4': 'stick', '5,3': 'stick', '6,3': 'stick'},
+          f'PC: level 7: the lower layer of sticks first, then the upper: all four go down (D-177 (1), ER-013) ({state(pg)["placed"]})')
     place(pg, 'ramp', 4, 2)
     pg.screenshot(path=os.path.join(OUT, 'pc-15-level7-built.png'))
     go_and_wait(pg, 'party')

@@ -1,4 +1,19 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.10 (16 Nov, step 10).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.11 (17 Nov, step 10b).
+
+Changes at v1.11 (step 10b, D-177 (1), ER-013): every level's answer and spare go down in every order, each where it
+fits, but for a bridge or stick put down before the one beside it that holds it up (D-139's build out from the edge,
+unchanged: only L7 and L7b, half their orders); before the fix the lower stick first was refused too (3 of L6's 6
+orders, 12 of L6b's 24, 105 of L7's 120, 630 of L7b's 720, counted 17 Nov). A worn stick fits above a worn stick,
+and a bridge still doesn't (nor a stick above a bridge). The see-saw's card (D-177 (2)): after the tip, a ramp
+drops in at the end of the bank before its raised near end, and a third hamster, waiting puzzled there, climbs it,
+steps onto the raised end, walks down the plank and home; the loop is 6.5 s (the handoff's 5 to 6.5), its bank a row
+higher than the near end at rest, as level 8's, so one ramp reaches the raised end. The dandelion held (D-177 (3),
+D-178): a step taken while a hamster holds the dandelion clock says carry: true, from the step after it reaches the
+floater's square until it lands; on level 4's answer, by hand: the walk to 6,1 and the four float steps down to 6,5,
+not the step onto 5,1 nor any after the landing; every hamster the same; on all 20 answers every float step carries,
+each carrying stretch starts just after a floater's square and ends on a landing (or at the trip's end), and nothing
+carries where there's no floater. art.js draws two carrying poses: walking feet, arms up and the float pose's
+dandelion overhead.
 
 Changes at v1.10 (step 10, D-166, D-169, D-170): the twins of levels 6 to 10 (L6b to L10b), so 20 levels in pairs:
 the same checks as v1.9's twins, with the worn sticks still only at the bath and the loft (D-170 (b)) and level 10's
@@ -183,6 +198,27 @@ const SOL = {
   L9b: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['floater', 13, 1], ['ramp', 16, 5]], seed: [['bridge', 15, 2]] },
   L10b: { solve: [['bridge', 2, 6], ['bouncer', 4, 5], ['floater', 6, 2], ['tube', 9, 5], ['tube', 9, 4], ['tube', 9, 3], ['ramp', 11, 3], ['ramp', 20, 1]], seed: [['ramp', 15, 4]] },
 };
+// every order of each level's answer and spare: how many orders put a gadget where it doesn't fit (D-177 (1), ER-013),
+// apart from a bridge or stick with nothing beside it yet to hold it up (side: D-139's build out from the edge)
+function* perms(a) { if (a.length <= 1) { yield a; return; } for (let i = 0; i < a.length; i++) for (const p of perms([...a.slice(0, i), ...a.slice(i + 1)])) yield [a[i], ...p]; }
+out.orders = {};
+for (const d of LEVELS) {
+  const lv = core.parseLevel(d);
+  let n = 0, refused = 0, side = 0, first = null;
+  const beside = (placed, c, r) => [-1, 1].some((dc) => ['#', 'bridge', 'stick'].includes(core.terrain(lv, placed, c + dc, r)));
+  for (const p of perms([...SOL[d.id].solve, ...SOL[d.id].seed])) {
+    n += 1;
+    const placed = {};
+    for (const [k, c, r] of p) {
+      if (core.fits(lv, placed, k, c, r)) { placed[core.key(c, r)] = k; continue; }
+      if ((k === 'bridge' || k === 'stick') && !beside(placed, c, r)) side += 1;
+      else { refused += 1; first = first || `${k} does not fit at ${c},${r} after ${Object.keys(placed).join(' ')}`; }
+      break;
+    }
+  }
+  const bottomFirst = (SOL[d.id].solve.concat(SOL[d.id].seed)).slice().sort((a, b) => b[2] - a[2] || a[1] - b[1]);
+  out.orders[d.id] = { n, refused, side, first, bottomFirst: placeAll(lv, bottomFirst).error || null };
+}
 // all five hamsters (run(), the timed model): 'home' only if every one gets home, else the first other outcome
 const five = (lv, placed) => {
   const r = core.run(lv, placed);
@@ -222,6 +258,35 @@ for (const d of LEVELS) {
     leftAfter: a.placed ? core.left(lv, a.placed) : null,
     spare,
   };
+}
+// the dandelion held (D-177 (3)): which steps carry one, on level 4's answer and on every level's answer and spare
+{
+  const d4 = LEVELS.find((d) => d.id === 'L4');
+  const l4 = core.parseLevel(d4);
+  const p4 = placeAll(l4, SOL.L4.solve).placed;
+  const w4 = core.walk(l4, p4);
+  const r4 = core.run(l4, p4);
+  out.carry4 = { walk: w4.steps.map((st) => [st.c, st.r, st.act, !!st.carry]), runs: r4.hamsters.map((h) => h.steps.filter((st) => st.carry).map((st) => [st.c, st.r, st.act])) };
+  out.carryAll = {};
+  for (const d of LEVELS) {
+    const lv = core.parseLevel(d);
+    const pl = placeAll(lv, [...SOL[d.id].solve, ...SOL[d.id].seed]).placed;
+    const fl = new Set(Object.keys(pl).filter((k) => pl[k] === 'floater'));
+    const bad = [];
+    let carried = 0;
+    core.run(lv, pl).hamsters.forEach((h, n) => {
+      h.steps.forEach((st, i) => {
+        const prev = h.steps[i - 1];
+        const next = h.steps[i + 1];
+        if (st.carry) carried += 1;
+        if (st.act === 'float' && !st.carry) bad.push(`${n}:${i} floats without one`);
+        if (st.carry && !(prev && (prev.carry || fl.has(core.key(prev.c, prev.r))))) bad.push(`${n}:${i} starts away from a floater`);
+        if (st.carry && next && !next.carry && !st.land && !fl.has(core.key(st.c, st.r))) bad.push(`${n}:${i} stops before landing`);
+        if (st.carry && !fl.size) bad.push(`${n}:${i} carries with no floater`);
+      });
+    });
+    out.carryAll[d.id] = { carried, bad: bad.slice(0, 3), floater: fl.size > 0 };
+  }
 }
 // terrain, holds, key on level 1
 const l1 = core.parseLevel(LEVELS[0]);
@@ -336,6 +401,12 @@ for i, (lid, p) in enumerate(out['play'].items(), 1):
     check(p['noNew'] != 'home', f'level {i}: not solved without its new gadget ({p["noNew"]})')
     check(p['withSeed'] == 'home' and p['seedTaken'], f'level {i}: the golden seed taken, and still home ({p["withSeed"]}, {p["seedTaken"]})')
     check(p['seedGone'] is False, f'level {i}: once taken, the seed is not taken again')
+for lid, o in out['orders'].items():
+    check(o['refused'] == 0 and o['n'] > 0 and o['bottomFirst'] is None,
+          f'{lid}: its answer and spare go down in any order, bottom row first too, each where it fits ({o["n"]} orders, {o["refused"]} refused{": " + o["first"] if o["first"] else ""}; D-177 (1), ER-013)')
+sided = {lid: (o['side'], o['n']) for lid, o in out['orders'].items() if o['side']}
+check(sided == {'L7': (60, 120), 'L7b': (360, 720)},
+      f'only on the loft does order matter, and only from the edge: a stick at 6,3 needs the one at 5,3 beside it first, as bridges always have (D-139) ({sided})')
 check(out['play']['L1']['solvedSeed'] is True, 'level 1: the seed is on the way (taken with just the bridge)')
 check(all(out['play'][i]['solvedSeed'] is False for i in ORDER if i != 'L1'), 'every level but level 1, the twins too: the seed needs the spare gadget')
 for t in TWINS:
@@ -360,6 +431,18 @@ check(out['play']['L5']['spare'] == [[6, 2]], f'level 5: the spare tube takes th
 check(out['play']['L2']['spare'] == [[4, 5], [5, 5]], f'level 2: the spare ramp takes the seed home from 4,5 or 5,5 only ({out["play"]["L2"]["spare"]})')
 check(out['play']['L3']['spare'] == [[9, 4], [10, 4]], f'level 3: the spare ramp takes the seed home from 9,4 or 10,4 only ({out["play"]["L3"]["spare"]})')
 check(out['play']['L2']['leftAfter'] == {'bridge': 0, 'ramp': 1}, f'left(): level 2 with its two gadgets down leaves one ramp ({out["play"]["L2"]["leftAfter"]})')
+
+# the dandelion held (D-177 (3), D-178), by hand on level 4's answer (bridge 3,2, floater 5,1)
+want4 = [[0, 1, 'start', False], [1, 1, 'walk', False], [2, 1, 'walk', False], [3, 1, 'walk', False], [4, 1, 'walk', False], [5, 1, 'walk', False],
+         [6, 1, 'walk', True], [6, 2, 'float', True], [6, 3, 'float', True], [6, 4, 'float', True], [6, 5, 'float', True],
+         [7, 5, 'walk', False], [8, 5, 'walk', False], [9, 5, 'walk', False], [10, 5, 'walk', False]]
+c4 = out['carry4']
+check(c4['walk'] == want4, f'level 4: a hamster holds the dandelion from the step after the floater\'s square (6,1) through its float down to 6,5, and not after it lands, by hand ({c4["walk"]})')
+check(len(c4['runs']) == 5 and all(r == [x[:3] for x in want4 if x[3]] for r in c4['runs']), f'level 4: all five hamsters hold it the same way ({c4["runs"]})')
+ca = out['carryAll']
+check(all(not v['bad'] for v in ca.values()), f'every level\'s answer: every float step holds the dandelion, each holding starts just after a floater and ends on landing, none without a floater ({ {k: v["bad"] for k, v in ca.items() if v["bad"]} })')
+check(sorted(k for k, v in ca.items() if v['carried']) == sorted(k for k, v in ca.items() if v['floater']) and any(v['floater'] for v in ca.values()),
+      f'the levels with a floater, and only those, have hamsters holding a dandelion ({sorted(k for k, v in ca.items() if v["carried"])})')
 
 # small functions
 check(out['terrain'] == ['bridge', '.', None, None, '.', '.', 'S', 'G'], f'terrain(): a bridge, air, off the side, below the bottom, above the top, a seed\'s square, start, home ({out["terrain"]})')
@@ -651,6 +734,10 @@ console.log(JSON.stringify({
   top: go({ '5,4': 'stick' }), under: go({ '5,5': 'stick' }), both: go({ '5,4': 'stick', '5,5': 'stick' }), bridge: go({ '5,4': 'bridge' }),
   fits: JSON.stringify(core.fitCells(F6, {}, 'stick')) === JSON.stringify(core.fitCells(F6, {}, 'bridge')) && core.fitCells(F6, {}, 'stick').length > 0,
   besideStick: core.fits(F6, { '5,5': 'stick' }, 'ramp', 5, 4),
+  stickOnStick: core.fits(F6, { '5,5': 'stick' }, 'stick', 5, 4),
+  bridgeOnStick: core.fits(F6, { '5,5': 'stick' }, 'bridge', 5, 4),
+  stickOnBridge: core.fits(F6, { '5,5': 'bridge' }, 'stick', 5, 4),
+  stickUnder: core.fits(F6, { '5,4': 'stick' }, 'stick', 5, 5),
   holds: core.holds(F6, { '5,4': 'stick' }, 5, 4),
   walk: core.walk(F6, { '5,4': 'stick' }).outcome,
 }));
@@ -671,6 +758,10 @@ else:
     check(o['bridge'] == {'out': ['home'] * 5, 'ev': []}, f'a sturdy bridge never cracks ({o["bridge"]})')
     check(o['fits'] and o['holds'] and o['besideStick'] is False, 'a worn stick fits where a bridge does and holds a hamster, but nothing goes on it (a ramp on it would never crack it)')
     check(o['walk'] == 'home', f'walk(): one hamster crosses one worn stick ({o["walk"]})')
+    check(o['stickOnStick'] is True and o['stickUnder'] is True,
+          f'one stick under another goes down in either order: a worn stick fits above a worn stick, and under one (D-177 (1), ER-013) ({o["stickOnStick"]}, {o["stickUnder"]})')
+    check(o['bridgeOnStick'] is False and o['stickOnBridge'] is False,
+          f'only a stick over a stick: a bridge still doesn\'t fit above a worn stick, nor a stick above a bridge ({o["bridgeOnStick"]}, {o["stickOnBridge"]})')
 
 # wider boards (D-158) and the see-saw (D-144, D-156). A level may be 12 to 24 squares wide, 7 tall. A see-saw is a
 # part { kind: 'seesaw', c, r }: a plank over columns c to c+2 on a flowerpot under c+1, where a hamster stands on row
@@ -813,6 +904,7 @@ else:
 KJS = r"""
 const [cardsUrl, levelsUrl, coreUrl] = process.argv.slice(1);
 const K = await import(cardsUrl);
+const A = await import(cardsUrl.replace('cards.js', 'art.js'));
 const { LEVELS } = await import(levelsUrl);
 const core = await import(coreUrl);
 console.log(JSON.stringify({
@@ -822,6 +914,7 @@ console.log(JSON.stringify({
   levels: LEVELS.map((d) => [d.id, d.new, K.cardFor(d)]),
   odd: [K.cardFor({ new: null }), K.cardFor({ new: 'catapult' }), K.cardFor({})],
   again: K.cardArt('bridge') === K.cardArt('bridge'),
+  poses: Object.fromEntries(['walk1', 'walk2', 'float', 'carry1', 'carry2'].map((p) => [p, A.hamster(p)])),
 }));
 """
 kp = os.path.join(GAME, 'cards.js')
@@ -871,7 +964,40 @@ else:
             check(not onTr, f'card {c}: no moving group also has a transform attribute, which the animation would override ({len(onTr)})')
             check(dur and float(dur.group(1)) == k['loops'].get(c), f'card {c}: its scene loops every {k["loops"].get(c)} s ({dur.group(1) if dur else None})')
             check(k['badge'].get(c) and k['badge'][c] in a, f'card {c}: its badge shows the gadget or part')
+        # the see-saw's card (D-177 (2)): the tip, then a ramp at its start, then a third hamster up it and across
+        def frames_of(name):
+            m = re.search(r'@keyframes\s+' + re.escape(name) + r'\s*\{(.*?)\}\s*\n', css)
+            out = []
+            for stops, body in re.findall(r'([\d.%,\s]+)\{([^{}]*)\}', m.group(1) if m else ''):
+                for st in re.findall(r'([\d.]+)%', stops):
+                    out.append((float(st), body))
+            return sorted(out, key=lambda x: x[0])
+        tilt = frames_of('hc-seesaw-tilt')
+        tipped = min((p for p, b in tilt if 'rotate(45deg)' in b), default=None)
+        drop = frames_of('hc-seesaw-drop')
+        shown = min((p for p, b in drop if 'opacity: 1' in b), default=None)
+        landed = min((p for p, b in drop if 'translateY(0)' in b and p > (shown or 0)), default=None)
+        h3 = [(p, tuple(map(float, re.search(r'translate\(([-\d.]+)px, ([-\d.]+)px\)', b).groups()))) for p, b in frames_of('hc-seesaw-h3') if 'translate(' in b]
+        up = min((p for p, (x, y) in h3 if y == 180 and x >= 120), default=None)       # on the ramp's top / the raised end
+        across = min((p for p, (x, y) in h3 if (x, y) == (270, 300)), default=None)    # the plank's low far end
+        home = max((x for p, (x, y) in h3), default=0)
+        art = k['art'].get('seesaw', '')
+        check('hc-seesaw-drop' in art and 'M 2 100 L 100 100 L 100 4 Z' in art and 'hc-seesaw-h3' in art and 'hc-seesaw-fit' in art,
+              'card seesaw: it has a ramp that drops in, its spot lit first, and a third hamster (D-177 (2))')
+        check(None not in (tipped, shown, landed, up, across) and tipped < shown < landed < up < across and home >= 390,
+              f'card seesaw: it tips ({tipped}%), then the ramp drops in ({shown}% to {landed}%), then the third climbs to the raised end ({up}%), walks down the plank ({across}%) and home (x {home}) (D-177 (2))')
+        check(k['loops'].get('seesaw') == 6.5, f'card seesaw: a loop of 6.5 s, for the ramp and the third hamster ({k["loops"].get("seesaw")})')
         check(k['again'], 'cards: the same card is drawn the same each time')
+        # art.js: the carrying poses (D-178): walking feet, arms up and the float pose's dandelion overhead
+        po = k['poses']
+        dandelion = re.search(r'<line[^>]*y1="-72"[^>]*y2="-106"[^>]*/?>', po['float'])
+        arms = re.findall(r'<ellipse[^>]*cy="-7[01]"', po['float'])
+        feet = lambda a: re.findall(r'<ellipse[^>]*ry="5"[^>]*/?>', a)[:2]
+        check(bool(dandelion) and all(dandelion.group(0) in po[c] for c in ('carry1', 'carry2')) and dandelion.group(0) not in po['walk1'],
+              'art: the carrying poses hold the float pose\'s dandelion overhead; walking doesn\'t (D-178)')
+        check(len(arms) == 2 and all(a in po[c] for a in arms for c in ('carry1', 'carry2')), 'art: the carrying poses have both arms up, holding it')
+        check(feet(po['carry1']) == feet(po['walk1']) and feet(po['carry2']) == feet(po['walk2']) and po['carry1'] != po['carry2'],
+              'art: the carrying poses step like walking (walk1\'s and walk2\'s feet), so the hamster walks along holding it')
 
 # boundaries
 IMPURE = re.compile(r'\b(document|window|globalThis|fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|Math\.random|Date|'

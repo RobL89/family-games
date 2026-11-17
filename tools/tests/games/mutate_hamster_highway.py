@@ -1,5 +1,12 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.8 (16 Nov, step 10).
+tests catch (project rules: test the tests). Version 1.9 (17 Nov, step 10b).
+Changes at v1.9 (step 10b, D-177, D-178, D-179): ten faults in the three feedback items, their names starting "fix:":
+nine by the core test (sticks stack only top first again, a bridge fits above a stick, no ramp on the see-saw's
+card, its ramp dropping in before the tip, its third hamster climbing before the ramp lands, no hamster ever
+carrying the dandelion, one carrying it on the floater's own square, one still carrying it after landing, the
+carrying poses drawn without it) and one by the browser test (the carrying poses never drawn). Four older faults'
+text follows core.js 1.6 (its fit rule's new line; its steps now marked as carried or not): a bridge fits where they
+stand, the seed missed on foot, the second in a cup stepping out at once, a rider setting off before the cup does.
 Changes at v1.8 (step 10, D-166, D-169, D-170): three more twin faults, by the core test: level 6's twin with one stick,
 level 10's twin with no step in the treehouse (so it needs no more ramps than level 10), and the shed's second stop
 missing from the plan. Two older faults' text follows the code again (ER-012): 'any format is read' (progress.js 1.1
@@ -51,18 +58,18 @@ FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),
     ('a bridge holds nobody', G + 'core.js', "const HOLDS = new Set(['#', 'bridge', 'ramp', 'tube', 'stick']);", "const HOLDS = new Set(['#', 'ramp', 'tube', 'stick']);", CORE),
-    ('a bridge fits where they stand', G + 'core.js', 'return !HOLDS.has(below) && (side(-1) || side(1));', 'return HOLDS.has(below) && (side(-1) || side(1));', CORE),
+    ('a bridge fits where they stand', G + 'core.js', 'const open = !HOLDS.has(below) ||', 'const open = HOLDS.has(below) ||', CORE),
     ('a ramp fits in mid-air', G + 'core.js', '  return FLOOR.has(below);\n}', '  return below !== null;\n}', CORE),
     ('a wall does not stop them', G + 'core.js', "if (next === null || next === '#') return done('stuck');", "if (next === null) return done('stuck');", CORE),
     ('a ramp does not lift', G + 'core.js', '      c += 1;\n      r -= 1;\n', '      c += 1;\n', CORE),
-    ('the seed is missed on foot', G + 'core.js', "    yield touch(st, c, r);\n  }\n  return done('stuck');", "    yield st;\n  }\n  return done('stuck');", CORE),
+    ('the seed is missed on foot', G + 'core.js', "    yield mark(touch(st, c, r));\n  }\n  return done('stuck');", "    yield mark(st);\n  }\n  return done('stuck');", CORE),
     ('an empty tray entry is allowed', G + 'core.js', 'n < 1) throw', 'n < 0) throw', CORE),
     ('a placed gadget stays in the tray', G + 'core.js', 'n[kind] = (n[kind] || 0) - 1;', 'n[kind] = (n[kind] || 0) - 0;', CORE),
     ('any number fit in a cup', G + 'core.js', 'return aboard(s.part, k).length < SEATS && !!cs', 'return !!cs', CORE),
     ('three fit in a cup', G + 'core.js', 'export const SEATS = 2;', 'export const SEATS = 3;', CORE),
-    ('the second in a cup steps out at once', G + 'core.js', "      if (stop.seat) yield { c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat };", '', CORE),
+    ('the second in a cup steps out at once', G + 'core.js', "      if (stop.seat) yield mark({ c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat });", '', CORE),
     ('a hamster steps onto a cup about to move', G + 'core.js', 'cs.leaves - t >= TICKS.walk', 'cs.leaves - t >= 0', CORE),
-    ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat };\n", '', CORE),
+    ('a rider sets off before the cup does', G + 'core.js', "      if (leaves > ctx.now()) yield mark({ c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat });\n", '', CORE),
     ('all five come out at once', G + 'core.js', 'next: i * RELEASE,', 'next: 0,', CORE),
     ('the seed is taken by every hamster', G + 'core.js', '        seed = false;\n        return true;', '        return true;', CORE),
     ('a gadget fits on a worn stick', G + 'core.js', "const FLOOR = new Set(['#', 'bridge']); ", "const FLOOR = new Set(['#', 'bridge', 'stick']); ", CORE),
@@ -114,6 +121,18 @@ FAULTS = [
     ('twin: level 6\'s twin has one stick', G + 'levels.js', 'tray: { stick: 2, ramp: 2 }', 'tray: { stick: 1, ramp: 2 }', CORE),
     ('twin: level 10\'s twin has no step', G + 'levels.js', "      '.....................###',\n", "      '........................',\n", CORE),
     ('twin: the shed\'s second stop not in the plan', G + 'house.js', "  { name: 'shed2', at: [1920, 561], level: 18 },\n", '', CORE),
+    ('fix: sticks stack only top first again', G + 'core.js', "    const open = !HOLDS.has(below) || (kind === 'stick' && below === 'stick');", '    const open = !HOLDS.has(below);', CORE),
+    ('fix: a bridge fits above a stick', G + 'core.js', "|| (kind === 'stick' && below === 'stick');", "|| below === 'stick';", CORE),
+    ('fix: no ramp on the see-saw\'s card', G + 'cards.js', "  + fit(60, 180, 'seesaw') + cls('hc-seesaw-drop', place(gadget('ramp'), 60, 180, GS)) + sparks('seesaw', 82, 180)\n", '', CORE),
+    ('fix: the see-saw card\'s ramp before the tip', G + 'cards.js', "dropIn('seesaw', SL, 52)", "dropIn('seesaw', SL, 30)", CORE),
+    ('fix: the third climbs before the ramp lands', G + 'cards.js', '44%, 60% { ${T(30, 240)} } 66% { ${T(124, 180)} }', '44%, 50% { ${T(30, 240)} } 56% { ${T(124, 180)} }', CORE),
+    ('fix: never carries the dandelion', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; return st; };', 'const mark = (st) => st;', CORE),
+    ('fix: carries it on the floater\'s own square', G + 'core.js', "    yield mark(touch(st, c, r));\n  }\n  return done('stuck');",
+     "    if (at(c, r) === 'floater') st.carry = true;\n    yield mark(touch(st, c, r));\n  }\n  return done('stuck');", CORE),
+    ('fix: still carries it after landing', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; return st; };',
+     'let held = false; const mark = (st) => { if (floater) held = true; if (held) st.carry = true; return st; };', CORE),
+    ('fix: the carrying poses without the dandelion', G + 'art.js', "else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {", "else if (pose === 'float') {", CORE),
+    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing')", E2E),
     ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
 ]
 

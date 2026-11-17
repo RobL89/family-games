@@ -1,4 +1,7 @@
-// Hamster Highway's drawings, as SVG text. Version 1.4.
+// Hamster Highway's drawings, as SVG text. Version 1.5.
+//
+// Changes at v1.5 (step 10b, D-177 (3), D-178): two carrying poses, carry1 and carry2: walking feet (walk1's and
+// walk2's), both arms up and the float pose's dandelion clock held overhead, for a hamster walking along with one.
 //
 // Changes at v1.4 (step 4, D-157, D-161): the teacup lift: a red-and-white string looped round two cotton reels
 // (liftArt), up on the right and down on the left (LOOP), and its teacups, white with pink spots on a saucer, drawn
@@ -99,6 +102,7 @@ const motionBelow = () => [-12, 0, 12].map((x) => line(x, 8 + Math.abs(x) * 0.2,
 // ---------------------------------------------------------------- the Nibbles
 const FEET = {
   walk1: [[-14, 0], [16, -5]], walk2: [[-8, -5], [20, 0]], float: [[-8, 8], [14, 10]], boing: [[-8, 6], [12, 6]],
+  carry1: [[-14, 0], [16, -5]], carry2: [[-8, -5], [20, 0]],
   fall: [[-8, 6], [12, 6]], stuck: [[-4, 0], [24, 0]], bonk: [],
 };
 const SQUASH = { boing: [0.86, 1.18], fall: [0.92, 1.08], bonk: [1.42, 0.42], stuck: [1.06, 0.88] };
@@ -107,7 +111,7 @@ export function hamster(pose) {
   const eyes = { stuck: 'closed', bonk: 'swirl', home: 'happy' }[pose] || 'open';
   const feet = FEET[pose] || [[-12, 0], [14, 0]];
   const [sx, sy] = SQUASH[pose] || [1, 1];
-  const armsUp = ['boing', 'fall', 'float', 'home'].includes(pose);
+  const armsUp = ['boing', 'fall', 'float', 'home', 'carry1', 'carry2'].includes(pose);
   let b = circle(-34, -26, 5.5, FUR, 2.4);
   if (armsUp) b += ellipse(-12, -70, 6, 9, FUR, 2.4, INK, -25) + ellipse(28, -71, 6, 9, FUR, 2.4, INK, 25);
   b += circle(-15, -60, 10, FUR) + circle(-15, -60, 5, PINK, 0);
@@ -122,7 +126,7 @@ export function hamster(pose) {
   if (!armsUp && pose !== 'bonk') b += ellipse(22, -16, 5.5, 4.5, PINK, 2.2);
   let s = feet.map(([x, y]) => ellipse(x, y - 4, 8, 5, PINK, 2.4)).join('') + g(b, `scale(${sx} ${sy})`);
   if (pose === 'boing') s += motionBelow();
-  else if (pose === 'float') {
+  else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {   // the dandelion clock overhead (D-178)
     let puff = '';
     for (let i = 0; i < 14; i++) {
       const a = (i * Math.PI) / 7;

@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.14 · 16 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.15 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.15 (step 10b, D-177 to D-179, ER-013): three fixes from Rob's test of preview 11. Worn sticks one under the other go down in either order (the lower one first was refused). The see-saw's help card goes on after the tip: a ramp drops in at the bank's end and a third hamster climbs it onto the raised end and crosses. A hamster that picks up the dandelion clock holds it over its head until it lands. Not yet released.
 
 Changes at v1.14 (step 10, D-166, D-169, D-170): the twins of levels 6 to 10, so 20 levels in pairs: the bath's and the loft's with worn sticks and a step up, the veg patch's with a gap after the see-saw, the shed's with a step up after the drop, and a second treehouse finale with a step up to the party. Every place now has its two stops. Not yet released.
 
@@ -96,6 +98,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.15 | 2026-11-17 | Feedback items 1 to 3: sticks in either order, the see-saw card's ramp, the dandelion held (D-177 to D-179, ER-013) |
 | 1.14 | 2026-11-16 | The twins of levels 6 to 10: 20 levels (D-166, D-169, D-170) |
 | 1.13 | 2026-11-16 | The twins of levels 1 to 5 and their stops; opens() (D-166, D-169, D-170) |
 | 1.12 | 2026-11-16 | Help cards and the help button; progress format 2 (D-167, D-168, D-170, D-171) |

@@ -1,4 +1,9 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.0 (16 Nov, step 8).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.1 (17 Nov, step 10b).
+//
+// Changes at v1.1 (step 10b, D-177 (2)): the see-saw's card goes on after the tip: a ramp drops in at the end of the
+// bank, before the raised near end, and a third hamster, waiting puzzled there, climbs it, steps onto the raised end,
+// walks down the plank and home. Its bank is a row higher, as level 8's, so one ramp reaches the raised end; it loops
+// in 6.5 s (6 before).
 //
 // One card for each gadget and part a level brings in: the bridge, ramp, bouncer, floater, tube and worn stick, the
 // see-saw and the teacup lift. Each is a card over the dimmed board (720 x 420 units, the board's window) with the
@@ -28,7 +33,7 @@ export const CAPTION = {
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6, lift: 6 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -118,16 +123,19 @@ SCENE.stick = () => board(['........', '........', '........', '........', '###.
   + [3, 2, 1, 0].map((n) => cls(`hc-stick-h${n}`, legs('stick'))).join('');
 
 // The see-saw: one walks up to its high end and waits, tapping a foot; a second joins it, a heart, and over it tips;
-// they ride down and walk off home.
+// they ride down and walk off home. Then (D-177 (2)) a third waits puzzled at the bank's end, below the raised near
+// end; a ramp drops in there, and up it goes, onto the plank, down it and home.
 VIEW.seesaw = '0 106 480 314';
-SCENE.seesaw = () => board(['........', '........', '........', '........', '........', '##...###', '##.#.###'], [[2, 6], [4, 6]])
+SCENE.seesaw = () => board(['........', '........', '........', '........', '##......', '##...###', '##.#.###'], [[2, 6], [4, 6]])
   + place(homeArt(), 420, 240, GS) + potArt(210, 240, 360)
   + g(cls('hc-seesaw-tilt', seesawArt()
     + cls('hc-seesaw-r1', place(ham(0, 0, 'home'), 85, 0)) + cls('hc-seesaw-r2', place(ham(0, 0, 'home'), 57, 0))), 'translate(210 240)')
   + cls('hc-seesaw-h1', cls('hc-seesaw-m1', legs('seesaw')) + cls('hc-seesaw-tap', ham(0, 0, 'walk1')))
   + cls('hc-seesaw-h2', legs('seesaw'))
   + cls('hc-seesaw-love', place(heart(0, 0, 10, '#FF8FB1'), 262, 130))
-  + cls('hc-seesaw-off', cls('hc-seesaw-o1', legs()) + cls('hc-seesaw-o2', legs()));
+  + cls('hc-seesaw-off', cls('hc-seesaw-o1', legs()) + cls('hc-seesaw-o2', legs()))
+  + fit(60, 180, 'seesaw') + cls('hc-seesaw-drop', place(gadget('ramp'), 60, 180, GS)) + sparks('seesaw', 82, 180)
+  + cls('hc-seesaw-h3', cls('hc-seesaw-h3-move', legs()) + cls('hc-seesaw-h3-wait', ham(0, 0) + huh(10, -62)) + cls('hc-seesaw-h3-home', ham(0, -4, 'home')));
 
 // The teacup lift (the mock-up's look C): walks into the bottom cup, rides up as the other comes down, steps out at
 // the top, a happy hop; a friend waits its turn.
@@ -248,20 +256,27 @@ function css() {
       + rule(`hc-stick-h${n}`, `hc-stick-h${n} ${L}s linear infinite`);
   });
 
-  // see-saw, 6 s: the first up to the high end by 30% and waiting; the second by 42%; it tips 46% to 56%; off by 60%
-  s += kf('hc-seesaw-h1', `0% { opacity: 1; ${T(30, 300)} } 14% { ${T(150, 300)} } 30%, 41.9% { opacity: 1; ${T(270, 180)} } 42%, 100% { opacity: 0; ${T(270, 180)} }`)
-    + kf('hc-seesaw-m1', '0%, 29.9% { opacity: 1 } 30%, 100% { opacity: 0 }')
-    + kf('hc-seesaw-tap', '0%, 29.9% { opacity: 0; transform: translateY(0) } 30%, 34%, 38% { opacity: 1; transform: translateY(0) } 32%, 36%, 40% { transform: translateY(-5px) } 41.9% { opacity: 1 } 42%, 100% { opacity: 0 }')
-    + kf('hc-seesaw-h2', `0%, 11.9% { opacity: 0; ${T(30, 300)} } 12% { opacity: 1; ${T(30, 300)} } 26% { ${T(150, 300)} } 41.9% { opacity: 1; ${T(250, 200)} } 42%, 100% { opacity: 0; ${T(250, 200)} }`)
-    + on('hc-seesaw-r1', 6, 42, 58) + on('hc-seesaw-r2', 6, 42, 58) + on('hc-seesaw-love', 6, 42, 50)
-    + kf('hc-seesaw-tilt', '0%, 46% { transform: rotate(-45deg) } 56%, 94% { transform: rotate(45deg) } 100% { transform: rotate(-45deg) }')
-    + kf('hc-seesaw-off', '0%, 57.9% { opacity: 0 } 58%, 86% { opacity: 1 } 90%, 100% { opacity: 0 }')
-    + kf('hc-seesaw-o1', `0%, 58% { ${T(270, 300)} } 80%, 100% { ${T(420, 300)} }`)
-    + kf('hc-seesaw-o2', `0%, 58% { ${T(250, 288)} } 61% { ${T(268, 300)} } 86%, 100% { ${T(410, 300)} }`)
-    + rule('hc-seesaw-h1', 'hc-seesaw-h1 6s linear infinite') + rule('hc-seesaw-m1', 'hc-seesaw-m1 6s linear infinite')
-    + rule('hc-seesaw-tap', 'hc-seesaw-tap 6s linear infinite') + rule('hc-seesaw-h2', 'hc-seesaw-h2 6s linear infinite')
-    + rule('hc-seesaw-tilt', 'hc-seesaw-tilt 6s ease-in-out infinite') + rule('hc-seesaw-off', 'hc-seesaw-off 6s linear infinite')
-    + rule('hc-seesaw-o1', 'hc-seesaw-o1 6s linear infinite') + rule('hc-seesaw-o2', 'hc-seesaw-o2 6s linear infinite');
+  // see-saw, 6.5 s: the first up to the high end by 24% and waiting; the second by 32%; it tips 35% to 44%; the two
+  // off by 66%; the ramp drops in at 52% (lit from 41%); the third, waiting from 44%, climbs it from 60%, is on the
+  // raised end at 68%, at the low end at 78% and home at 88% (D-177 (2))
+  const SL = LOOP_S.seesaw;
+  s += kf('hc-seesaw-h1', `0% { opacity: 1; ${T(30, 240)} } 10% { ${T(126, 240)} } 12% { ${T(150, 300)} } 24%, 33.9% { opacity: 1; ${T(270, 180)} } 34%, 100% { opacity: 0; ${T(270, 180)} }`)
+    + kf('hc-seesaw-m1', '0%, 23.9% { opacity: 1 } 24%, 100% { opacity: 0 }')
+    + kf('hc-seesaw-tap', '0%, 23.9% { opacity: 0; transform: translateY(0) } 24%, 27%, 30%, 33% { opacity: 1; transform: translateY(0) } 25.5%, 28.5%, 31.5% { transform: translateY(-5px) } 33.9% { opacity: 1 } 34%, 100% { opacity: 0 }')
+    + kf('hc-seesaw-h2', `0%, 8.9% { opacity: 0; ${T(30, 240)} } 9% { opacity: 1; ${T(30, 240)} } 19% { ${T(126, 240)} } 21% { ${T(150, 300)} } 32%, 33.9% { opacity: 1; ${T(250, 200)} } 34%, 100% { opacity: 0; ${T(250, 200)} }`)
+    + on('hc-seesaw-r1', SL, 34, 45) + on('hc-seesaw-r2', SL, 34, 45) + on('hc-seesaw-love', SL, 34, 40)
+    + kf('hc-seesaw-tilt', '0%, 35% { transform: rotate(-45deg) } 44%, 92% { transform: rotate(45deg) } 100% { transform: rotate(-45deg) }')
+    + kf('hc-seesaw-off', '0%, 44.9% { opacity: 0 } 45%, 66% { opacity: 1 } 69%, 100% { opacity: 0 }')
+    + kf('hc-seesaw-o1', `0%, 45% { ${T(270, 300)} } 62%, 100% { ${T(420, 300)} }`)
+    + kf('hc-seesaw-o2', `0%, 45% { ${T(250, 288)} } 47% { ${T(268, 300)} } 66%, 100% { ${T(410, 300)} }`)
+    + kf('hc-seesaw-h3', `0%, 37.9% { opacity: 0; ${T(-20, 240)} } 38% { opacity: 1; ${T(-20, 240)} } 44%, 60% { ${T(30, 240)} } 66% { ${T(124, 180)} } 68% { ${T(150, 180)} }`
+      + ` 78% { ${T(270, 300)} } 88%, 100% { opacity: 1; ${T(400, 300)} }`)
+    + looks('seesaw-h3', SL, 44, 60, 88) + dropIn('seesaw', SL, 52)
+    + rule('hc-seesaw-h1', `hc-seesaw-h1 ${SL}s linear infinite`) + rule('hc-seesaw-m1', `hc-seesaw-m1 ${SL}s linear infinite`)
+    + rule('hc-seesaw-tap', `hc-seesaw-tap ${SL}s linear infinite`) + rule('hc-seesaw-h2', `hc-seesaw-h2 ${SL}s linear infinite`)
+    + rule('hc-seesaw-tilt', `hc-seesaw-tilt ${SL}s ease-in-out infinite`) + rule('hc-seesaw-off', `hc-seesaw-off ${SL}s linear infinite`)
+    + rule('hc-seesaw-o1', `hc-seesaw-o1 ${SL}s linear infinite`) + rule('hc-seesaw-o2', `hc-seesaw-o2 ${SL}s linear infinite`)
+    + rule('hc-seesaw-h3', `hc-seesaw-h3 ${SL}s linear infinite`);
 
   // lift, 6 s (the mock-up's keyframes)
   s += kf('hc-lift-cupA', '0%, 22% { transform: translate(0, 0) } 26% { transform: translate(16px, -16px) } 51% { transform: translate(16px, -104px) } 55%, 100% { transform: translate(0, -120px) }')

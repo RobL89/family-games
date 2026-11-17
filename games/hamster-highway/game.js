@@ -1,4 +1,8 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.8 (16 Nov, step 9).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.9 (17 Nov, step 10b).
+//
+// Changes at v1.9 (step 10b, D-177 (3), D-178, D-179): a hamster that has picked up the dandelion clock holds it up
+// over its head (art.js's carry poses) from the step after the floater until it lands, as run() says (carry); the
+// poses each walker is drawn in during a run are kept for the tests (__test.state().poses).
 //
 // Changes at v1.8 (step 9, D-166, D-170): a level is open by progress.js 1.2's opens(), so a child who played before
 // the twins came finds them open; the twins of levels 1 to 5 play in pairs, Next going from each level to its twin.
@@ -652,13 +656,13 @@ function segmentsOf(st, offs = []) {
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
       const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed,
+      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry,
         sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
-      add({ kind: 'bounce', p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+      add({ kind: 'bounce', carry: !!b.carry, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
     } else if (b.act === 'wait') {
-      add({ kind: 'wait', p0, p1: p0, end: b.t1 });
+      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry });
     } else if (b.act === 'fall' || b.act === 'float') {
       let j = i;
       let seed = !!b.seed;
@@ -671,7 +675,7 @@ function segmentsOf(st, offs = []) {
       i = j;
     } else {
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
         lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup, dx: offs[i] || 0 });
     }
   }
@@ -700,7 +704,7 @@ function startRun() {
   S.help = false;
   S.seedTaken = false;
   renderSeed();
-  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [] };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
@@ -791,6 +795,7 @@ function follow(R, dt) {
 function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
+  if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
   w.el.firstElementChild.innerHTML = hamster(pose);
 }
 function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
@@ -859,6 +864,7 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
+    if (s.carry && pose !== 'float' && pose !== 'boing') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
     setAt(w, x, y, rot);
     return;
@@ -1101,7 +1107,7 @@ window.__test = {
     left: S.level ? left(S.level, S.placed) : null, progress: JSON.parse(JSON.stringify(S.progress)), layout: S.layout,
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
     outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,
-    card: S.card, caption: S.card ? CAPTION[S.card] : null, help: S.help,
+    card: S.card, caption: S.card ? CAPTION[S.card] : null, help: S.help, poses: S.run && S.run.poses ? S.run.poses : null,
   }),
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();
