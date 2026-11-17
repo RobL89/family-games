@@ -1,4 +1,4 @@
-// Pass-or-fail checks of what script 0.4.0 changes (P75), run against the real Code.gs.
+// Pass-or-fail checks of what scripts 0.4.0 and 0.5.0 change (P75, P88), run against the real Code.gs.
 //
 //   node tools/tests/script/check.js                    the repo's apps-script/Code.gs
 //   node tools/tests/script/check.js --script <file>    another copy (for example an older version)
@@ -47,7 +47,7 @@ check('the stand-ins cover every Google service and method Code.gs uses', () => 
   const missingGlobals = usedGlobals.filter((g) => !globals.includes(g));
 
   const builtins = new Set();
-  [Array.prototype, String.prototype, Date.prototype, Object, Object.prototype, Math, JSON, RegExp.prototype,
+  [Array.prototype, String.prototype, Date.prototype, Date, Object, Object.prototype, Math, JSON, RegExp.prototype,
     Number, Number.prototype, Function.prototype, Set.prototype, Map.prototype, Array, Promise.prototype]
     .forEach((o) => Object.getOwnPropertyNames(o).forEach((n) => builtins.add(n)));
   const ownFunctions = new Set([...text.matchAll(/function\s+(\w+)/g)].map((m) => m[1]));
@@ -59,20 +59,20 @@ check('the stand-ins cover every Google service and method Code.gs uses', () => 
 
 // ---- Version ----------------------------------------------------------------------------
 
-check('ping answers version 0.4.0', () => {
-  eq(bed().post('ping').version, '0.4.0', 'version');
+check('ping answers version 0.5.0', () => {
+  eq(bed().post('ping').version, '0.5.0', 'version');
 });
 
 // ---- setup only adds (P75) ------------------------------------------------------------------
 
-check('setup on a 0.3.0 Sheet makes a backup first, then adds only the Settings tab and its header', () => {
+check('setup on a 0.3.0 Sheet makes a backup first, then adds only the Settings, Plays and summary tabs', () => {
   const b = bed();
   const before = b.ss.dump();
   b.run('setup');
   eq(b.ss.copies.length, 1, 'backups made');
   eq(b.ss.copies[0].dump(), before, 'the backup holds the Sheet as it was');
   const after = b.ss.dump();
-  eq(Object.keys(after), [...Object.keys(before), 'Settings'], 'tabs after setup');
+  eq(Object.keys(after), [...Object.keys(before), 'Settings', 'Plays', 'Plays summary'], 'tabs after setup');
   Object.keys(before).forEach((tab) => eq(after[tab], before[tab], `tab ${tab}`));
   eq(after.Settings, [SETTINGS], 'Settings tab');
   eq(b.ss.getSheetByName('Settings').frozenRows, 1, 'Settings header row frozen');
@@ -101,7 +101,7 @@ check('setup on an empty spreadsheet adds every tab and the four skins, with no 
   const b = bed({ tabs: {} });
   b.run('setup');
   const after = b.ss.dump();
-  eq(Object.keys(after).sort(), ['Achievements', 'GameLists', 'Profiles', 'Scores', 'Settings', 'Skins'], 'tabs');
+  eq(Object.keys(after).sort(), ['Achievements', 'GameLists', 'Plays', 'Plays summary', 'Profiles', 'Scores', 'Settings', 'Skins'], 'tabs');
   eq(after.Skins.length, 5, 'Skins rows with header');
   eq(after.Settings, [SETTINGS], 'Settings tab');
   eq(b.ss.copies.length, 0, 'backups');
@@ -265,6 +265,164 @@ check('an unknown skin is still refused', () => {
   eq(bed().post('updateProfile', { profile_id: 'p_alex', skin: 'dragon' }).error, 'no_such_skin', 'reply');
 });
 
+// ---- Plays (0.5.0, P88) -------------------------------------------------------------------
+
+const PLAYS = ['played_at', 'day', 'name', 'game', 'minutes', 'device', 'play_id', 'profile_id', 'game_id', 'received_at'];
+// The live Sheet's shape since 0.4.0: 0.3.0's tabs with Settings, the test rows cleared (Q13).
+function sheet040() {
+  const tabs = sheet030();
+  tabs.Scores = tabs.Scores.slice(0, 1);
+  tabs.Achievements = tabs.Achievements.slice(0, 1);
+  tabs.Settings = [SETTINGS, ['p_sam', 'number-town', 'state', '{"v":1}', new Date('2026-11-13T10:00:00Z')]];
+  return tabs;
+}
+const ready = () => { const b = bed({ tabs: sheet040() }); b.run('setup'); return b; };
+const play = (o = {}) => ({ play_id: 'pl1', profile_id: 'p_sam', game_id: 'number-town', game: 'Number Town',
+  device: 'Phone', played_at: '2026-11-17T18:05:00.000Z', seconds: 0, ...o });
+const sync = (b, plays) => b.post('sync', { results: [], achievements: [], plays });
+
+check('setup on the live shape (0.4.0) backs up, adds Plays and its summary, hides Scores and Achievements, changes no data', () => {
+  const b = bed({ tabs: sheet040() });
+  const before = b.ss.dump();
+  const log = b.run('setup');
+  eq(b.ss.copies.length, 1, 'backups made');
+  const after = b.ss.dump();
+  eq(Object.keys(after), [...Object.keys(before), 'Plays', 'Plays summary'], 'tabs after setup');
+  Object.keys(before).forEach((tab) => eq(after[tab], before[tab], `tab ${tab}`));
+  eq(after.Plays, [PLAYS], 'Plays tab');
+  eq(b.ss.getSheetByName('Plays').frozenRows, 1, 'Plays header frozen');
+  eq(['Scores', 'Achievements'].map((t) => b.ss.getSheetByName(t).isSheetHidden()), [true, true], 'hidden');
+  eq(b.ss.sheets.filter((s) => s.isSheetHidden()).map((s) => s.name), ['Scores', 'Achievements'], 'only those hidden');
+  ok(log.some((l) => /Hid tab Scores/.test(l)) && log.some((l) => /Hid tab Achievements/.test(l)), 'the log says what was hidden');
+  const f = b.ss.getSheetByName('Plays').formats;
+  eq([f[1][0], f[2][0], f[5][0]], ['dd/mm/yyyy hh:mm', 'ddd dd/mm/yyyy', '0.0'], 'formats of played_at, day, minutes');
+  eq(f[1][2], b.ss.getSheetByName('Plays').getMaxRows(), 'formats reach the last row');
+});
+
+check('the summary: four tables (game, day, child, device) of plays and minutes over the whole Plays tab, and a Name filter', () => {
+  const b = ready();
+  const s = b.ss.getSheetByName('Plays summary');
+  const plays = b.ss.getSheetByName('Plays');
+  const col = (h) => PLAYS.indexOf(h) + 1;
+  eq(s.pivots.map((t) => [t.anchor.row, t.anchor.col]), [[5, 1], [5, 5], [5, 9], [5, 13]], 'table anchors');
+  eq(s.pivots.map((t) => t.rows.map((g) => g.column)), [[col('game')], [col('day')], [col('name')], [col('device')]], 'grouped by');
+  eq(s.pivots[1].rows[0].order, 'desc', 'days newest first');
+  s.pivots.forEach((t, i) => {
+    eq(t.values.map((v) => [v.column, v.fn, v.name]), [[col('play_id'), 'COUNTA', 'Plays'], [col('minutes'), 'SUM', 'Minutes']], `table ${i} values`);
+    eq(t.filters.map((x) => [x.column, x.criteria.type]), [[col('name'), 'not-empty']], `table ${i} hides empty rows`);
+    eq([t.source.sheet.name, t.source.row, t.source.col, t.source.getLastRow(), t.source.nCols], ['Plays', 1, 1, plays.getMaxRows(), PLAYS.length], `table ${i} source`);
+  });
+  eq(s.slicers.length, 1, 'one filter');
+  const x = s.slicers[0];
+  eq([x.title, x.criteria, x.toPivots, x.range.getLastRow(), x.row, x.col], ['Name', { column: col('name'), criteria: null }, true, plays.getMaxRows(), 1, 1], 'the Name filter: on names, none picked yet');
+});
+
+check('the summary follows the header row, not a fixed order of columns', () => {
+  const tabs = sheet040();
+  tabs.Plays = [[...PLAYS].reverse()];
+  const b = bed({ tabs });
+  b.run('setup');
+  const s = b.ss.getSheetByName('Plays summary');
+  eq(s.pivots[2].rows[0].column, PLAYS.length - PLAYS.indexOf('name'), 'by child uses the name column');
+});
+
+check('a play adds one row: the name from Profiles, the game, minutes, device, date and time, and the day', () => {
+  const b = ready();
+  const r = sync(b, [play({ seconds: 95 })]);
+  okReply(r, 'sync');
+  eq(r.plays_done, [{ play_id: 'pl1', seconds: 95 }], 'plays_done');
+  const [row] = rowsOf(b, 'Plays');
+  eq([row.name, row.game, row.minutes, row.device, row.play_id, row.profile_id, row.game_id],
+    ['Sam', 'Number Town', 1.6, 'Phone', 'pl1', 'p_sam', 'number-town'], 'row');
+  eq(row.played_at.toISOString(), '2026-11-17T18:05:00.000Z', 'played_at');
+  eq(row.day.toISOString(), '2026-11-17T12:00:00.000Z', 'day');
+  ok(row.received_at instanceof Date, 'received_at');
+});
+
+check('the same play again with more time updates its minutes; with less, or twice, changes nothing', () => {
+  const b = ready();
+  sync(b, [play({ seconds: 60 })]);
+  eq(sync(b, [play({ seconds: 600 })]).plays_done, [{ play_id: 'pl1', seconds: 600 }], 'plays_done');
+  eq(rowsOf(b, 'Plays').map((r) => r.minutes), [10], 'minutes after more time');
+  sync(b, [play({ seconds: 30 })]);
+  sync(b, [play({ seconds: 600 })]);
+  eq(rowsOf(b, 'Plays').map((r) => r.minutes), [10], 'minutes unchanged');
+  sync(b, [play({ play_id: 'pl2', seconds: 6 }), play({ play_id: 'pl2', seconds: 120 })]);
+  eq(rowsOf(b, 'Plays').map((r) => [r.play_id, r.minutes]), [['pl1', 10], ['pl2', 2]], 'twice in one batch: one row, the most time');
+});
+
+check('day is the London date: late on a summer evening and just after midnight', () => {
+  const b = ready();
+  sync(b, [play({ play_id: 'a', played_at: '2026-07-01T22:30:00Z' }), play({ play_id: 'b', played_at: '2026-07-01T23:30:00Z' }),
+    play({ play_id: 'c', played_at: '2026-12-01T23:30:00Z' })]);
+  eq(rowsOf(b, 'Plays').map((r) => r.day.toISOString().slice(0, 10)), ['2026-07-01', '2026-07-02', '2026-12-01'], 'days');
+});
+
+check('an unknown child or game id adds nothing but is done (the device stops sending it); a bad play id is not', () => {
+  const b = ready();
+  const r = sync(b, [play({ play_id: 'x1', profile_id: 'p_nobody' }), play({ play_id: 'x2', game_id: 'bad id!' }),
+    play({ play_id: 'x3', profile_id: 'toString' }), play({ play_id: 'bad id!' })]);
+  eq(r.plays_done.map((p) => p.play_id), ['x1', 'x2', 'x3'], 'plays_done');
+  eq(rowsOf(b, 'Plays'), [], 'Plays rows');
+});
+
+check('text is cleaned: a game title starting = is not a formula; seconds are capped at six hours', () => {
+  const b = ready();
+  sync(b, [play({ game: '=HYPERLINK("x")', seconds: 99999999, device: 'Phone' })]);
+  const [row] = rowsOf(b, 'Plays');
+  eq([row.game, row.minutes], ['HYPERLINK("x")', 360], 'game and minutes');
+});
+
+check('plays before setup wait on the device: none done, nothing written; an outbox without plays still works', () => {
+  const b = bed({ tabs: sheet040() });
+  const before = b.ss.dump();
+  const r = sync(b, [play()]);
+  okReply(r, 'sync');
+  eq(r.plays_done, [], 'plays_done');
+  eq(b.ss.dump(), before, 'Sheet');
+  const old = b.post('sync', { results: [], achievements: [] });
+  okReply(old, 'an older launcher\'s sync');
+  eq(old.plays_done, [], 'plays_done for an older launcher');
+});
+
+check('when the Plays tab fills up it grows, keeps its formats, and the summary still covers it all', () => {
+  const b = ready();
+  const plays = b.ss.getSheetByName('Plays');
+  const start = plays.getMaxRows();
+  let n = 0;
+  while (plays.getLastRow() < start - 1) {
+    sync(b, Array.from({ length: 200 }, () => play({ play_id: 'p' + (n++) })));
+  }
+  ok(plays.getMaxRows() > plays.getLastRow() + 500, `room kept below the plays (rows ${plays.getLastRow()} of ${plays.getMaxRows()})`);
+  eq(rowsOf(b, 'Plays').length, n, 'every play has its row');
+  eq(new Set(rowsOf(b, 'Plays').map((r) => r.play_id)).size, n, 'no play lost or doubled');
+  const s = b.ss.getSheetByName('Plays summary');
+  eq([s.pivots.length, s.slicers.length], [4, 1], 'tables and filter after the rebuild');
+  ok(s.pivots.every((t) => t.source.getLastRow() === plays.getMaxRows()) && s.slicers[0].range.getLastRow() === plays.getMaxRows(), 'they reach the new last row');
+  eq(plays.formats[5][2], plays.getMaxRows(), 'minutes format reaches the new last row');
+});
+
+check('previewPlays refuses the live spreadsheet and fills a copy with made-up plays for each player', () => {
+  const b = ready();
+  let refused = '';
+  try { b.run('previewPlays'); } catch (err) { refused = err.message; }
+  ok(/copy only/.test(refused), 'refused on a spreadsheet not named as a copy');
+  eq(rowsOf(b, 'Plays'), [], 'nothing written to it');
+  b.ss.name = 'Copy of Family games';
+  b.run('previewPlays');
+  const plays = rowsOf(b, 'Plays');
+  eq([plays.length, [...new Set(plays.map((r) => r.name))].sort()], [6, ['Alex', 'Sam']], 'three plays each');
+  eq(b.lock.held, false, 'lock let go');
+});
+
+check('running summary by hand rebuilds it: still four tables and one filter', () => {
+  const b = ready();
+  b.run('summary');
+  b.run('summary');
+  const s = b.ss.getSheetByName('Plays summary');
+  eq([s.pivots.length, s.slicers.length], [4, 1], 'tables and filter');
+});
+
 // ---- Locks --------------------------------------------------------------------------------
 
 check('the new and changed write calls take the lock and let it go', () => {
@@ -273,7 +431,8 @@ check('the new and changed write calls take the lock and let it go', () => {
   okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'g', state: 1 }), 'saveState');
   okReply(b.post('saveLists', { profile_id: 'p_sam', lists: [{ title: 'T', words: ['ab'] }] }), 'saveLists');
   okReply(b.post('updateProfile', { profile_id: 'p_sam', skin: 'fairy' }), 'updateProfile');
-  eq([b.lock.waits, b.lock.held], [3, false], 'lock taken three times, now free');
+  okReply(b.post('sync', { results: [], achievements: [], plays: [play()] }), 'sync with plays');
+  eq([b.lock.waits, b.lock.held], [4, false], 'lock taken four times, now free');
 });
 
 // ---- Run ----------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-17 (the play log, P88, script 0.5.0, not yet live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -33,7 +33,8 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 2. **Everything saves on the device first,** then goes to the Sheet. Each item has a unique ID, so a retry never counts twice.
 3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`, with when it was made) and sends it to the Sheet's Settings tab (P51): within 30 seconds of a change, at once on ⌂ Home or when the page is hidden (P78). The newest save wins. As a game opens, the child's profile is re-read so progress from another device is there. There's no Save button (P79). An artifact game that saves in its own storage passes its progress on through `games/_common/keep-progress/` (P77). With script 0.3.0, progress just stays on the device.
 4. **Word lists** reach a game in `fg:start`: one set per child for every word game (P56). With script 0.3.0, which keeps them per game, it's this game's lists or else the first set the child has (P61).
-5. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview, Testing switch, game states). Games use their own keys, never clear-all (contract section 6).
+5. **Plays (P88):** a tap on a game tile queues a play in the outbox (when, which child, which game, phone or PC) and passes its id to the wrapper (`&play=`). The wrapper adds the time the game is on screen and being played (no touch, click or key for 3 minutes is a break) and sends it on ⌂ Home or when the page is hidden; the launcher's `sync` sends anything still waiting. With script 0.4.0 plays wait on the device.
+6. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview, Testing switch, game states). Games use their own keys, never clear-all (contract section 6).
 
 ## Sheet tabs
 
@@ -42,9 +43,11 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 | Profiles | profile_id, nickname, avatar, colour, created_at, active, skin | In use |
 | Skins | skin_id, name, stars_needed, active | Names and `active` in use; `stars_needed` ignored (P49) |
 | GameLists | list_id, profile_id, game_id, position, title, words, updated_at | In use. From 0.4.0 one set per child, `game_id` blank; a child's old per-game rows are read until their lists are next saved, which moves them (P56) |
-| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48) |
-| Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48) |
+| Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
+| Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
 | Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12) |
+| Plays (script 0.5.0) | played_at, day, name, game, minutes, device, play_id, profile_id, game_id, received_at | One row per tap on a game tile; minutes grow as it's played (P88) |
+| Plays summary (script 0.5.0) | (pivot tables) | Plays and minutes by game, day, child and device, with a Name filter. Rebuilt by running `summary` (P88) |
 
 The family code is kept in the script's settings, not the Sheet.
 
@@ -59,7 +62,7 @@ The family code is kept in the script's settings, not the Sheet.
 | `profile` | One player: recent scores, per-game bests, star total, days played, badges, `word_lists` (one set), `states` (each game's `{ state, at }`) |
 | `addProfile` | Adds a player |
 | `updateProfile` | Changes a player's name, animal, colour or skin; any active skin, no star check (P63) |
-| `sync` | Takes the device outbox: results and badges, duplicates skipped |
+| `sync` | Takes the device outbox: results and badges, duplicates skipped; from 0.5.0 also plays, a play sent again updating its minutes (`plays_done`, P88) |
 | `saveLists` | Replaces one player's word lists, in order (the first is the default); a `game_id` from an older launcher is ignored |
 | `saveState` | Keeps one game's state for one player, with when it was made; an older save than the Sheet's is ignored (P78) |
 
@@ -67,7 +70,7 @@ The family code is kept in the script's settings, not the Sheet.
 
 - **The site and repo are public.** GitHub Pages on a free personal account publishes publicly (checked 2026-10-28), so the Apps Script link is visible in the site's code.
 - **Every call is a POST carrying the family code** (never in a link). A grown-up enters it once per device. It's a light lock, not a password.
-- **The Sheet holds only:** first names or nicknames, a cartoon animal, a colour, the chosen skin, word lists and game progress. No surnames, birthdays, photos or schools.
+- **The Sheet holds only:** first names or nicknames, a cartoon animal, a colour, the chosen skin, word lists, game progress, and from 0.5.0 when each game was played, for how long and on a phone or PC (P88). No surnames, birthdays, photos or schools.
 - **The repo holds no names or family details.**
 - **Writes are locked one at a time** in the script, so two children finishing at once don't clash.
 - **The grown-ups' question:** only a one-way hash of the answer is in `shared/config.js` (P33).

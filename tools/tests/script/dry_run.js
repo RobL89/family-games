@@ -1,5 +1,5 @@
-// Dry run of apps-script/Code.gs on a local copy of the live Sheet (stage 5, P75): what `setup`
-// and the first calls would change, before Rob pastes the script.
+// Dry run of apps-script/Code.gs on a local copy of the live Sheet (stage 5, P75; script 0.5.0, P88):
+// what `setup` and the first calls would change, before Rob pastes the script.
 //
 //   node tools/tests/script/dry_run.js <copy.json>
 //
@@ -35,45 +35,44 @@ const b = open({ tabs });
 const before = b.ss.dump();
 say(`Before: tabs ${Object.keys(before).map((t) => `${t} (${Math.max(0, before[t].length - 1)} rows)`).join(', ')}`);
 
-// 1. setup, as Rob will run it after pasting.
+// 1. setup, as Rob will run it after pasting (script 0.5.0, P88).
 const log = b.run('setup');
 const after = b.ss.dump();
 say('setup log: ' + log.join(' | '));
 expect(b.ss.copies.length === 1 && same(b.ss.copies[0].dump(), before), 'setup made a backup copy first, identical to the Sheet before');
 const added = Object.keys(after).filter((t) => !(t in before));
-expect(same(added, ['Settings']), `tabs added: ${added.join(', ') || 'none'}`);
+expect(same(added, ['Plays', 'Plays summary']), `tabs added: ${added.join(', ') || 'none'}`);
 const changed = Object.keys(before).filter((t) => !same(before[t], after[t]));
 expect(changed.length === 0, `existing tabs changed: ${changed.join(', ') || 'none'} (every cell compared)`);
-expect(same(after.Settings, [['profile_id', 'game_id', 'key', 'value', 'updated_at']]), 'Settings tab holds only its header row');
+const hidden = b.ss.sheets.filter((t) => t.isSheetHidden()).map((t) => t.name);
+expect(same(hidden, ['Scores', 'Achievements']), `tabs hidden: ${hidden.join(', ') || 'none'}`);
+expect(same(after.Plays, [['played_at', 'day', 'name', 'game', 'minutes', 'device', 'play_id', 'profile_id', 'game_id', 'received_at']]), 'Plays tab holds only its header row');
+const summaryTab = b.ss.getSheetByName('Plays summary');
+expect(summaryTab.pivots.length === 4 && summaryTab.slicers.length === 1, 'Plays summary: 4 tables and the Name filter');
 const again = b.ss.dump();
 b.run('setup');
 expect(same(b.ss.dump(), again) && b.ss.copies.length === 1, 'setup run again changes nothing and makes no second backup');
 
 // 2. The calls the launcher makes first.
-expect(b.post('ping').version === '0.4.0', 'ping answers 0.4.0');
+expect(b.post('ping').version === '0.5.0', 'ping answers 0.5.0');
 const profiles = b.post('profiles');
 expect(profiles.ok && profiles.profiles.length > 0, `profiles: ${profiles.profiles.length} players, ${profiles.skins.length} skins`);
 for (const p of profiles.profiles) {
   const r = b.post('profile', { profile_id: p.profile_id });
-  expect(r.ok && Array.isArray(r.word_lists) && same(r.states, {}),
-    `profile ${p.profile_id}: ${r.word_lists.length} word list(s) (${r.word_lists.map((l) => l.words.length + ' words').join(', ') || 'none'}), no saved states yet`);
+  expect(r.ok && Array.isArray(r.word_lists), `profile ${p.profile_id}: ${r.word_lists.length} word list(s), ${Object.keys(r.states || {}).length} saved game(s)`);
 }
 
-// 3. What a child's first saves would do (on this copy only).
+// 3. A first play (on this copy only): one row, the child's name from Profiles; more time updates it.
 const someone = profiles.profiles[0].profile_id;
-const s = b.post('saveState', { profile_id: someone, game_id: 'number-town', state: { progress: { explorer: 'x', save: { v: 1 } }, at: new Date().toISOString() } });
-expect(s.ok && s.saved, `saveState for ${someone} adds one Settings row (${b.ss.getSheetByName('Settings').dump().length - 1} now)`);
-const withLists = profiles.profiles.find((p) => b.post('profile', { profile_id: p.profile_id }).word_lists.length);
-if (withLists) {
-  const pid = withLists.profile_id;
-  const old = b.post('profile', { profile_id: pid }).word_lists;
-  const keep = b.ss.getSheetByName('GameLists').dump().filter((l) => l[1] !== pid);
-  const r = b.post('saveLists', { profile_id: pid, lists: old.map((l) => ({ list_id: l.list_id, title: l.title, words: l.words })) });
-  const rows = b.ss.getSheetByName('GameLists').dump();
-  expect(r.ok && same(r.lists.map((l) => l.words), old.map((l) => l.words)) && rows.filter((l) => l[1] === pid).every((l) => l[2] === ''),
-    `saving ${pid}'s lists unchanged moves them to one set (no game), words the same`);
-  expect(same(rows.filter((l) => l[1] !== pid), keep), "other players' list rows untouched");
-}
+const play = { play_id: 'dryrun1', profile_id: someone, game_id: 'number-town', game: 'Number Town', device: 'PC', played_at: new Date().toISOString(), seconds: 0 };
+const r1 = b.post('sync', { results: [], achievements: [], plays: [play] });
+const r2 = b.post('sync', { results: [], achievements: [], plays: [{ ...play, seconds: 300 }] });
+const rows = b.ss.getSheetByName('Plays').dump();
+const nickname = (before.Profiles.find((l) => l[0] === someone) || [])[1];
+expect(r1.ok && r2.ok && rows.length === 2 && rows[1][2] === nickname && rows[1][4] === 5,
+  `a play for ${someone} adds one Plays row with their name; 5 more minutes update it (${rows.length - 1} row, ${rows[1] && rows[1][4]} minutes)`);
+const others = Object.keys(before).filter((t) => !same(before[t], b.ss.dump()[t]));
+expect(same(others, []), `other tabs still unchanged after the calls: ${others.join(', ') || 'none'}`);
 
 say(problems ? `DRY RUN: ${problems} problem(s)` : 'DRY RUN: as expected');
 console.log(lines.join('\n'));

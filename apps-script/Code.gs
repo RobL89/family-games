@@ -16,9 +16,14 @@
  *        and returned by `profile` as `states`; the newest save wins (P78). One set of word lists per player for
  *        every game (P56), returned by `profile` as `word_lists`. Skins no longer need
  *        stars (P49, P63). Tested in Node first: tools/tests/script/ (P75).
+ * 0.5.0: Plays tab: one row each time a child taps a game in the launcher, with the date and
+ *        time, their name, the game, the minutes it was played and phone or PC (P88). They come
+ *        in the device outbox with `sync`, like results. A "Plays summary" tab holds pivot tables
+ *        (by game, day, child and device) and a Name filter. The unused Scores and Achievements
+ *        tabs are hidden, not deleted (P48, P52).
  */
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 const TABS = {
   Profiles: ['profile_id', 'nickname', 'avatar', 'colour', 'created_at', 'active', 'skin'],
@@ -29,7 +34,21 @@ const TABS = {
   // One row per player, game and key (P51, Q12). Key "state" holds the game's own saved
   // progress as JSON text, written by the launcher's wrapper, never typed by hand.
   Settings: ['profile_id', 'game_id', 'key', 'value', 'updated_at'],
+  // One row per tap on a game tile (P88). played_at is when the tile was tapped; day is the same
+  // date without the time, for the summary's "by day" table; minutes grows as the game is played.
+  Plays: ['played_at', 'day', 'name', 'game', 'minutes', 'device', 'play_id', 'profile_id', 'game_id', 'received_at'],
 };
+
+// The summary of the Plays tab (P88): built by setup, rebuilt by running `summary` by hand.
+const SUMMARY_TAB = 'Plays summary';
+// Empty rows kept below the plays. The summary's tables read the Plays tab down to its last row,
+// so new plays are counted without the tables being rebuilt.
+const PLAYS_ROOM = 1000;
+// Kept but hidden (P52): nothing has written to them since stars and stickers were switched off
+// (P48). To show one again, take it out of this list and use the tab's menu, Show sheet; setup
+// hides the ones listed each time it runs.
+const HIDDEN_TABS = ['Scores', 'Achievements'];
+const MAX_PLAY_SECONDS = 6 * 60 * 60; // a longer play is taken as a clock mistake and capped
 
 // Rows put into a brand-new Skins tab. Change stars_needed in the Sheet any time;
 // the launcher reads it fresh. skin_id must match a CSS file in shared/skins/.
@@ -97,6 +116,7 @@ function planSetup(ss) {
           const s = ss.insertSheet(name);
           writeHeaders(s, wanted);
           if (name === 'Skins') s.getRange(2, 1, DEFAULT_SKINS.length, wanted.length).setValues(DEFAULT_SKINS);
+          if (name === 'Plays') formatPlays(s);
         },
       });
       return;
@@ -121,6 +141,25 @@ function planSetup(ss) {
       });
     }
   });
+
+  // The summary of plays (P88), once the Plays tab is there (it may be added just above).
+  if (!ss.getSheetByName(SUMMARY_TAB)) {
+    steps.push({
+      label: 'Added tab ' + SUMMARY_TAB + ': plays and minutes by game, day, child and device, with a Name filter',
+      apply: function () { buildSummary(ss); },
+    });
+  }
+
+  // Unused tabs hidden, not deleted (P48, P52).
+  HIDDEN_TABS.forEach(function (name) {
+    const s = ss.getSheetByName(name);
+    if (s && !s.isSheetHidden()) {
+      steps.push({
+        label: 'Hid tab ' + name + ' (kept with its data, not deleted)',
+        apply: function () { s.hideSheet(); },
+      });
+    }
+  });
   return steps;
 }
 
@@ -139,6 +178,45 @@ function backup() {
   const copy = ss.copy(ss.getName() + ' backup ' + stamp);
   Logger.log('Backup made: ' + copy.getUrl());
   return copy.getUrl();
+}
+
+/**
+ * Rebuilds the Plays summary tab from scratch (P88): run it if the tab has been changed by hand
+ * and you want it back as it was. Any changes made to that tab by hand are lost; the Plays tab
+ * itself is never touched.
+ */
+function summary() {
+  buildSummary(SpreadsheetApp.getActiveSpreadsheet());
+  Logger.log('Rebuilt the ' + SUMMARY_TAB + ' tab');
+}
+
+/**
+ * For trying 0.5.0 on a COPY of the spreadsheet only (P88): adds made-up plays for each player,
+ * today and yesterday, so the Plays summary's tables and Name filter have something to show.
+ * Refuses to run unless the spreadsheet's name has "copy" or "backup" in it.
+ */
+function previewPlays() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!/copy|backup/i.test(ss.getName())) throw new Error('previewPlays is for a copy only: this spreadsheet is called ' + ss.getName());
+  const now = new Date();
+  const plays = [];
+  rows('Profiles').filter(isActive).forEach(function (p, i) {
+    const games = rows('Settings').filter(function (r) { return r.profile_id === p.profile_id; })
+      .map(function (r) { return String(r.game_id); }).concat(['example-game']);
+    [0, 1, 2].forEach(function (k) {
+      plays.push({
+        play_id: 'preview_' + i + '_' + k,
+        profile_id: p.profile_id,
+        game_id: games[k % games.length],
+        game: games[k % games.length],
+        device: k % 2 ? 'Phone' : 'PC',
+        played_at: new Date(now.getTime() - k * 20 * 60 * 60 * 1000).toISOString(),
+        seconds: 60 * (3 + 4 * k + i),
+      });
+    });
+  });
+  withLock(function () { recordPlays(plays, now); });
+  Logger.log('Added ' + plays.length + ' made-up plays to this copy');
 }
 
 // ---------------------------------------------------------------------------
@@ -469,8 +547,10 @@ function updateProfile(body) {
 /**
  * Takes the device outbox in one go:
  *   { results: [ {event_id, profile_id, game_id, score, level, stars, seconds, played_at} ],
- *     achievements: [ {profile_id, achievement_id, earned_at} ] }
- * Duplicates are skipped, so a device can safely send the same outbox twice.
+ *     achievements: [ {profile_id, achievement_id, earned_at} ],
+ *     plays: [ {play_id, profile_id, game_id, game, device, played_at, seconds} ] }   (0.5.0, P88)
+ * Duplicates are skipped, so a device can safely send the same outbox twice. A play sent again
+ * with more seconds updates its minutes.
  */
 function sync(body) {
   const results = Array.isArray(body.results) ? body.results.slice(0, MAX_BATCH) : [];
@@ -515,13 +595,169 @@ function sync(body) {
   });
   appendObjects('Achievements', achRows);
 
+  const plays = Array.isArray(body.plays) ? body.plays.slice(0, MAX_BATCH) : [];
   return {
     ok: true,
     accepted: accepted,
     duplicates: duplicates,
     rejected: rejected,
     achievements_recorded: achAccepted,
+    plays_done: recordPlays(plays, now),
   };
+}
+
+/**
+ * Plays (P88): a new play_id adds a row; one already in the tab updates its minutes if more time
+ * came in. Returns { play_id, seconds } for each play the device can stop sending: recorded,
+ * updated, already there, or refused (an unknown child or game would be refused every time).
+ */
+function recordPlays(plays, now) {
+  if (!plays.length) return [];
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const s = ss.getSheetByName('Plays');
+  if (!s) return []; // setup not run yet: the plays wait on the device
+  const tz = ss.getSpreadsheetTimeZone();
+  const values = s.getDataRange().getValues();
+  const headers = values[0].map(String);
+  const idCol = headers.indexOf('play_id');
+  const minCol = headers.indexOf('minutes');
+  const rowOf = {};
+  for (let i = 1; i < values.length; i++) rowOf[String(values[i][idCol])] = i + 1;
+
+  const names = {};
+  rows('Profiles').forEach(function (p) { names[p.profile_id] = cleanText(p.nickname, 40); });
+
+  const done = [];
+  const fresh = [];
+  const freshById = {};
+  plays.forEach(function (p) {
+    const id = String(p && p.play_id || '');
+    const seconds = Math.max(0, Math.min(MAX_PLAY_SECONDS, Math.round(Number(p && p.seconds) || 0)));
+    if (!ID_PATTERN.test(id)) return; // nothing to tell the device: it can't be named
+    done.push({ play_id: id, seconds: Number(p.seconds) || 0 });
+    if (!Object.prototype.hasOwnProperty.call(names, String(p.profile_id)) || !ID_PATTERN.test(String(p.game_id || ''))) return; // refused
+    const minutes = toMinutes(seconds);
+
+    if (freshById[id]) { // twice in one batch
+      freshById[id].minutes = Math.max(freshById[id].minutes, minutes);
+    } else if (rowOf[id]) {
+      const cell = s.getRange(rowOf[id], minCol + 1);
+      if (minutes > (Number(cell.getValues()[0][0]) || 0)) cell.setValues([[minutes]]);
+    } else {
+      const at = toDate(p.played_at, now);
+      const row = {
+        played_at: at,
+        day: dayOf(at, tz),
+        name: names[p.profile_id],
+        game: cleanText(p.game, 60) || p.game_id,
+        minutes: minutes,
+        device: cleanText(p.device, 20),
+        play_id: id,
+        profile_id: p.profile_id,
+        game_id: p.game_id,
+        received_at: now,
+      };
+      freshById[id] = row;
+      fresh.push(row);
+    }
+  });
+  if (fresh.length) {
+    makeRoom(ss, s, fresh.length);
+    appendObjects('Plays', fresh);
+  }
+  return done;
+}
+
+function toMinutes(seconds) {
+  return Math.round(seconds / 6) / 10; // to a tenth of a minute
+}
+
+/** The date of `at` in the Sheet's time zone, as noon UTC that day: shown as that date anywhere near London. */
+function dayOf(at, tz) {
+  const ymd = Utilities.formatDate(at, tz, 'yyyy-MM-dd').split('-').map(Number);
+  return new Date(Date.UTC(ymd[0], ymd[1] - 1, ymd[2], 12));
+}
+
+/**
+ * Keeps empty rows below the plays (P88). New rows go in above the tab's last row, inside the
+ * range the summary reads, so its tables grow with the tab. If a table or the Name filter still
+ * doesn't reach the end, the summary is rebuilt.
+ */
+function makeRoom(ss, s, adding) {
+  const max = s.getMaxRows();
+  if (s.getLastRow() + adding < max) return;
+  s.insertRowsBefore(max, s.getLastRow() + adding - max + 1 + PLAYS_ROOM);
+  formatPlays(s);
+  const summaryTab = ss.getSheetByName(SUMMARY_TAB);
+  if (!summaryTab) return;
+  const end = s.getMaxRows();
+  const short = summaryTab.getPivotTables().some(function (t) { return t.getSourceDataRange().getLastRow() < end; })
+    || summaryTab.getSlicers().some(function (x) { return x.getRange().getLastRow() < end; });
+  if (short) buildSummary(ss);
+}
+
+/** Date and number formats for the Plays tab's columns, down to its last row. */
+function formatPlays(s) {
+  const headers = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].map(String);
+  const formats = { played_at: 'dd/mm/yyyy hh:mm', day: 'ddd dd/mm/yyyy', minutes: '0.0', received_at: 'dd/mm/yyyy hh:mm' };
+  Object.keys(formats).forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0 && s.getMaxRows() > 1) s.getRange(2, col + 1, s.getMaxRows() - 1, 1).setNumberFormat(formats[h]);
+  });
+}
+
+/**
+ * The Plays summary tab (P88): four pivot tables side by side, each with plays and minutes, by
+ * game, by day (newest first), by child and by device, and a Name filter above them that
+ * filters all four. Replaces the tab's tables and filter if it already has them.
+ */
+function buildSummary(ss) {
+  const plays = ss.getSheetByName('Plays');
+  if (!plays) throw new Error('missing_tab_Plays (run setup)');
+  let s = ss.getSheetByName(SUMMARY_TAB);
+  if (s) {
+    s.getPivotTables().forEach(function (t) { t.remove(); });
+    s.getSlicers().forEach(function (x) { x.remove(); });
+  } else {
+    s = ss.insertSheet(SUMMARY_TAB);
+  }
+  const headers = plays.getRange(1, 1, 1, plays.getLastColumn()).getValues()[0].map(String);
+  const col = function (h) {
+    const i = headers.indexOf(h);
+    if (i < 0) throw new Error('missing_column_' + h + ' in Plays (run setup)');
+    return i + 1;
+  };
+  const source = plays.getRange(1, 1, plays.getMaxRows(), headers.length);
+  const notEmpty = function () { return SpreadsheetApp.newFilterCriteria().whenCellNotEmpty().build(); };
+
+  s.getRange(1, 5, 2, 1).setValues([
+    ['Plays: one each time a game tile is tapped. Minutes: how long the game was on screen and played.'],
+    ['Pick children in the Name filter on the left. The tables update as plays arrive.'],
+  ]);
+  const filter = s.insertSlicer(source, 1, 1);
+  filter.setTitle('Name');
+  filter.setColumnFilterCriteria(col('name'), null); // on the name column, nothing picked yet (null: no filter)
+  filter.setApplyToPivotTables(true);
+
+  const tables = [
+    { at: 1, by: 'game', title: 'By game' },
+    { at: 5, by: 'day', title: 'By day', newestFirst: true },
+    { at: 9, by: 'name', title: 'By child' },
+    { at: 13, by: 'device', title: 'By device' },
+  ];
+  tables.forEach(function (t) {
+    s.getRange(4, t.at).setValues([[t.title]]).setFontWeight('bold');
+    const table = s.getRange(5, t.at).createPivotTable(source);
+    const group = table.addRowGroup(col(t.by));
+    group.showTotals(true);
+    if (t.newestFirst) group.sortDescending();
+    table.addPivotValue(col('play_id'), SpreadsheetApp.PivotTableSummarizeFunction.COUNTA).setDisplayName('Plays');
+    table.addPivotValue(col('minutes'), SpreadsheetApp.PivotTableSummarizeFunction.SUM).setDisplayName('Minutes');
+    table.addFilter(col('name'), notEmpty()); // the empty rows kept below the plays
+  });
+  // The day table's dates, shown as dates.
+  s.getRange(6, 5, 400, 1).setNumberFormat('ddd dd/mm/yyyy');
+  return s;
 }
 
 // ---------------------------------------------------------------------------

@@ -420,9 +420,18 @@ app.addEventListener('click', async (e) => {
     say(soon, 'Coming soon!');
     return;
   }
-  if (t.closest('[data-g]')) {
+  const gameTile = t.closest('[data-g]');
+  if (gameTile) {
     sound.play('tap');
-    return; // the link opens the game
+    // A play for the Sheet's Plays tab (P88); its id goes with the link, so the wrapper can add the
+    // time played to it. The link then opens the game as usual.
+    const g = state.games.find((x) => x.id === gameTile.dataset.g);
+    if (g && state.playerId && gameTile.getAttribute('href').startsWith('play.html')) {
+      const url = new URL(gameTile.href);
+      url.searchParams.set('play', api.queuePlay({ profile_id: state.playerId, game_id: g.id, game: g.title }));
+      gameTile.href = url.href;
+    }
+    return;
   }
   const badge = t.closest('[data-badge]');
   if (badge) {

@@ -10,19 +10,24 @@ The last line is `PASS n of n` or `FAIL k of n`, with a line above it for each f
 
 ## Files
 
-- `google.js`: the stand-ins. Only what `Code.gs` uses: `SpreadsheetApp` (spreadsheet, tabs, ranges), `PropertiesService`, `Utilities`, `Logger`, `LockService`, `ContentService`. The file's header says how its Sheet behaves like the real one (sizes must match, text that looks like a number becomes a number, the 50,000-character cell limit).
+- `google.js`: the stand-ins. Only what `Code.gs` uses: `SpreadsheetApp` (spreadsheet, tabs, ranges; pivot tables, the slicer and number formats only recorded), `PropertiesService`, `Utilities`, `Logger`, `LockService`, `ContentService`. The file's header says how its Sheet behaves like the real one (sizes must match, text that looks like a number becomes a number, the 50,000-character cell limit).
 - `bed.js`: loads `Code.gs` into a fresh script and a fresh Sheet for each check. Its made-up Sheet is shaped like script 0.3.0's, with players Sam and Alex.
 - `check.js`: the checks.
 
 ## What is checked
 
-Only what script 0.4.0 changes (P75):
+What scripts 0.4.0 and 0.5.0 change (P75, P88). For 0.5.0:
+- the Plays tab: a row per play with the child's name, minutes updated when more time comes, the London date as `day`, refusals, a full tab growing
+- the Plays summary's four tables and Name filter, and `summary` rebuilding them; `previewPlays` only on a copy
+- `setup` hiding Scores and Achievements and changing no data
+
+For 0.4.0:
 - each game's saved state per child, in the Settings tab (P51)
 - one set of word lists per child, and moving a child's old per-game lists when they're next saved (P56)
 - skins saved without the star check (P49, P63)
 - `setup` only adding tabs, header rows and columns, with a backup first
 - the bed itself: the first check fails if `Code.gs` starts using a Google service or method the stand-ins don't cover
 
-**Dry run on a copy of the live Sheet** (stage 5): `node tools/tests/script/dry_run.js <copy.json>`, with the Sheet's tabs read through the Google Drive connector into a JSON file kept **outside the repo** (it has the children's names). It runs `setup` and the first calls, compares every cell before and after, and prints only ids and counts.
+**Dry run on a copy of the live Sheet** (stage 5; for 0.5.0 since 2026-11-17): `node tools/tests/script/dry_run.js <copy.json>`, with the Sheet's tabs read through the Google Drive connector into a JSON file kept **outside the repo** (it has the children's names). It runs `setup` and the first calls, compares every cell before and after, and prints only ids and counts.
 
-Not checked (dropped by P75): calls that 0.4.0 doesn't change, the browser tests on the real script, and a run on a real Google copy.
+Not checked (dropped by P75): calls that 0.4.0 doesn't change, the browser tests on the real script, and a run on a real Google copy. For 0.5.0 the pivot tables and the Name filter can only really be seen in Google: Rob tries them on a copy first (setup-sheet.md).

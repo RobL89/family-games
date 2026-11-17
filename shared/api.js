@@ -3,6 +3,9 @@
 // Results and achievements go into an outbox on the device first, then are
 // sent with flush(). If the device is offline, they wait and go next time.
 // Each result has a unique event_id, so sending twice never counts twice.
+// Plays (P88) go the same way: one each time a game tile is tapped, with the time the game was
+// played added as it goes. Script 0.5.0 keeps them in the Plays tab; with an older script they
+// wait on the device.
 //
 // Works with Apps Script 0.3.0 and 0.4.0, so the launcher can go live before the script:
 //   - word lists: 0.4.0 keeps one set per child (P56, `word_lists`); 0.3.0 keeps them per game.
@@ -233,7 +236,12 @@ function newId() {
 }
 
 export function getOutbox() {
-  return load(KEYS.outbox, { results: [], achievements: [] });
+  const o = load(KEYS.outbox, null) || {};
+  return {
+    results: Array.isArray(o.results) ? o.results : [],
+    achievements: Array.isArray(o.achievements) ? o.achievements : [],
+    plays: Array.isArray(o.plays) ? o.plays : [], // P88; an outbox from before plays has none
+  };
 }
 
 export function queueResult({ profile_id, game_id, score, level, stars, seconds }) {
@@ -272,9 +280,10 @@ export function flush() {
   flushing = (async () => {
     await sendStates();
     const outbox = getOutbox();
-    if (!outbox.results.length && !outbox.achievements.length) return { sent: 0 };
+    const plays = playsToSend(outbox, MAX_PLAYS_SENT);
+    if (!outbox.results.length && !outbox.achievements.length && !plays.length) return { sent: 0 };
     if (!isConfigured()) return { sent: 0, waiting: true };
-    const result = await call('sync', outbox);
+    const result = await call('sync', { results: outbox.results, achievements: outbox.achievements, plays });
 
     // Remove only what the Sheet confirmed, in case more was queued meanwhile.
     const done = new Set([...result.accepted, ...result.duplicates, ...result.rejected]);
@@ -285,11 +294,105 @@ export function flush() {
       (a) => !doneAch.has(a.profile_id + '|' + a.achievement_id),
     );
     save(KEYS.outbox, latest);
+    markPlaysDone(result.plays_done);
     return { sent: result.accepted.length, rejected: result.rejected };
   })().finally(() => {
     flushing = null;
   });
   return flushing;
+}
+
+// ---- Plays (P88) -----------------------------------------------------------------
+// A play is { play_id, profile_id, game_id, game, device, played_at, seconds, sent }: `seconds`
+// is the time played so far on this device, `sent` the seconds the Sheet last confirmed (-1:
+// not yet). A play goes again whenever it has more time than the Sheet has. Once the Sheet has
+// it all it stays a while, in case the child goes back to the same game page and plays on.
+
+const MAX_PLAYS = 300; // kept on this device at most, oldest dropped (a device left on an older script)
+const MAX_PLAYS_SENT = 100; // in one call, which also keeps a call made as the page closes small
+const KEEP_SENT_PLAY = 12 * 60 * 60 * 1000;
+
+// Phone or PC, from the browser's description of itself. An Android tablet shows as Phone.
+export function deviceKind() {
+  const ua = (globalThis.navigator && navigator.userAgent) || '';
+  if (/Android/i.test(ua)) return 'Phone';
+  if (/Windows/i.test(ua)) return 'PC';
+  if (/iPhone|iPad|Macintosh/i.test(ua)) return 'Apple';
+  return 'Other';
+}
+
+// A tap on a game's tile (the launcher calls this). Returns the play's id, for the wrapper.
+export function queuePlay({ profile_id, game_id, game }) {
+  const outbox = getOutbox();
+  const play = {
+    play_id: newId(),
+    profile_id,
+    game_id,
+    game: String(game || '').slice(0, 60),
+    device: deviceKind(),
+    played_at: new Date().toISOString(),
+    seconds: 0,
+    sent: -1,
+  };
+  outbox.plays = prunePlays([...outbox.plays, play]);
+  save(KEYS.outbox, outbox);
+  return play.play_id;
+}
+
+// More time played (the wrapper calls this while the game is on screen and being played).
+export function addPlayTime(playId, seconds) {
+  const outbox = getOutbox();
+  const play = outbox.plays.find((p) => p.play_id === playId);
+  if (!play) return false;
+  play.seconds = Math.round((Number(play.seconds) || 0) + seconds);
+  return save(KEYS.outbox, outbox);
+}
+
+function playsToSend(outbox, most) {
+  return outbox.plays
+    .filter((p) => p.sent !== p.seconds)
+    .slice(0, most)
+    .map(({ sent, ...p }) => p); // eslint-disable-line no-unused-vars
+}
+
+function prunePlays(plays) {
+  const now = Date.now();
+  return plays
+    .filter((p) => p.sent !== p.seconds || now - (Date.parse(p.played_at) || 0) < KEEP_SENT_PLAY)
+    .slice(-MAX_PLAYS);
+}
+
+// The Sheet's plays_done: [{ play_id, seconds }], what it now has. Absent with an older script.
+function markPlaysDone(done) {
+  if (!Array.isArray(done) || !done.length) return;
+  const got = new Map(done.map((d) => [d.play_id, Number(d.seconds) || 0]));
+  const latest = getOutbox();
+  latest.plays.forEach((p) => {
+    if (got.has(p.play_id)) p.sent = Math.min(p.seconds, Math.max(Number(p.sent ?? -1), got.get(p.play_id)));
+  });
+  latest.plays = prunePlays(latest.plays);
+  save(KEYS.outbox, latest);
+}
+
+// Sends the plays the Sheet hasn't got all of. Never throws. With keepalive (the page is closing),
+// it goes even if another send is still on its way, which the closing page may cut off.
+let sendingPlays = null;
+export function sendPlays({ keepalive = false } = {}) {
+  if (sendingPlays && !keepalive) return sendingPlays;
+  const sending = (async () => {
+    if (!isConfigured()) return 0;
+    const plays = playsToSend(getOutbox(), MAX_PLAYS_SENT);
+    if (!plays.length) return 0;
+    try {
+      const result = await call('sync', { results: [], achievements: [], plays }, { keepalive });
+      markPlaysDone(result.plays_done);
+      return plays.length;
+    } catch {
+      return 0; // offline or refused: they go next time
+    }
+  })();
+  if (!keepalive) sendingPlays = sending.finally(() => { sendingPlays = null; });
+  return sending;
 }
 
 // Try again whenever the device comes back online.

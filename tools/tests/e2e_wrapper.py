@@ -238,7 +238,9 @@ def run():
                 pg.wait_for_timeout(1600)
                 got = db['states'].get(('p_sam', 'wrapper-check'))
                 check(f'{name}: 0.4.0: fg:state reaches the Sheet', got and got['state'] == {'rounds': 1}, db['states'])
-            check(f'{name}: fg:round queues nothing', (pg.evaluate("localStorage.getItem('fg.outbox')") or 'null') in ('null', '{"results":[],"achievements":[]}'))
+            # The tile tap queues a play (P88, e2e_plays.py); the round itself queues no result.
+            ob = json.loads(pg.evaluate("localStorage.getItem('fg.outbox')") or '{}')
+            check(f'{name}: fg:round queues nothing', not ob.get('results') and not ob.get('achievements'), ob)
             pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(500)
             check(f'{name}: Home goes back to the child\'s games', 'player=p_sam' in pg.url)
             pg.click('[data-g="wrapper-check"]'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(900)

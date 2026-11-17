@@ -12,6 +12,11 @@
 //     secondary sources and the error text users quote, checked 2026-11-13; Google's own page
 //     not found). Text starting with = would become a formula: refused here, so a check sees it.
 //   - getLastRow()/getLastColumn() are the last row/column holding anything (0 when empty).
+//   - A tab has 1000 rows (Google's default for a new tab) unless its data is longer; a range
+//     reaching below the last row throws, as Google's does. insertRowsBefore adds rows.
+//   - Pivot tables, the Name filter (a slicer) and number formats are only recorded, for the
+//     checks to read (P88). Inserting rows never stretches a pivot table's or slicer's range
+//     here: the worst case, so the script's own fix for it (rebuilding the summary) is what's tested.
 
 'use strict';
 
@@ -40,7 +45,22 @@ class Range {
     }
     if (!Number.isInteger(nRows) || nRows < 1) throw new Error('The number of rows in the range must be at least 1.');
     if (!Number.isInteger(nCols) || nCols < 1) throw new Error('The number of columns in the range must be at least 1.');
+    if (row + nRows - 1 > sheet.maxRows) throw new Error('The coordinates of the range are outside the dimensions of the sheet.');
     Object.assign(this, { sheet, row, col, nRows, nCols });
+  }
+
+  getLastRow() { return this.row + this.nRows - 1; }
+
+  // Recorded per column: { <column>: [format, from row, to row] }.
+  setNumberFormat(format) {
+    for (let c = 0; c < this.nCols; c++) this.sheet.formats[this.col + c] = [format, this.row, this.getLastRow()];
+    return this;
+  }
+
+  createPivotTable(source) {
+    const t = new PivotTable(this.sheet, this, source);
+    this.sheet.pivots.push(t);
+    return t;
   }
 
   getValues() {
@@ -89,6 +109,31 @@ class Sheet {
     this.cells = cells.map((line) => line.map(stored));
     this.frozenRows = 0;
     this.boldHeader = false;
+    this.maxRows = Math.max(1000, this.cells.length);
+    this.hidden = false;
+    this.formats = {};
+    this.pivots = [];
+    this.slicers = [];
+  }
+
+  getMaxRows() { return this.maxRows; }
+
+  insertRowsBefore(before, howMany) {
+    if (before < 1 || before > this.maxRows) throw new Error('stand-in: insertRowsBefore out of range');
+    if (this.cells.length >= before) this.cells.splice(before - 1, 0, ...Array.from({ length: howMany }, () => []));
+    this.maxRows += howMany;
+    return this;
+  }
+
+  hideSheet() { this.hidden = true; return this; }
+  isSheetHidden() { return this.hidden; }
+  getPivotTables() { return this.pivots.slice(); }
+  getSlicers() { return this.slicers.slice(); }
+
+  insertSlicer(range, anchorRowPos, anchorColPos) {
+    const x = new Slicer(this, range, anchorRowPos, anchorColPos);
+    this.slicers.push(x);
+    return x;
   }
 
   put(row, col, value) {
@@ -122,6 +167,55 @@ class Sheet {
 
   // For the checks: the tab's cells, trimmed to its data, as plain values.
   dump() { return this.getLastRow() ? this.getDataRange().getValues() : []; }
+}
+
+// ---- Pivot tables and the slicer (P88): recorded only ----
+
+class PivotGroup {
+  constructor(column) { Object.assign(this, { column, totals: null, order: 'asc' }); }
+  showTotals(on) { this.totals = on; return this; }
+  sortDescending() { this.order = 'desc'; return this; }
+  sortAscending() { this.order = 'asc'; return this; }
+}
+
+class PivotValue {
+  constructor(column, fn) { Object.assign(this, { column, fn, name: null }); }
+  setDisplayName(name) { this.name = name; return this; }
+}
+
+class PivotTable {
+  constructor(sheet, anchor, source) {
+    if (!(source instanceof Range)) throw new Error('stand-in: pivot source must be a range');
+    Object.assign(this, { sheet, anchor, source, rows: [], values: [], filters: [] });
+  }
+  addRowGroup(column) { const g = new PivotGroup(column); this.rows.push(g); return g; }
+  addPivotValue(column, fn) {
+    if (!fn) throw new Error('stand-in: unknown summarize function');
+    const v = new PivotValue(column, fn); this.values.push(v); return v;
+  }
+  addFilter(column, criteria) { this.filters.push({ column, criteria }); return this.filters[this.filters.length - 1]; }
+  getSourceDataRange() { return this.source; }
+  getAnchorCell() { return this.anchor; }
+  remove() { this.sheet.pivots = this.sheet.pivots.filter((t) => t !== this); }
+}
+
+class Slicer {
+  constructor(sheet, range, row, col) {
+    Object.assign(this, { sheet, range, row, col, title: '', criteria: null, toPivots: null });
+  }
+  setTitle(t) { this.title = t; return this; }
+  setColumnFilterCriteria(column, criteria) { this.criteria = { column, criteria }; return this; }
+  setApplyToPivotTables(on) { this.toPivots = on; return this; }
+  getRange() { return this.range; }
+  remove() { this.sheet.slicers = this.sheet.slicers.filter((x) => x !== this); }
+}
+
+function newFilterCriteria() {
+  const c = { type: null };
+  return {
+    whenCellNotEmpty() { c.type = 'not-empty'; return this; },
+    build() { if (!c.type) throw new Error('stand-in: empty filter criteria'); return { ...c }; },
+  };
 }
 
 let nextId = 1;
@@ -183,7 +277,11 @@ function services({ spreadsheet = new Spreadsheet(), familyCode = 'test-code' } 
     log,
     lock,
     globals: {
-      SpreadsheetApp: { getActiveSpreadsheet: () => spreadsheet },
+      SpreadsheetApp: {
+        getActiveSpreadsheet: () => spreadsheet,
+        newFilterCriteria,
+        PivotTableSummarizeFunction: { COUNTA: 'COUNTA', SUM: 'SUM' },
+      },
       PropertiesService: {
         getScriptProperties: () => ({ getProperty: (k) => (k === 'FAMILY_CODE' ? familyCode : null) }),
       },
@@ -214,7 +312,8 @@ function services({ spreadsheet = new Spreadsheet(), familyCode = 'test-code' } 
 // Every method name the stand-ins answer, for check.js's scan of Code.gs.
 function knownMethods() {
   const names = new Set();
-  for (const proto of [Range.prototype, Sheet.prototype, Spreadsheet.prototype]) {
+  for (const proto of [Range.prototype, Sheet.prototype, Spreadsheet.prototype, PivotTable.prototype,
+    PivotGroup.prototype, PivotValue.prototype, Slicer.prototype]) {
     Object.getOwnPropertyNames(proto).forEach((n) => names.add(n));
   }
   const g = services().globals;
@@ -228,7 +327,7 @@ function knownMethods() {
     }
   };
   walk(g);
-  ['getContent', 'setMimeType'].forEach((n) => names.add(n));
+  ['getContent', 'setMimeType', 'whenCellNotEmpty', 'build'].forEach((n) => names.add(n));
   return names;
 }
 

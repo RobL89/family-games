@@ -22,6 +22,9 @@
 //      what it kept on this device (the previous child's explorer or puzzle) until fg:start says who
 //      is playing, and an adapter may reload the page once. So the cover lifts only SETTLE ms after
 //      fg:start reaches a page that isn't reloading, and goes back up if the page reloads.
+//   9. Time played (P88): with &play=<id> (added by the launcher when the tile was tapped), the time
+//      the game is on screen and being played is added to that play, and sent with the saves, to
+//      the Sheet's Plays tab (script 0.5.0). No touch, click or key for 3 minutes counts as a break.
 
 import { CONFIG } from './config.js';
 import * as api from './api.js';
@@ -37,6 +40,8 @@ const WAIT_FOR_SHEET = 3000; // ms: the most the game's start waits for that re-
                             // under the bridge's WAIT_MS (5 s), or games start on their own (P81)
 const SETTLE = 300;        // ms after fg:start before the cover lifts: time for the game to use it (P83)
 const MOST_COVERED = 6000; // ms: the most the cover stays up, whatever the game does (P83)
+const PLAY_TICK = 5000;     // ms: how often time played is counted (P88)
+const PLAY_IDLE = 180000;  // ms: no touch, click or key for this long is a break, not play (P88)
 const LOCAL_SKIN = (pid) => 'fg.skin.' + pid; // same key as the launcher's
 const on = (name) => !CONFIG.features || CONFIG.features[name] !== false;
 
@@ -194,6 +199,7 @@ async function start() {
       if (latest !== undefined) api.keepState(pid, gameId, latest);
     } catch { /* the game's page is gone or not ours: what was kept already goes */ }
     send({ keepalive: true });
+    api.sendPlays({ keepalive: true }); // the time played so far (P88)
   };
   sendSoon();
   homeLink.addEventListener('click', sendNow); // the launcher also sends anything still waiting
@@ -234,10 +240,31 @@ async function start() {
     showSoon();
   }
 
+  // Time played (P88), for the play the launcher started when the tile was tapped.
+  const playId = new URLSearchParams(location.search).get('play');
+  if (playId) countPlayTime(frame, playId);
+
   frame.src = `${folder}${page}?player=${encodeURIComponent(pid)}`;
   document.getElementById('frame').appendChild(frame);
   if (adapter) addAdapter(frame, adapter);
   frame.focus();
+}
+
+// Adds the time this game is played to its play (P88): every PLAY_TICK while the page is on
+// screen and someone has touched, clicked or pressed a key in it within PLAY_IDLE. Longer than
+// that with no touch counts as a break. Sent with the game's saves, on Home or when the page is hidden.
+function countPlayTime(frame, playId) {
+  let lastInput = Date.now();
+  const touched = () => { lastInput = Date.now(); };
+  const listen = (w) => ['pointerdown', 'keydown', 'touchstart', 'wheel']
+    .forEach((type) => w.addEventListener(type, touched, { capture: true, passive: true }));
+  listen(window);
+  // Each page the game loads (an adapter may reload it once).
+  frame.addEventListener('load', () => { try { listen(frame.contentWindow); } catch { /* not ours to watch */ } });
+  setInterval(() => {
+    if (document.hidden || Date.now() - lastInput > PLAY_IDLE) return;
+    api.addPlayTime(playId, PLAY_TICK / 1000);
+  }, PLAY_TICK);
 }
 
 start();
