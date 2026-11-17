@@ -1,4 +1,17 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.6 (15 Nov, step 4).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.9 (17 Nov, step 10b).
+//
+// Changes at v1.9 (step 10b, D-177 (3), D-178, D-179): a hamster that has picked up the dandelion clock holds it up
+// over its head (art.js's carry poses) from the step after the floater until it lands, as run() says (carry); the
+// poses each walker is drawn in during a run are kept for the tests (__test.state().poses).
+//
+// Changes at v1.8 (step 9, D-166, D-170): a level is open by progress.js 1.2's opens(), so a child who played before
+// the twins came finds them open; the twins of levels 1 to 5 play in pairs, Next going from each level to its twin.
+//
+// Changes at v1.7 (step 8, D-167, D-168, D-170, D-171): the help cards (cards.js). The first time a child opens a level
+// that brings in a gadget or part, its card pops up over the dimmed board, a looping picture with a short caption, and
+// the green tick closes it; it is marked seen at once (progress format 2), so it pops up once per child. A help button
+// (a "?" at the board's top right, while building) puts a "?" on each gadget in the tray and on the see-saw or lift; a
+// tap on one shows its card; a tap anywhere else ends help. Nothing is said aloud. Test hooks: card, caption, help.
 //
 // Changes at v1.6 (Rob's look at preview 7, D-163): two hamsters sharing a teacup sit side by side in it (SEATX),
 // from stepping in to stepping out; one riding alone sits in the middle.
@@ -42,7 +55,8 @@ import { LEVELS } from './levels.js';
 import { CELL, INK, SUN, CORAL, LOOP, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
-import { FORMAT, fresh, unpack, tried, finished, pack, nextAt } from './progress.js';
+import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt, opens } from './progress.js';
+import { CARDS, CAPTION, CARD_CSS, cardArt, cardFor } from './cards.js';
 import { linkUp } from '../_common/rocket/link.js';
 
 const BW = COLS * CELL;   // 720: the window onto the board, 12 squares
@@ -65,6 +79,7 @@ const S = {
   li: 0, level: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
   vx: 0, pan: null, edge: 0,   // the window's place along a wide board (board units), a swipe, a drag at its edge
+  card: null, help: false,     // the help card showing (its kind), and help's "?" marks on (D-170)
 };
 
 // ---------------------------------------------------------------- saving (D-147)
@@ -86,7 +101,7 @@ function show(name) {
 }
 
 function isOpen(i) {
-  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];
+  return opens(IDS, S.progress, i);
 }
 
 function renderHouse() {
@@ -129,10 +144,53 @@ function openLevel(i) {
   S.fresh = LEVELS[i].new;
   S.vx = 0;
   S.pan = null;
+  S.card = null;
+  S.help = false;
+  layer('card').innerHTML = '';
   $('party').hidden = true;
   show('level');
   renderLevel();
   setView(0);
+  const k = cardFor(LEVELS[i]);
+  if (k && !S.progress.cards[k]) showCard(k, true);   // once per child (D-170)
+}
+
+// ---------------------------------------------------------------- the help cards (D-167, D-168, D-170)
+// A card over the dimmed board; first: the pop-up when a level brings the gadget in, marked seen and saved at once.
+function showCard(kind, first) {
+  S.card = kind;
+  S.help = false;
+  S.selected = null;
+  S.hover = null;
+  S.drag = null;
+  if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }
+  renderAll();
+  layer('card').innerHTML = rect(-20, -20, 900, 580, 'rgba(27,20,70,0.5)', 0, 0, 'none') + cardArt(kind);
+  play('pick');
+}
+function closeCard() {
+  S.card = null;
+  layer('card').innerHTML = '';
+  play('tap');
+  renderAll();
+}
+function setHelp(on) {
+  S.help = on;
+  renderHud();
+  renderHelp();
+}
+// Help's "?" marks: on each gadget in the tray (screen) and on each see-saw or lift (on the board, moving with it).
+function renderHelp() {
+  const mark = (kind, x, y) => g(g(circle(x, y, 15, SUN, 3) + text(x, y + 7, '?', 21), '', ' class="twinkle"'), '', ` class="btn" data-help="${kind}"`);
+  if (!S.help || S.mode !== 'build' || !S.level) { layer('helpl').innerHTML = ''; layer('helpw').innerHTML = ''; return; }
+  layer('helpl').innerHTML = slotBoxes().map(({ kind, x, y, w }) => mark(kind, x + w - 6, y + 4)).join('');
+  layer('helpw').innerHTML = S.level.parts.map((p) => (p.kind === 'seesaw' ? mark('seesaw', (p.c + 1.5) * CELL, p.r * CELL - 40)
+    : mark('lift', (p.c + 0.5) * CELL + 44, (p.top - 1) * CELL + 10))).join('');
+}
+function helpButton() {
+  const x = BW - 34;
+  const y = 32;
+  return g(circle(x, y, 23, S.help ? SUN : 'rgba(255,248,238,0.92)', 3) + text(x, y + 10, '?', 30), '', ' class="btn" data-btn="help" role="button" aria-label="Help"');
 }
 
 // ---------------------------------------------------------------- the window onto a wide board (D-158)
@@ -331,6 +389,7 @@ function renderHud() {
     const got = S.seedTaken || S.progress.seeds[S.level.id];
     s += rect(218, 10, 48, 44, 'rgba(255,255,255,0.88)', 22, 2.5) + place(seedArt(), 242, 32, 0.95, 0, got ? ' id="hud-seed"' : ' id="hud-seed" opacity="0.25"');
   }
+  if (S.mode === 'build') s += helpButton();
   layer('hud').innerHTML = s;
 }
 
@@ -338,27 +397,37 @@ function trayKinds() {
   return GADGETS.filter((k) => S.level.tray[k]);
 }
 
+// Where each gadget's slot sits in the tray, at the side or below.
+function slotBoxes() {
+  const kinds = trayKinds();
+  if (S.layout === 'side') {
+    const step = Math.min(84, 246 / kinds.length);
+    return kinds.map((kind, i) => ({ kind, x: BW + 17, y: 80 + i * step, w: 96, h: step - 8 }));
+  }
+  return kinds.map((kind, i) => ({ kind, x: 100 + 94 * i, y: BH + 11, w: 84, h: 78 }));
+}
+
 function renderTray() {
   const counts = left(S.level, S.placed);
-  const kinds = trayKinds();
   const run = S.mode !== 'build';
   let s = '';
+  const slots = slotBoxes().map(({ kind: k, x, y, w, h }) => slot(x, y, w, h, k, counts[k], S.selected === k && !run, S.fresh === k)).join('');
   if (S.layout === 'side') {
     s += rect(BW, 0, 130, BH, '#8B5A3C', 0, 0) + line0(BW, 0, BW, BH);
     s += houseButton(BW + 65, 40, 28);
-    const step = Math.min(84, 246 / kinds.length);
-    kinds.forEach((k, i) => { s += slot(BW + 17, 80 + i * step, 96, step - 8, k, counts[k], S.selected === k && !run, S.fresh === k); });
+    s += slots;
     s += goButton(BW + 9, 336, 112, 72, run ? 'stop' : 'go');
   } else {
     s += rect(0, BH, BW, 110, '#8B5A3C', 0, 0) + line0(0, BH, BW, BH);
     s += houseButton(46, BH + 55, 30);
-    kinds.forEach((k, i) => { s += slot(100 + 94 * i, BH + 11, 84, 78, k, counts[k], S.selected === k && !run, S.fresh === k); });
+    s += slots;
     s += goButton(578, BH + 17, 128, 76, run ? 'stop' : 'go');
   }
   layer('tray').innerHTML = s;
   const go = board.querySelector('.btn.go');
   if (go && !run && Object.keys(S.placed).length) go.classList.add('ready');   // a gentle wiggle once something is down
   if (S.mode === 'party') layer('tray').setAttribute('opacity', '0.5'); else layer('tray').removeAttribute('opacity');
+  renderHelp();
 }
 const line0 = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${INK}" stroke-width="3"/>`;
 
@@ -408,6 +477,21 @@ function tryPlace(kind, c, r) {
 
 function onDown(e) {
   const t = e.target;
+  if (S.card) {   // a card is up: only its tick closes it
+    if (t.closest('[data-btn="cardok"]')) closeCard();
+    else { const tk = layer('card').querySelector('.hc-tick'); if (tk) bump(tk.parentNode, 'shake', 400); }
+    return;
+  }
+  if (S.help) {   // help: a tap on a gadget or part shows its card; anything else ends help
+    if (t.closest('[data-btn="help"]')) { play('tap'); setHelp(false); return; }
+    const h = t.closest('[data-help]') || t.closest('[data-slot]');
+    let kind = h ? h.dataset.help || h.dataset.slot : null;
+    if (!kind && t.closest('[data-saw]')) kind = 'seesaw';
+    if (!kind && t.closest('[data-cup], [data-cupf]')) kind = 'lift';
+    setHelp(false);
+    if (kind && CARDS.includes(kind)) showCard(kind, false); else play('back');
+    return;
+  }
   const btn = t.closest('[data-btn]');
   if (btn) { button(btn.dataset.btn); return; }
   const w = t.closest('[data-walker]');
@@ -524,6 +608,7 @@ function button(name) {
   if (S.mode === 'party') { partyAct(name === 'house' ? 'house' : 'again'); return; }
   if (name === 'house') { stopRun(); S.selected = null; play('tap'); show('house'); return; }
   if (name === 'go') { startRun(); return; }
+  if (name === 'help') { if (S.mode === 'build') { play('pick'); S.selected = null; renderAll(); setHelp(true); } return; }
   if (name === 'stop') { play('back'); stopRun(); renderAll(); }
   if (name === 'panL' || name === 'panR') { play('whoosh'); slideView((name === 'panL' ? -1 : 1) * 6 * CELL); }
 }
@@ -571,13 +656,13 @@ function segmentsOf(st, offs = []) {
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
       const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed,
+      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry,
         sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
-      add({ kind: 'bounce', p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+      add({ kind: 'bounce', carry: !!b.carry, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
     } else if (b.act === 'wait') {
-      add({ kind: 'wait', p0, p1: p0, end: b.t1 });
+      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry });
     } else if (b.act === 'fall' || b.act === 'float') {
       let j = i;
       let seed = !!b.seed;
@@ -590,7 +675,7 @@ function segmentsOf(st, offs = []) {
       i = j;
     } else {
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
         lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup, dx: offs[i] || 0 });
     }
   }
@@ -616,9 +701,10 @@ function startRun() {
   S.selected = null;
   S.hover = null;
   S.drag = null;
+  S.help = false;
   S.seedTaken = false;
   renderSeed();
-  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [] };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
@@ -709,6 +795,7 @@ function follow(R, dt) {
 function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
+  if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
   w.el.firstElementChild.innerHTML = hamster(pose);
 }
 function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
@@ -777,6 +864,7 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
+    if (s.carry && pose !== 'float' && pose !== 'boing') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
     setAt(w, x, y, rot);
     return;
@@ -984,6 +1072,9 @@ function goTo(i) {
 }
 
 // ---------------------------------------------------------------- start
+const cardCss = document.createElement('style');
+cardCss.textContent = CARD_CSS;   // the help cards' looping pictures (cards.js), all classes hc-
+document.head.appendChild(cardCss);
 $('title-art').innerHTML = titleArt();
 $('title-art').addEventListener('pointerdown', (e) => { const pk = e.target.closest('[data-poke]'); if (pk) poke(pk); });
 $('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); show('house'); });
@@ -1003,7 +1094,7 @@ window.addEventListener('resize', () => { if (S.screen === 'level') fitBoard(); 
 linkUp((start, fg) => {
   S.linked = start.standalone ? null : fg;
   if (start.sound === false) { setMuted(true); S.soundLocked = true; }
-  S.progress = unpack(IDS, S.linked ? start.state : readDevice());
+  S.progress = unpack(IDS, S.linked ? start.state : readDevice(), CARDS);
   S.at = nextAt(IDS, S.progress);
   S.ready = true;
   if (S.playAsked) { play('go'); show('house'); }
@@ -1016,6 +1107,7 @@ window.__test = {
     left: S.level ? left(S.level, S.placed) : null, progress: JSON.parse(JSON.stringify(S.progress)), layout: S.layout,
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
     outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,
+    card: S.card, caption: S.card ? CAPTION[S.card] : null, help: S.help, poses: S.run && S.run.poses ? S.run.poses : null,
   }),
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();

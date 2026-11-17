@@ -1,4 +1,11 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.4.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.6.
+//
+// Changes at v1.6 (step 10b, D-177 (3), D-178, D-179): a step taken while a hamster holds the dandelion clock says
+// carry: true, from the step after it reaches the floater's square until it lands (its last float step), so game.js
+// can draw it held overhead. An added field: nothing else changes.
+//
+// Changes at v1.5 (step 10b, D-177 (1), ER-013): a worn stick also fits above a worn stick, so sticks one under the
+// other go down in either order (a placed stick holds, so the lower one first used to refuse the upper).
 //
 // Changes at v1.4 (Rob's look at preview 7, D-163): a teacup takes up to SEATS (2) hamsters, side by side; the second
 // in (seat 1) waits SHARE_WAIT ticks at the other end before stepping out, so the two keep apart. A hamster's steps
@@ -159,7 +166,8 @@ export function terrain(level, placed, c, r) {
 export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c, r));
 
 // Anywhere it fits (D-139): never on the start, home, seed, ground or another gadget. A bridge (or worn stick) goes
-// where a hamster would fall through, beside ground or another bridge; a ramp, bouncer or floater
+// where a hamster would fall through, beside ground or another bridge; a worn stick also above a worn stick (D-177
+// (1)); a ramp, bouncer or floater
 // on ground or a bridge; a tube on any empty square.
 export function fits(level, placed, kind, c, r) {
   if (!GADGETS.includes(kind) || c < 0 || c >= (level.cols || COLS) || r < 0 || r >= ROWS) return false;
@@ -167,7 +175,8 @@ export function fits(level, placed, kind, c, r) {
   const below = terrain(level, placed, c, r + 1);
   if (kind === 'bridge' || kind === 'stick') {
     const side = (dc) => SIDE.has(terrain(level, placed, c + dc, r));
-    return !HOLDS.has(below) && (side(-1) || side(1));
+    const open = !HOLDS.has(below) || (kind === 'stick' && below === 'stick');
+    return open && (side(-1) || side(1));
   }
   if (kind === 'tube') return true;
   return FLOOR.has(below);
@@ -195,7 +204,7 @@ export function left(level, placed) {
 // plank takes it: { r, dur }, or null).
 // It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait', 'ride' or 'tilt';
 // dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a landing's
-// last step, set when it lands) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' | 'stuck' | 'bonk-head'.
+// last step, set when it lands; carry: true while it holds the dandelion clock, D-179) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' | 'stuck' | 'bonk-head'.
 export function* trip(level, ctx) {
   const at = ctx.at;
   let [c, r] = level.start;
@@ -204,6 +213,7 @@ export function* trip(level, ctx) {
   let waited = 0;
   const tubed = new Set();
   const touch = (st, cc, rr) => { if (ctx.take(cc, rr)) st.seed = true; return st; };
+  const mark = (st) => { if (floater) st.carry = true; return st; };   // holding the dandelion clock (D-179)
   const done = (outcome, fell = 0) => { if (riding) ctx.leave(riding); riding = null; return { outcome, fell }; };
   yield { c, r, act: 'start' };
   for (let guard = 0; guard < 600; guard++) {
@@ -217,7 +227,7 @@ export function* trip(level, ctx) {
       if (on !== null && on !== '#') c += 1;
       const st = { c, r, act: 'bounce' };
       for (let i = 1; i <= BOUNCE; i++) touch(st, c0, r + BOUNCE - i);
-      yield touch(st, c, r);
+      yield mark(touch(st, c, r));
     }
     if (k === 'floater') floater = true;
     if (k === 'tube' && !tubed.has(key(c, r))) {
@@ -230,7 +240,7 @@ export function* trip(level, ctx) {
         chain.push(next);
       }
       for (const [tc, tr] of chain) tubed.add(key(tc, tr));
-      for (const [tc, tr] of chain.slice(1)) yield touch({ c: tc, r: tr, act: 'tube' }, tc, tr);
+      for (const [tc, tr] of chain.slice(1)) yield mark(touch({ c: tc, r: tr, act: 'tube' }, tc, tr));
       [c, r] = chain[chain.length - 1];
     }
     let fell = 0;
@@ -240,17 +250,17 @@ export function* trip(level, ctx) {
         const moved = ctx.carry(c, r);   // a see-saw tipping from under it, or up through it
         if (moved) {
           r = moved.r;
-          yield touch({ c, r, act: 'tilt', dur: moved.dur }, c, r);
+          yield mark(touch({ c, r, act: 'tilt', dur: moved.dur }, c, r));
           continue;
         }
         if (ctx.holds(c, r + 1)) break;
         if (r + 1 >= ROWS) {
-          yield { c, r: r + 1, act: floater ? 'float' : 'fall' };
+          yield mark({ c, r: r + 1, act: floater ? 'float' : 'fall' });
           return done('splash', fell + 1);
         }
         r += 1;
         fell += 1;
-        last = touch({ c, r, act: floater ? 'float' : 'fall' }, c, r);
+        last = mark(touch({ c, r, act: floater ? 'float' : 'fall' }, c, r));
         yield last;
       }
       if (!ctx.stand(c, r)) break;   // a worn stick that snaps under it: on down
@@ -264,7 +274,7 @@ export function* trip(level, ctx) {
       // a see-saw's high end: wait here for a friend; two tip it, and the carry above takes them down with it
       if (ctx.weigh(on.part)) continue;
       if (++waited > SEESAW_WAIT) { ctx.unweigh(on.part); return done('stuck'); }
-      yield { c, r, act: 'wait' };
+      yield mark({ c, r, act: 'wait' });
       continue;
     }
     if (on && on.i < 2) {
@@ -274,7 +284,7 @@ export function* trip(level, ctx) {
         const act = s === r - 1 ? 'climb' : 'walk';
         c += 1;
         r = s;
-        yield touch({ c, r, act }, c, r);
+        yield mark(touch({ c, r, act }, c, r));
         continue;
       }
     }
@@ -284,19 +294,19 @@ export function* trip(level, ctx) {
       // a teacup lift: wait at the edge for the empty cup, step in, ride to the other end, then on as usual
       const stop = ctx.stop(c + 1, r);
       if (!stop) return done('stuck');
-      while (!ctx.canBoard(stop)) yield { c, r, act: 'wait' };
+      while (!ctx.canBoard(stop)) yield mark({ c, r, act: 'wait' });
       ctx.board(stop);
       riding = stop;
       c += 1;
-      yield touch({ c, r, act: 'walk', seat: stop.seat }, c, r);
+      yield mark(touch({ c, r, act: 'walk', seat: stop.seat }, c, r));
       const leaves = ctx.leaves(stop);
-      if (leaves > ctx.now()) yield { c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat };
+      if (leaves > ctx.now()) yield mark({ c, r, act: 'wait', dur: leaves - ctx.now(), seat: stop.seat });
       const dir = stop.end === 'bottom' ? -1 : 1;
       for (let i = stop.part.bottom - stop.part.top; i > 0; i--) {
         r += dir;
-        yield touch({ c, r, act: 'ride', cup: stop.cup, seat: stop.seat }, c, r);
+        yield mark(touch({ c, r, act: 'ride', cup: stop.cup, seat: stop.seat }, c, r));
       }
-      if (stop.seat) yield { c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat };   // the second waits, so they keep apart
+      if (stop.seat) yield mark({ c, r, act: 'wait', dur: SHARE_WAIT, seat: stop.seat });   // the second waits, so they keep apart
       continue;
     }
     if (next === null || next === '#') return done('stuck');
@@ -311,7 +321,7 @@ export function* trip(level, ctx) {
       c += 1;
       st = { c, r, act: 'walk' };
     }
-    yield touch(st, c, r);
+    yield mark(touch(st, c, r));
   }
   return done('stuck');
 }
