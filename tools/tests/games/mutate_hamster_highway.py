@@ -4,7 +4,8 @@ Changes at v1.10 (step 13: D-185, D-190, D-196): thirty-one faults in the spike'
 "spike:": twenty-four by the core test (heights, the signpost, dizzy, the nap, facing left, a bouncer, tubes, ramps
 and the lift both ways, falling into a signpost, the see-saw, every zip-line rule, the slide, a bounce into a high
 end) and seven by the spike's browser test (the window, mirroring, taking a zip-line back, the glows, saving, and two
-in the preview's tap counter). The spike's browser test builds the preview, so its copy gets a git of its own;
+in the preview's tap counter). The spike's browser test builds the preview, so its copy gets a git of its own and
+P-020's shared/ folder (the preview bundles shared/bridge.js);
 --control runs the copy with no fault, which must pass. Seven older faults' text follows core.js 1.7 and game.js
 1.10 (HOLDS with the left ramp, a ramp climbing the way it faces, fits()'s empty square, a placed gadget picked up,
 the step marked facing left, the carrying pose's test of the zip pose).
@@ -182,7 +183,7 @@ def run(fault):
     name, rel, old, new, test = fault
     tmp = tempfile.mkdtemp(prefix='hh-mut-')
     try:
-        for d in ('games', 'tools/tests/games'):
+        for d in ('games', 'tools/tests/games') + (('shared',) if test == SPIKE_E2E else ()):   # the preview also bundles P-020's shared/bridge.js
             shutil.copytree(os.path.join(REPO, d), os.path.join(tmp, d))
         path = os.path.join(tmp, rel)
         text = open(path, encoding='utf-8').read()
