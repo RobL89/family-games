@@ -204,7 +204,9 @@ class Slicer {
     Object.assign(this, { sheet, range, row, col, title: '', criteria: null, toPivots: null });
   }
   setTitle(t) { this.title = t; return this; }
-  setColumnFilterCriteria(column, criteria) { this.criteria = { column, criteria }; return this; }
+  // As Google did on 18 Nov 2026: a null filter resets the slicer, column included, so it sits on
+  // the range's first column (P88).
+  setColumnFilterCriteria(column, criteria) { this.criteria = criteria === null ? { column: 1, criteria: null } : { column, criteria }; return this; }
   setApplyToPivotTables(on) { this.toPivots = on; return this; }
   getRange() { return this.range; }
   remove() { this.sheet.slicers = this.sheet.slicers.filter((x) => x !== this); }

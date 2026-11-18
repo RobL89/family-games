@@ -736,7 +736,10 @@ function buildSummary(ss) {
   ]);
   const filter = s.insertSlicer(source, 1, 1);
   filter.setTitle('Name');
-  filter.setColumnFilterCriteria(col('name'), null); // on the name column, nothing picked yet (null: no filter)
+  // On the name column. Hiding empty rows is the only filter to start with; Rob picks names with
+  // Filter by values. (A null filter, tried first, dropped the column too: Google put the
+  // filter on the first column, played_at, with no names to pick. Seen on a copy, 18 Nov 2026.)
+  filter.setColumnFilterCriteria(col('name'), notEmpty());
   filter.setApplyToPivotTables(true);
 
   const tables = [

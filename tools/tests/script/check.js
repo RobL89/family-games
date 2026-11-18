@@ -314,7 +314,8 @@ check('the summary: four tables (game, day, child, device) of plays and minutes 
   });
   eq(s.slicers.length, 1, 'one filter');
   const x = s.slicers[0];
-  eq([x.title, x.criteria, x.toPivots, x.range.getLastRow(), x.row, x.col], ['Name', { column: col('name'), criteria: null }, true, plays.getMaxRows(), 1, 1], 'the Name filter: on names, none picked yet');
+  eq([x.title, x.criteria.column, x.criteria.criteria && x.criteria.criteria.type, x.toPivots, x.range.getLastRow(), x.row, x.col],
+    ['Name', col('name'), 'not-empty', true, plays.getMaxRows(), 1, 1], 'the Name filter: on the name column, no names picked yet');
 });
 
 check('the summary follows the header row, not a fixed order of columns', () => {
