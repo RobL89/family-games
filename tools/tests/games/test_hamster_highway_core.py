@@ -1,4 +1,9 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.12 (17 Nov, step 13, the spike).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.13 (18 Nov, step 14).
+
+Changes at v1.13 (step 14, D-194): the spoon catapult, worked out by hand before core.js 1.8 on test boards (the section
+"step 14, the spoon catapult" says what each expects and the rules as read, Q-075): flung 4 squares on the way it faces,
+on an arc a square a tick; something in the way: bonk and drop; landing by the usual rules; the seed on the arc; the
+dandelion held through it; where it fits; run(). Ten gadgets now; TICKS gain fling 1 and hit 1.
 
 Changes at v1.12 (step 13: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2): worked out by hand before
 core.js 1.7, on test boards (the section "step 13, the spike" says what each expects): boards 7 to 9 rows, each its
@@ -460,8 +465,8 @@ check(sorted(k for k, v in ca.items() if v['carried']) == sorted(k for k, v in c
 check(out['terrain'] == ['bridge', '.', None, None, '.', '.', 'S', 'G'], f'terrain(): a bridge, air, off the side, below the bottom, above the top, a seed\'s square, start, home ({out["terrain"]})')
 check(out['holds'] == [True, False, True, False], 'holds(): a bridge and ground hold a hamster; air and a seed\'s square do not')
 check(out['key'] == '3,6', 'key(3, 6) is "3,6"')
-check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip'], 3, 3],
-      'the board is 12 x 7 for levels 1 to 20; nine gadgets (the worn stick, D-153; the left ramp and the signpost, D-190; the zip-line, D-196); a fall of 3 bonks; a bounce is 3 up')
+check(out['consts'] == [12, 7, ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip', 'catapult'], 3, 3],
+      'the board is 12 x 7 for levels 1 to 20; ten gadgets (the worn stick, D-153; the left ramp and the signpost, D-190; the zip-line, D-196; the catapult, D-194); a fall of 3 bonks; a bounce is 3 up')
 check(out['noStack'] == [False, False, False, False, False, False], 'nothing fits on a gadget, the start, the home or the seed, nor an unknown gadget, nor off the board')
 
 # progress.js (D-147): what is saved, on the device or through the wrapper, made safe on the way in
@@ -710,7 +715,7 @@ if r.returncode != 0:
     check(False, 'node ran the timed model (run, cupRow)')
 else:
     o = json.loads(r.stdout)
-    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4, 'turn': 2, 'zip': 1}, 6, 3],
+    check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4, 'turn': 2, 'zip': 1, 'fling': 1, 'hit': 1}, 6, 3],
           f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156), turn 2 (at a signpost, D-190), zip 1 (a square across, twice walking speed, D-196); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
     check(not bad and len(o['same']) == 28, f'timed model: on the 18 sketch boards and levels 1 to 5 and their twins with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
@@ -1235,6 +1240,92 @@ zlsteps = [[9, 3, 'start', 1], [10, 3, 'walk', 1]] + [[10 - i, 3 + 2 * i / 8, 'z
 check(isinstance(zl, dict) and zl['ok'] and zl['out'] == 'home' and zl['steps'] == zlsteps and zl['none'] == 'splash',
       f'zip-line leftwards: a hamster walking right slides left and walks on left, facing the way it slid (D-196), by hand '
       f'({zl if not isinstance(zl, dict) else (zl["out"], zl["steps"][-2:], zl["none"])})')
+
+
+# ================================================================ step 14, the spoon catapult (D-186, D-189 A, D-194; plan-levels-21-30.md 0.4).
+# Worked out by hand before core.js 1.8 (18 Nov), on test boards, not levels. The rules as built (Claude's reading of the
+# plan's row, the assumptions in Q-075):
+#   - 'catapult' is a gadget on a floor (ground or a bridge, as a bouncer), holding nobody; a hamster that walks into its
+#     square is flung 4 squares on, the way it faces (D-190), on an arc through the squares 1 up, 2 up, 1 up and level,
+#     a 'fling' step each, 1 tick a square (CATAPULT 4, ARC [1, 2, 1, 0]), and lands in the fourth: then the usual rules
+#     (a floor: walk on; none: it drops, a drop of 3 or more a funny fall unless it holds the dandelion; water: splash;
+#     home: home);
+#   - something in the way on the arc (a block, a gadget a hamster stands on, or the board's side): bonk, a 'hit' step
+#     (1 tick) in the last clear square (the spoon's own if the first is in the way), then it drops from there as any
+#     fall, and on by the usual rules;
+#   - a golden seed in an arc square is taken; a hamster holding the dandelion keeps it through the arc.
+CJS = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const o = {};
+const tryy = (f) => { try { return f(); } catch (e) { return 'ERROR ' + e.message; } };
+const P = (rows, tray = {}) => core.parseLevel({ id: 't', rows, tray });
+const strip = (steps) => steps.map((s) => [s.c, s.r, s.act, s.dir || 1].concat(s.carry ? ['carry'] : []).concat(s.seed ? ['seed'] : []));
+const W = (rows, placed) => tryy(() => { const w = core.walk(P(rows), placed); return { out: w.outcome, steps: strip(w.steps), fell: w.fell }; });
+const F1 = ['............', '............', '............', '............', 'S..........G', '####...#####', '####...#####'];
+o.consts = [core.CATAPULT, core.ARC, core.TICKS.fling, core.TICKS.hit, core.GADGETS.includes('catapult')];
+o.over = W(F1, { '3,4': 'catapult' });
+o.short = W(F1, { '2,4': 'catapult' });
+o.none = W(F1, {});
+o.wall = W(['............', '............', '.....#......', '.....#......', 'S....#.....G', '############', '############'], { '3,4': 'catapult' });
+o.first = W(['............', '............', '............', '....#.......', 'S..........G', '############', '############'], { '3,4': 'catapult' });
+o.tube = W(F1, { '3,4': 'catapult', '5,2': 'tube' });
+o.side = W(['............', '.....G......', '............', '............', 'S...........', '############', '############'], { '9,4': 'catapult' });
+o.left = W(['............', '............', '............', '.......S....', '.G..........', '##...#######', '##...#######'], { '9,4': 'signpost', '5,4': 'catapult' });
+const F6 = ['.....*......', '............', 'S...........', '####........', '............', '...........G', '############'];
+o.drop = W(F6, { '3,2': 'catapult' });
+o.dropFloat = W(F6, { '2,2': 'floater', '3,2': 'catapult' });
+o.fits = tryy(() => { const lv = P(['..........GS', '............', '............', '............', '............', '##..#.......', '############'], { catapult: 2 });
+  return [core.fits(lv, {}, 'catapult', 0, 4), core.fits(lv, {}, 'catapult', 2, 4), core.fits(lv, { '2,5': 'bridge' }, 'catapult', 2, 4),
+    core.fits(lv, { '2,5': 'stick' }, 'catapult', 2, 4), core.fits(lv, { '0,4': 'catapult' }, 'catapult', 0, 4), core.holds(lv, { '0,4': 'catapult' }, 0, 4),
+    core.terrain(lv, { '0,4': 'catapult' }, 0, 4), core.left(lv, { '0,4': 'catapult' }).catapult]; });
+o.run = tryy(() => { const r = core.run(P(F1), { '3,4': 'catapult' });
+  return { outs: r.hamsters.map((h) => h.outcome), flingTicks: r.hamsters[0].steps.filter((s) => s.act === 'fling').map((s) => s.t1 - s.t0) }; });
+o.runHit = tryy(() => { const r = core.run(P(F1), { '3,4': 'catapult', '5,2': 'tube' }); const h = r.hamsters[0].steps.find((s) => s.act === 'hit');
+  return { outs: r.hamsters.map((x) => x.outcome), hitTicks: h.t1 - h.t0 }; });
+console.log(JSON.stringify(o));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', CJS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr[-1500:])
+    check(False, 'node ran the catapult\'s checks (step 14)')
+    o = {}
+else:
+    o = json.loads(r.stdout)
+E = lambda k: o.get(k, 'missing')
+check(E('consts') == [4, [1, 2, 1, 0], 1, 1, True], f'the catapult: a tenth gadget, 4 squares on, the arc 1, 2, 1 up then level, 1 tick a square, a bonk 1 tick ({E("consts")})')
+W4 = [[0, 4, 'start', 1], [1, 4, 'walk', 1], [2, 4, 'walk', 1], [3, 4, 'walk', 1]]
+check(E('over') == {'out': 'home', 'steps': W4 + [[4, 3, 'fling', 1], [5, 2, 'fling', 1], [6, 3, 'fling', 1], [7, 4, 'fling', 1],
+                                                 [8, 4, 'walk', 1], [9, 4, 'walk', 1], [10, 4, 'walk', 1], [11, 4, 'walk', 1]], 'fell': 0},
+      f'the spoon at the pond\'s edge flings them over the 3-wide pond onto the far bank and home, by hand ({E("over")})')
+check(E('short') == {'out': 'splash', 'steps': W4[:3] + [[3, 3, 'fling', 1], [4, 2, 'fling', 1], [5, 3, 'fling', 1], [6, 4, 'fling', 1],
+                                                        [6, 5, 'fall', 1], [6, 6, 'fall', 1], [6, 7, 'fall', 1]], 'fell': 3},
+      f'the spoon a square too far back: they land short, drop into the pond and splash (plan level 21\'s wrong road), by hand ({E("short")})')
+check(isinstance(E('none'), dict) and E('none')['out'] == 'splash', 'the same board with no spoon: a splash')
+check(E('wall') == {'out': 'stuck', 'steps': W4 + [[4, 3, 'fling', 1], [4, 3, 'hit', 1], [4, 4, 'fall', 1]], 'fell': 0},
+      f'a wall in the way: bonk in the last clear square, slide down to the floor, stuck at the wall, by hand ({E("wall")})')
+check(E('first') == {'out': 'home', 'steps': W4 + [[3, 4, 'hit', 1]] + [[c, 4, 'walk', 1] for c in range(4, 12)], 'fell': 0},
+      f'a block over the spoon\'s first arc square: bonk in the spoon, then walk on under it and home, by hand ({E("first")})')
+check(E('tube') == {'out': 'splash', 'steps': W4 + [[4, 3, 'fling', 1], [4, 3, 'hit', 1], [4, 4, 'fall', 1], [4, 5, 'fall', 1], [4, 6, 'fall', 1], [4, 7, 'fall', 1]], 'fell': 4},
+      f'a tube on the arc is in the way too: bonk, drop into the pond, splash, by hand ({E("tube")})')
+check(E('side') == {'out': 'stuck', 'steps': [[0, 4, 'start', 1]] + [[c, 4, 'walk', 1] for c in range(1, 10)]
+                    + [[10, 3, 'fling', 1], [11, 2, 'fling', 1], [11, 2, 'hit', 1], [11, 3, 'fall', 1], [11, 4, 'fall', 1]], 'fell': 0},
+      f'the board\'s side in the way: bonk at the edge, drop to the floor, stuck, by hand ({E("side")})')
+L = -1
+check(E('left') == {'out': 'home', 'steps': [[7, 3, 'start', 1], [7, 4, 'fall', 1], [8, 4, 'walk', 1], [9, 4, 'walk', 1], [9, 4, 'turn', L], [8, 4, 'walk', L],
+                                             [7, 4, 'walk', L], [6, 4, 'walk', L], [5, 4, 'walk', L], [4, 3, 'fling', L], [3, 2, 'fling', L], [2, 3, 'fling', L], [1, 4, 'fling', L]], 'fell': 0},
+      f'walking left, the spoon flings them left (the way they face, D-190), landing home, by hand ({E("left")})')
+check(E('drop') == {'out': 'bonk', 'steps': [[0, 2, 'start', 1], [1, 2, 'walk', 1], [2, 2, 'walk', 1], [3, 2, 'walk', 1], [4, 1, 'fling', 1], [5, 0, 'fling', 1, 'seed'],
+                                             [6, 1, 'fling', 1], [7, 2, 'fling', 1], [7, 3, 'fall', 1], [7, 4, 'fall', 1], [7, 5, 'fall', 1]], 'fell': 3},
+      f'landing where there\'s a drop of 3: a funny fall; the seed on the arc is taken on the way, by hand ({E("drop")})')
+check(E('dropFloat') == {'out': 'home', 'steps': [[0, 2, 'start', 1], [1, 2, 'walk', 1], [2, 2, 'walk', 1], [3, 2, 'walk', 1, 'carry'], [4, 1, 'fling', 1, 'carry'],
+                                                  [5, 0, 'fling', 1, 'carry', 'seed'], [6, 1, 'fling', 1, 'carry'], [7, 2, 'fling', 1, 'carry'], [7, 3, 'float', 1, 'carry'],
+                                                  [7, 4, 'float', 1, 'carry'], [7, 5, 'float', 1, 'carry'], [8, 5, 'walk', 1], [9, 5, 'walk', 1], [10, 5, 'walk', 1], [11, 5, 'walk', 1]], 'fell': 0},
+      f'holding the dandelion through the arc, it floats down the drop and walks home, by hand ({E("dropFloat")})')
+check(E('fits') == [True, False, True, False, False, False, 'catapult', 1],
+      f'the spoon goes on ground or a bridge, not in the air, on a worn stick or on a gadget\'s square; it holds nobody; counted in the tray ({E("fits")})')
+check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): all five flung over and home, a square a tick ({E("run")})')
+check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

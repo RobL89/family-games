@@ -1,4 +1,10 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.7.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.8.
+//
+// Changes at v1.8 (step 14, D-194; plan-levels-21-30.md 0.4): the spoon catapult ('catapult', on a floor, as a bouncer).
+// A hamster that walks into its square is flung CATAPULT (4) squares on the way it faces, on an arc 1, 2, 1 rows up
+// then level (ARC), a 'fling' step a square, 1 tick each, and lands in the last; then the usual rules. Something in the
+// way on the arc (a block, a gadget a hamster stands on, or the board's side): a 'hit' step in the last clear square
+// (the spoon's own if the first is in the way), then it drops from there as any fall. A seed on the arc is taken.
 //
 // Changes at v1.7 (step 13, the spike: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2):
 //   - boards 7 to 9 rows (MAX_ROWS), each level its own height, read from its rows (level.height), as v1.2 made the
@@ -65,12 +71,14 @@ export const COLS = 12;       // a board's narrowest, and levels 1 to 7's width
 export const MAX_COLS = 24;   // the widest (D-158)
 export const ROWS = 7;       // a board's lowest, and levels 1 to 20's height
 export const MAX_ROWS = 9;   // the tallest (D-185)
-export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip'];
+export const GADGETS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'rampL', 'signpost', 'zip', 'catapult'];
 export const ZIP_MIN = 2;    // squares across a zip-line spans, at least (D-196)
 export const ZIP_MAX = 10;   // and at most
 export const DIZZY = 3;      // turned round at one signpost this many times, a hamster sits down dizzy (D-190)
 export const BIG_FALL = 3;   // squares: a drop of 3 or more is a funny fall (D-136)
 export const BOUNCE = 3;     // squares a bouncer throws a hamster straight up, before one square on
+export const CATAPULT = 4;   // squares on a spoon catapult flings a hamster (D-194)
+export const ARC = [1, 2, 1, 0];   // rows above the spoon's row of each square of the fling, in order
 export const SNAP = 4;       // a worn stick snaps under its fourth hamster (D-143)
 export const WALKERS = 5;    // hamsters a GO sends out (brief)
 export const RELEASE = 6;    // ticks between one hamster coming out and the next
@@ -81,7 +89,7 @@ export const SEATS = 2;      // hamsters a teacup takes at once, side by side (D
 export const SHARE_WAIT = 4; // ticks the second in a cup waits at the other end before stepping out (D-163)
 export const PAIR = 2;       // hamsters on its far end that tip it (D-144)
 export const SEESAW_WAIT = 24;   // ticks a hamster waits on a see-saw's high end for a friend before it naps
-export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP, turn: 2, zip: 1 };   // a step's length
+export const TICKS = { walk: 2, climb: 3, bounce: 4, fall: 1, float: 2, tube: 2, wait: 1, ride: LIFT_MOVE, tilt: TIP, turn: 2, zip: 1, fling: 1, hit: 1 };   // a step's length
 const MAX_TICKS = 3000;      // a run ends here, anyone still out counted stuck
 
 const MARKS = '#.SG*';
@@ -192,7 +200,7 @@ export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c
 // Anywhere it fits (D-139): never on the start, home, seed, ground or another gadget. A bridge (or worn stick) goes
 // where a hamster would fall through, beside ground or another bridge; a worn stick also above a worn stick (D-177
 // (1)); a ramp, left ramp, bouncer, floater or signpost
-// on ground or a bridge; a tube on any empty square; a zip-line's high end where zipHighs() says.
+// on ground or a bridge, as a catapult; a tube on any empty square; a zip-line's high end where zipHighs() says.
 const empty = (level, placed, c, r) => c >= 0 && c < (level.cols || COLS) && r >= 0 && r < tall(level) && level.rows[r][c] === '.' && !placed[key(c, r)]
   && !(level.shaft && level.shaft.has(key(c, r))) && !(level.space && level.space.has(key(c, r)));
 export function fits(level, placed, kind, c, r) {
@@ -278,7 +286,7 @@ export function left(level, placed) {
 // weigh(part) (it stands on the far end; true once it has tipped), unweigh(part) and carry(c, r) (where a tipping
 // plank takes it: { r, dur }, or null); for a zip-line, zip(c, r): the low end of one whose high end is there, or null.
 // It yields steps { c, r, act } (act: 'start', 'walk', 'climb', 'bounce', 'fall', 'float', 'tube', 'wait', 'ride', 'tilt',
-// 'turn' or 'zip'; dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a
+// 'turn', 'zip', 'fling' or 'hit'; dur: ticks, where not TICKS[act]; seed: true on the step that takes the seed; land: rows fallen, on a
 // landing's last step, set when it lands; carry: true while it holds the dandelion clock, D-179; dir: -1 while it faces
 // left, D-190; a zip step's r is on the line, between rows) and returns { outcome, fell }: 'home' | 'splash' | 'bonk' |
 // 'stuck' | 'bonk-head' | 'dizzy' | 'nap'.
@@ -320,6 +328,20 @@ export function* trip(level, ctx) {
         yield mark(touch({ c, r, act: 'zip' }, c, Math.round(r)));
       }
       continue;
+    }
+    if (k === 'catapult') {
+      // flung along the arc the way it faces; bonk at anything in the way and drop from the last clear square (D-194)
+      const [c0, r0] = [c, r];
+      let hit = false;
+      for (let i = 1; i <= CATAPULT; i++) {
+        const [nc, nr] = [c0 + d * i, r0 - ARC[i - 1]];
+        const there = at(nc, nr);
+        if (there === null || HOLDS.has(there)) { hit = true; break; }
+        [c, r] = [nc, nr];
+        yield mark(touch({ c, r, act: 'fling' }, c, r));
+      }
+      if (hit) yield mark({ c, r, act: 'hit' });
+      else continue;   // landed: that square's own rules (home, a signpost, another gadget), then on
     }
     if (k === 'bouncer') {
       for (let i = 1; i <= BOUNCE; i++) if (r - i < 0 || at(c, r - i) === '#') return done('bonk-head');
