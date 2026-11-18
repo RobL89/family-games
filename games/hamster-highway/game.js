@@ -1,4 +1,7 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.10 (17 Nov, step 13, the spike).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.11 (18 Nov, step 13, the spike).
+//
+// Changes at v1.11 (D-197): the hamster counter (top left) is hidden while building and shows once GO is pressed, on
+// every level, so the top row's squares can be seen while placing (on Rob's phone it covered the test board's).
 //
 // Changes at v1.10 (step 13: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2): the window onto the board is
 // the level's own height and VIEW's width for it (7 rows: 12 squares, as levels 1 to 20; 9 rows: 16), the tray, GO, the
@@ -440,10 +443,14 @@ function renderGhost() {
 
 function renderHud() {
   const home = S.run ? S.run.home : 0;
-  let s = rect(10, 10, 200, 44, 'rgba(255,255,255,0.88)', 22, 2.5);
-  for (let i = 0; i < WALKERS; i++) {
-    const lit = i < home;
-    s += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), 38 + 36 * i, 52, 0.36, 0, lit ? '' : ' opacity="0.3"');
+  let s = '';
+  if (S.mode !== 'build') {   // the counter: once GO is pressed, not over the squares while building (D-197)
+    let n = rect(10, 10, 200, 44, 'rgba(255,255,255,0.88)', 22, 2.5);
+    for (let i = 0; i < WALKERS; i++) {
+      const lit = i < home;
+      n += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), 38 + 36 * i, 52, 0.36, 0, lit ? '' : ' opacity="0.3"');
+    }
+    s += g(n, '', ' data-hud="count"');
   }
   if (S.level.seed) {
     const got = S.seedTaken || S.progress.seeds[S.level.id];

@@ -1,5 +1,7 @@
 """Hamster Highway's step 13 spike in a browser: the 9-row test board, hamsters both ways and placing zip-lines, and
-the preview's tap counter. Version 1.0 (17 Nov, step 13; D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2).
+the preview's tap counter. Version 1.1 (18 Nov, step 13; D-185, D-190, D-196, D-197; assessment-tall-boards-signpost.md 0.2).
+Changes at v1.1: the hamster counter is hidden while building and shows once GO is pressed (D-197: on Rob's phone it
+covered the test board's top-left squares).
 
 Written before game.js 1.10 and the preview's test panel (preview_debug_hamster_highway.js 1.0). It builds the preview
 with its test panel (build_preview.py --debug, into the output folder), serves it on 127.0.0.1 and checks, as Rob
@@ -141,6 +143,7 @@ with sync_playwright() as pw:
     win = window_of(pg)
     check(s['card'] is None and s['layout'] == 'side' and win['viewBox'] == [0, 0, 1090, 540] and win['clip'] == [960, 540],
           f'{tag}: the test board opens with no card, its window 16 x 9 squares (960 x 540) and the tray beside it ({s["card"]}, {s["layout"]}, {win})')
+    check(pg.locator('#hud [data-hud="count"]').count() == 0, f'{tag}: while building, the hamster counter is hidden, so the top row\'s squares show (D-197)')
     check(abs(win['square'] - 43.33) < 0.6, f'{tag}: a square is {win["square"]:.1f} px on the phone (assessment 0.2: 43.3)')
     check(len(GADS) == 10 and len(ZIPS) == 5 and sp['phase'] == 'gadgets' and sp['target'] == GADS[0],
           f'{tag}: the panel marks 10 gadgets, then 5 zip-lines, the first gadget first ({len(GADS)}, {len(ZIPS)}, {sp["phase"]})')
@@ -198,6 +201,7 @@ with sync_playwright() as pw:
     pg.evaluate('__test.speed(8)')
     tap(pg, '[data-btn="go"]', True)
     pg.wait_for_function('__test.state().mode === "run"', timeout=5000)
+    check(pg.locator('#hud [data-hud="count"]').count() == 1, f'{tag}: once GO is pressed, the hamster counter shows (D-197)')
     left_seen = False
     shot = False
     for _ in range(400):

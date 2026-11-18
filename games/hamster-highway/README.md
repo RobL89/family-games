@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.17 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.18 · 18 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.18 (D-197): the hamster counter at the top left shows once GO is pressed, not while building, so the top row's squares can be seen while placing.
 
 Changes at v1.17 (step 13, the spike for levels 21 to 30: D-185, D-190, D-196): the rules and screens are ready for boards 7 to 9 rows tall (a 9-row board shows 16 squares across), for hamsters walking both ways (the twig signpost turns them round; a left ramp; dizzy at the third turn at one signpost; a nap back in the start tube) and for the zip-line (placed in two taps, high end then low end; a hamster slides down it hanging from a cotton reel). No level uses them yet: they are tried on a test board that opens only from a preview's test panel. Levels 1 to 20 play exactly as before. Not yet released.
 
@@ -102,6 +104,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.18 | 2026-11-18 | The hamster counter shows once GO is pressed, not while building (D-197) |
 | 1.17 | 2026-11-17 | The spike: 9-row boards, walking both ways, the signpost, the left ramp and the zip-line in the rules and screens, on a test board only (D-185, D-190, D-196) |
 | 1.16 | 2026-11-17 | Released to P-020 (D-181, D-182) |
 | 1.15 | 2026-11-17 | Feedback items 1 to 3: sticks in either order, the see-saw card's ramp, the dandelion held (D-177 to D-179, ER-013) |
