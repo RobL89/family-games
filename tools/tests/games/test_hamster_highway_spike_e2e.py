@@ -1,5 +1,7 @@
 """Hamster Highway's step 13 spike in a browser: the 9-row test board, hamsters both ways and placing zip-lines, and
-the preview's tap counter. Version 1.1 (18 Nov, step 13; D-185, D-190, D-196, D-197; assessment-tall-boards-signpost.md 0.2).
+the preview's tap counter. Version 1.2 (18 Nov, step 13; D-185, D-190, D-196, D-197, D-200; assessment-tall-boards-signpost.md 0.2).
+Changes at v1.2 (D-200): once GO is pressed the hamster counter takes the tray's place (the slots go), in the tray
+column beside the board or the tray row under it, never over the board, on the phone held sideways and upright.
 Changes at v1.1: the hamster counter is hidden while building and shows once GO is pressed (D-197: on Rob's phone it
 covered the test board's top-left squares).
 
@@ -99,6 +101,17 @@ def cell(pg, c, r, touch=False):
     pg.wait_for_timeout(60)
 
 
+def counter_clear(pg):
+    """After GO: is the counter in the tray, wholly off the board's window, with no gadget slots showing?"""
+    return pg.evaluate("""(() => { const c = document.querySelector('#count [data-hud="count"]'); if (!c) return 'no counter';
+      const b = document.getElementById('board'); const vb = b.getAttribute('viewBox').split(' ').map(Number); const box = b.getBoundingClientRect();
+      const u = box.height / vb[3]; const win = document.querySelector('#window rect');
+      const W = Number(win.getAttribute('width')) * u, H = Number(win.getAttribute('height')) * u; const r = c.getBoundingClientRect();
+      const off = r.left >= box.left + W - 1 || r.top >= box.top + H - 1;
+      const slots = document.querySelectorAll('[data-slot]').length;
+      return off && !slots ? 'ok' : `counter at ${Math.round(r.left)},${Math.round(r.top)} (window ${Math.round(W)} x ${Math.round(H)} from ${Math.round(box.left)},${Math.round(box.top)}); slots ${slots}`; })()""")
+
+
 def open_page(br, w, h, touch):
     ctx = br.new_context(viewport={'width': w, 'height': h}, has_touch=touch, is_mobile=touch)
     pg = ctx.new_page()
@@ -143,7 +156,8 @@ with sync_playwright() as pw:
     win = window_of(pg)
     check(s['card'] is None and s['layout'] == 'side' and win['viewBox'] == [0, 0, 1090, 540] and win['clip'] == [960, 540],
           f'{tag}: the test board opens with no card, its window 16 x 9 squares (960 x 540) and the tray beside it ({s["card"]}, {s["layout"]}, {win})')
-    check(pg.locator('#hud [data-hud="count"]').count() == 0, f'{tag}: while building, the hamster counter is hidden, so the top row\'s squares show (D-197)')
+    check(pg.locator('[data-hud="count"]').count() == 0 and pg.locator('[data-slot]').count() == 6,
+          f'{tag}: while building, no hamster counter, and the tray shows its six gadget slots (D-197, D-200)')
     check(abs(win['square'] - 43.33) < 0.6, f'{tag}: a square is {win["square"]:.1f} px on the phone (assessment 0.2: 43.3)')
     check(len(GADS) == 10 and len(ZIPS) == 5 and sp['phase'] == 'gadgets' and sp['target'] == GADS[0],
           f'{tag}: the panel marks 10 gadgets, then 5 zip-lines, the first gadget first ({len(GADS)}, {len(ZIPS)}, {sp["phase"]})')
@@ -201,7 +215,8 @@ with sync_playwright() as pw:
     pg.evaluate('__test.speed(8)')
     tap(pg, '[data-btn="go"]', True)
     pg.wait_for_function('__test.state().mode === "run"', timeout=5000)
-    check(pg.locator('#hud [data-hud="count"]').count() == 1, f'{tag}: once GO is pressed, the hamster counter shows (D-197)')
+    cc = counter_clear(pg)
+    check(cc == 'ok', f'{tag}: once GO is pressed, the hamster counter takes the tray\'s place, off the board (D-200) ({cc})')
     left_seen = False
     shot = False
     for _ in range(400):
@@ -228,6 +243,18 @@ with sync_playwright() as pw:
     check(s['progress']['done'] == {} and s['progress']['tries'] == {} and kept is None,
           f'{tag}: the test board saves nothing: no level done or tried, and nothing kept on the device ({s["progress"]["done"]}, {s["progress"]["tries"]}, {kept})')
     pg.screenshot(path=os.path.join(OUT, 'phone-results.png'))
+    finish(pg, tag, errors, asked)
+    ctx.close()
+
+    # ---------------------------------------------------------------- the phone held upright: the tray is a row under the board
+    ctx, pg, errors, asked = open_page(br, 390, 844, True)
+    tag = 'phone 390x844'
+    open_board(pg, True)
+    tap(pg, '[data-btn="go"]', True)
+    pg.wait_for_function('__test.state().mode === "run"', timeout=5000)
+    cc = counter_clear(pg)
+    check(state(pg)['layout'] == 'bottom' and cc == 'ok', f'{tag}: the tray under the board; after GO the counter is in it, off the board (D-200) ({state(pg)["layout"]}, {cc})')
+    pg.screenshot(path=os.path.join(OUT, 'upright-run.png'))
     finish(pg, tag, errors, asked)
     ctx.close()
 

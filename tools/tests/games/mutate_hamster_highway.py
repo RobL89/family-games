@@ -1,6 +1,7 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
 tests catch (project rules: test the tests). Version 1.11 (18 Nov, step 13, the spike).
-Changes at v1.11 (D-197): a thirty-second spike fault, the hamster counter shown while building.
+Changes at v1.11 (D-197, D-200): three more spike faults: the hamster counter shown while building, over the board
+during a run, and the gadget slots kept during a run.
 Changes at v1.10 (step 13: D-185, D-190, D-196): thirty-one faults in the spike's new code, their names starting
 "spike:": twenty-four by the core test (heights, the signpost, dizzy, the nap, facing left, a bouncer, tubes, ramps
 and the lift both ways, falling into a signpost, the see-saw, every zip-line rule, the slide, a bounce into a high
@@ -176,7 +177,9 @@ FAULTS = [
     ('spike: a zip-line\'s other end stays when one is tapped', G + 'game.js', '    delete S.placed[key(oc, or)];\n', '', SPIKE_E2E),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
     ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),
-    ('spike: the counter shows while building', G + 'game.js', "  if (S.mode !== 'build') {   // the counter", "  if (true) {   // the counter", SPIKE_E2E),
+    ('spike: the counter shows while building', G + 'game.js', "  if (S.mode === 'build') { layer('count').innerHTML = ''; return; }", '', SPIKE_E2E),
+    ('spike: the counter over the board during a run', G + 'game.js', '  const box = side ? { x: BW + 17, y: 80,', '  const box = side ? { x: 17, y: 80,', SPIKE_E2E),
+    ('spike: the slots stay during a run', G + 'game.js', '  const slots = run ? \'\' : slotBoxes()', '  const slots = false ? \'\' : slotBoxes()', SPIKE_E2E),
     ('spike: the panel counts a tap on the ring as wrong', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (cell[0] === t.c && cell[1] === t.r) T.gadgetHits += 1;', '      if (false) T.gadgetHits += 1;', SPIKE_E2E),
     ('spike: the panel misses a line let go of', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (before.zipFrom && !after.zipFrom && lines(after.placed) === lines(before.placed)) T.zipCancelled += 1;', '', SPIKE_E2E),
 ]

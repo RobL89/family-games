@@ -1,4 +1,9 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.11 (18 Nov, step 13, the spike).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.12 (18 Nov, step 13, the spike).
+//
+// Changes at v1.12 (D-200): once GO is pressed, the hamster counter and the golden-seed badge take the tray's place,
+// where the gadget slots were (they can't be used during a run), in the tray column beside the board or the tray row
+// under it: never over the board, so they cover neither squares nor running hamsters. While building, neither shows.
+// They are drawn in their own layer, #count (index.html), over the tray.
 //
 // Changes at v1.11 (D-197): the hamster counter (top left) is hidden while building and shows once GO is pressed, on
 // every level, so the top row's squares can be seen while placing (on Rob's phone it covered the test board's).
@@ -442,22 +447,33 @@ function renderGhost() {
 }
 
 function renderHud() {
+  layer('hud').innerHTML = S.mode === 'build' ? helpButton() : '';
+  renderCount();
+}
+
+// The hamster counter and the golden-seed badge: once GO is pressed, in the tray where the slots were (D-200).
+function renderCount() {
+  if (S.mode === 'build') { layer('count').innerHTML = ''; return; }
   const home = S.run ? S.run.home : 0;
-  let s = '';
-  if (S.mode !== 'build') {   // the counter: once GO is pressed, not over the squares while building (D-197)
-    let n = rect(10, 10, 200, 44, 'rgba(255,255,255,0.88)', 22, 2.5);
-    for (let i = 0; i < WALKERS; i++) {
-      const lit = i < home;
-      n += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), 38 + 36 * i, 52, 0.36, 0, lit ? '' : ' opacity="0.3"');
-    }
-    s += g(n, '', ' data-hud="count"');
+  const seed = !!S.level.seed;
+  const n = WALKERS + (seed ? 1 : 0);
+  const side = S.layout === 'side';
+  const box = side ? { x: BW + 17, y: 80, w: 96, h: BH - 182 } : { x: 100, y: BH + 17, w: BW - 260, h: 76 };
+  const step = (side ? box.h : box.w) / n;
+  const at = (i) => (side ? { x: box.x + box.w / 2, y: box.y + step * (i + 0.5) } : { x: box.x + step * (i + 0.5), y: box.y + box.h / 2 });
+  const k = Math.min(0.5, (Math.min(step, side ? box.w : box.h) - 8) / 80);   // a head is about 80 across
+  let s = rect(box.x, box.y, box.w, box.h, 'rgba(255,255,255,0.88)', 20, 2.5);
+  for (let i = 0; i < WALKERS; i++) {
+    const lit = i < home;
+    const p = at(i);
+    s += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), p.x, p.y + 40 * k, k, 0, lit ? '' : ' opacity="0.3"');
   }
-  if (S.level.seed) {
+  if (seed) {
     const got = S.seedTaken || S.progress.seeds[S.level.id];
-    s += rect(218, 10, 48, 44, 'rgba(255,255,255,0.88)', 22, 2.5) + place(seedArt(), 242, 32, 0.95, 0, got ? ' id="hud-seed"' : ' id="hud-seed" opacity="0.25"');
+    const p = at(WALKERS);
+    s += place(seedArt(), p.x, p.y, Math.min(0.95, 2.2 * k), 0, got ? ' id="hud-seed"' : ' id="hud-seed" opacity="0.25"');
   }
-  if (S.mode === 'build') s += helpButton();
-  layer('hud').innerHTML = s;
+  layer('count').innerHTML = g(s, '', ' data-hud="count"');
 }
 
 function trayKinds() {
@@ -478,7 +494,8 @@ function renderTray() {
   const counts = left(S.level, S.placed);
   const run = S.mode !== 'build';
   let s = '';
-  const slots = slotBoxes().map(({ kind: k, x, y, w, h }) => slot(x, y, w, h, k, counts[k], S.selected === k && !run, S.fresh === k)).join('');
+  // during a run the slots give way to the hamster counter (renderCount, D-200)
+  const slots = run ? '' : slotBoxes().map(({ kind: k, x, y, w, h }) => slot(x, y, w, h, k, counts[k], S.selected === k && !run, S.fresh === k)).join('');
   if (S.layout === 'side') {
     s += rect(BW, 0, 130, BH, '#8B5A3C', 0, 0) + line0(BW, 0, BW, BH);
     s += houseButton(BW + 65, 40, 28);
@@ -491,6 +508,7 @@ function renderTray() {
     s += goButton(BW - 142, BH + 17, 128, 76, run ? 'stop' : 'go');
   }
   layer('tray').innerHTML = s;
+  renderCount();
   const go = board.querySelector('.btn.go');
   if (go && !run && Object.keys(S.placed).length) go.classList.add('ready');   // a gentle wiggle once something is down
   if (S.mode === 'party') layer('tray').setAttribute('opacity', '0.5'); else layer('tray').removeAttribute('opacity');

@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.18 · 18 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.19 · 18 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+
+Changes at v1.19 (D-200): once GO is pressed, the hamster counter and the golden-seed badge sit in the tray, where the gadgets were, never over the board or the running hamsters; while building, neither shows.
 
 Changes at v1.18 (D-197): the hamster counter at the top left shows once GO is pressed, not while building, so the top row's squares can be seen while placing.
 
@@ -104,6 +106,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.19 | 2026-11-18 | Once GO is pressed, the hamster counter and seed badge take the tray's place, never over the board (D-200) |
 | 1.18 | 2026-11-18 | The hamster counter shows once GO is pressed, not while building (D-197) |
 | 1.17 | 2026-11-17 | The spike: 9-row boards, walking both ways, the signpost, the left ramp and the zip-line in the rules and screens, on a test board only (D-185, D-190, D-196) |
 | 1.16 | 2026-11-17 | Released to P-020 (D-181, D-182) |
