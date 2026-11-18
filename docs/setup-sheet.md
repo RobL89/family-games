@@ -73,14 +73,14 @@ Each new script version is pasted and deployed the same way. The handoff and the
 | 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
 | 0.3.0 | GameLists tab, header row only |
 | 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |
-| 0.5.0 (not yet pasted) | Plays tab (header row only) and Plays summary tab (four pivot tables and a Name filter); Scores and Achievements hidden, not deleted (P88). No existing cell changes (dry run on a copy of the live Sheet, 2026-11-17). Either the script or the launcher can go first: the old launcher sends no plays, and the new one keeps them on the device until 0.5.0 is in. Try it on a copy first (below) |
+| 0.5.0 (live, pasted 2026-11-18) | Plays tab (header row only) and Plays summary tab (four pivot tables and a Name filter); Scores and Achievements hidden, not deleted (P88). No existing cell changes (dry run on a copy of the live Sheet, 2026-11-17 and 18; live Sheet compared before and after 2026-11-18: only Plays and Plays summary added, Scores and Achievements hidden, backup "family-games backup 2026-11-18 2139"). Tried first on a copy, where Rob checked the summary's look. Either the script or the launcher can go first: the old launcher sends no plays, and the new one keeps them on the device until 0.5.0 is in. Try it on a copy first (below) |
 
 ### Trying 0.5.0 on a copy first
 
 The pivot tables and the Name filter only exist in Google, so they're tried on a copy before the live Sheet. A copy of a spreadsheet comes with its own copy of the script (Google's guide to bound scripts).
 
 1. In the live Sheet: **File > Make a copy**. Keep the name it suggests ("Copy of family-games").
-2. In the copy: **Extensions > Apps Script**, paste the new `Code.gs`, save, pick `setup` and **Run** (approve it again if asked). Until it's published, the new `Code.gs` is only on the `work` branch: https://github.com/RobL89/family-games/blob/work/apps-script/Code.gs (GitHub shows `main` by default, which is still 0.4.0). Its top says `const VERSION = '0.5.0';`, and `setup`'s log lists "Added tab Plays".
+2. In the copy: **Extensions > Apps Script**, paste the new `Code.gs`, save, pick `setup` and **Run** (approve it again if asked). Before a version is published, its `Code.gs` is only on the `work` branch (https://github.com/RobL89/family-games/blob/work/apps-script/Code.gs); GitHub shows `main` by default. Check the `VERSION` line near the top.
 3. Pick `previewPlays` and **Run**: it adds made-up plays for each player (it refuses to run unless the spreadsheet's name has "copy" or "backup" in it).
 4. Open the **Plays summary** tab: three tables (games by child, by day, by device), and the Name filter top left. To pick a child, open the filter, click **Clear**, tick them and click **OK** (the names are already listed under Filter by values; clicking that heading folds them away). All three tables should change.
 5. Tell Claude what you see, then bin the copy (and the backup of it that `setup` made first), or keep it to play with.
