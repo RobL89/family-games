@@ -1,4 +1,8 @@
-// Hamster Highway's test panel for previews: step 13's spike (D-185, D-190, D-196). Version 1.0 (17 Nov).
+// Hamster Highway's test panel for previews: step 13's spike (D-185, D-190, D-196). Version 1.1 (18 Nov).
+//
+// Changes at 1.1 (step 14): a "Garden done" button on the title screen, under "Test board": it marks levels 1 to 20 done
+// and their eight help cards seen in this browser's own entry (the game on its own, data map 1.9) and reloads, so
+// Rob can try the ride to the park and levels 21 and 22 without playing the first 20. Seeds and tries start empty.
 //
 // For Rob's testing only (D-020), added to a preview by build_preview.py --debug, never to the game itself. A "Test
 // board" button on the title screen opens the 9 x 16 test board (a climbing frame and a lake, in the kitchen's
@@ -50,7 +54,7 @@
   const onSpike = () => { const s = window.__test.state(); return s.screen === 'level' && s.level === 'spike' && s.mode === 'build'; };
 
   const css = document.createElement('style');
-  css.textContent = '#spike-open{position:absolute;left:max(12px,env(safe-area-inset-left));top:12px;z-index:6;font:700 16px system-ui,sans-serif;'
+  css.textContent = '#spike-open,#park-skip{position:absolute;left:max(12px,env(safe-area-inset-left));top:12px;z-index:6;font:700 16px system-ui,sans-serif;'
     + 'padding:10px 16px;border-radius:14px;border:3px solid #1B1446;background:#FFC93C;color:#1B1446}'
     + '#spike-banner,#spike-results{position:fixed;z-index:7;pointer-events:none;font:600 12px/1.3 system-ui,sans-serif;box-sizing:border-box;'
     + 'color:#1B1446;background:rgba(255,255,255,0.92);border:2px solid #1B1446;border-radius:10px;padding:3px 8px;margin:0}'
@@ -62,6 +66,20 @@
   open.type = 'button';
   open.textContent = 'Test board';
   document.getElementById('title').appendChild(open);
+  const skip = document.createElement('button');
+  skip.id = 'park-skip';
+  skip.type = 'button';
+  skip.textContent = 'Garden done';
+  skip.style.top = '64px';
+  document.getElementById('title').appendChild(skip);
+  skip.addEventListener('click', () => {
+    const ids = [];
+    for (let n = 1; n <= 10; n++) ids.push(`L${n}`, `L${n}b`);
+    const done = Object.fromEntries(ids.map((i) => [i, true]));
+    const cards = Object.fromEntries(['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'].map((k) => [k, true]));
+    try { localStorage.setItem('family-games:hamster-highway:progress', JSON.stringify({ v: 2, done, seeds: {}, tries: {}, cards })); } catch { /* storage blocked */ }
+    location.reload();
+  });
   const banner = document.createElement('p');
   banner.id = 'spike-banner';
   banner.hidden = true;
