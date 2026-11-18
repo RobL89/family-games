@@ -82,7 +82,7 @@ The pivot tables and the Name filter only exist in Google, so they're tried on a
 1. In the live Sheet: **File > Make a copy**. Keep the name it suggests ("Copy of family-games").
 2. In the copy: **Extensions > Apps Script**, paste the new `Code.gs`, save, pick `setup` and **Run** (approve it again if asked). Until it's published, the new `Code.gs` is only on the `work` branch: https://github.com/RobL89/family-games/blob/work/apps-script/Code.gs (GitHub shows `main` by default, which is still 0.4.0). Its top says `const VERSION = '0.5.0';`, and `setup`'s log lists "Added tab Plays".
 3. Pick `previewPlays` and **Run**: it adds made-up plays for each player (it refuses to run unless the spreadsheet's name has "copy" or "backup" in it).
-4. Open the **Plays summary** tab: four tables, and the Name filter top left. Pick a name; all four tables should change.
+4. Open the **Plays summary** tab: five tables, and the Name filter top left. To pick a child, open the filter, click **Clear**, tick them and click **OK** (the names are already listed under Filter by values; clicking that heading folds them away). All five tables should change.
 5. Tell Claude what you see, then bin the copy (and the backup of it that `setup` made first), or keep it to play with.
 
 Then the live Sheet, as in "Updating the script" above: `backup`, paste, `setup`, a new deployment version, Check connection says 0.5.0. To rebuild the summary later (after changing it by hand), run `summary`.

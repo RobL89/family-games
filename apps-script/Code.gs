@@ -19,7 +19,7 @@
  * 0.5.0: Plays tab: one row each time a child taps a game in the launcher, with the date and
  *        time, their name, the game, the minutes it was played and phone or PC (P88). They come
  *        in the device outbox with `sync`, like results. A "Plays summary" tab holds pivot tables
- *        (by game, day, child and device) and a Name filter. The unused Scores and Achievements
+ *        (games by child, then by game, day, child and device) and a Name filter. The unused Scores and Achievements
  *        tabs are hidden, not deleted (P48, P52).
  */
 
@@ -48,6 +48,10 @@ const PLAYS_ROOM = 1000;
 // (P48). To show one again, take it out of this list and use the tab's menu, Show sheet; setup
 // hides the ones listed each time it runs.
 const HIDDEN_TABS = ['Scores', 'Achievements'];
+// The Plays summary's first table has a pair of columns per player: room is left for this many
+// more players than there are, and at least SUMMARY_MIN_PLAYERS, before the next table starts.
+const SUMMARY_SPARE_PLAYERS = 3;
+const SUMMARY_MIN_PLAYERS = 6;
 const MAX_PLAY_SECONDS = 6 * 60 * 60; // a longer play is taken as a clock mistake and capped
 
 // Rows put into a brand-new Skins tab. Change stars_needed in the Sheet any time;
@@ -145,7 +149,7 @@ function planSetup(ss) {
   // The summary of plays (P88), once the Plays tab is there (it may be added just above).
   if (!ss.getSheetByName(SUMMARY_TAB)) {
     steps.push({
-      label: 'Added tab ' + SUMMARY_TAB + ': plays and minutes by game, day, child and device, with a Name filter',
+      label: 'Added tab ' + SUMMARY_TAB + ': plays and minutes for games by child, and by game, day, child and device, with a Name filter',
       apply: function () { buildSummary(ss); },
     });
   }
@@ -707,9 +711,10 @@ function formatPlays(s) {
 }
 
 /**
- * The Plays summary tab (P88): four pivot tables side by side, each with plays and minutes, by
- * game, by day (newest first), by child and by device, and a Name filter above them that
- * filters all four. Replaces the tab's tables and filter if it already has them.
+ * The Plays summary tab (P88): five pivot tables side by side, each with plays and minutes: games
+ * by child (games down, children across), then by game, by day (newest first), by child and by
+ * device. A Name filter above them filters all five. Replaces the tab's tables and filter if it
+ * already has them.
  */
 function buildSummary(ss) {
   const plays = ss.getSheetByName('Plays');
@@ -737,16 +742,25 @@ function buildSummary(ss) {
   const filter = s.insertSlicer(source, 1, 1);
   filter.setTitle('Name');
   // On the name column. Hiding empty rows is the only filter to start with; Rob picks names with
-  // Filter by values. (A null filter, tried first, dropped the column too: Google put the
+  // Filter by values. This condition is also what keeps the empty rows below the plays out of the
+  // tables: a "not empty" filter on each table didn't (seen on a copy, 18 Nov 2026), so they have none. (A null filter, tried first, dropped the column too: Google put the
   // filter on the first column, played_at, with no names to pick. Seen on a copy, 18 Nov 2026.)
   filter.setColumnFilterCriteria(col('name'), notEmpty());
   filter.setApplyToPivotTables(true);
 
+  // First, on the left: games down the side, children across the top, plays and minutes for
+  // each (Rob, 18 Nov 2026). It grows sideways as children are added, two columns each, so the
+  // other tables start after room for SUMMARY_SPARE_PLAYERS more players than there are now. If
+  // it ever runs into them, run `summary` to lay the tab out again.
+  const players = Math.max(SUMMARY_MIN_PLAYERS, rows('Profiles').length + SUMMARY_SPARE_PLAYERS);
+  const gridWidth = 1 + (players + 1) * 2; // game names, then plays and minutes per child and in total
+  const next = 1 + gridWidth + 1;
   const tables = [
-    { at: 1, by: 'game', title: 'By game' },
-    { at: 5, by: 'day', title: 'By day', newestFirst: true },
-    { at: 9, by: 'name', title: 'By child' },
-    { at: 13, by: 'device', title: 'By device' },
+    { at: 1, by: 'game', across: 'name', title: 'Games by child' },
+    { at: next, by: 'game', title: 'By game' },
+    { at: next + 4, by: 'day', title: 'By day', newestFirst: true },
+    { at: next + 8, by: 'name', title: 'By child' },
+    { at: next + 12, by: 'device', title: 'By device' },
   ];
   tables.forEach(function (t) {
     s.getRange(4, t.at).setValues([[t.title]]).setFontWeight('bold');
@@ -754,12 +768,12 @@ function buildSummary(ss) {
     const group = table.addRowGroup(col(t.by));
     group.showTotals(true);
     if (t.newestFirst) group.sortDescending();
+    if (t.across) table.addColumnGroup(col(t.across)).showTotals(true);
     table.addPivotValue(col('play_id'), SpreadsheetApp.PivotTableSummarizeFunction.COUNTA).setDisplayName('Plays');
     table.addPivotValue(col('minutes'), SpreadsheetApp.PivotTableSummarizeFunction.SUM).setDisplayName('Minutes');
-    table.addFilter(col('name'), notEmpty()); // the empty rows kept below the plays
   });
   // The day table's dates, shown as dates.
-  s.getRange(6, 5, 400, 1).setNumberFormat('ddd dd/mm/yyyy');
+  s.getRange(6, next + 4, 400, 1).setNumberFormat('ddd dd/mm/yyyy');
   return s;
 }
 

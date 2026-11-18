@@ -186,9 +186,10 @@ class PivotValue {
 class PivotTable {
   constructor(sheet, anchor, source) {
     if (!(source instanceof Range)) throw new Error('stand-in: pivot source must be a range');
-    Object.assign(this, { sheet, anchor, source, rows: [], values: [], filters: [] });
+    Object.assign(this, { sheet, anchor, source, rows: [], columns: [], values: [], filters: [] });
   }
   addRowGroup(column) { const g = new PivotGroup(column); this.rows.push(g); return g; }
+  addColumnGroup(column) { const g = new PivotGroup(column); this.columns.push(g); return g; }
   addPivotValue(column, fn) {
     if (!fn) throw new Error('stand-in: unknown summarize function');
     const v = new PivotValue(column, fn); this.values.push(v); return v;

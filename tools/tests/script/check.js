@@ -299,23 +299,36 @@ check('setup on the live shape (0.4.0) backs up, adds Plays and its summary, hid
   eq(f[1][2], b.ss.getSheetByName('Plays').getMaxRows(), 'formats reach the last row');
 });
 
-check('the summary: four tables (game, day, child, device) of plays and minutes over the whole Plays tab, and a Name filter', () => {
+check('the summary: games by child first (games down, children across), then by game, day, child and device, and a Name filter', () => {
   const b = ready();
   const s = b.ss.getSheetByName('Plays summary');
   const plays = b.ss.getSheetByName('Plays');
   const col = (h) => PLAYS.indexOf(h) + 1;
-  eq(s.pivots.map((t) => [t.anchor.row, t.anchor.col]), [[5, 1], [5, 5], [5, 9], [5, 13]], 'table anchors');
-  eq(s.pivots.map((t) => t.rows.map((g) => g.column)), [[col('game')], [col('day')], [col('name')], [col('device')]], 'grouped by');
-  eq(s.pivots[1].rows[0].order, 'desc', 'days newest first');
+  // Bed: 2 players, so room for 6: 1 + 7 * 2 = 15 columns, a gap, then the others from column 17.
+  eq(s.pivots.map((t) => [t.anchor.row, t.anchor.col]), [[5, 1], [5, 17], [5, 21], [5, 25], [5, 29]], 'table anchors');
+  eq(s.pivots.map((t) => t.rows.map((g) => g.column)), [[col('game')], [col('game')], [col('day')], [col('name')], [col('device')]], 'down the side');
+  eq(s.pivots.map((t) => t.columns.map((g) => g.column)), [[col('name')], [], [], [], []], 'across the top');
+  eq(s.pivots[0].columns[0].totals, true, 'a total per game across the children');
+  eq(s.pivots[2].rows[0].order, 'desc', 'days newest first');
+  eq(s.getRange(4, 1).getValues()[0][0], 'Games by child', 'first table title');
+  eq(s.formats[21] && s.formats[21][0], 'ddd dd/mm/yyyy', 'day column shown as dates');
   s.pivots.forEach((t, i) => {
     eq(t.values.map((v) => [v.column, v.fn, v.name]), [[col('play_id'), 'COUNTA', 'Plays'], [col('minutes'), 'SUM', 'Minutes']], `table ${i} values`);
-    eq(t.filters.map((x) => [x.column, x.criteria.type]), [[col('name'), 'not-empty']], `table ${i} hides empty rows`);
     eq([t.source.sheet.name, t.source.row, t.source.col, t.source.getLastRow(), t.source.nCols], ['Plays', 1, 1, plays.getMaxRows(), PLAYS.length], `table ${i} source`);
   });
   eq(s.slicers.length, 1, 'one filter');
   const x = s.slicers[0];
   eq([x.title, x.criteria.column, x.criteria.criteria && x.criteria.criteria.type, x.toPivots, x.range.getLastRow(), x.row, x.col],
-    ['Name', col('name'), 'not-empty', true, plays.getMaxRows(), 1, 1], 'the Name filter: on the name column, no names picked yet');
+    ['Name', col('name'), 'not-empty', true, plays.getMaxRows(), 1, 1], 'the Name filter: on the name column, empty rows hidden, no names picked yet');
+});
+
+check('the first table leaves room for three more players than there are', () => {
+  const tabs = sheet040();
+  for (let i = 0; i < 6; i++) tabs.Profiles.push(['p_extra' + i, 'Extra' + i, 'fox', '#000000', new Date('2026-11-01T00:00:00Z'), true, 'sticker']);
+  const b = bed({ tabs });
+  b.run('setup');
+  // 8 players + 3 spare = 11: 1 + 12 * 2 = 25 columns, a gap, the next table at column 27.
+  eq(b.ss.getSheetByName('Plays summary').pivots[1].anchor.col, 27, 'second table');
 });
 
 check('the summary follows the header row, not a fixed order of columns', () => {
@@ -324,7 +337,8 @@ check('the summary follows the header row, not a fixed order of columns', () => 
   const b = bed({ tabs });
   b.run('setup');
   const s = b.ss.getSheetByName('Plays summary');
-  eq(s.pivots[2].rows[0].column, PLAYS.length - PLAYS.indexOf('name'), 'by child uses the name column');
+  eq(s.pivots[3].rows[0].column, PLAYS.length - PLAYS.indexOf('name'), 'by child uses the name column');
+  eq(s.pivots[0].columns[0].column, PLAYS.length - PLAYS.indexOf('name'), 'games by child uses the name column');
 });
 
 check('a play adds one row: the name from Profiles, the game, minutes, device, date and time, and the day', () => {
@@ -398,7 +412,7 @@ check('when the Plays tab fills up it grows, keeps its formats, and the summary 
   eq(rowsOf(b, 'Plays').length, n, 'every play has its row');
   eq(new Set(rowsOf(b, 'Plays').map((r) => r.play_id)).size, n, 'no play lost or doubled');
   const s = b.ss.getSheetByName('Plays summary');
-  eq([s.pivots.length, s.slicers.length], [4, 1], 'tables and filter after the rebuild');
+  eq([s.pivots.length, s.slicers.length], [5, 1], 'tables and filter after the rebuild');
   ok(s.pivots.every((t) => t.source.getLastRow() === plays.getMaxRows()) && s.slicers[0].range.getLastRow() === plays.getMaxRows(), 'they reach the new last row');
   eq(plays.formats[5][2], plays.getMaxRows(), 'minutes format reaches the new last row');
 });
@@ -416,12 +430,12 @@ check('previewPlays refuses the live spreadsheet and fills a copy with made-up p
   eq(b.lock.held, false, 'lock let go');
 });
 
-check('running summary by hand rebuilds it: still four tables and one filter', () => {
+check('running summary by hand rebuilds it: still five tables and one filter', () => {
   const b = ready();
   b.run('summary');
   b.run('summary');
   const s = b.ss.getSheetByName('Plays summary');
-  eq([s.pivots.length, s.slicers.length], [4, 1], 'tables and filter');
+  eq([s.pivots.length, s.slicers.length], [5, 1], 'tables and filter');
 });
 
 // ---- Locks --------------------------------------------------------------------------------
