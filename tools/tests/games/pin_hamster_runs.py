@@ -1,5 +1,10 @@
 """Pins how Hamster Highway's levels 1 to 20 run, so a change to the rules can be shown to leave them byte-identical
-(project rules: check a rewrite against the code it replaces). Version 1.0 (17 Nov, step 13, the spike).
+(project rules: check a rewrite against the code it replaces). Version 1.1 (18 Nov, step 14).
+
+Changes at 1.1: it sweeps only levels 1 to 20 (IDS), not every level in levels.js, so levels 21 to 30 can be added;
+--self-test checks that on a scratch copy with a 21st level. The pins and how each level is swept are unchanged.
+
+Version 1.0 (17 Nov, step 13, the spike).
 
 For each of the 20 levels in games/hamster-highway/levels.js, with core.js's walk() and run(), it runs a sweep of
 placements and hashes the results (each placement's walk() and run() as JSON, one line each, sha256 of the lines):
@@ -15,6 +20,7 @@ them on every run (pinned(), below).
 Usage, from the repo root:
     python3 -B tools/tests/games/pin_hamster_runs.py            # compare with the pins; exit 1 on any difference
     python3 -B tools/tests/games/pin_hamster_runs.py --write    # write the pins (only from the code before a change)
+    python3 -B tools/tests/games/pin_hamster_runs.py --self-test   # a scratch copy with a 21st level must still pass
 """
 import hashlib, json, os, re, subprocess, sys
 
@@ -23,15 +29,17 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 GAME = os.path.join(REPO, 'games', 'hamster-highway')
 PINS = os.path.join(HERE, 'fixture_hamster_runs_1_20.json')
 OLD_KINDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick']   # levels 1 to 20's gadgets
+IDS = [f'L{n}{t}' for n in range(1, 11) for t in ('', 'b')]   # levels 1 to 20, the only ones pinned and swept (1.1)
 
 JS = r'''
-const [coreUrl, levelsUrl, solJson, kindsJson] = process.argv.slice(1);
+const [coreUrl, levelsUrl, solJson, kindsJson, idsJson] = process.argv.slice(1);
 const core = await import(coreUrl);
 const { LEVELS } = await import(levelsUrl);
 const SOL = JSON.parse(solJson);
 const KINDS = JSON.parse(kindsJson);
+const IDS = JSON.parse(idsJson);
 const out = {};
-for (const d of LEVELS) {
+for (const d of LEVELS.filter((x) => IDS.includes(x.id))) {
   const lv = core.parseLevel(d);
   const put = (list) => { const p = {}; for (const [k, c, r] of list) p[core.key(c, r)] = k; return p; };
   const ans = put(SOL[d.id].solve);
@@ -57,10 +65,10 @@ def sol():
     return out
 
 
-def measure():
+def measure(game=GAME):
     """Each level's sweep: {id: {'n': placements, 'sha256': hash of its lines}}."""
-    r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(GAME, 'core.js'),
-                        'file://' + os.path.join(GAME, 'levels.js'), json.dumps(sol()), json.dumps(OLD_KINDS)],
+    r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(game, 'core.js'),
+                        'file://' + os.path.join(game, 'levels.js'), json.dumps(sol()), json.dumps(OLD_KINDS), json.dumps(IDS)],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(r.stderr[-2000:])
@@ -68,10 +76,10 @@ def measure():
     return {lid: {'n': len(ls), 'sha256': hashlib.sha256('\n'.join(ls).encode()).hexdigest()} for lid, ls in lines.items()}
 
 
-def pinned():
+def pinned(game=GAME):
     """(ok, what): every level's sweep against the pins."""
     pins = json.load(open(PINS, encoding='utf-8'))
-    now = measure()
+    now = measure(game)
     differ = sorted(lid for lid in pins['levels'] if now.get(lid) != pins['levels'][lid])
     extra = sorted(set(now) - set(pins['levels']))
     n = sum(v['n'] for v in pins['levels'].values())
@@ -86,14 +94,40 @@ def main(argv):
         head = subprocess.run(['git', '-C', REPO, 'log', '-1', '--format=%h', '--', 'games/hamster-highway/core.js'], capture_output=True, text=True).stdout.strip()
         ver = re.search(r'Version (\d+(?:\.\d+)+)', core.decode()).group(1)
         data = {'from': f'core.js {ver} (sha256 {hashlib.sha256(core).hexdigest()[:12]}, last changed at {head})',
-                'by': 'pin_hamster_runs.py 1.0', 'kinds': OLD_KINDS, 'levels': measure()}
+                'by': 'pin_hamster_runs.py 1.1', 'kinds': OLD_KINDS, 'levels': measure()}
         with open(PINS, 'w', encoding='utf-8', newline='\n') as f:
             json.dump(data, f, indent=1)
             f.write('\n')
         print('wrote', os.path.relpath(PINS, REPO), data['from'], sum(v['n'] for v in data['levels'].values()), 'placements')
         return 0
+    if '--self-test' in argv:
+        return self_test()
     ok, what = pinned()
     print(('ok   ' if ok else 'FAIL ') + what)
+    return 0 if ok else 1
+
+
+def self_test():
+    """A scratch copy of the game with a 21st level (level 1's board as L11, unpinned) must still pass: only levels
+    1 to 20 are pinned and swept (step 14)."""
+    import shutil, tempfile
+    tmp = tempfile.mkdtemp()
+    try:
+        game = os.path.join(tmp, 'hamster-highway')
+        shutil.copytree(GAME, game)
+        lv = os.path.join(game, 'levels.js')
+        text = open(lv, encoding='utf-8').read()
+        end = text.rindex('\n];')
+        first = re.search(r"\n  \{\n    id: 'L1',.*?\n  \},", text, re.S).group(0)
+        text = text[:end] + first.replace("id: 'L1',", "id: 'L11',", 1) + text[end:]
+        open(lv, 'w', encoding='utf-8').write(text)
+        try:
+            ok, what = pinned(game)
+        except RuntimeError as e:
+            ok, what = False, 'the sweep crashed: ' + str(e)[-300:]
+    finally:
+        shutil.rmtree(tmp)
+    print(('ok   ' if ok else 'FAIL ') + 'with a 21st level added: ' + what)
     return 0 if ok else 1
 
 
