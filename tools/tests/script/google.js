@@ -101,6 +101,10 @@ class Range {
     if (this.row === 1) this.sheet.boldHeader = weight === 'bold';
     return this;
   }
+
+  // Looks only (P88): recorded by top-left cell.
+  setFontColor(colour) { this.sheet.looks[`${this.row},${this.col}`] = { ...this.sheet.looks[`${this.row},${this.col}`], colour }; return this; }
+  setFontSize(size) { this.sheet.looks[`${this.row},${this.col}`] = { ...this.sheet.looks[`${this.row},${this.col}`], size }; return this; }
 }
 
 class Sheet {
@@ -114,7 +118,19 @@ class Sheet {
     this.formats = {};
     this.pivots = [];
     this.slicers = [];
+    this.looks = {};
+    this.widths = {};
+    this.hiddenColumns = new Set();
+    this.conditional = [];
   }
+
+  clear() { this.cells = []; this.formats = {}; this.looks = {}; return this; }
+  clearConditionalFormatRules() { this.conditional = []; }
+  setConditionalFormatRules(rules) { this.conditional = rules.slice(); }
+  getConditionalFormatRules() { return this.conditional.slice(); }
+  setColumnWidth(col, width) { this.widths[col] = width; return this; }
+  setColumnWidths(col, n, width) { for (let i = 0; i < n; i++) this.widths[col + i] = width; return this; }
+  hideColumns(col, n = 1) { for (let i = 0; i < n; i++) this.hiddenColumns.add(col + i); }
 
   getMaxRows() { return this.maxRows; }
 
@@ -172,7 +188,8 @@ class Sheet {
 // ---- Pivot tables and the slicer (P88): recorded only ----
 
 class PivotGroup {
-  constructor(column) { Object.assign(this, { column, totals: null, order: 'asc' }); }
+  constructor(column) { Object.assign(this, { column, totals: null, order: 'asc', name: null }); }
+  setDisplayName(name) { this.name = name; return this; }
   showTotals(on) { this.totals = on; return this; }
   sortDescending() { this.order = 'desc'; return this; }
   sortAscending() { this.order = 'asc'; return this; }
@@ -211,6 +228,18 @@ class Slicer {
   setApplyToPivotTables(on) { this.toPivots = on; return this; }
   getRange() { return this.range; }
   remove() { this.sheet.slicers = this.sheet.slicers.filter((x) => x !== this); }
+}
+
+function newConditionalFormatRule() {
+  const r = { formula: null, ranges: [], background: null, font: null, bold: null };
+  return {
+    whenFormulaSatisfied(f) { r.formula = f; return this; },
+    setRanges(ranges) { r.ranges = ranges; return this; },
+    setBackground(c) { r.background = c; return this; },
+    setFontColor(c) { r.font = c; return this; },
+    setBold(b) { r.bold = b; return this; },
+    build() { if (!r.formula || !r.ranges.length) throw new Error('stand-in: rule without formula or range'); return { ...r }; },
+  };
 }
 
 function newFilterCriteria() {
@@ -283,6 +312,7 @@ function services({ spreadsheet = new Spreadsheet(), familyCode = 'test-code' } 
       SpreadsheetApp: {
         getActiveSpreadsheet: () => spreadsheet,
         newFilterCriteria,
+        newConditionalFormatRule,
         PivotTableSummarizeFunction: { COUNTA: 'COUNTA', SUM: 'SUM' },
       },
       PropertiesService: {
@@ -330,7 +360,7 @@ function knownMethods() {
     }
   };
   walk(g);
-  ['getContent', 'setMimeType', 'whenCellNotEmpty', 'build'].forEach((n) => names.add(n));
+  ['getContent', 'setMimeType', 'whenCellNotEmpty', 'build', 'whenFormulaSatisfied', 'setRanges', 'setBackground', 'setBold'].forEach((n) => names.add(n));
   return names;
 }
 

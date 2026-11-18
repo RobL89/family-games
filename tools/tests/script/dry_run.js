@@ -48,7 +48,7 @@ const hidden = b.ss.sheets.filter((t) => t.isSheetHidden()).map((t) => t.name);
 expect(same(hidden, ['Scores', 'Achievements']), `tabs hidden: ${hidden.join(', ') || 'none'}`);
 expect(same(after.Plays, [['played_at', 'day', 'name', 'game', 'minutes', 'device', 'play_id', 'profile_id', 'game_id', 'received_at']]), 'Plays tab holds only its header row');
 const summaryTab = b.ss.getSheetByName('Plays summary');
-expect(summaryTab.pivots.length === 5 && summaryTab.slicers.length === 1, `Plays summary: 5 tables (the others from column ${summaryTab.pivots[1].anchor.col}) and the Name filter`);
+expect(summaryTab.pivots.length === 3 && summaryTab.slicers.length === 1, `Plays summary: 3 tables (by day from column ${summaryTab.pivots[1].anchor.col}) and the Name filter`);
 const again = b.ss.dump();
 b.run('setup');
 expect(same(b.ss.dump(), again) && b.ss.copies.length === 1, 'setup run again changes nothing and makes no second backup');

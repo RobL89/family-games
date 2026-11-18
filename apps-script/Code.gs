@@ -19,7 +19,7 @@
  * 0.5.0: Plays tab: one row each time a child taps a game in the launcher, with the date and
  *        time, their name, the game, the minutes it was played and phone or PC (P88). They come
  *        in the device outbox with `sync`, like results. A "Plays summary" tab holds pivot tables
- *        (games by child, then by game, day, child and device) and a Name filter. The unused Scores and Achievements
+ *        (games by child, by day and by device) and a Name filter. The unused Scores and Achievements
  *        tabs are hidden, not deleted (P48, P52).
  */
 
@@ -149,7 +149,7 @@ function planSetup(ss) {
   // The summary of plays (P88), once the Plays tab is there (it may be added just above).
   if (!ss.getSheetByName(SUMMARY_TAB)) {
     steps.push({
-      label: 'Added tab ' + SUMMARY_TAB + ': plays and minutes for games by child, and by game, day, child and device, with a Name filter',
+      label: 'Added tab ' + SUMMARY_TAB + ': plays and minutes for games by child, by day and by device, with a Name filter',
       apply: function () { buildSummary(ss); },
     });
   }
@@ -703,29 +703,43 @@ function makeRoom(ss, s, adding) {
 /** Date and number formats for the Plays tab's columns, down to its last row. */
 function formatPlays(s) {
   const headers = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].map(String);
-  const formats = { played_at: 'dd/mm/yyyy hh:mm', day: 'ddd dd/mm/yyyy', minutes: '0.0', received_at: 'dd/mm/yyyy hh:mm' };
+  const formats = { played_at: 'ddd dd/mm/yyyy hh:mm', day: 'ddd dd/mm/yyyy', minutes: '0.0', received_at: 'dd/mm/yyyy hh:mm' };
   Object.keys(formats).forEach(function (h) {
     const col = headers.indexOf(h);
     if (col >= 0 && s.getMaxRows() > 1) s.getRange(2, col + 1, s.getMaxRows() - 1, 1).setNumberFormat(formats[h]);
   });
+  // Easy to read (18 Nov 2026): wide enough for a date and time or a game's name; the ids and the
+  // time the Sheet got the play are for the script, so they're hidden (P52), not removed.
+  const widths = { played_at: 150, day: 110, name: 100, game: 160, minutes: 70, device: 70 };
+  Object.keys(widths).forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0) s.setColumnWidth(col + 1, widths[h]);
+  });
+  ['play_id', 'profile_id', 'game_id', 'received_at'].forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0) s.hideColumns(col + 1);
+  });
 }
 
 /**
- * The Plays summary tab (P88): five pivot tables side by side, each with plays and minutes: games
- * by child (games down, children across), then by game, by day (newest first), by child and by
- * device. A Name filter above them filters all five. Replaces the tab's tables and filter if it
- * already has them.
+ * The Plays summary tab (P88): three pivot tables side by side, each with plays and minutes: games
+ * by child (games down, children across, each child's columns coloured apart), then by day
+ * (newest first) and by device. A Name filter above them filters all three. Rebuilding starts
+ * from an empty tab.
  */
 function buildSummary(ss) {
   const plays = ss.getSheetByName('Plays');
   if (!plays) throw new Error('missing_tab_Plays (run setup)');
   let s = ss.getSheetByName(SUMMARY_TAB);
-  if (s) {
+  if (s) { // start from an empty tab: no tables, filter, text, formats or colours left from before
     s.getPivotTables().forEach(function (t) { t.remove(); });
     s.getSlicers().forEach(function (x) { x.remove(); });
+    s.clear();
+    s.clearConditionalFormatRules();
   } else {
     s = ss.insertSheet(SUMMARY_TAB);
   }
+  formatPlays(plays);
   const headers = plays.getRange(1, 1, 1, plays.getLastColumn()).getValues()[0].map(String);
   const col = function (h) {
     const i = headers.indexOf(h);
@@ -735,45 +749,89 @@ function buildSummary(ss) {
   const source = plays.getRange(1, 1, plays.getMaxRows(), headers.length);
   const notEmpty = function () { return SpreadsheetApp.newFilterCriteria().whenCellNotEmpty().build(); };
 
-  s.getRange(1, 5, 2, 1).setValues([
-    ['Plays: one each time a game tile is tapped. Minutes: how long the game was on screen and played.'],
-    ['Pick children in the Name filter on the left. The tables update as plays arrive.'],
-  ]);
+  // The Name filter, top left. On the name column. "Not empty" is its only condition to start
+  // with: that is what keeps the empty rows below the plays out of the tables (a "not empty"
+  // filter on each table didn't, seen on a copy 18 Nov 2026). A null filter, tried first, dropped
+  // the column too, so Google put the filter on played_at with no names to pick.
   const filter = s.insertSlicer(source, 1, 1);
   filter.setTitle('Name');
-  // On the name column. Hiding empty rows is the only filter to start with; Rob picks names with
-  // Filter by values. This condition is also what keeps the empty rows below the plays out of the
-  // tables: a "not empty" filter on each table didn't (seen on a copy, 18 Nov 2026), so they have none. (A null filter, tried first, dropped the column too: Google put the
-  // filter on the first column, played_at, with no names to pick. Seen on a copy, 18 Nov 2026.)
   filter.setColumnFilterCriteria(col('name'), notEmpty());
   filter.setApplyToPivotTables(true);
 
-  // First, on the left: games down the side, children across the top, plays and minutes for
-  // each (Rob, 18 Nov 2026). It grows sideways as children are added, two columns each, so the
-  // other tables start after room for SUMMARY_SPARE_PLAYERS more players than there are now. If
-  // it ever runs into them, run `summary` to lay the tab out again.
+  // Layout (Rob, 18 Nov 2026). First, games by child: games down the side, each child across the
+  // top with their plays and minutes, a total for each game at the end. It grows sideways, two
+  // columns per child, so room is left for SUMMARY_SPARE_PLAYERS more players than there are now;
+  // if it ever runs into the next table, run `summary`. Then minutes by day (it grows downwards,
+  // one row a day) and by device. By game and by child are the first table's totals, so they
+  // aren't repeated.
   const players = Math.max(SUMMARY_MIN_PLAYERS, rows('Profiles').length + SUMMARY_SPARE_PLAYERS);
-  const gridWidth = 1 + (players + 1) * 2; // game names, then plays and minutes per child and in total
-  const next = 1 + gridWidth + 1;
+  const gridWidth = 1 + (players + 1) * 2;
+  const dayAt = gridWidth + 2;
+  const deviceAt = dayAt + 4;
   const tables = [
-    { at: 1, by: 'game', across: 'name', title: 'Games by child' },
-    { at: next, by: 'game', title: 'By game' },
-    { at: next + 4, by: 'day', title: 'By day', newestFirst: true },
-    { at: next + 8, by: 'name', title: 'By child' },
-    { at: next + 12, by: 'device', title: 'By device' },
+    { at: 1, by: 'game', label: 'Game', across: 'name', acrossLabel: 'Child', title: 'Games by child' },
+    { at: dayAt, by: 'day', label: 'Day', title: 'By day', newestFirst: true },
+    { at: deviceAt, by: 'device', label: 'Device', title: 'By device' },
   ];
   tables.forEach(function (t) {
-    s.getRange(4, t.at).setValues([[t.title]]).setFontWeight('bold');
+    s.getRange(4, t.at).setValues([[t.title]]).setFontWeight('bold').setFontSize(12);
     const table = s.getRange(5, t.at).createPivotTable(source);
     const group = table.addRowGroup(col(t.by));
+    group.setDisplayName(t.label);
     group.showTotals(true);
     if (t.newestFirst) group.sortDescending();
-    if (t.across) table.addColumnGroup(col(t.across)).showTotals(true);
+    if (t.across) table.addColumnGroup(col(t.across)).setDisplayName(t.acrossLabel).showTotals(true);
     table.addPivotValue(col('play_id'), SpreadsheetApp.PivotTableSummarizeFunction.COUNTA).setDisplayName('Plays');
     table.addPivotValue(col('minutes'), SpreadsheetApp.PivotTableSummarizeFunction.SUM).setDisplayName('Minutes');
   });
-  // The day table's dates, shown as dates.
-  s.getRange(6, next + 4, 400, 1).setNumberFormat('ddd dd/mm/yyyy');
+
+  // A short note beside the filter, in grey.
+  s.getRange(1, 5, 2, 1).setValues([
+    ['Plays: times a game was opened. Minutes: time it was on screen and played.'],
+    ['Pick children with the Name filter: Clear, tick names, OK. Select all to see everyone.'],
+  ]).setFontColor('#5F6368');
+
+  // Whole minutes and plays; dates as dates. Column widths to fit.
+  s.getRange(6, 1, 400, deviceAt + 2).setNumberFormat('0');
+  s.getRange(6, dayAt, 400, 1).setNumberFormat('ddd dd/mm/yyyy');
+  s.setColumnWidth(1, 160);
+  s.setColumnWidths(2, gridWidth - 1, 64);
+  s.setColumnWidth(gridWidth + 1, 30);
+  s.setColumnWidth(dayAt, 120);
+  s.setColumnWidths(dayAt + 1, 2, 64);
+  s.setColumnWidth(dayAt + 3, 30);
+  s.setColumnWidth(deviceAt, 90);
+  s.setColumnWidths(deviceAt + 1, 2, 64);
+
+  // Each child's pair of columns in games by child is told apart by colour: every other child
+  // shaded blue, the totals shaded yellow, and Plays in grey so Minutes stand out. These are
+  // conditional colours, so they follow the table as children and games are added: a column is
+  // coloured by the child named at the top of its pair (row 6), a row only if it has a game.
+  // The first rule that fits a cell is the one Google uses, so the order matters.
+  const grid = s.getRange(6, 2, 400, gridWidth - 1);
+  const pair = 'INDEX($6:$6,COLUMN()-MOD(COLUMN(),2))';
+  const body = 'ROW()>7,$A6<>""';
+  const plays_ = 'ISEVEN(COLUMN())';
+  const shaded = 'ISEVEN(INT((COLUMN()-2)/2))';
+  const header = 'ROW()>=6,ROW()<=7,' + pair + '<>""';
+  const rule = function (formula, background, font, bold) {
+    const r = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=AND(' + formula + ')').setRanges([grid]);
+    if (background) r.setBackground(background);
+    if (font) r.setFontColor(font);
+    if (bold) r.setBold(true);
+    return r.build();
+  };
+  const TOTAL = '#FEF3C7', SHADE = '#E3EDFB', GREY = '#80868B', HEAD = '#1A3E72', HEAD_ALT = '#3B6FB6', HEAD_TOTAL = '#B45309';
+  s.setConditionalFormatRules([
+    rule(header + ',' + pair + '="Grand Total"', HEAD_TOTAL, '#FFFFFF', true),
+    rule(header + ',' + shaded, HEAD, '#FFFFFF', true),
+    rule(header, HEAD_ALT, '#FFFFFF', true),
+    rule(body + ',' + pair + '="Grand Total",' + plays_, TOTAL, GREY),
+    rule(body + ',' + pair + '="Grand Total"', TOTAL, null, true),
+    rule(body + ',' + pair + '<>"",' + shaded + ',' + plays_, SHADE, GREY),
+    rule(body + ',' + pair + '<>"",' + shaded, SHADE),
+    rule(body + ',' + pair + '<>"",' + plays_, null, GREY),
+  ]);
   return s;
 }
 

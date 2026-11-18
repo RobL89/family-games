@@ -46,8 +46,8 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 | Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
 | Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
 | Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12) |
-| Plays (script 0.5.0) | played_at, day, name, game, minutes, device, play_id, profile_id, game_id, received_at | One row per tap on a game tile; minutes grow as it's played (P88) |
-| Plays summary (script 0.5.0) | (pivot tables) | Plays and minutes: games by child first, then by game, day, child and device, with a Name filter. Rebuilt by running `summary`, also if many players are added and the first table runs into the next (P88) |
+| Plays (script 0.5.0) | played_at, day, name, game, minutes, device, play_id, profile_id, game_id, received_at | One row per tap on a game tile; minutes grow as it's played. The last four columns are hidden (P88) |
+| Plays summary (script 0.5.0) | (pivot tables) | Plays and minutes: games by child first (each child's columns coloured apart), then by day and by device, with a Name filter. Rebuilt by running `summary`, also if many players are added and the first table runs into the next (P88) |
 
 The family code is kept in the script's settings, not the Sheet.
 
