@@ -1,4 +1,14 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.12 (18 Nov, step 13, the spike).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.13 (18 Nov, step 14).
+//
+// Changes at v1.13 (step 14, D-187, D-194, D-202, D-203): the park. The picker shows one of two scenes, the house and
+// garden (levels 1 to 20) or the park (levels 21 on, park.js), the same size. The house shows the zip-line's stop by
+// the treehouse (house.js RIDE), soft until the park's first level is open; a tap on it plays the ride (the hamster
+// hangs from its reel down the park's zip-line, ≈2 s), then the park opens; in the park a house button (#back) goes
+// back to the garden. Play opens the scene of the next level, but the park only once a park level has been tried, so
+// the first way in is always the ride. The spoon catapult: a hamster in the spoon flies along run()'s fling steps as one
+// arc (the boing pose), the spoon flicks; a hit is the bonk pose with a flump, then the drop. A backdrop is drawn at its
+// own height (art.js backHeight: the pond's 540), scaled only if the window differs. A help card on a taller window
+// sits in its middle. Test hooks: scene; ride(); back().
 //
 // Changes at v1.12 (D-200): once GO is pressed, the hamster counter and the golden-seed badge take the tray's place,
 // where the gadget slots were (they can't be used during a run), in the tray column beside the board or the tray row
@@ -71,8 +81,9 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
-import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
+import { CELL, INK, SUN, CORAL, LOOP, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
+import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt, opens } from './progress.js';
 import { CARDS, CAPTION, CARD_CSS, cardArt, cardFor } from './cards.js';
@@ -100,6 +111,7 @@ const S = {
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
   vx: 0, pan: null, edge: 0,   // the window's place along a wide board (board units), a swipe, a drag at its edge
   card: null, help: false,     // the help card showing (its kind), and help's "?" marks on (D-170)
+  scene: 'house', riding: false,   // the picker's scene, house or park (D-202), and the ride to the park playing
 };
 
 // ---------------------------------------------------------------- saving (D-147)
@@ -124,14 +136,37 @@ function isOpen(i) {
   return opens(IDS, S.progress, i);
 }
 
+// The park's levels (D-187), and its first one's index; a level's scene.
+const inPark = (i) => LEVELS[i].room === 'park';
+const P0 = LEVELS.findIndex((d) => d.room === 'park');
+// The scene the picker opens on (D-202): the next level's, but the park only once one of its levels has been tried, so
+// the first way in is the ride from the treehouse.
+function sceneFor(i) {
+  return inPark(i) && LEVELS.some((d, j) => inPark(j) && (S.progress.tries[d.id] || S.progress.done[d.id])) ? 'park' : 'house';
+}
+// Where the hamster token sits in a scene: its level's stop, or the zip-line's stop on the house when its level is in the park.
+function tokenXY(scene) {
+  if (scene === 'park') return PARK_SPOTS[LEVELS[S.at].spot];
+  return inPark(S.at) ? RIDE : SPOTS[LEVELS[S.at].spot];
+}
+function tokenArt([x, y]) {
+  return place(g(hamster('walk1'), '', ' class="bob"'), x, y - 26, 0.42);
+}
+
 function renderHouse() {
-  const levels = LEVELS.map((d, i) => ({ spot: d.spot, open: isOpen(i), done: !!S.progress.done[d.id], seed: !!S.progress.seeds[d.id] }));
-  $('house-svg').innerHTML = houseScene({ levels, current: S.at }) + `<g id="token">${tokenAt(LEVELS[S.at].spot)}</g>`;
+  const all = LEVELS.map((d, i) => ({ spot: d.spot, i, open: isOpen(i), done: !!S.progress.done[d.id], seed: !!S.progress.seeds[d.id] }));
+  const park = S.scene === 'park';
+  const ride = P0 >= 0 ? { open: isOpen(P0), current: inPark(S.at), n: P0 } : null;
+  const scene = park ? parkScene({ levels: all.filter((l) => inPark(l.i)), current: S.at })
+    : houseScene({ levels: all.filter((l) => !inPark(l.i)), current: S.at, ride });
+  $('house-svg').innerHTML = scene + `<g id="token"${S.riding ? ' visibility="hidden"' : ''}>${tokenArt(tokenXY(S.scene))}</g><g id="ride"></g>`;
+  $('house-svg').setAttribute('aria-label', park ? 'The park: pick a level' : 'The house and garden: pick a level');
+  $('back').hidden = !park;
   $('seeds').innerHTML = LEVELS.map((d) => `<svg viewBox="-14 -18 28 36"${S.progress.seeds[d.id] ? '' : ' opacity="0.3"'}>${seedArt()}</svg>`).join('');
   $('sound').innerHTML = soundIcon();
   $('sound').hidden = S.soundLocked;
   sizeHouse();
-  const [x] = SPOTS[LEVELS[S.at].spot];
+  const [x] = S.riding ? ZIP_TOP : tokenXY(S.scene);
   const scroll = $('house-scroll');
   const k = scroll.clientHeight / HOUSE_H;
   scroll.scrollLeft = Math.max(0, x * k - scroll.clientWidth / 2);
@@ -200,7 +235,8 @@ function showCard(kind, first) {
   S.drag = null;
   if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }
   renderAll();
-  layer('card').innerHTML = rect(-20, -20, BW + 180, BH + 160, 'rgba(27,20,70,0.5)', 0, 0, 'none') + cardArt(kind);
+  const mid = BW === 720 && BH === 420 ? cardArt(kind) : g(cardArt(kind), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);   // in the middle of a taller window
+  layer('card').innerHTML = rect(-20, -20, BW + 180, BH + 160, 'rgba(27,20,70,0.5)', 0, 0, 'none') + mid;
   play('pick');
 }
 function closeCard() {
@@ -266,7 +302,8 @@ function renderLevel() {
   const lv = S.level;
   const def = S.def;
   // a backdrop is drawn 420 tall: on a taller board, drawn narrower and scaled up to fill it
-  let bg = BH === 420 ? backdrop(def.back, lv.cols * CELL) : g(backdrop(def.back, (lv.cols * CELL * 420) / BH), `scale(${BH / 420})`);
+  const bh = backHeight(def.back);   // the pond's is drawn 540 tall (D-203), the house's 420
+  let bg = BH === bh ? backdrop(def.back, lv.cols * CELL) : g(backdrop(def.back, (lv.cols * CELL * bh) / BH), `scale(${BH / bh})`);
   let duckDone = false;
   for (let r = 0; r < lv.height; r++) {
     for (let c = 0; c < lv.cols; c++) {
@@ -794,6 +831,22 @@ function segmentsOf(st, offs = []) {
       i = j;
       continue;
     }
+    if (b.act === 'fling') {   // flung by the spoon (D-194): one arc over the fling steps, 2 rows up at its top
+      let j = i;
+      while (j + 1 < st.length && st[j + 1].act === 'fling') j += 1;
+      const last = st[j];
+      let seed = false;
+      for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
+      const p1 = feet(last.c, last.r);
+      add({ kind: 'fling', p0, p1, ctrl: { x: (p0.x + p1.x) / 2, y: Math.min(p0.y, p1.y) - 4 * CELL }, end: last.t1, seed, carry: !!b.carry, dir: b.dir || 1,
+        sound: 'boing', flick: key(a.c, a.r) });
+      i = j;
+      continue;
+    }
+    if (b.act === 'hit') {   // bonk on the way: a moment's squash where it is, then the drop
+      add({ kind: 'hit', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1, sound: 'flump', flick: a.act === 'fling' ? null : key(a.c, a.r) });
+      continue;
+    }
     if (b.act === 'walk' || b.act === 'climb') {
       const p1 = feet(b.c, b.r);
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
@@ -969,6 +1022,7 @@ function moveWalker(R, w) {
       w.seg = k;
       if (s.sound) play(s.sound);
       if (s.mallow) squishMallow(s.mallow);
+      if (s.flick) flickSpoon(s.flick);   // the spoon flicks as it throws
     }
     const f = Math.max(0, Math.min(1, (local - s.t0) / s.dur));
     let x;
@@ -983,6 +1037,15 @@ function moveWalker(R, w) {
       x = a.x + (b.x - a.x) * u;
       y = a.y + (b.y - a.y) * u - 2.5 * Math.abs(Math.sin(local * 14));
       rot = s.dir * Math.max(-24, Math.min(24, (Math.atan2(b.y - a.y, Math.abs(b.x - a.x)) * 180) / Math.PI * 0.5));
+    } else if (s.kind === 'fling') {
+      const v = 1 - f;
+      x = v * v * s.p0.x + 2 * v * f * s.ctrl.x + f * f * s.p1.x;
+      y = v * v * s.p0.y + 2 * v * f * s.ctrl.y + f * f * s.p1.y;
+      pose = 'boing';
+    } else if (s.kind === 'hit') {
+      x = s.p0.x + 3 * Math.sin(f * Math.PI * 4);
+      y = s.p0.y;
+      pose = 'bonk';
     } else if (s.kind === 'bounce') {
       const v = 1 - f;
       x = v * v * s.p0.x + 2 * v * f * s.ctrl.x + f * f * s.p1.x;
@@ -1013,7 +1076,7 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
-    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
+    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
     setAt(w, x, y, rot, SC, 1, s.dir);
     return;
@@ -1112,7 +1175,7 @@ function party() {
   layer('pfx').innerHTML = s;
   layer('walkers').innerHTML = '';
   renderTray();
-  const nextOk = !S.test && S.li + 1 < LEVELS.length;
+  const nextOk = !S.test && S.li + 1 < LEVELS.length && inPark(S.li + 1) === inPark(S.li);   // into the park only by the ride (D-202)
   $('party').querySelector('[data-act="next"]').hidden = !nextOk;
   $('party').hidden = false;
 }
@@ -1122,7 +1185,7 @@ function partyAct(act) {
   $('party').hidden = true;
   layer('fx').innerHTML = '';
   layer('pfx').innerHTML = '';
-  if (act === 'house') { if (!S.test) S.at = Math.min(S.li + 1, LEVELS.length - 1); S.mode = 'build'; S.run = null; show('house'); return; }
+  if (act === 'house') { if (!S.test) S.at = Math.min(S.li + 1, LEVELS.length - 1); S.scene = inPark(S.li) ? 'park' : 'house'; S.mode = 'build'; S.run = null; show('house'); return; }
   if (act === 'next') { openLevel(S.li + 1); return; }
   S.mode = 'build';
   S.run = null;
@@ -1169,6 +1232,10 @@ function takeSeed() {
   const hs = $('hud-seed');
   if (hs) bump(hs.parentNode, 'tiny-hop');
 }
+function flickSpoon(k) {
+  const el = board.querySelector(`[data-placed="${k}"] .spoon`);
+  if (el) bump(el, 'wobble', 500);
+}
 function squishMallow(k) {
   const el = board.querySelector(`[data-placed="${k}"] .mallow`);
   if (el) bump(el, 'squish', 500);
@@ -1196,6 +1263,9 @@ function poke(el) {
 
 // ---------------------------------------------------------------- the house (D-140)
 function onHouseTap(e) {
+  if (S.riding) return;
+  const rd = e.target.closest('[data-ride]');
+  if (rd) { startRide(); return; }
   const m = e.target.closest('[data-level]');
   if (m) {
     const i = Number(m.dataset.level);
@@ -1211,8 +1281,8 @@ function onHouseTap(e) {
 
 function goTo(i) {
   const tok = $('token');
-  const from = SPOTS[LEVELS[S.at].spot];
-  const to = SPOTS[LEVELS[i].spot];
+  const from = tokenXY(S.scene);
+  const to = S.scene === 'park' ? PARK_SPOTS[LEVELS[i].spot] : SPOTS[LEVELS[i].spot];
   play('hop');
   if (tok && (from[0] !== to[0] || from[1] !== to[1])) {
     tok.style.transition = `transform ${0.55 / S.speed}s ease-in-out`;
@@ -1221,13 +1291,42 @@ function goTo(i) {
   setTimeout(() => openLevel(i), (tok ? 650 : 0) / S.speed);
 }
 
+// The ride to the park (D-202): the park opens with the hamster at the top of its zip-line, hanging from its reel; it
+// slides down to the post by the pond in RIDE_S seconds, then stands at the next park level's stop (the first, if
+// the hamster's level is still in the garden).
+const RIDE_S = 1.8;
+function startRide() {
+  play('wheee');
+  if (!inPark(S.at)) S.at = P0;
+  S.scene = 'park';
+  S.riding = true;
+  renderHouse();
+  const rideG = $('ride');
+  rideG.innerHTML = `<g style="transition: transform ${RIDE_S / S.speed}s ease-in">${rideArt()}</g>`;
+  rideG.setAttribute('transform', `translate(${ZIP_TOP[0]} ${ZIP_TOP[1]})`);
+  const mover = rideG.firstElementChild;
+  requestAnimationFrame(() => requestAnimationFrame(() => { mover.style.transform = `translate(${ZIP_FOOT[0] - ZIP_TOP[0]}px, ${ZIP_FOOT[1] - ZIP_TOP[1]}px)`; }));
+  setTimeout(() => {
+    S.riding = false;
+    play('hop');
+    renderHouse();
+  }, (RIDE_S * 1000 + 150) / S.speed);
+}
+function backToGarden() {
+  if (S.riding) return;
+  play('tap');
+  S.scene = 'house';
+  renderHouse();
+}
+
 // ---------------------------------------------------------------- start
 const cardCss = document.createElement('style');
 cardCss.textContent = CARD_CSS;   // the help cards' looping pictures (cards.js), all classes hc-
 document.head.appendChild(cardCss);
 $('title-art').innerHTML = titleArt();
 $('title-art').addEventListener('pointerdown', (e) => { const pk = e.target.closest('[data-poke]'); if (pk) poke(pk); });
-$('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); show('house'); });
+$('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); S.scene = sceneFor(S.at); show('house'); });
+$('back').addEventListener('click', backToGarden);
 $('house-svg').addEventListener('pointerdown', onHouseTap);
 $('sound').addEventListener('click', () => { setMuted(!isMuted()); $('sound').innerHTML = soundIcon(); play('tap'); });
 $('turn').addEventListener('click', () => { S.turnDismissed = true; $('turn').hidden = true; });
@@ -1247,13 +1346,13 @@ linkUp((start, fg) => {
   S.progress = unpack(IDS, S.linked ? start.state : readDevice(), CARDS);
   S.at = nextAt(IDS, S.progress);
   S.ready = true;
-  if (S.playAsked) { play('go'); show('house'); }
+  if (S.playAsked) { play('go'); S.scene = sceneFor(S.at); show('house'); }
 });
 
 // The test hook: reads the game and finds where to tap; the browser test taps like a child would.
 window.__test = {
   state: () => ({
-    screen: S.screen, mode: S.mode, level: S.level && S.level.id, placed: { ...S.placed }, selected: S.selected,
+    screen: S.screen, scene: S.scene, mode: S.mode, level: S.level && S.level.id, placed: { ...S.placed }, selected: S.selected,
     left: S.level ? left(S.level, S.placed) : null, progress: JSON.parse(JSON.stringify(S.progress)), layout: S.layout,
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
     outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,

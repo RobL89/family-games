@@ -1,4 +1,15 @@
-// Hamster Highway's levels. Version 1.6. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.7. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.7 (step 14, D-184, D-185, D-187, D-194): levels 21 and 22, the park's duck pond, 9 rows tall (`room`
+// 'park': game.js shows them in the park, park.js's stops; backdrop 'pond', D-203). Checked by solve_hamster_highway.py
+// 1.6 (every placement):
+//   L11 Over the pond: the spoon catapult's first level, one road: the spoon at the near bank's edge (4,4) flings them
+//       over the 3-wide pond to the far bank, a row lower, and on home; a square further back, they land short and
+//       splash among the ducks; the seed over the far bank, by the spare ramp (10,5 or 11,5).
+//   L11b Two ways round, its twin: "pick your road" (D-184), so no `more`, but `roads`: 2, the roads home the solver
+//       must find at least (kinds of gadget used): low, a bridge to the island and the spoon from its end; high, the
+//       bouncer up onto the willow branch, along it and the floater down to the far bank; the seed on the branch. The
+//       spoon from the near bank bonks on the branch and drops into the pond.
 //
 // Changes at v1.6 (step 10, D-166, D-170): the twins of levels 6 to 10, so 20 levels in pairs. As v1.5's, each needs
 // one more of a gadget its first level has (`more`), with its own seed and spare; checked by solve_hamster_highway.py
@@ -337,6 +348,36 @@ export const LEVELS = [
       '.....###..##............',
       'S....###..##...##.......',
       '##.#########.#.#########',
+    ],
+  },
+  {
+    id: 'L11', name: 'Over the pond', room: 'park', spot: 'pond', back: 'pond', new: 'catapult',
+    tray: { catapult: 1, ramp: 1 }, spare: 'ramp',
+    rows: [
+      '................',
+      '................',
+      '................',
+      '................',
+      'S..........*....',
+      '#####..........G',
+      '#####...########',
+      '#####...########',
+      '#####...########',
+    ],
+  },
+  {
+    id: 'L11b', name: 'Two ways round', room: 'park', spot: 'pond2', back: 'pond', new: null, twin: 'L11', roads: 2,
+    tray: { bridge: 1, catapult: 1, bouncer: 1, floater: 1 },
+    rows: [
+      '....................',
+      '........*...........',
+      '....########........',
+      '....................',
+      'S...................',
+      '#####..............G',
+      '#####.###...########',
+      '#####.###...########',
+      '#####.###...########',
     ],
   },
 ];

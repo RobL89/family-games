@@ -1,4 +1,13 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.9 (17 Nov, step 10b).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.10 (18 Nov, step 14).
+
+Changes at v1.10 (step 14, D-187, D-194, D-202): the park. The house shows the garden's 20 levels and, until level 20 is
+done, a soft place for the zip-line's stop (3 places still to come); after level 20 there is no Next (the park is
+reached by the ride); back in the house its stop glows, numbered 21; a tap plays the ride and the park opens with
+the hamster at 21; its house button goes back to the garden, the ride again to the park. Level 21 (9 rows, the pond
+backdrop): the catapult's card pops up; the spoon at the bank's edge and the spare ramp: a party with the seed,
+a boing as they fly; Next to its twin, which takes the high road with the seed; no Next after it; the house button
+goes back to the park; saved, and after a reload Play opens the park. place() reads the window's width (960 on a
+9-row board).
 
 Changes at v1.9 (step 10b, D-177 (1) and (3), ER-013): worn sticks one under the other go down bottom first, the order
 Rob found refused: on level 7 by mouse (the lower layer, then the upper), checked placed before the run, and in level
@@ -132,6 +141,7 @@ import subprocess  # noqa: E402
 IDS = json.loads(subprocess.run(['node', '--input-type=module', '-e', 'const { LEVELS } = await import(process.argv[1]); console.log(JSON.stringify(LEVELS.map((d) => d.id)))',
                                  'file://' + os.path.join(REPO, 'games', 'hamster-highway', 'levels.js')], capture_output=True, text=True, check=True).stdout)
 # each twin's answer then its spare for the seed (Claude's, by hand; test_hamster_highway_core.py 1.9's SOL)
+HOUSE_IDS = IDS[:IDS.index('L10b') + 1]   # the house and garden's levels, 1 to 20; the rest are the park's (D-187)
 TWIN = {
     'L1b': [('bridge', 3, 4), ('bridge', 9, 6), ('bridge', 7, 4)],
     'L2b': [('bridge', 2, 6), ('ramp', 4, 5), ('ramp', 7, 4), ('ramp', 5, 4)],
@@ -164,11 +174,12 @@ def cell(pg, c, r, touch=False):
 def place(pg, kind, c, r, touch=False):
     if state(pg)['selected'] != kind:   # a second tap on the picked gadget would put it down again
         tap(pg, f'[data-slot="{kind}"]', touch)
+    bw = float(pg.evaluate('document.querySelector("#window rect").getAttribute("width")'))   # the window: 720, or 960 on a 9-row board
     while True:   # on a wide board, the arrows slide the window until the square shows (6 squares a tap)
         x = (c + 0.5) * 60 - pg.evaluate('__test.view()')['x']
-        if 40 < x < 680:
+        if 40 < x < bw - 40:
             break
-        tap(pg, '[data-btn="panR"]' if x >= 680 else '[data-btn="panL"]', touch)
+        tap(pg, '[data-btn="panR"]' if x >= bw - 40 else '[data-btn="panL"]', touch)
         pg.wait_for_timeout(450)
     cell(pg, c, r, touch)
 
@@ -275,7 +286,8 @@ with sync_playwright() as pw:
     n_markers = pg.locator('[data-level]').count()
     locked = pg.locator('[data-level].locked').count()
     future = pg.locator('[data-future]').count()
-    check(n_markers == len(IDS) and locked == len(IDS) - 1 and future == 2, f'PC: the house shows every level ({len(IDS)}), all but the first locked, and the plan\'s 2 places still to come (D-151) ({n_markers}, {locked}, {future})')
+    check(n_markers == len(HOUSE_IDS) and locked == len(HOUSE_IDS) - 1 and future == 3 and pg.locator('[data-ride]').count() == 0,
+          f'PC: the house shows the garden\'s levels ({len(HOUSE_IDS)}), all but the first locked, the plan\'s 2 places still to come and the zip-line\'s stop, soft (D-151, D-202) ({n_markers}, {locked}, {future})')
     check(pg.evaluate('document.getElementById("house-scroll").scrollWidth > document.getElementById("house-scroll").clientWidth'),
           'PC: the house is wider than the screen and scrolls sideways inside itself (D-140)')
     pg.screenshot(path=os.path.join(OUT, 'pc-2-house.png'))
@@ -583,17 +595,55 @@ with sync_playwright() as pw:
     # level 10's twin, the second finale (D-170 (c)), the last of 20
     play_twin(pg, 'L10b', cards)
     pg.screenshot(path=os.path.join(OUT, 'pc-19-level10b-party.png'))
-    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the last level, level 10\'s twin, there is no Next')
+    check(not pg.locator('#party [data-act="next"]').is_visible(), 'PC: after the garden\'s last level, level 10\'s twin, there is no Next: the park is reached by the ride (D-202)')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     pg.wait_for_timeout(300)
     pg.screenshot(path=os.path.join(OUT, 'pc-10-house-all.png'))
+    s = state(pg)
+    check(s['scene'] == 'house' and pg.locator('[data-ride]').count() == 1 and pg.locator('[data-ride] text').text_content() == '21' and pg.locator('[data-ride] .glow').count() == 1
+          and pg.locator('[data-level]').count() == len(HOUSE_IDS) + 1 and pg.locator('#back').is_hidden(),
+          f'PC: back in the house after level 20, the zip-line\'s stop by the treehouse glows, numbered 21; no house button ({s["scene"]})')
+    tap(pg, '[data-ride]')
+    pg.wait_for_timeout(120)
+    check(state(pg)['scene'] == 'park' and pg.locator('#ride g').count() > 0, 'PC: a tap on it plays the ride: the park opens with the hamster on the zip-line (D-202)')
+    pg.screenshot(path=os.path.join(OUT, 'pc-20-ride.png'))
+    pg.wait_for_function('!document.querySelector("#ride g")', timeout=5000)
+    s = state(pg)
+    check(s['scene'] == 'park' and s['at'] == IDS.index('L11') and 'wheee' in s['heard'] and pg.locator('#back').is_visible() and pg.locator('[data-level]').count() == len(IDS) - len(HOUSE_IDS),
+          f'PC: the ride ends in the park, the hamster at level 21\'s stop by the pond, with a house button; the park shows its levels ({s["at"]}, {s["heard"][-3:]})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-21-park.png'))
+    tap(pg, '#back')
+    check(state(pg)['scene'] == 'house' and pg.locator('[data-ride]').count() == 1, 'PC: the house button goes back to the garden; the ride takes them to the park again')
+    tap(pg, '[data-ride]')
+    pg.wait_for_function('__test.state().scene === "park" && !document.querySelector("#ride g")', timeout=5000)
+    tap(pg, f'[data-level="{IDS.index("L11")}"]')
+    cards.append(opened(pg, 'L11'))
+    check(cards[-1] == 'catapult' and pg.locator('#bg [data-back="pond"]').count() == 1 and float(pg.evaluate('document.querySelector("#window rect").getAttribute("height")')) == 540,
+          f'PC: level 21 opens on the pond backdrop, 9 rows tall, and the catapult\'s card pops up (D-194, D-203) ({cards[-1]})')
+    for kind, c, r in (('catapult', 4, 4), ('ramp', 10, 5)):
+        place(pg, kind, c, r)
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(s['home'] == 5 and s['seedTaken'] and 'boing' in s['heard'], f'PC: level 21 with the spoon at the bank\'s edge and the spare ramp: all five flung over and home with the seed ({s["heard"][-6:]})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-22-level21-party.png'))
+    tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, 'L11b'))
+    for kind, c, r in (('bouncer', 3, 4), ('floater', 5, 1)):
+        place(pg, kind, c, r)
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and not pg.locator('#party [data-act="next"]').is_visible(),
+          f'PC: level 22, its twin: no card; the high road (the bouncer onto the willow branch, the floater down): home with the seed; no Next after the last level ({cards[-1]})')
+    tap(pg, '#party [data-act="house"]')
+    pg.wait_for_function('__test.state().screen === "house"')
+    check(state(pg)['scene'] == 'park', 'PC: the house button after a park level goes back to the park')
     sizes_ok(pg, 'PC 1366x712', errors, asked)
     ids = IDS
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
-            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}},
-            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift')}}
-    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None],
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1},
+            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult')}}
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
     check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
@@ -601,8 +651,8 @@ with sync_playwright() as pw:
     tap(pg, '#play')
     pg.wait_for_function('__test.state().screen === "house"')
     s = state(pg)
-    check(s['progress'] == {k: want[k] for k in ('done', 'seeds', 'tries', 'cards')} and pg.locator('[data-level].locked').count() == 0,
-          f'PC on its own: after a reload, the house comes back as it was left: every level open, the seeds found ({s["progress"]})')
+    check(s['progress'] == {k: want[k] for k in ('done', 'seeds', 'tries', 'cards')} and pg.locator('[data-level].locked').count() == 0 and s['scene'] == 'park',
+          f'PC on its own: after a reload, Play opens the park, where the hamster was; every level open, the seeds found ({s["progress"]})')
     pg.evaluate(f"localStorage.setItem('{ENTRY}', '{{oops')")
     pg.reload()
     pg.wait_for_function('window.__test !== undefined && __test.state().ready')

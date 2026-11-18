@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.19 · 18 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.20 · 18 Nov 2026 · P-034 (Kids Games Development) · 22 levels (levels 1 to 10, each with its twin, and the park's first pair), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.20 (step 14, D-187, D-194, D-202 to D-204): the park and the spoon catapult. Once level 20 is done, a stop by the treehouse glows; a tap plays the zip-line ride over the fence into the park (its own picker, the same size as the house's, with a house button back to the garden). Levels 21 and 22 at the duck pond, 9 rows tall, on a willow backdrop: the spoon catapult flings each hamster 4 squares on in an arc, the way it is walking (anything in the way: bonk and drop), with its help card; level 22 has two roads, low by the island or high along the willow branch. Not yet released.
 
 Changes at v1.19 (D-200): once GO is pressed, the hamster counter and the golden-seed badge sit in the tray, where the gadgets were, never over the board or the running hamsters; while building, neither shows.
 
@@ -80,10 +82,11 @@ all made in code (D-010).
 | `core.js` | The rules: the board (7 to 9 rows, 12 to 24 wide), where gadgets fit (the zip-line's two ends too), each hamster's trip, either way, and all five together, tick by tick, with any teacup lift (one or two cups) or see-saw (`run()`). Pure |
 | `levels.js` | The levels, as text boards with their trays. Data only |
 | `art.js` | The drawings, as SVG text. Pure |
-| `house.js` | The house-and-garden picker and the title card, as SVG text. Pure |
+| `house.js` | The house-and-garden picker (levels 1 to 20, and the zip-line's stop to the park) and the title card, as SVG text. Pure |
+| `park.js` | The park picker (levels 21 on), its stops and the ride's hamster, as SVG text. Pure; imports only `art.js` and `house.js` |
 | `sound.js` | Sounds made in the browser (helpers copied from Rocket Lander's) |
 | `progress.js` | What is saved: levels done, seeds found, GO presses until each level is first done, help cards seen. Pure |
-| `cards.js` | The 8 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
+| `cards.js` | The 9 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
 | `game.js` | The screens, taps and animation (the window the level's own size); saving and the wrapper link |
 | `index.html`, `style.css` | The page |
 
@@ -106,6 +109,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.20 | 2026-11-18 | The park, reached by the zip-line ride; levels 21 and 22 at the duck pond; the spoon catapult and its card (step 14) |
 | 1.19 | 2026-11-18 | Once GO is pressed, the hamster counter and seed badge take the tray's place, never over the board (D-200) |
 | 1.18 | 2026-11-18 | The hamster counter shows once GO is pressed, not while building (D-197) |
 | 1.17 | 2026-11-17 | The spike: 9-row boards, walking both ways, the signpost, the left ramp and the zip-line in the rules and screens, on a test board only (D-185, D-190, D-196) |

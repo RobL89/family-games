@@ -1,5 +1,10 @@
 """Hamster Highway's level solver: tries every way to put a level's tray down and says what each gives.
-Version 1.5 (17 Nov, step 13). Not part of the close: a design tool, kept so each level's claims can be re-run.
+Version 1.6 (18 Nov, step 14). Not part of the close: a design tool, kept so each level's claims can be re-run.
+
+Changes at v1.6 (step 14, D-184, D-194): the spoon catapult is tried like the other gadgets. Every search counts the
+roads home: placements that get home grouped by the gadget kinds the first hamster uses (D-184: a twin of levels
+21 to 30 is "pick your road"). A level with `roads` (a twin of 21 to 30, which needs no `more`) must show at least that
+many. Levels 1 to 20's results are unchanged (the road count is only added to what is printed).
 
 Changes at v1.5 (step 13, the spike: D-185, D-190, D-196): the left ramp and the signpost are tried like the other
 gadgets, and a zip-line as a pair (every high end, then every low end it reaches); squares are ordered by the board's
@@ -73,7 +78,7 @@ if (explore) {
     return { ...d, rows, tray, spare: kind };
   });
 }
-const ORDER = ['bridge', 'stick', 'ramp', 'rampL', 'bouncer', 'floater', 'signpost', 'tube', 'zip'];
+const ORDER = ['bridge', 'stick', 'ramp', 'rampL', 'bouncer', 'floater', 'catapult', 'signpost', 'tube', 'zip'];
 const ANSWERS = JSON.parse(process.argv[5] || '{}');
 // all five home: one hamster's walk() first (quick); run() only where something wears out or moves
 function home(lv, placed) {
@@ -84,11 +89,25 @@ function home(lv, placed) {
   const r = core.run(lv, placed);
   return { home: r.hamsters.every((h) => h.outcome === 'home'), seed: r.hamsters.some((h) => h.seed) };
 }
+// A road home: the gadget kinds the first hamster uses, sorted (a bridge or worn stick it walks over, a ramp it climbs, a
+// bouncer, catapult, floater, tube, signpost or zip-line it steps into); gadgets put down but never used don't count.
+function used(lv, placed) {
+  const kinds = new Set();
+  for (const st of core.walk(lv, placed).steps) {
+    const r = Math.round(st.r);
+    const here = (placed[core.key(st.c, r)] || '').split(':')[0];
+    const under = placed[core.key(st.c, r + 1)];
+    if (here && here !== 'peg') kinds.add(here);
+    if (under === 'bridge' || under === 'stick' || (st.act === 'climb' && (under === 'ramp' || under === 'rampL'))) kinds.add(under);
+  }
+  return [...kinds].sort().join('+');
+}
 function count(lv, tray) {
   const kinds = [];
   for (const k of ORDER) for (let i = 0; i < (tray[k] || 0); i++) kinds.push(k);
   let homes = 0, seed = 0, tried = 0;
   const firstSeed = [];
+  const roads = new Map();   // each road home (the gadget kinds the first hamster uses): how many placements
   // every set of gadgets up to the tray: tubes fit anywhere, so they go in square order (each set once);
   // the others go in every order (a bridge may need another beside it first), each set counted once
   const seen = new Set();
@@ -100,7 +119,12 @@ function count(lv, tray) {
       seen.add(sig);
       tried++;
       const r = home(lv, placed);
-      if (r.home) { homes++; if (r.seed) { seed++; if (firstSeed.length < 3) firstSeed.push({ ...placed }); } }
+      if (r.home) {
+        homes++;
+        const road = used(lv, placed);
+        roads.set(road, (roads.get(road) || 0) + 1);
+        if (r.seed) { seed++; if (firstSeed.length < 3) firstSeed.push({ ...placed }); }
+      }
       return;
     }
     const k = kinds[i];
@@ -126,7 +150,7 @@ function count(lv, tray) {
     }
   };
   go(0, {}, -1);
-  return { tried, home: homes, seed, firstSeed };
+  return { tried, home: homes, seed, firstSeed, roads: roads.size, roadList: [...roads.entries()].sort((x, y) => y[1] - x[1]) };
 }
 // Near the answer: every way of moving one or two of its gadgets (anywhere each fits, or back to the tray).
 function near(lv, answer, extra) {
@@ -229,7 +253,7 @@ for (const d of LEVELS) {
   const noMore = d.more ? count(lv, { ...lv.tray, [d.more]: base }) : null;
   const less = d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
   const fewer = lv.tray.stick ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
-  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff });
+  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff, roads: d.roads || null });
 }
 console.log(JSON.stringify(out));
 '''
@@ -291,12 +315,14 @@ for L in json.loads(r.stdout):
         continue
     a, n, s, f, m = L['all'], L['noNew'], L['less'], L['fewer'], L['noMore']
     ok = (a['home'] > 0 and (n is None or n['home'] == 0) and a['seed'] > 0 and (s is None or s['seed'] == 0) and (f is None or f['home'] == 0)
-          and (m is None or m['home'] == 0) and (n is not None or m is not None) and all(h == 0 for _, h in L['partsOff']))
+          and (m is None or m['home'] == 0) and (n is not None or m is not None or L['roads']) and all(h == 0 for _, h in L['partsOff'])
+          and (not L['roads'] or a['roads'] >= L['roads']))
     bad += not ok
     print(f"{'ok  ' if ok else 'FAIL'} {L['id']}: {a['tried']} ways to put the tray down; {a['home']} get home, {a['seed']} with the seed; "
-          + (f"without the {L['new']}: {n['home']} home" if n else f"with {L['base']} {L['more']} (its first level's need): {m['home']} home")
+          + (f"without the {L['new']}: {n['home']} home" if n else f"with {L['base']} {L['more']} (its first level's need): {m['home']} home" if m else 'pick your road')
           + ''.join(f"; without the {k}: {h} home" for k, h in L['partsOff'])
           + (f"; with one {L['spare']} fewer: {s['seed']} with the seed" if s else '; no spare named')
           + (f"; with one stick fewer: {f['home']} home" if f else '')
+          + f"; {a['roads']} roads home" + (f" (at least {L['roads']} wanted)" if L['roads'] else '') + f" {a['roadList'][:6]}"
           + f"; first seed solutions {a['firstSeed']}")
 sys.exit(1 if bad else 0)

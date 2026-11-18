@@ -214,6 +214,10 @@ const SOL = {
   L8b: { solve: [['bridge', 3, 5], ['bridge', 15, 6], ['ramp', 5, 4], ['ramp', 10, 3]], seed: [['ramp', 14, 5]] },
   L9b: { solve: [['bridge', 3, 5], ['ramp', 5, 4], ['floater', 13, 1], ['ramp', 16, 5]], seed: [['bridge', 15, 2]] },
   L10b: { solve: [['bridge', 2, 6], ['bouncer', 4, 5], ['floater', 6, 2], ['tube', 9, 5], ['tube', 9, 4], ['tube', 9, 3], ['ramp', 11, 3], ['ramp', 20, 1]], seed: [['ramp', 15, 4]] },
+  // the park's duck pond (step 14): Claude's answers, by hand, 18 Nov; L11b's answer is its low road, its seed the high
+  // road's gadgets (the bouncer comes first on the way, so they take the high road when both are down)
+  L11: { solve: [['catapult', 4, 4]], seed: [['ramp', 10, 5]] },
+  L11b: { solve: [['bridge', 5, 5], ['catapult', 8, 5]], seed: [['bouncer', 3, 4], ['floater', 5, 1]] },
 };
 // every order of each level's answer and spare: how many orders put a gadget where it doesn't fit (D-177 (1), ER-013),
 // apart from a bridge or stick with nothing beside it yet to hold it up (side: D-139's build out from the edge)
@@ -354,7 +358,8 @@ for name, frag in (('short', 'must be 7 to 9 rows of 12'), ('narrow', 'must be 7
 # levels.js
 lv = {x['id']: x for x in out['levels']}
 ORDER = [x for n in range(1, 11) for x in (f'L{n}', f'L{n}b')]
-check(list(lv) == ORDER, f'levels.js holds 20 levels: levels 1 to 10, each with its twin straight after it, played in pairs (D-166) ({list(lv)})')
+PARK = ['L11', 'L11b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
+check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond (D-184) ({list(lv)})')
 check([lv[i]['seed'] for i in ORDER if i.endswith('b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1], [8, 2], [5, 1], [15, 4], [16, 2], [15, 3]], 'each twin has its golden seed where levels.js says')
 check([i for i in ORDER if 'stick' in lv[i]['tray']] == ['L6', 'L6b', 'L7', 'L7b'], 'worn sticks on the 4 levels at the bath and the loft only (D-154, D-170 (b))')
 check(lv['L10b']['parts'] == lv['L10']['parts'] and lv['L10b']['cols'] == 24 and lv['L10b']['back'] == 'treehouse',
@@ -371,9 +376,9 @@ for t in TWINS:
 check(lv['L1']['seed'] == [8, 5] and lv['L2']['seed'] == [5, 4] and lv['L3']['seed'] == [10, 3] and lv['L4']['seed'] == [7, 3] and lv['L5']['seed'] == [7, 2]
       and lv['L6']['seed'] == [7, 3] and lv['L7']['seed'] == [5, 1] and lv['L8']['seed'] == [3, 3] and lv['L9']['seed'] == [16, 1] and lv['L10']['seed'] == [20, 0],
       'each level has its golden seed where levels.js says')
-check([lv[i]['new'] for i in lv if not lv[i]['twin']] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
+check([lv[i]['new'] for i in ORDER if not lv[i]['twin']] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
       'each level brings in one new thing, in the agreed order; 6 and 7 the worn stick, 8 the see-saw, 9 the teacup lift; 10, the finale, nothing new (D-136, D-145, D-153, D-156, D-157)')
-check([lv[i]['spare'] for i in lv] == [None, 'bridge', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'tube', 'tube', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'ramp', 'ramp'],
+check([lv[i]['spare'] for i in ORDER] == [None, 'bridge', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'tube', 'tube', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'ramp', 'bridge', 'bridge', 'ramp', 'ramp'],
       'every level but level 1 names the spare gadget its seed needs, the twins too')
 check([(t, lv[t]['tray'], lv[t]['more']) for t in TWINS] == [('L1b', {'bridge': 3}, 'bridge'), ('L2b', {'bridge': 1, 'ramp': 3}, 'ramp'),
       ('L3b', {'bridge': 1, 'bouncer': 2, 'ramp': 1}, 'bouncer'), ('L4b', {'bridge': 3, 'floater': 1}, 'bridge'), ('L5b', {'bridge': 1, 'tube': 5}, 'tube'),
@@ -569,13 +574,19 @@ const [houseUrl, levelsUrl] = process.argv.slice(1);
 const H = await import(houseUrl);
 const { LEVELS } = await import(levelsUrl);
 // levels 1 to 5's places, then every PLAN place in its own order, built or not, with its bends (built ones sit at PLAN's place, atPlan)
-const pts = LEVELS.filter((d) => !(H.PLAN || []).some((p) => p.name === d.spot)).map((d) => H.SPOTS[d.spot]);
+const HOUSE = LEVELS.filter((d) => d.room !== 'park');   // the park's levels are park.js's (D-187)
+const pts = HOUSE.filter((d) => !(H.PLAN || []).some((p) => p.name === d.spot)).map((d) => H.SPOTS[d.spot]);
 for (const p of H.PLAN || []) pts.push(...(p.via || []), p.at);
 // the path the house draws now (levels there are, and on to the next place): it must run along that route's start
-const drawn = H.housePath ? H.housePath({ levels: LEVELS }) : null;
-const atPlan = LEVELS.filter((d) => (H.PLAN || []).some((p) => p.name === d.spot)).map((d) => [d.id, JSON.stringify(H.SPOTS[d.spot]) === JSON.stringify(H.PLAN.find((p) => p.name === d.spot).at), H.PLAN.find((p) => p.name === d.spot).level]);
-const stops = LEVELS.map((d) => [d.id, H.SPOTS[d.spot]]);
-console.log(JSON.stringify({ pts, drawn, atPlan, stops, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
+const drawn = H.housePath ? H.housePath({ levels: HOUSE }) : null;
+const atPlan = HOUSE.filter((d) => (H.PLAN || []).some((p) => p.name === d.spot)).map((d) => [d.id, JSON.stringify(H.SPOTS[d.spot]) === JSON.stringify(H.PLAN.find((p) => p.name === d.spot).at), H.PLAN.find((p) => p.name === d.spot).level]);
+const stops = HOUSE.map((d) => [d.id, H.SPOTS[d.spot]]);
+// the ride's stop (D-202): the route on to it, and the drawn path with it
+const ridePts = [...pts, H.RIDE];
+const rideDrawn = H.housePath({ levels: HOUSE, ride: { open: true } });
+const scene = (open) => H.houseScene({ levels: HOUSE.map((d) => ({ spot: d.spot, open: true, done: true, seed: false })), current: 19, ride: { open, current: open, n: 20 } });
+const noRide = H.houseScene({ levels: HOUSE.map((d) => ({ spot: d.spot, open: true, done: true, seed: false })), current: 19 });
+console.log(JSON.stringify({ ridePts, rideDrawn, ride: H.RIDE, rideOpen: scene(true), rideShut: scene(false), noRide, pts, drawn, atPlan, stops, plan: (H.PLAN || []).map((p) => [p.name, p.level]), future: H.FUTURE, planAt: (H.PLAN || []).map((p) => p.at) }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', HJS, 'file://' + os.path.join(GAME, 'house.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
@@ -619,6 +630,61 @@ else:
     xs = [(i, xy) for i, xy in st.items() if xy]
     near = min(((a[1][0] - b[1][0]) ** 2 + (a[1][1] - b[1][1]) ** 2) ** 0.5 for k, a in enumerate(xs) for b in xs[k + 1:])
     check(len(xs) == len(st) and near >= 112, f'every level has its stop, and no two stops\' tap circles (56 across the middle) overlap: the closest are {near:.0f} apart (112 or more)')
+    # the ride's stop by the treehouse (D-202): the route on to it never crosses itself; the drawn path ends there; its tap
+    # circle clear of the treehouse's two stops; open, a numbered stop with data-ride (21) and the line; shut, a soft place
+    rsegs = list(zip(h['ridePts'], h['ridePts'][1:]))
+    rbad = [(i, j) for i in range(len(rsegs)) for j in range(i + 2, len(rsegs)) if meet(*rsegs[i], *rsegs[j])]
+    check(not rbad and h['rideDrawn'][-1] == h['ride'] and h['rideDrawn'][:-1] == h['pts'],
+          f'the house\'s route on to the zip-line\'s stop by the treehouse never crosses itself, and the dotted path runs on to it once the ride is shown ({rbad or len(rsegs)} segments)')
+    rnear = min(((h['ride'][0] - xy[0]) ** 2 + (h['ride'][1] - xy[1]) ** 2) ** 0.5 for xy in (st['L10'], st['L10b']))
+    check(rnear >= 112 and 56 <= h['ride'][0] <= 2420 - 40 and 56 <= h['ride'][1], f'the zip-line\'s stop sits in the picture, its tap circle clear of the treehouse\'s stops ({rnear:.0f} apart, 112 or more)')
+    ro, rs = h['rideOpen'], h['rideShut']
+    check('data-ride="1"' in ro and '>21</text>' in ro and 'data-ride' not in rs and 'data-future="ride"' in rs and 'data-ride' not in h['noRide'] and 'data-future="ride"' not in h['noRide'],
+          'the zip-line\'s stop: open, numbered 21 and tappable (data-ride); shut, a soft place; with no ride given, not drawn (levels 1 to 20 as before)')
+
+# the park (D-187, D-202; park.js 1.0): its places in route order from the zip-line's foot, with their bends: the whole
+# route never crosses itself or runs back along itself; ten places, two a place; the park's levels sit at their place
+# (pond, pond2 for 21 and 22), no two tap circles overlap, every stop in the picture; the drawn path runs from the
+# zip-line's foot through the levels there are and on to the next place; a place with no level is soft; the picture is
+# the house's size; the ride's hamster hangs from its reel at the top of the line.
+PKJS = r"""
+const [parkUrl, levelsUrl, houseUrl] = process.argv.slice(1);
+const K = await import(parkUrl);
+const H = await import(houseUrl);
+const { LEVELS } = await import(levelsUrl);
+const park = LEVELS.map((d, i) => ({ ...d, i })).filter((d) => d.room === 'park');
+const pts = [K.ZIP_FOOT];
+for (const p of K.PLAN) pts.push(...(p.via || []), p.at);
+const lv = park.map((d) => ({ spot: d.spot, i: d.i, open: true, done: false, seed: false }));
+const scene = K.parkScene({ levels: lv, current: park[0].i });
+console.log(JSON.stringify({ pts, places: K.PLAN.map((p) => p.at), names: K.PLAN.map((p) => p.name), stops: park.map((d) => [d.id, d.spot, K.SPOTS[d.spot], d.i]), drawn: K.parkPath({ levels: lv }),
+  size: [K.PARK_W, K.PARK_H, H.HOUSE_W, H.HOUSE_H], soft: (scene.match(/data-future="p\d+"/g) || []).length, marks: (scene.match(/data-level="\d+"/g) || []),
+  ride: K.rideArt().length, zip: [K.ZIP_TOP, K.ZIP_FOOT], closed: (scene.match(/<g\b/g) || []).length === (scene.match(/<\/g>/g) || []).length }));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', PKJS, 'file://' + os.path.join(GAME, 'park.js'), 'file://' + os.path.join(GAME, 'levels.js'),
+                    'file://' + os.path.join(GAME, 'house.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr[-1500:])
+    check(False, 'node ran park.js')
+else:
+    k = json.loads(r.stdout)
+    psegs = list(zip(k['pts'], k['pts'][1:]))
+    pbad = [(i, j) for i in range(len(psegs)) for j in range(i + 1, len(psegs))
+            if (j == i + 1 and (orient(*psegs[i], psegs[j][1]) == 0 and on(*psegs[i], psegs[j][1]) or orient(*psegs[j], psegs[i][0]) == 0 and on(*psegs[j], psegs[i][0])))
+            or (j > i + 1 and meet(*psegs[i], *psegs[j]))]
+    check(not pbad, f'the park\'s route, from the zip-line\'s foot, never crosses itself or runs back along itself (D-151\'s rule) ({pbad or len(psegs)} segments)')
+    check(k['names'] == ['pond', 'pond2', 'frame', 'frame2', 'picnic', 'picnic2', 'playground', 'playground2', 'fair', 'fair2'],
+          f'the park\'s ten places in route order, two a place: the pond, the climbing frame, the picnic, the playground, the fair (D-187, D-193) ({k["names"]})')
+    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21)] and all(xy for _, _, xy, _ in k['stops']),
+          f'levels 21 and 22 at the pond\'s two stops, numbered 21 and 22 ({k["stops"]})')
+    places = k['places']
+    pnear = min(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for i, a in enumerate(places) for b in places[i + 1:])
+    check(len(places) == 10 and all(56 <= x <= 2420 - 56 and 56 <= y <= 900 - 56 for x, y in places) and pnear >= 112,
+          f'every park stop inside the picture, no two stops\' tap circles overlapping: the closest are {pnear:.0f} apart (112 or more)')
+    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 2,
+          f'the park draws its dotted path from the zip-line\'s foot through levels 21 and 22 and on to the next place, the frame\'s bend first ({k["drawn"]})')
+    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 8 and k['marks'] == ['data-level="20"', 'data-level="21"'] and k['closed'] and k['ride'] > 0,
+          f'the park is the house\'s size; 8 places with no level yet are soft; 21 and 22 are stops (data-level 20 and 21); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -649,6 +715,7 @@ const SOL = {
   L1b: [['bridge', 3, 4], ['bridge', 9, 6], ['bridge', 7, 4]], L2b: [['bridge', 2, 6], ['ramp', 4, 5], ['ramp', 7, 4], ['ramp', 5, 4]],
   L3b: [['bridge', 1, 6], ['bouncer', 2, 5], ['bouncer', 6, 5], ['ramp', 10, 4]], L4b: [['bridge', 2, 2], ['bridge', 5, 2], ['floater', 6, 1], ['bridge', 8, 2]],
   L5b: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2], ['tube', 7, 1]],
+  L11: [['catapult', 4, 4], ['ramp', 10, 5]], L11b: [['bridge', 5, 5], ['catapult', 8, 5], ['bouncer', 3, 4], ['floater', 5, 1]],
 };
 for (const d of LEVELS) {
   if (d.new === 'stick' || (d.tray || {}).stick || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
@@ -716,9 +783,9 @@ if r.returncode != 0:
 else:
     o = json.loads(r.stdout)
     check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4, 'turn': 2, 'zip': 1, 'fling': 1, 'hit': 1}, 6, 3],
-          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156), turn 2 (at a signpost, D-190), zip 1 (a square across, twice walking speed, D-196); the cup stops 6, moves a row in 3 ({o["consts"]})')
+          f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156), turn 2 (at a signpost, D-190), zip 1 (a square across, twice walking speed, D-196), fling 1 and hit 1 (the catapult, D-204); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
-    check(not bad and len(o['same']) == 28, f'timed model: on the 18 sketch boards and levels 1 to 5 and their twins with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
+    check(not bad and len(o['same']) == 30, f'timed model: on the 18 sketch boards, levels 1 to 5 and their twins and levels 21 and 22 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
     L = o['lift']
     check([h['outcome'] for h in L] == ['home'] * 5, f'teacup lift: all five get home ({[h["outcome"] for h in L]})')
@@ -930,7 +997,7 @@ console.log(JSON.stringify({
   art: Object.fromEntries(K.CARDS.map((k) => [k, K.cardArt(k)])),
   badge: Object.fromEntries(K.CARDS.map((k) => [k, K.badgeArt(k)])),
   levels: LEVELS.map((d) => [d.id, d.new, K.cardFor(d)]),
-  odd: [K.cardFor({ new: null }), K.cardFor({ new: 'catapult' }), K.cardFor({})],
+  odd: [K.cardFor({ new: null }), K.cardFor({ new: 'signpost' }), K.cardFor({})],
   again: K.cardArt('bridge') === K.cardArt('bridge'),
   poses: Object.fromEntries(['walk1', 'walk2', 'float', 'carry1', 'carry2'].map((p) => [p, A.hamster(p)])),
 }));
@@ -946,9 +1013,9 @@ else:
         check(False, 'node ran cards.js')
     else:
         k = json.loads(r.stdout)
-        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift']
-        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift'},
-              f'cards: 8, one for each of levels 1 to 20\'s six gadgets and the two parts, in the order they come in (D-167); the left ramp, '
+        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult']   # (nine now: the catapult's, step 14)
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult'},
+              f'cards: 9, one for each of levels 1 to 20\'s six gadgets and two parts, in the order they come in (D-167), then the catapult\'s (level 21, D-186); the left ramp, '
               f'signpost and zip-line get theirs with their levels (steps 15 and 18) ({k["cards"]})')
         words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
         check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
@@ -956,8 +1023,8 @@ else:
               f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
         check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
         lv = k['levels']
-        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None],
-              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing ({lv})')
+        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult'],
+              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult ({lv})')
         check([card for i, _, card in lv if i.endswith('b')] == [None] * sum(1 for i, _, _ in lv if i.endswith('b')) and any(i.endswith('b') for i, _, _ in lv),
               f'cards: the twins bring in nothing, so no card pops up for them (D-166) ({[x for x in lv if x[0].endswith("b")]})')
         check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
@@ -1326,6 +1393,36 @@ check(E('fits') == [True, False, True, False, False, False, 'catapult', 1],
       f'the spoon goes on ground or a bridge, not in the air, on a worn stick or on a gadget\'s square; it holds nobody; counted in the tray ({E("fits")})')
 check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): all five flung over and home, a square a tick ({E("run")})')
 check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
+
+# levels 21 and 22 at the duck pond (step 14, D-184): their roads, each by run() (all five), worked out by hand (18 Nov)
+PJS2 = r"""
+const [coreUrl, levelsUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const { LEVELS } = await import(levelsUrl);
+const five = (id, placed) => { const d = LEVELS.find((x) => x.id === id); const r = core.run(core.parseLevel(d), placed);
+  const bad = r.hamsters.find((h) => h.outcome !== 'home'); return [bad ? bad.outcome : 'home', r.hamsters.some((h) => h.seed)]; };
+const d = Object.fromEntries(LEVELS.filter((x) => x.room === 'park').map((x) => [x.id, { room: x.room, spot: x.spot, back: x.back, new: x.new, twin: x.twin || null,
+  more: x.more || null, roads: x.roads || null, tray: x.tray, h: x.rows.length, w: x.rows[0].length, spare: x.spare || null }]));
+console.log(JSON.stringify({ d,
+  l11: [five('L11', { '4,4': 'catapult' }), five('L11', { '3,4': 'catapult' }), five('L11', {}), five('L11', { '4,4': 'catapult', '10,5': 'ramp' }),
+        five('L11', { '4,4': 'catapult', '11,5': 'ramp' })],
+  l11b: [five('L11b', { '5,5': 'bridge', '8,5': 'catapult' }), five('L11b', { '3,4': 'bouncer', '5,1': 'floater' }), five('L11b', { '3,4': 'bouncer' }),
+         five('L11b', { '4,4': 'catapult' }), five('L11b', { '5,5': 'bridge' }), five('L11b', { '5,5': 'bridge', '7,5': 'catapult' })] }));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', PJS2, 'file://' + os.path.join(GAME, 'core.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout, r.stderr[-1500:])
+    check(False, 'node ran levels 21 and 22\'s checks')
+else:
+    q = json.loads(r.stdout)
+    check(q['d'].get('L11') == {'room': 'park', 'spot': 'pond', 'back': 'pond', 'new': 'catapult', 'twin': None, 'more': None, 'roads': None, 'tray': {'catapult': 1, 'ramp': 1}, 'h': 9, 'w': 16, 'spare': 'ramp'}
+          and q['d'].get('L11b') == {'room': 'park', 'spot': 'pond2', 'back': 'pond', 'new': None, 'twin': 'L11', 'more': None, 'roads': 2, 'tray': {'bridge': 1, 'catapult': 1, 'bouncer': 1, 'floater': 1}, 'h': 9, 'w': 20, 'spare': None},
+          f'levels 21 and 22: in the park at the pond\'s two stops on its backdrop, 9 rows (D-185), 16 and 20 wide; 21 brings in the catapult with a spare ramp; 22 its twin, "pick your road" with 2 roads (D-184), no `more` ({q["d"]})')
+    check(q['l11'] == [['home', False], ['splash', False], ['splash', False], ['home', True], ['home', True]],
+          f'level 21, by hand: the spoon at the bank\'s edge (4,4) gets all five home; a square further back they land short and splash; with nothing, a splash; the spare ramp at 10,5 or 11,5 takes the seed ({q["l11"]})')
+    check(q['l11b'] == [['home', False], ['home', True], ['bonk', True], ['splash', False], ['splash', False], ['splash', False]],
+          f'level 22, by hand: the low road (a bridge to the island, the spoon at its end) gets home without the seed; the high road (the bouncer onto the willow branch, the '
+          f'floater down) home with it; the bouncer alone, a funny fall off the branch\'s end (the seed taken on the way); the spoon from the near bank bonks on the branch and drops into the pond; the bridge alone, or the spoon a square back on the island, a splash ({q["l11b"]})')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

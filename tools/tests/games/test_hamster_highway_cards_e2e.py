@@ -1,4 +1,8 @@
-"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.1 (16 Nov, step 9).
+"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.2 (18 Nov, step 14).
+
+Changes at v1.2 (step 14, D-194, D-202): the format 1 run opens the garden's 20 levels by their stops; then, with all 20
+done and the eight cards seen, the ride to the park and level 21, where the catapult's card pops up, moves and shows
+its caption, in the middle of the 9-row board's window; seen, it is kept with the other eight.
 
 Changes at v1.1 (step 9, D-166): levels are opened by their id, their place read from levels.js's order, as the twins
 now sit straight after their first levels; with format 1 progress (the ten first levels done), every level is opened
@@ -77,6 +81,7 @@ addEventListener('message', (e) => {
 NO_SPEECH = """(() => { window.__spoke = 0; try { if (window.speechSynthesis) speechSynthesis.speak = () => { window.__spoke++; }; } catch (e) {} })()"""
 CAPTION = {'bridge': 'Bridges cross the gaps', 'lift': 'Hop in and ride up!'}
 EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift']
+HOUSE_IDS = IDS[:IDS.index('L10b') + 1]   # the garden's levels; the park's are opened through the ride (D-202)
 
 from playwright.sync_api import sync_playwright  # noqa: E402
 
@@ -215,7 +220,7 @@ with sync_playwright() as pw:
     to_house(pg)
     check(state(pg)['progress'] == {'done': {i: True for i in ids}, 'seeds': {}, 'tries': {'L1': 2}, 'cards': {}}, 'PC: a format 1 entry is read, with no cards seen')
     shown = []
-    for lid in IDS:
+    for lid in HOUSE_IDS:
         open_level(pg, lid)
         s = state(pg)
         shown.append(s['card'])
@@ -249,8 +254,8 @@ with sync_playwright() as pw:
             close_card(pg)
         tap(pg, '[data-btn="house"]')
         pg.wait_for_function('__test.state().screen === "house"')
-    check([x for lid, x in zip(IDS, shown) if not lid.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', None, 'seesaw', 'lift', None]
-          and all(x is None for lid, x in zip(IDS, shown) if lid.endswith('b')) and len(shown) == len(IDS),
+    check([x for lid, x in zip(HOUSE_IDS, shown) if not lid.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', None, 'seesaw', 'lift', None]
+          and all(x is None for lid, x in zip(HOUSE_IDS, shown) if lid.endswith('b')) and len(shown) == len(HOUSE_IDS),
           f'PC: each card pops up once, on the first level that brings it in; none on level 7 or 10, nor on any twin ({shown})')
     k = kept(pg)
     check(k and k.get('v') == 2 and k.get('cards') == {c: True for c in EIGHT} and k.get('done') == {i: True for i in ids} and k.get('tries') == {'L1': 2},
@@ -258,6 +263,27 @@ with sync_playwright() as pw:
     open_level(pg, 'L3')
     check(state(pg)['card'] is None, 'PC: after the reload and every card, level 3 opens with no card')
     sizes_ok(pg, 'PC, format 1 progress', errors, asked)
+    # ---- the park (step 14): all 20 done and the eight cards seen; the ride, then level 21's card, the catapult's
+    pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 2, done: {json.dumps({i: True for i in HOUSE_IDS})}, seeds: {{}}, tries: {{}}, cards: {json.dumps({c: True for c in EIGHT})}}}))")
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    to_house(pg)
+    check(state(pg)['scene'] == 'house', 'PC: with the garden done and the park not yet tried, Play opens the house, where the ride starts (D-202)')
+    pg.locator('[data-ride]').first.scroll_into_view_if_needed()
+    tap(pg, '[data-ride]')
+    pg.wait_for_function('__test.state().scene === "park" && !document.querySelector("#ride g")', timeout=8000)
+    open_level(pg, 'L11')
+    s = state(pg)
+    pg.wait_for_timeout(1500)
+    pg.screenshot(path=os.path.join(OUT, 'pc-card-catapult.png'))
+    cb = pg.locator('#card [data-card]').bounding_box()
+    wb = pg.locator('#window rect').bounding_box()
+    mid = abs((cb['x'] + cb['width'] / 2) - (wb['x'] + wb['width'] / 2)) < 12 and abs((cb['y'] + cb['height'] / 2) - (wb['y'] + wb['height'] / 2)) < 12
+    check(s['card'] == 'catapult' and card_moving(pg) > 0 and pg.locator('#card text', has_text=s['caption']).count() == 1 and mid,
+          f'PC: level 21 pops up the catapult\'s card, moving, with its caption "{s["caption"]}", in the middle of the 9-row window ({s["card"]}, {cb}, {wb})')
+    close_card(pg)
+    k = kept(pg)
+    check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult']}, f'PC: the catapult\'s card is kept as seen with the other eight ({k and k.get("cards")})')
     ctx.close()
 
     # ---- in the stand-in wrapper

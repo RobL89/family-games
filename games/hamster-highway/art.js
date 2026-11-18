@@ -1,4 +1,10 @@
-// Hamster Highway's drawings, as SVG text. Version 1.6.
+// Hamster Highway's drawings, as SVG text. Version 1.7.
+//
+// Changes at v1.7 (step 14, D-189 A, D-202, D-203): the spoon catapult (catapultArt, look A: a wooden spoon resting on a
+// pink cotton reel, the step 12 sketch's cat_a), and the duck pond's backdrop for levels 21 and 22 (pondArt, look A: a
+// willow whose fronds sway, bulrushes, lily pads, a frog and a dragonfly), drawn 540 tall, as the park's backdrops are
+// (backHeight() says which height a backdrop is drawn at); copied by script from tools/tests/games/
+// mock_hamster_pond_backdrops.js 0.2, the mock-up Rob picked.
 //
 // Changes at v1.6 (step 13, the spike: D-189, D-190, D-196): the left ramp (the ramp turned round), the twig signpost
 // (look A: a round sun-yellow sign with a turn-round arrow on a twig), the zip-line in the tray (a hook, a line, a peg)
@@ -189,11 +195,21 @@ export function gadget(kind, count = 1) {
   if (kind === 'stick') return stickArt(0);
   if (kind === 'rampL') return g(gadget('ramp'), 'translate(100 0) scale(-1 1)');   // the ramp turned round (D-190)
   if (kind === 'signpost') return signpostArt();
+  if (kind === 'catapult') return g(catapultArt(), '', ' class="spoon"');   // game.js flicks it as it throws
   if (kind === 'zip') {   // in the tray: a hook top left, the line, a peg bottom right, a reel on the line
     return path('M 18 8 L 18 18 q 0 6 -5 6 q -5 0 -5 -5', 'none', 3.5, '#7A8597') + line(14, 24, 84, 78, INK, 3) + zipPeg(84, 100, 0.8)
       + g(reel(50, 46), 'rotate(38 50 46) translate(50 46) scale(0.7) translate(-50 -46)');
   }
   return tube(TUBE_ICON, '#A8ECFF', '#6CCBE8');
+}
+
+// The spoon catapult (D-189 A, D-194): a wooden spoon resting on a pink cotton reel, its bowl at the left, where a
+// hamster steps in; the step 12 sketch's look A (tools/tests/games/sketch_hamster_park.py 0.2, cat_a), in a 100 square.
+export function catapultArt() {
+  return rect(44, 92, 38, 8, '#E2A867', 2, 2.4) + rect(48, 70, 30, 24, PINK, 0, 2.4) + rect(44, 64, 38, 8, '#E2A867', 2, 2.4)
+    + [76, 82, 88].map((y) => line(50, y, 76, y, '#E77D98', 1.6)).join('')
+    + line(30, 84, 98, 44, INK, 13) + line(30, 84, 98, 44, '#D9A066', 7)
+    + ellipse(18, 88, 20, 10, '#D9A066', 3, INK, -24) + ellipse(18, 87, 13, 5, '#E9BC86', 0, INK, -24);
 }
 
 // The twig signpost (D-189 A, D-190): a round sun-yellow sign with a turn-round arrow, on a twig with a leaf.
@@ -297,7 +313,11 @@ function jar(x, h, col, lid = '#E8505B') {
 
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
+// The height a backdrop is drawn at: the park's are 540 (9 rows, D-185), the house's 420.
+export const backHeight = (name) => (name === 'pond' ? 540 : H);
+
 export function backdrop(name, w = W) {
+  if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -329,6 +349,59 @@ function vegArt(w) {
     + circle(sx, 140, 20, '#F6E7C8', 2.4) + circle(sx - 7, 136, 2.6, INK, 0) + circle(sx + 7, 136, 2.6, INK, 0) + path(`M ${sx - 7} 146 q 7 6 14 0`, 'none', 2)
     + path(`M ${sx - 18} 126 L ${sx + 18} 126 L ${sx + 12} 104 L ${sx - 12} 104 Z`, '#D9774B', 2.4)
     + rect(sx - 24, 176, 48, 60, '#9FD3F5', 8, 2.4) + rect(sx - 10, 190, 12, 12, '#FF9BB3', 2, 1.6), '', ' class="poke" data-poke="scarecrow"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+// The duck pond (levels 21 and 22, D-203), w wide and 540 tall: look A of the step 14 mock-ups, copied unchanged from
+// tools/tests/games/mock_hamster_pond_backdrops.js 0.2 (its pondA, renamed).
+const PH = 540;
+
+function pondSky(w, sunX) {
+  let s = ['#BFE6FA', '#CDEBFA', '#DBF1FB', '#E7F6FC'].map((c, i) => rect(0, i * 96, w, 98, c, 0, 0)).join('');
+  let d = g(circle(sunX, 74, 34, SUN, 3) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+    const a = (i * Math.PI) / 4;
+    return line(sunX + 42 * Math.cos(a), 74 + 42 * Math.sin(a), sunX + 54 * Math.cos(a), 74 + 54 * Math.sin(a), '#F0A51C', 4);
+  }).join('') + circle(sunX - 10, 68, 3.2, INK, 0) + circle(sunX + 10, 68, 3.2, INK, 0) + path(`M ${sunX - 10} 84 q 10 8 20 0`, 'none', 2.6), '', ' class="poke" data-poke="sun"');
+  for (let x = sunX + 260; x < w; x += 440) {
+    d += g(g(ellipse(x, 66, 48, 20, WHITE, 2.4, '#B9D6E6') + ellipse(x + 30, 56, 30, 18, WHITE, 0) + ellipse(x - 26, 58, 24, 14, WHITE, 0), '', ' class="cloud"'), '', ' class="poke" data-poke="cloud"');
+  }
+  return [s, d];
+}
+
+function bulrush(x, y, k = 1) {
+  return path(`M ${x} ${y} q ${-4 * k} -50 ${2 * k} -96`, 'none', 3, '#3E9B4F') + rect(x - 4 + 2 * k, y - 120, 9, 30, '#8B5A3C', 4, 2)
+    + path(`M ${x + 3} ${y} q 14 -30 20 -60`, 'none', 3, '#4FAE5A');
+}
+
+function lily(x, y, flower) {
+  return path(`M ${x} ${y} m -26 0 a 26 9 0 1 0 52 0 a 26 9 0 1 0 -52 0 M ${x} ${y} l 22 -5`, LEAF, 2.2)
+    + (flower ? g(ellipse(x - 6, y - 8, 6, 10, PINK, 1.6, INK, -30) + ellipse(x + 6, y - 8, 6, 10, PINK, 1.6, INK, 30) + ellipse(x, y - 10, 6, 11, '#FFC2D3', 1.6), '', ' class="poke" data-poke="lily"') : '');
+}
+
+// A: a willow and reeds. The far bank low across the back, a big willow on the right whose fronds sway, bulrushes,
+// lily pads with a frog, a dragonfly.
+function pondArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky;
+  d += path(`M 0 400 Q ${w * 0.3} 370 ${w * 0.55} 392 T ${w} 384 L ${w} ${PH} L 0 ${PH} Z`, '#CDEFB9', 0, 'none');
+  d += path(`M 0 400 Q ${w * 0.3} 370 ${w * 0.55} 392 T ${w} 384`, 'none', 3, '#8FC97A');
+  d += rect(0, 448, w, PH - 448, '#BFE8F8', 0, 0) + line(0, 448, w, 448, '#8FCBE3', 3);
+  for (let x = 40; x < w; x += 150) d += path(`M ${x} 480 q 15 -6 30 0 t 30 0`, 'none', 2, '#8FCBE3');
+  for (let x = 120; x < w - 300; x += 330) d += g(circle(x, 378, 40, '#9ED98A', 2.4, '#6FB35A') + circle(x + 44, 386, 30, '#A9DE94', 2.4, '#6FB35A'), '', '');
+  const tx = w - 200;
+  let willow = path(`M ${tx - 34} 452 Q ${tx - 20} 330 ${tx - 26} 200 L ${tx + 26} 200 Q ${tx + 20} 330 ${tx + 34} 452 Z`, '#8B5A3C', 3);
+  willow += [[-110, 170, 90], [0, 130, 110], [110, 170, 90]].map(([dx, y, r]) => circle(tx + dx, y, r, '#8FD46E', 3)).join('');
+  let fronds = '';
+  for (let x = tx - 190; x <= tx + 190; x += 18) fronds += path(`M ${x} ${190 + Math.abs(x - tx) * 0.2} q 8 90 -2 ${190 - Math.abs(x - tx) * 0.25}`, 'none', 3, '#62C46F');
+  willow += g(fronds, '', ' class="poke swing" data-poke="willow"');
+  d += willow;
+  d += [60, 74, 92].map((x, i) => bulrush(x, 452, i % 2 ? -1 : 1)).join('') + [w - 420, w - 404].map((x, i) => bulrush(x, 452, i ? 1 : -1)).join('');
+  d += lily(260, 470, true) + lily(w * 0.5, 492, false) + lily(w * 0.5 + 90, 476, true);
+  d += g(ellipse(w * 0.5, 480, 14, 10, '#7DC95E', 2.2) + circle(w * 0.5 - 6, 470, 5, WHITE, 1.8) + circle(w * 0.5 + 6, 470, 5, WHITE, 1.8)
+    + circle(w * 0.5 - 5, 470, 2, INK, 0) + circle(w * 0.5 + 7, 470, 2, INK, 0) + path(`M ${w * 0.5 - 7} 482 q 7 4 14 0`, 'none', 1.6), '', ' class="poke frog" data-poke="frog"');
+  const fx = Math.round(w * 0.38);
+  d += g(line(fx - 18, 300, fx + 18, 300, '#3A86C8', 4) + g(ellipse(fx - 4, 292, 12, 5, '#BFE6FF', 1.4, '#3A86C8') + ellipse(fx + 6, 292, 12, 5, '#BFE6FF', 1.4, '#3A86C8'), '', ' class="flutter"')
+    + circle(fx + 20, 300, 4, '#3A86C8', 0), '', ' class="poke" data-poke="dragonfly"');
   return s + g(d, '', ' opacity="0.92"');
 }
 

@@ -1,5 +1,12 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.11 (18 Nov, step 13, the spike).
+tests catch (project rules: test the tests). Version 1.12 (18 Nov, step 14).
+Changes at v1.12 (step 14, D-194, D-202 to D-204): two older faults' text follows core.js 1.8 and game.js 1.13 (the slide's
+ticks, the carrying pose's test of the bonk pose); nineteen faults in the catapult and the park, their names starting
+"catapult:" or "park:": fifteen by the core test (the throw's length, arc and way; anything in the way; the bonk step;
+the seed on the arc; its ticks; the gadget list; its card; level 21's spare and pond; level 22's branch; two park stops
+overlapping; the ride's stop on the treehouse's; the ride's stop always open) and four by the browser tests (Play opening
+the park before the ride, Next crossing into the park, the house button after a park level going to the garden, the
+card in the corner of a tall window).
 Changes at v1.11 (D-197, D-200): three more spike faults: the hamster counter shown while building, over the board
 during a run, and the gadget slots kept during a run.
 Changes at v1.10 (step 13: D-185, D-190, D-196): thirty-one faults in the spike's new code, their names starting
@@ -145,7 +152,7 @@ FAULTS = [
     ('fix: still carries it after landing', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; if (d < 0) st.dir = -1; return st; };',
      'let held = false; const mark = (st) => { if (floater) held = true; if (held) st.carry = true; if (d < 0) st.dir = -1; return st; };', CORE),
     ('fix: the carrying poses without the dandelion', G + 'art.js', "else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {", "else if (pose === 'float') {", CORE),
-    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip')", E2E),
+    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk')", E2E),
     ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
     # step 13, the spike (core.js 1.7, game.js 1.10, preview_debug_hamster_highway.js 1.0): by the core test, then the spike's browser test
     ('spike: 9-row boards refused', G + 'core.js', 'export const MAX_ROWS = 9;', 'export const MAX_ROWS = 7;', CORE),
@@ -168,13 +175,32 @@ FAULTS = [
     ('spike: a high end needs no block above', G + 'core.js', "const under = (level, c, r) => r >= 1 && level.rows[r - 1][c] === '#';", 'const under = (level, c, r) => r >= 1;', CORE),
     ('spike: a low end needs no floor', G + 'core.js', ' || !empty(level, placed, c, r) || !FLOOR.has(terrain(level, placed, c, r + 1))) continue;', ' || !empty(level, placed, c, r)) continue;', CORE),
     ('spike: a zip-line counted twice in the tray', G + 'core.js', "    if (kind !== 'peg') n[kind] = (n[kind] || 0) - 1;", "    const kk = kind === 'peg' ? 'zip' : kind;\n    n[kk] = (n[kk] || 0) - 1;", CORE),
-    ('spike: the slide two ticks a column', G + 'core.js', 'turn: 2, zip: 1 };', 'turn: 2, zip: 2 };', CORE),
+    ('spike: the slide two ticks a column', G + 'core.js', 'turn: 2, zip: 1, fling: 1', 'turn: 2, zip: 2, fling: 1', CORE),
     ('spike: off the zip-line always facing right', G + 'core.js', '      d = lc > hc ? 1 : -1;\n', '      d = 1;\n', CORE),
     ('spike: the slide stays on the high end\'s row', G + 'core.js', '        r = hr + ((lr - hr) * i) / n;', '        r = hr + (i === n ? lr - hr : 0);', CORE),
     ('spike: a bounce into a high end doesn\'t grab the reel', G + 'core.js', "      if (at(c, r) === 'zip') continue;   // thrown into a zip-line's high end: it grabs the reel\n", '', CORE),
     ('spike: the window stays 7 rows', G + 'game.js', '  BH = lv.height * CELL;', '  BH = ROWS * CELL;', SPIKE_E2E),
     ('spike: walkers never drawn mirrored', G + 'game.js', 'scale(${dir < 0 ?', 'scale(${dir < -9 ?', SPIKE_E2E),
     ('spike: a zip-line\'s other end stays when one is tapped', G + 'game.js', '    delete S.placed[key(oc, or)];\n', '', SPIKE_E2E),
+    ('catapult: flung 3 squares on', G + 'core.js', 'export const CATAPULT = 4;', 'export const CATAPULT = 3;', CORE),
+    ('catapult: a flat arc', G + 'core.js', 'export const ARC = [1, 2, 1, 0];', 'export const ARC = [0, 0, 0, 0];', CORE),
+    ('catapult: always flung right', G + 'core.js', '        const [nc, nr] = [c0 + d * i, r0 - ARC[i - 1]];', '        const [nc, nr] = [c0 + i, r0 - ARC[i - 1]];', CORE),
+    ('catapult: gadgets in the way don\'t bonk', G + 'core.js', '        if (there === null || HOLDS.has(there)) { hit = true; break; }', "        if (there === null || there === '#') { hit = true; break; }", CORE),
+    ('catapult: no bonk step', G + 'core.js', "      if (hit) yield mark({ c, r, act: 'hit' });", '      if (hit) { /* no bonk */ }', CORE),
+    ('catapult: the seed on the arc missed', G + 'core.js', "        yield mark(touch({ c, r, act: 'fling' }, c, r));", "        yield mark({ c, r, act: 'fling' });", CORE),
+    ('catapult: two ticks a square', G + 'core.js', 'zip: 1, fling: 1, hit: 1 };', 'zip: 1, fling: 2, hit: 1 };', CORE),
+    ('catapult: not a gadget', G + 'core.js', "'rampL', 'signpost', 'zip', 'catapult'];", "'rampL', 'signpost', 'zip'];", CORE),
+    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult'];", "'seesaw', 'lift'];", CORE),
+    ('catapult: level 21 without its spare ramp', G + 'levels.js', '    tray: { catapult: 1, ramp: 1 }, spare: \'ramp\',', '    tray: { catapult: 1 }, spare: \'ramp\',', CORE),
+    ('catapult: level 21\'s pond 2 wide', G + 'levels.js', "      '#####..........G',\n      '#####...########',\n", "      '#####..........G',\n      '#####..#########',\n", CORE),
+    ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '....########........',\n", "      '....#######.........',\n", CORE),
+    ('park: two stops overlap', G + 'park.js', "  { name: 'picnic2', at: [1620, 640] },", "  { name: 'picnic2', at: [1500, 650] },", CORE),
+    ('park: the ride\'s stop on the treehouse\'s', G + 'house.js', 'export const RIDE = [2380, 180];', 'export const RIDE = [2352, 302];', CORE),
+    ('park: the ride\'s stop always open', G + 'house.js', '  if (!ride.open) {', '  if (false) {', CORE),
+    ('park: Play opens the park before the ride', G + 'game.js', "  return inPark(i) && LEVELS.some((d, j) => inPark(j) && (S.progress.tries[d.id] || S.progress.done[d.id])) ? 'park' : 'house';", "  return inPark(i) ? 'park' : 'house';", CARDS_E2E),
+    ('park: Next crosses into the park', G + 'game.js', ' && inPark(S.li + 1) === inPark(S.li);', ';', E2E),
+    ('park: the house button after a park level goes to the garden', G + 'game.js', "S.scene = inPark(S.li) ? 'park' : 'house'; S.mode = 'build';", "S.scene = 'house'; S.mode = 'build';", E2E),
+    ('catapult: the card in the corner of a tall window', G + 'game.js', '  const mid = BW === 720 && BH === 420 ? cardArt(kind)', '  const mid = true ? cardArt(kind)', CARDS_E2E),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
     ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),
     ('spike: the counter shows while building', G + 'game.js', "  if (S.mode === 'build') { layer('count').innerHTML = ''; return; }", '', SPIKE_E2E),

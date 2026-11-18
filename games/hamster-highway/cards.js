@@ -1,4 +1,8 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.1 (17 Nov, step 10b).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.2 (18 Nov, step 14).
+//
+// Changes at v1.2 (step 14, D-186, D-194): the spoon catapult's card, the ninth: walks to the pond's edge, stops, the
+// spoon drops in; it steps into the spoon, which flicks, and flies over the water on an arc to the far bank, then
+// home. Caption "The spoon flings them over!" (Claude's, proposed); 5.5 s. The badge is the gadget's, as the others.
 //
 // Changes at v1.1 (step 10b, D-177 (2)): the see-saw's card goes on after the tip: a ramp drops in at the end of the
 // bank, before the raised near end, and a third hamster, waiting puzzled there, climbs it, steps onto the raised end,
@@ -18,7 +22,7 @@
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
 import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -30,10 +34,11 @@ export const CAPTION = {
   stick: 'Worn sticks snap. Add another!',
   seesaw: 'Two on the end tip it',
   lift: 'Hop in and ride up!',
+  catapult: 'The spoon flings them over!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -88,6 +93,15 @@ SCENE.bouncer = () => board(['........', '........', '........', '....####', '..
   + cls('hc-bouncer-drop', place(cls('hc-bouncer-squish', gadget('bouncer')), 180, 300, GS)) + sparks('bouncer', 202, 340)
   + cls('hc-bouncer-ham', cls('hc-bouncer-move', legs('bouncer')) + cls('hc-bouncer-wait', ham(0, 0) + huh(10, -62))
     + cls('hc-bouncer-fly', ham(0, 0, 'boing')) + cls('hc-bouncer-home', ham(0, -4, 'home')));
+
+// The catapult (D-194): walks to the pond's edge, stops, the spoon drops in; it steps in, the spoon flicks, and it flies
+// over the water on an arc (4 squares on, 2 rows up at the top) to the far bank, then home.
+VIEW.catapult = '0 136 480 284';
+SCENE.catapult = () => board(['........', '........', '........', '........', '........', '........', '###...##'], [[3, 6], [4, 6], [5, 6]])
+  + place(homeArt(), 420, 300, GS) + fit(120, 300, 'catapult')
+  + cls('hc-catapult-drop', place(cls('hc-catapult-flick', gadget('catapult')), 120, 300, GS)) + sparks('catapult', 142, 340)
+  + cls('hc-catapult-ham', cls('hc-catapult-move', legs('catapult')) + cls('hc-catapult-wait', ham(0, 0) + huh(10, -62))
+    + cls('hc-catapult-fly', ham(0, 0, 'boing')) + cls('hc-catapult-home', ham(0, -4, 'home')));
 
 // The floater: walks to the end of a high ledge and stops at the drop; the dandelion drops in; it takes it and
 // drifts gently down, swaying, then walks home.
@@ -204,6 +218,21 @@ function css() {
     + rule('hc-bouncer-fly', 'hc-bouncer-fly 5s linear infinite') + rule('hc-bouncer-home', 'hc-bouncer-home 5s ease-in-out infinite')
     + rule('hc-bouncer-squish', 'hc-bouncer-squish 5s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
     + dropIn('bouncer', 5, 32);
+
+  // catapult, 5.5 s: stops by the spot at 20%, the spoon drops in at 30%, steps into it at 46%, the spoon flicks at 48%,
+  // flies 46% to 62% (up to 2 rows above at 54%), lands on the far bank at 62%, walks home by 76%
+  s += kf('hc-catapult-ham', `0% { ${T(20, 360)} } 20%, 40% { ${T(96, 360)} } 46% { ${T(150, 352)} } 50% { ${T(200, 296)} } 54% { ${T(270, 244)} }`
+    + ` 58% { ${T(330, 276)} } 62% { ${T(390, 360)} } 76%, 100% { ${T(398, 360)} }`)
+    + rule('hc-catapult-ham', 'hc-catapult-ham 5.5s linear infinite')
+    + kf('hc-catapult-move', '0%, 19.9% { opacity: 1 } 20%, 39.9% { opacity: 0 } 40%, 46.9% { opacity: 1 } 47%, 61.9% { opacity: 0 } 62%, 75.9% { opacity: 1 } 76%, 100% { opacity: 0 }')
+    + kf('hc-catapult-wait', '0%, 19.9% { opacity: 0 } 20%, 39.9% { opacity: 1 } 40%, 100% { opacity: 0 }')
+    + kf('hc-catapult-fly', '0%, 46.9% { opacity: 0 } 47%, 61.9% { opacity: 1 } 62%, 100% { opacity: 0 }')
+    + kf('hc-catapult-home', '0%, 75.9% { opacity: 0; transform: translateY(0) } 76% { opacity: 1; transform: translateY(0) } 81% { transform: translateY(-14px) } 86%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-catapult-flick', '0%, 46% { transform: rotate(0) } 49% { transform: rotate(-22deg) } 53% { transform: rotate(8deg) } 57%, 100% { transform: rotate(0) }')
+    + rule('hc-catapult-move', 'hc-catapult-move 5.5s linear infinite') + rule('hc-catapult-wait', 'hc-catapult-wait 5.5s linear infinite')
+    + rule('hc-catapult-fly', 'hc-catapult-fly 5.5s linear infinite') + rule('hc-catapult-home', 'hc-catapult-home 5.5s ease-in-out infinite')
+    + rule('hc-catapult-flick', 'hc-catapult-flick 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 70% 85%; ')
+    + dropIn('catapult', 5.5, 30);
 
   // floater, 5.5 s: takes it at 48%, drifts down, swaying, to the floor at 76%
   s += kf('hc-floater-ham', `0% { ${T(20, 180)} } 20%, 40% { ${T(96, 180)} } 48% { ${T(150, 180)} } 53% { ${T(178, 214)} } 58% { ${T(196, 252)} }`
