@@ -1,4 +1,7 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.10 (18 Nov, step 14).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.11 (20 Nov, step 14b).
+
+Changes at v1.11 (step 14b, D-206): on level 21, the placed spoon takes the throw for each of the five, its arm, reel
+and puff inside.
 
 Changes at v1.10 (step 14, D-187, D-194, D-202): the park. The house shows the garden's 20 levels and, until level 20 is
 done, a soft place for the zip-line's stop (3 places still to come); after level 20 there is no Next (the park is
@@ -623,7 +626,16 @@ with sync_playwright() as pw:
           f'PC: level 21 opens on the pond backdrop, 9 rows tall, and the catapult\'s card pops up (D-194, D-203) ({cards[-1]})')
     for kind, c, r in (('catapult', 4, 4), ('ramp', 10, 5)):
         place(pg, kind, c, r)
+    # the spoon's throw (D-206, option B): watch for the placed spoon taking the throw class, with its reel and puff
+    pg.evaluate('''() => { window.__threw = []; const b = document.getElementById('board');
+      new MutationObserver((ms) => { const seen = new Set(); for (const m of ms) { const el = m.target;   // one throw per element per batch
+        if (el.classList && el.classList.contains('throw') && !(m.oldValue || '').split(' ').includes('throw') && !seen.has(el)) { seen.add(el);
+          window.__threw.push([el.closest('[data-placed]')?.dataset.placed, !!el.querySelector('.reel'), !!el.querySelector('.spoon'), !!el.querySelector('.spoon-puff')]); } } })
+        .observe(b, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['class'] }); }''')
     go_and_wait(pg, 'party')
+    threw = pg.evaluate('window.__threw')
+    check(len(threw) == 5 and all(t == ['4,4', True, True, True] for t in threw),
+          f'PC: the spoon throws each of the five (D-206): the placed spoon at 4,4 takes the throw, its arm, reel and puff inside ({threw[:2]}, {len(threw)})')
     s = state(pg)
     check(s['home'] == 5 and s['seedTaken'] and 'boing' in s['heard'], f'PC: level 21 with the spoon at the bank\'s edge and the spare ramp: all five flung over and home with the seed ({s["heard"][-6:]})')
     pg.screenshot(path=os.path.join(OUT, 'pc-22-level21-party.png'))

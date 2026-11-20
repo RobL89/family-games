@@ -1,4 +1,7 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.13 (18 Nov, step 14).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.14 (20 Nov, step 14b).
+//
+// Changes at v1.14 (step 14b, D-206): the spoon throws each hamster (class throw on the placed spoon's art, 1 s, mirrored
+// for a throw to the left; style.css draws it), in place of its wobble.
 //
 // Changes at v1.13 (step 14, D-187, D-194, D-202, D-203): the park. The picker shows one of two scenes, the house and
 // garden (levels 1 to 20) or the park (levels 21 on, park.js), the same size. The house shows the zip-line's stop by
@@ -839,12 +842,12 @@ function segmentsOf(st, offs = []) {
       for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
       const p1 = feet(last.c, last.r);
       add({ kind: 'fling', p0, p1, ctrl: { x: (p0.x + p1.x) / 2, y: Math.min(p0.y, p1.y) - 4 * CELL }, end: last.t1, seed, carry: !!b.carry, dir: b.dir || 1,
-        sound: 'boing', flick: key(a.c, a.r) });
+        sound: 'boing', flick: key(a.c, a.r), flickDir: b.dir || 1 });
       i = j;
       continue;
     }
     if (b.act === 'hit') {   // bonk on the way: a moment's squash where it is, then the drop
-      add({ kind: 'hit', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1, sound: 'flump', flick: a.act === 'fling' ? null : key(a.c, a.r) });
+      add({ kind: 'hit', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1, sound: 'flump', flick: a.act === 'fling' ? null : key(a.c, a.r), flickDir: b.dir || 1 });
       continue;
     }
     if (b.act === 'walk' || b.act === 'climb') {
@@ -1022,7 +1025,7 @@ function moveWalker(R, w) {
       w.seg = k;
       if (s.sound) play(s.sound);
       if (s.mallow) squishMallow(s.mallow);
-      if (s.flick) flickSpoon(s.flick);   // the spoon flicks as it throws
+      if (s.flick) throwSpoon(s.flick, s.flickDir);   // the spoon throws (D-206)
     }
     const f = Math.max(0, Math.min(1, (local - s.t0) / s.dur));
     let x;
@@ -1232,9 +1235,16 @@ function takeSeed() {
   const hs = $('hud-seed');
   if (hs) bump(hs.parentNode, 'tiny-hop');
 }
-function flickSpoon(k) {
-  const el = board.querySelector(`[data-placed="${k}"] .spoon`);
-  if (el) bump(el, 'wobble', 500);
+// The spoon's throw (D-206): restarted for each hamster, left on for its 1 s.
+function throwSpoon(k, dir) {
+  const el = board.querySelector(`[data-placed="${k}"] .spoon-art`);
+  if (!el) return;
+  clearTimeout(el.throwTimer);
+  el.classList.remove('throw', 'throw-left');
+  el.getBoundingClientRect();
+  el.classList.add('throw');
+  if (dir < 0) el.classList.add('throw-left');
+  el.throwTimer = setTimeout(() => el.classList.remove('throw', 'throw-left'), 1000);
 }
 function squishMallow(k) {
   const el = board.querySelector(`[data-placed="${k}"] .mallow`);

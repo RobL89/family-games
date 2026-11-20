@@ -1,5 +1,7 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.12 (18 Nov, step 14).
+tests catch (project rules: test the tests). Version 1.13 (20 Nov, step 14b).
+Changes at v1.13 (step 14b, D-206): two faults in the spoon's throw: the throw never started (the browser test) and the
+spoon's arm not split from its reel (the core test).
 Changes at v1.12 (step 14, D-194, D-202 to D-204): two older faults' text follows core.js 1.8 and game.js 1.13 (the slide's
 ticks, the carrying pose's test of the bonk pose); nineteen faults in the catapult and the park, their names starting
 "catapult:" or "park:": fifteen by the core test (the throw's length, arc and way; anything in the way; the bonk step;
@@ -200,6 +202,8 @@ FAULTS = [
     ('park: Play opens the park before the ride', G + 'game.js', "  return inPark(i) && LEVELS.some((d, j) => inPark(j) && (S.progress.tries[d.id] || S.progress.done[d.id])) ? 'park' : 'house';", "  return inPark(i) ? 'park' : 'house';", CARDS_E2E),
     ('park: Next crosses into the park', G + 'game.js', ' && inPark(S.li + 1) === inPark(S.li);', ';', E2E),
     ('park: the house button after a park level goes to the garden', G + 'game.js', "S.scene = inPark(S.li) ? 'park' : 'house'; S.mode = 'build';", "S.scene = 'house'; S.mode = 'build';", E2E),
+    ('catapult: the spoon only sits there', G + 'game.js', "  el.classList.add('throw');\n", "  el.classList.add('wobble');\n", E2E),
+    ('catapult: the spoon in one piece', G + 'art.js', "g(catapultReel(), '', ' class=\"reel\"') + g(catapultSpoon(), '', ' class=\"spoon\"')", "g(catapultArt(), '', ' class=\"spoon\"')", CORE),
     ('catapult: the card in the corner of a tall window', G + 'game.js', '  const mid = BW === 720 && BH === 420 ? cardArt(kind)', '  const mid = true ? cardArt(kind)', CARDS_E2E),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
     ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),

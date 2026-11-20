@@ -1,4 +1,9 @@
-// Hamster Highway's drawings, as SVG text. Version 1.7.
+// Hamster Highway's drawings, as SVG text. Version 1.8.
+//
+// Changes at v1.8 (step 14b, D-206): the spoon in parts for its throw: catapultReel() and catapultSpoon() (the arm),
+// together the same picture as catapultArt(); the placed gadget wraps them (class spoon-art: reel, spoon) with a puff
+// of dust and whoosh lines (spoon-puff, unseen until the throw; style.css animates them, option B of the step 14b
+// mock-ups, tools/tests/games/mock_hamster_spoon.py 0.1).
 //
 // Changes at v1.7 (step 14, D-189 A, D-202, D-203): the spoon catapult (catapultArt, look A: a wooden spoon resting on a
 // pink cotton reel, the step 12 sketch's cat_a), and the duck pond's backdrop for levels 21 and 22 (pondArt, look A: a
@@ -195,7 +200,10 @@ export function gadget(kind, count = 1) {
   if (kind === 'stick') return stickArt(0);
   if (kind === 'rampL') return g(gadget('ramp'), 'translate(100 0) scale(-1 1)');   // the ramp turned round (D-190)
   if (kind === 'signpost') return signpostArt();
-  if (kind === 'catapult') return g(catapultArt(), '', ' class="spoon"');   // game.js flicks it as it throws
+  if (kind === 'catapult') {   // game.js throws it: the arm flips up and over, the reel rolls, a puff (D-206)
+    return g(g(catapultReel(), '', ' class="reel"') + g(catapultSpoon(), '', ' class="spoon"') + g(circle(20, 70, 10, WHITE, 2) + circle(6, 60, 7, WHITE, 2)
+      + path('M 10 40 l 18 -18 M 30 44 l 20 -24 M 46 52 l 22 -22', 'none', 3, INK, ' stroke-linecap="round" opacity="0.6"'), '', ' class="spoon-puff" opacity="0"'), '', ' class="spoon-art"');
+  }
   if (kind === 'zip') {   // in the tray: a hook top left, the line, a peg bottom right, a reel on the line
     return path('M 18 8 L 18 18 q 0 6 -5 6 q -5 0 -5 -5', 'none', 3.5, '#7A8597') + line(14, 24, 84, 78, INK, 3) + zipPeg(84, 100, 0.8)
       + g(reel(50, 46), 'rotate(38 50 46) translate(50 46) scale(0.7) translate(-50 -46)');
@@ -206,9 +214,16 @@ export function gadget(kind, count = 1) {
 // The spoon catapult (D-189 A, D-194): a wooden spoon resting on a pink cotton reel, its bowl at the left, where a
 // hamster steps in; the step 12 sketch's look A (tools/tests/games/sketch_hamster_park.py 0.2, cat_a), in a 100 square.
 export function catapultArt() {
+  return catapultReel() + catapultSpoon();
+}
+// the cotton reel the spoon rests on
+export function catapultReel() {
   return rect(44, 92, 38, 8, '#E2A867', 2, 2.4) + rect(48, 70, 30, 24, PINK, 0, 2.4) + rect(44, 64, 38, 8, '#E2A867', 2, 2.4)
-    + [76, 82, 88].map((y) => line(50, y, 76, y, '#E77D98', 1.6)).join('')
-    + line(30, 84, 98, 44, INK, 13) + line(30, 84, 98, 44, '#D9A066', 7)
+    + [76, 82, 88].map((y) => line(50, y, 76, y, '#E77D98', 1.6)).join('');
+}
+// the spoon, its arm: the handle and the bowl, turning about the reel's top (63, 66) when it throws
+export function catapultSpoon() {
+  return line(30, 84, 98, 44, INK, 13) + line(30, 84, 98, 44, '#D9A066', 7)
     + ellipse(18, 88, 20, 10, '#D9A066', 3, INK, -24) + ellipse(18, 87, 13, 5, '#E9BC86', 0, INK, -24);
 }
 

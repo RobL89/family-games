@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.20 · 18 Nov 2026 · P-034 (Kids Games Development) · 22 levels (levels 1 to 10, each with its twin, and the park's first pair), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.21 · 20 Nov 2026 · P-034 (Kids Games Development) · 22 levels (levels 1 to 10, each with its twin, and the park's first pair), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.21 (step 14b, D-206): the spoon throws: its arm dips, flips up and over and bounces back, the reel rolls a turn, and a puff of dust and whoosh lines fly from the bowl, in place of a wobble. Not yet released.
 
 Changes at v1.20 (step 14, D-187, D-194, D-202 to D-204): the park and the spoon catapult. Once level 20 is done, a stop by the treehouse glows; a tap plays the zip-line ride over the fence into the park (its own picker, the same size as the house's, with a house button back to the garden). Levels 21 and 22 at the duck pond, 9 rows tall, on a willow backdrop: the spoon catapult flings each hamster 4 squares on in an arc, the way it is walking (anything in the way: bonk and drop), with its help card; level 22 has two roads, low by the island or high along the willow branch. Not yet released.
 
@@ -109,6 +111,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.21 | 2026-11-20 | The spoon's throw (step 14b, D-206) |
 | 1.20 | 2026-11-18 | The park, reached by the zip-line ride; levels 21 and 22 at the duck pond; the spoon catapult and its card (step 14) |
 | 1.19 | 2026-11-18 | Once GO is pressed, the hamster counter and seed badge take the tray's place, never over the board (D-200) |
 | 1.18 | 2026-11-18 | The hamster counter shows once GO is pressed, not while building (D-197) |

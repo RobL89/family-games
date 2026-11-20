@@ -41,6 +41,17 @@ button { font: inherit; color: inherit; }
 .tilt { transform-box: fill-box; transform-origin: center; animation: tilt 2.4s ease-in-out infinite; }
 @keyframes tilt { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 
+/* the spoon's throw (D-206, option B of the step 14b mock-ups): the arm dips, flips up and over, holds, and bounces back;
+   the reel rolls a turn; a puff of dust and whoosh lines from the bowl. A throw to the left mirrors it. */
+.spoon-art.throw .spoon { transform-box: view-box; transform-origin: 63px 66px; animation: spoon-throw 1s ease-in-out; }
+.spoon-art.throw .reel { transform-box: view-box; transform-origin: 63px 82px; animation: reel-roll 1s ease-out; }
+.spoon-art.throw .spoon-puff { transform-box: view-box; transform-origin: 20px 70px; animation: spoon-puff 1s ease-out; }
+.spoon-art.throw-left { transform-box: fill-box; transform-origin: 50% 50%; transform: scaleX(-1); }
+@keyframes spoon-throw { 0% { transform: rotate(0); } 8% { transform: rotate(-12deg); } 22%, 40% { transform: rotate(96deg); } 60% { transform: rotate(-14deg); }
+  72% { transform: rotate(7deg); } 84% { transform: rotate(-3deg); } 100% { transform: rotate(0); } }
+@keyframes reel-roll { 0%, 8% { transform: rotate(0); } 50%, 100% { transform: rotate(360deg); } }
+@keyframes spoon-puff { 0%, 14% { opacity: 0; transform: scale(0.4); } 24% { opacity: 1; transform: scale(1); } 50% { opacity: 0; transform: scale(1.4); } 100% { opacity: 0; } }
+
 /* small moving things in the drawings (D-141) */
 svg .poke, svg [data-level], svg .slot, svg .btn, svg [data-placed], svg [data-walker] { cursor: pointer; }
 .poke, .bob, .mallow, .drop, .dance, .flutter, .twinkle, .eyes, .dizzy, .puff, .glow, .shake, .wobble, .hop, .squish, .spin, .wink, .rise, .pop, .confetti, .wave, .cloud, .bird, .sunset, .peek, .tiny-hop {

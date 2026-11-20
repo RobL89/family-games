@@ -1,4 +1,6 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.13 (18 Nov, step 14).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.14 (20 Nov, step 14b).
+
+Changes at v1.14 (step 14b, D-206): the spoon's art in parts (reel, arm, puff) for its throw.
 
 Changes at v1.13 (step 14, D-194): the spoon catapult, worked out by hand before core.js 1.8 on test boards (the section
 "step 14, the spoon catapult" says what each expects and the rules as read, Q-075): flung 4 squares on the way it faces,
@@ -1322,8 +1324,9 @@ check(isinstance(zl, dict) and zl['ok'] and zl['out'] == 'home' and zl['steps'] 
 #     fall, and on by the usual rules;
 #   - a golden seed in an arc square is taken; a hamster holding the dandelion keeps it through the arc.
 CJS = r"""
-const [coreUrl] = process.argv.slice(1);
+const [coreUrl, artUrl] = process.argv.slice(1);
 const core = await import(coreUrl);
+const A = await import(artUrl);
 const o = {};
 const tryy = (f) => { try { return f(); } catch (e) { return 'ERROR ' + e.message; } };
 const P = (rows, tray = {}) => core.parseLevel({ id: 't', rows, tray });
@@ -1346,13 +1349,15 @@ o.fits = tryy(() => { const lv = P(['..........GS', '............', '...........
   return [core.fits(lv, {}, 'catapult', 0, 4), core.fits(lv, {}, 'catapult', 2, 4), core.fits(lv, { '2,5': 'bridge' }, 'catapult', 2, 4),
     core.fits(lv, { '2,5': 'stick' }, 'catapult', 2, 4), core.fits(lv, { '0,4': 'catapult' }, 'catapult', 0, 4), core.holds(lv, { '0,4': 'catapult' }, 0, 4),
     core.terrain(lv, { '0,4': 'catapult' }, 0, 4), core.left(lv, { '0,4': 'catapult' }).catapult]; });
+o.art = tryy(() => [A.catapultArt() === A.catapultReel() + A.catapultSpoon(), /^<g class="spoon-art"><g class="reel">/.test(A.gadget('catapult')),
+  A.gadget('catapult').includes(`<g class="spoon">${A.catapultSpoon()}</g>`), A.gadget('catapult').includes('class="spoon-puff"')]);
 o.run = tryy(() => { const r = core.run(P(F1), { '3,4': 'catapult' });
   return { outs: r.hamsters.map((h) => h.outcome), flingTicks: r.hamsters[0].steps.filter((s) => s.act === 'fling').map((s) => s.t1 - s.t0) }; });
 o.runHit = tryy(() => { const r = core.run(P(F1), { '3,4': 'catapult', '5,2': 'tube' }); const h = r.hamsters[0].steps.find((s) => s.act === 'hit');
   return { outs: r.hamsters.map((x) => x.outcome), hitTicks: h.t1 - h.t0 }; });
 console.log(JSON.stringify(o));
 """
-r = subprocess.run(['node', '--input-type=module', '-e', CJS, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+r = subprocess.run(['node', '--input-type=module', '-e', CJS, 'file://' + os.path.join(GAME, 'core.js'), 'file://' + os.path.join(GAME, 'art.js')], capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout, r.stderr[-1500:])
     check(False, 'node ran the catapult\'s checks (step 14)')
@@ -1391,6 +1396,8 @@ check(E('dropFloat') == {'out': 'home', 'steps': [[0, 2, 'start', 1], [1, 2, 'wa
       f'holding the dandelion through the arc, it floats down the drop and walks home, by hand ({E("dropFloat")})')
 check(E('fits') == [True, False, True, False, False, False, 'catapult', 1],
       f'the spoon goes on ground or a bridge, not in the air, on a worn stick or on a gadget\'s square; it holds nobody; counted in the tray ({E("fits")})')
+check(E('art') == [True, True, True, True], f'the spoon\'s art (D-206): its arm and its reel drawn apart, the same picture together; the gadget wraps them (the reel, the arm '
+      f'that throws) with a puff of dust for the throw ({E("art")})')
 check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): all five flung over and home, a square a tick ({E("run")})')
 check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
 
