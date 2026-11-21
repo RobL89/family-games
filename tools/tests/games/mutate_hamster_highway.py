@@ -1,5 +1,10 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.13 (20 Nov, step 14b).
+tests catch (project rules: test the tests). Version 1.14 (21 Nov, step 15).
+Changes at v1.14 (step 15, D-208): thirteen faults in the signpost's card, levels 23 and 24 and the frame's backdrop,
+their names starting "signpost:" or "frame:", all by the core test (no card; its caption; the hamster never facing left;
+not drawn mirrored; the signpost dropping in after the turn; a keyframe off the walk; level 23 without its spare, its bar
+a square shorter; level 24's shelf gone, one road; the backdrop drawn 420 tall, the pond's drawn there, a stop off the
+park). One older fault's text follows cards.js 1.3 (the catapult's card left out of the longer list).
 Changes at v1.13 (step 14b, D-206): two faults in the spoon's throw: the throw never started (the browser test) and the
 spoon's arm not split from its reel (the core test).
 Changes at v1.12 (step 14, D-194, D-202 to D-204): two older faults' text follows core.js 1.8 and game.js 1.13 (the slide's
@@ -192,7 +197,7 @@ FAULTS = [
     ('catapult: the seed on the arc missed', G + 'core.js', "        yield mark(touch({ c, r, act: 'fling' }, c, r));", "        yield mark({ c, r, act: 'fling' });", CORE),
     ('catapult: two ticks a square', G + 'core.js', 'zip: 1, fling: 1, hit: 1 };', 'zip: 1, fling: 2, hit: 1 };', CORE),
     ('catapult: not a gadget', G + 'core.js', "'rampL', 'signpost', 'zip', 'catapult'];", "'rampL', 'signpost', 'zip'];", CORE),
-    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult'];", "'seesaw', 'lift'];", CORE),
+    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost'];", "'seesaw', 'lift', 'signpost'];", CORE),
     ('catapult: level 21 without its spare ramp', G + 'levels.js', '    tray: { catapult: 1, ramp: 1 }, spare: \'ramp\',', '    tray: { catapult: 1 }, spare: \'ramp\',', CORE),
     ('catapult: level 21\'s pond 2 wide', G + 'levels.js', "      '#####..........G',\n      '#####...########',\n", "      '#####..........G',\n      '#####..#########',\n", CORE),
     ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '....########........',\n", "      '....#######.........',\n", CORE),
@@ -205,6 +210,19 @@ FAULTS = [
     ('catapult: the spoon only sits there', G + 'game.js', "  el.classList.add('throw');\n", "  el.classList.add('wobble');\n", E2E),
     ('catapult: the spoon in one piece', G + 'art.js', "g(catapultReel(), '', ' class=\"reel\"') + g(catapultSpoon(), '', ' class=\"spoon\"')", "g(catapultArt(), '', ' class=\"spoon\"')", CORE),
     ('catapult: the card in the corner of a tall window', G + 'game.js', '  const mid = BW === 720 && BH === 420 ? cardArt(kind)', '  const mid = true ? cardArt(kind)', CARDS_E2E),
+    ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost'];", "'seesaw', 'lift', 'catapult'];", CORE),
+    ('signpost: the card\'s caption changed', G + 'cards.js', "  signpost: 'Signposts turn them round!',", "  signpost: 'Signs turn them!',", CORE),
+    ('signpost: the card\'s hamster never faces left', G + 'cards.js', "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 1 }", "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 0 }", CORE),
+    ('signpost: the card\'s hamster walks back unmirrored', G + 'cards.js', "const left = (body) => g(body, 'scale(-1 1)');", "const left = (body) => g(body, 'scale(1 1)');", CORE),
+    ('signpost: the card\'s signpost drops in after the turn', G + 'cards.js', "dropIn('signpost', 6, 28);", "dropIn('signpost', 6, 50);", CORE),
+    ('signpost: the card\'s hamster off the walk', G + 'cards.js', "19%, 40% { ${T(270, 360)} }", "19%, 40% { ${T(240, 360)} }", CORE),
+    ('frame: level 23 without its spare left ramp', G + 'levels.js', "    tray: { bouncer: 2, signpost: 1, rampL: 1 }, spare: 'rampL',", "    tray: { bouncer: 2, signpost: 1 }, spare: 'rampL',", CORE),
+    ('frame: level 23\'s bar a square shorter', G + 'levels.js', "      '....#########...',\n", "      '....########....',\n", CORE),
+    ('frame: level 24\'s shelf gone', G + 'levels.js', "      '......#.............',\n", "      '....................',\n", CORE),
+    ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 2,", "twin: 'L12',", CORE),
+    ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' ? 540 : H)", "(name === 'pond' ? 540 : H)", CORE),
+    ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
+    ('frame: level 24\'s stop off the park', G + 'levels.js', "room: 'park', spot: 'frame2', back: 'frame'", "room: 'park', spot: 'picnic', back: 'frame'", CORE),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
     ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),
     ('spike: the counter shows while building', G + 'game.js', "  if (S.mode === 'build') { layer('count').innerHTML = ''; return; }", '', SPIKE_E2E),

@@ -1,4 +1,9 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.11 (20 Nov, step 14b).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.12 (21 Nov, step 15).
+
+Changes at v1.12 (step 15, D-208): after level 22, Next goes on to level 23 at the climbing frame (its backdrop, 9 rows):
+the signpost's card pops up; the two bouncers, the signpost at the bar's end and the spare left ramp: a party with the
+seed, the hamsters turned round at the signpost (facing left after it, drawn mirrored); Next to its twin, no card, the
+zig-zag road (two signposts, two bouncers) home with the seed; no Next after it, the last level.
 
 Changes at v1.11 (step 14b, D-206): on level 21, the placed spoon takes the throw for each of the five, its arm, reel
 and puff inside.
@@ -179,8 +184,9 @@ def place(pg, kind, c, r, touch=False):
         tap(pg, f'[data-slot="{kind}"]', touch)
     bw = float(pg.evaluate('document.querySelector("#window rect").getAttribute("width")'))   # the window: 720, or 960 on a 9-row board
     while True:   # on a wide board, the arrows slide the window until the square shows (6 squares a tap)
-        x = (c + 0.5) * 60 - pg.evaluate('__test.view()')['x']
-        if 40 < x < bw - 40:
+        v = pg.evaluate('__test.view()')
+        x = (c + 0.5) * 60 - v['x']
+        if 40 < x < bw - 40 or (x <= 40 and v['x'] <= 0) or (x >= bw - 40 and v['x'] >= v['max']):   # at the board's edge, no further to slide (column 0, level 24)
             break
         tap(pg, '[data-btn="panR"]' if x >= bw - 40 else '[data-btn="panL"]', touch)
         pg.wait_for_timeout(450)
@@ -645,17 +651,42 @@ with sync_playwright() as pw:
         place(pg, kind, c, r)
     go_and_wait(pg, 'party')
     s = state(pg)
+    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('#party [data-act="next"]').is_visible(),
+          f'PC: level 22, its twin: no card; the high road (the bouncer onto the willow branch, the floater down): home with the seed; Next goes on in the park ({cards[-1]})')
+    tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, 'L12'))
+    check(cards[-1] == 'signpost' and pg.locator('#bg [data-back="frame"]').count() == 1 and float(pg.evaluate('document.querySelector("#window rect").getAttribute("height")')) == 540
+          and pg.locator('[data-slot="signpost"]').count() == 1 and pg.locator('[data-slot="rampL"]').count() == 1,
+          f'PC: level 23 opens on the climbing frame, 9 rows tall, with the signpost and a left ramp in the tray, and the signpost\'s card pops up (D-208) ({cards[-1]})')
+    for kind, c, r in (('bouncer', 3, 7), ('bouncer', 4, 4), ('signpost', 12, 4), ('rampL', 2, 1)):
+        place(pg, kind, c, r)
+    # facing left after the signpost: the first hamster's drawing mirrored (a negative x scale), watched while it runs
+    pg.evaluate('''() => { window.__faced = new Set(); const t = setInterval(() => { const w = document.querySelector('#walkers [data-walker]');
+      if (w) { const m = /scale\\((-?[\\d.]+)/.exec(w.getAttribute('transform') || ''); if (m) window.__faced.add(Number(m[1]) < 0 ? 'left' : 'right'); }
+      if (__test.state().screen !== 'level' || document.querySelector('#party:not([hidden])')) clearInterval(t); }, 40); }''')
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    faced = sorted(pg.evaluate('[...window.__faced]'))
+    check(s['home'] == 5 and s['seedTaken'] and faced == ['left', 'right'],
+          f'PC: level 23: bounced up, turned round at the signpost (drawn facing left after it, D-190), bounced up-left, up the left ramp for the seed, all five home ({faced})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-23-level23-party.png'))
+    tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, 'L12b'))
+    for kind, c, r in (('signpost', 8, 7), ('bouncer', 3, 7), ('bouncer', 2, 4), ('signpost', 0, 4)):
+        place(pg, kind, c, r)
+    go_and_wait(pg, 'party')
+    s = state(pg)
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and not pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 22, its twin: no card; the high road (the bouncer onto the willow branch, the floater down): home with the seed; no Next after the last level ({cards[-1]})')
+          f'PC: level 24, its twin: no card; the zig-zag road (two signposts, two bouncers) home with the seed on the tower\'s top bar; no Next after the last level ({cards[-1]})')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     check(state(pg)['scene'] == 'park', 'PC: the house button after a park level goes back to the park')
     sizes_ok(pg, 'PC 1366x712', errors, asked)
     ids = IDS
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
-            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1},
-            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult')}}
-    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None],
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1},
+            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost')}}
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
     check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()

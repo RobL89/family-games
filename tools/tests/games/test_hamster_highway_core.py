@@ -1,4 +1,16 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.14 (20 Nov, step 14b).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.15 (21 Nov, step 15).
+
+Changes at v1.15 (step 15, D-184, D-190, D-208): levels 23 and 24 at the climbing frame, written before levels.js 1.8
+(their roads and wrong roads traced square by square in design, then confirmed with core.js 1.8's walk() in a scratch
+script, 21 Nov; core.js itself unchanged): 23 *Up the frame* brings in the signpost, one road (bounce up onto the bar,
+along it, a signpost turns them at its end, back to the second bouncer, which throws them up-left onto the top bar,
+home at the top left); the seed in the top corner by the spare left ramp; no signpost: off the bar's end, a funny fall;
+turned too soon on the ground: a nap in the start tube. 24 *Zig, zag, home*, its twin, two roads: the zig-zag (a
+signpost on the ground, the first bouncer throws them up-left, a signpost at the left end, the second bouncer up-right
+onto the tower's top bar, the seed, down to home) or one bouncer straight up; nothing: a splash. The park's stops 23
+and 24 at the frame. The signpost's card (D-208, look A): every hamster position of its keyframes on core.js's own
+walk of the card's board, in order: along the ledge, the fall, the wait, the signpost dropping in, the turn (facing
+left after it, drawn mirrored), back under the ledge and home; caption "Signposts turn them round!"; a loop of 6 s.
 
 Changes at v1.14 (step 14b, D-206): the spoon's art in parts (reel, arm, puff) for its throw.
 
@@ -220,6 +232,10 @@ const SOL = {
   // road's gadgets (the bouncer comes first on the way, so they take the high road when both are down)
   L11: { solve: [['catapult', 4, 4]], seed: [['ramp', 10, 5]] },
   L11b: { solve: [['bridge', 5, 5], ['catapult', 8, 5]], seed: [['bouncer', 3, 4], ['floater', 5, 1]] },
+  // the climbing frame (step 15): Claude's answers, 21 Nov; L12b's answer is its zig-zag road, which takes the seed (its
+  // other road, one bouncer straight up, is checked with the level's roads below)
+  L12: { solve: [['bouncer', 3, 7], ['bouncer', 4, 4], ['signpost', 12, 4]], seed: [['rampL', 2, 1]] },
+  L12b: { solve: [['signpost', 8, 7], ['bouncer', 3, 7], ['bouncer', 2, 4], ['signpost', 0, 4]], seed: [] },
 };
 // every order of each level's answer and spare: how many orders put a gadget where it doesn't fit (D-177 (1), ER-013),
 // apart from a bridge or stick with nothing beside it yet to hold it up (side: D-139's build out from the edge)
@@ -360,8 +376,8 @@ for name, frag in (('short', 'must be 7 to 9 rows of 12'), ('narrow', 'must be 7
 # levels.js
 lv = {x['id']: x for x in out['levels']}
 ORDER = [x for n in range(1, 11) for x in (f'L{n}', f'L{n}b')]
-PARK = ['L11', 'L11b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
-check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond (D-184) ({list(lv)})')
+PARK = ['L11', 'L11b', 'L12', 'L12b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
+check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond, 23 and 24 at the climbing frame (D-184) ({list(lv)})')
 check([lv[i]['seed'] for i in ORDER if i.endswith('b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1], [8, 2], [5, 1], [15, 4], [16, 2], [15, 3]], 'each twin has its golden seed where levels.js says')
 check([i for i in ORDER if 'stick' in lv[i]['tray']] == ['L6', 'L6b', 'L7', 'L7b'], 'worn sticks on the 4 levels at the bath and the loft only (D-154, D-170 (b))')
 check(lv['L10b']['parts'] == lv['L10']['parts'] and lv['L10b']['cols'] == 24 and lv['L10b']['back'] == 'treehouse',
@@ -677,16 +693,16 @@ else:
     check(not pbad, f'the park\'s route, from the zip-line\'s foot, never crosses itself or runs back along itself (D-151\'s rule) ({pbad or len(psegs)} segments)')
     check(k['names'] == ['pond', 'pond2', 'frame', 'frame2', 'picnic', 'picnic2', 'playground', 'playground2', 'fair', 'fair2'],
           f'the park\'s ten places in route order, two a place: the pond, the climbing frame, the picnic, the playground, the fair (D-187, D-193) ({k["names"]})')
-    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21)] and all(xy for _, _, xy, _ in k['stops']),
-          f'levels 21 and 22 at the pond\'s two stops, numbered 21 and 22 ({k["stops"]})')
+    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21), ('L12', 'frame', 22), ('L12b', 'frame2', 23)] and all(xy for _, _, xy, _ in k['stops']),
+          f'levels 21 and 22 at the pond\'s two stops, 23 and 24 at the climbing frame\'s ({k["stops"]})')
     places = k['places']
     pnear = min(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for i, a in enumerate(places) for b in places[i + 1:])
     check(len(places) == 10 and all(56 <= x <= 2420 - 56 and 56 <= y <= 900 - 56 for x, y in places) and pnear >= 112,
           f'every park stop inside the picture, no two stops\' tap circles overlapping: the closest are {pnear:.0f} apart (112 or more)')
-    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 2,
-          f'the park draws its dotted path from the zip-line\'s foot through levels 21 and 22 and on to the next place, the frame\'s bend first ({k["drawn"]})')
-    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 8 and k['marks'] == ['data-level="20"', 'data-level="21"'] and k['closed'] and k['ride'] > 0,
-          f'the park is the house\'s size; 8 places with no level yet are soft; 21 and 22 are stops (data-level 20 and 21); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
+    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 3 + 2,
+          f'the park draws its dotted path from the zip-line\'s foot through levels 21 to 24 and on to the next place, the picnic\'s bend first ({k["drawn"]})')
+    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 6 and k['marks'] == ['data-level="20"', 'data-level="21"', 'data-level="22"', 'data-level="23"'] and k['closed'] and k['ride'] > 0,
+          f'the park is the house\'s size; 6 places with no level yet are soft; 21 to 24 are stops (data-level 20 to 23); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -718,6 +734,7 @@ const SOL = {
   L3b: [['bridge', 1, 6], ['bouncer', 2, 5], ['bouncer', 6, 5], ['ramp', 10, 4]], L4b: [['bridge', 2, 2], ['bridge', 5, 2], ['floater', 6, 1], ['bridge', 8, 2]],
   L5b: [['bridge', 1, 6], ['tube', 7, 5], ['tube', 7, 4], ['tube', 7, 3], ['tube', 7, 2], ['tube', 7, 1]],
   L11: [['catapult', 4, 4], ['ramp', 10, 5]], L11b: [['bridge', 5, 5], ['catapult', 8, 5], ['bouncer', 3, 4], ['floater', 5, 1]],
+  L12: [['bouncer', 3, 7], ['bouncer', 4, 4], ['signpost', 12, 4], ['rampL', 2, 1]], L12b: [['signpost', 8, 7], ['bouncer', 3, 7], ['bouncer', 2, 4], ['signpost', 0, 4]],
 };
 for (const d of LEVELS) {
   if (d.new === 'stick' || (d.tray || {}).stick || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
@@ -787,7 +804,7 @@ else:
     check(o['consts'] == [5, 6, {'walk': 2, 'climb': 3, 'bounce': 4, 'fall': 1, 'float': 2, 'tube': 2, 'wait': 1, 'ride': 3, 'tilt': 4, 'turn': 2, 'zip': 1, 'fling': 1, 'hit': 1}, 6, 3],
           f'timed model: five hamsters, 6 ticks apart; walk 2, climb 3, bounce 4, fall 1, float 2, tube 2, wait 1, ride 3, tilt 4 (a see-saw tipping, D-156), turn 2 (at a signpost, D-190), zip 1 (a square across, twice walking speed, D-196), fling 1 and hit 1 (the catapult, D-204); the cup stops 6, moves a row in 3 ({o["consts"]})')
     bad = [(n, b) for n, _, b in o['same'] if b]
-    check(not bad and len(o['same']) == 30, f'timed model: on the 18 sketch boards, levels 1 to 5 and their twins and levels 21 and 22 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
+    check(not bad and len(o['same']) == 32, f'timed model: on the 18 sketch boards, levels 1 to 5 and their twins and levels 21 to 24 with their seeds, each hamster goes walk()\'s way, 6 ticks apart, only the first takes the seed, each step its own length ({bad or len(o["same"])})')
     check(o['cup'] == [5, 5, 5, 4.5, 2, 2, 2, 5], f'teacup lift: stops at the bottom, rises a row every 3 ticks, stops at the top, comes back, a loop of 30 ({o["cup"]})')
     L = o['lift']
     check([h['outcome'] for h in L] == ['home'] * 5, f'teacup lift: all five get home ({[h["outcome"] for h in L]})')
@@ -999,9 +1016,13 @@ console.log(JSON.stringify({
   art: Object.fromEntries(K.CARDS.map((k) => [k, K.cardArt(k)])),
   badge: Object.fromEntries(K.CARDS.map((k) => [k, K.badgeArt(k)])),
   levels: LEVELS.map((d) => [d.id, d.new, K.cardFor(d)]),
-  odd: [K.cardFor({ new: null }), K.cardFor({ new: 'signpost' }), K.cardFor({})],
+  odd: [K.cardFor({ new: null }), K.cardFor({ new: 'zip' }), K.cardFor({})],
   again: K.cardArt('bridge') === K.cardArt('bridge'),
   poses: Object.fromEntries(['walk1', 'walk2', 'float', 'carry1', 'carry2'].map((p) => [p, A.hamster(p)])),
+  // the signpost card's board (D-208's storyboard A, 8 x 7, padded to 12 for core.js): a start tube on a ledge, a drop of
+  // 2, the pond at the right, home under the ledge; the signpost at 5,5
+  signWalk: core.walk(core.parseLevel({ id: 'card', rows: ['........', '........', '........', '.S......', '.###....', 'G.......', '######..'].map((r) => r + '....'), tray: {} }),
+    { '5,5': 'signpost' }).steps.map((st) => [st.c, st.r, st.act, st.dir || 1]),
 }));
 """
 kp = os.path.join(GAME, 'cards.js')
@@ -1015,18 +1036,18 @@ else:
         check(False, 'node ran cards.js')
     else:
         k = json.loads(r.stdout)
-        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult']   # (nine now: the catapult's, step 14)
-        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult'},
-              f'cards: 9, one for each of levels 1 to 20\'s six gadgets and two parts, in the order they come in (D-167), then the catapult\'s (level 21, D-186); the left ramp, '
-              f'signpost and zip-line get theirs with their levels (steps 15 and 18) ({k["cards"]})')
+        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost']   # (ten now: the catapult's, step 14; the signpost's, step 15)
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult', 'signpost'},
+              f'cards: 10, one for each of levels 1 to 20\'s six gadgets and two parts, in the order they come in (D-167), then the catapult\'s (level 21, D-186) and the signpost\'s '
+              f'(level 23, D-208); the zip-line gets its with its level (step 18); the left ramp is a ramp (the ramp\'s card) ({k["cards"]})')
         words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
         check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
         check(k['caption'].get('bridge') == 'Bridges cross the gaps' and k['caption'].get('lift') == 'Hop in and ride up!',
               f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
         check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
         lv = k['levels']
-        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult'],
-              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult ({lv})')
+        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult', 'signpost'],
+              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult; level 23 the signpost ({lv})')
         check([card for i, _, card in lv if i.endswith('b')] == [None] * sum(1 for i, _, _ in lv if i.endswith('b')) and any(i.endswith('b') for i, _, _ in lv),
               f'cards: the twins bring in nothing, so no card pops up for them (D-166) ({[x for x in lv if x[0].endswith("b")]})')
         check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
@@ -1075,6 +1096,34 @@ else:
         check(None not in (tipped, shown, landed, up, across) and tipped < shown < landed < up < across and home >= 390,
               f'card seesaw: it tips ({tipped}%), then the ramp drops in ({shown}% to {landed}%), then the third climbs to the raised end ({up}%), walks down the plank ({across}%) and home (x {home}) (D-177 (2))')
         check(k['loops'].get('seesaw') == 6.5, f'card seesaw: a loop of 6.5 s, for the ramp and the third hamster ({k["loops"].get("seesaw")})')
+        # the signpost's card (D-208, storyboard A): every place the hamster is drawn is a square on core.js's own walk of the
+        # card's board, in the walk's order; it waits puzzled before the signpost drops in, turns there, and walks back
+        # left (drawn mirrored) under the ledge to home
+        sw = k['signWalk']
+        feet = [((c + 0.5) * 60, (r + 1) * 60) for c, r, _, _ in sw]
+        sh = [(p, tuple(map(float, re.search(r'translate\(([-\d.]+)px, ([-\d.]+)px\)', b).groups()))) for p, b in frames_of('hc-signpost-ham') if 'translate(' in b]
+        at_walk = [feet.index(xy) if xy in feet else None for _, xy in sh]
+        turn = [i for i, st in enumerate(sw) if st[2] == 'turn']
+        check([x[2] for x in sw].count('turn') == 1 and sw[turn[0]][:2] == [5, 5] if turn else False,
+              f'card signpost: its board, walked by core.js with the signpost at 5,5: one turn, there ({[x for x in sw if x[2] == "turn"]})')
+        check(sh and None not in at_walk and at_walk == sorted(at_walk) and at_walk[0] == 0 and at_walk[-1] == len(sw) - 1 and feet[turn[0]] in [xy for _, xy in sh] if turn else False,
+              f'card signpost: every place the hamster is drawn is a square of that walk, in its order, from the start tube to home, by way of the signpost ({sh})')
+        reach = min((p for p, xy in sh if turn and xy == feet[turn[0]]), default=None)
+        onto = next((i for i in range(len(sw)) if turn and sw[i][:2] == sw[turn[0]][:2]), None)   # the step onto the signpost's square
+        wait = [p for p, xy in sh if xy == feet[onto - 1]] if onto else []                       # the square before it
+        sdrop = frames_of('hc-signpost-drop')
+        dshown = min((p for p, b in sdrop if 'opacity: 1' in b), default=None)
+        dlanded = min((p for p, b in sdrop if 'translateY(0)' in b and p > (dshown or 0)), default=None)
+        back_on = min((p for p, b in frames_of('hc-signpost-back') if 'opacity: 1' in b), default=None)
+        move_on = [p for p, b in frames_of('hc-signpost-move') if 'opacity: 1' in b]
+        sart = k['art'].get('signpost', '')
+        mirrored = all(re.search(r'class="' + c + r'"><g transform="scale\(-1 1\)"', sart) for c in ('hc-signpost-back', 'hc-signpost-home'))
+        check(None not in (reach, dshown, dlanded, back_on) and len(wait) >= 2 and wait[0] < dshown < dlanded <= wait[-1] < reach < back_on and max(move_on) < back_on,
+              f'card signpost: it stops beside the signpost\'s square ({wait}%), the signpost drops in ({dshown}% to {dlanded}%), it walks on to it ({reach}%) and turns: '
+              f'facing left from {back_on}% (D-208)')
+        check(mirrored and 'hc-signpost-swirl' in sart and 'hc-signpost-wait' in sart, 'card signpost: the hamster facing left is drawn mirrored, walking and at home; a swirl shows the turn; it waits puzzled')
+        check(k['caption'].get('signpost') == 'Signposts turn them round!' and k['loops'].get('signpost') == 6,
+              f'card signpost: the caption Rob kept (D-208) and a loop of 6 s ({k["caption"].get("signpost")}, {k["loops"].get("signpost")})')
         check(k['again'], 'cards: the same card is drawn the same each time')
         # art.js: the carrying poses (D-178): walking feet, arms up and the float pose's dandelion overhead
         po = k['poses']
@@ -1402,6 +1451,7 @@ check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): a
 check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
 
 # levels 21 and 22 at the duck pond (step 14, D-184): their roads, each by run() (all five), worked out by hand (18 Nov)
+# and levels 23 and 24 at the climbing frame (step 15): their roads, traced in design and confirmed with core.js 1.8's walk() (21 Nov)
 PJS2 = r"""
 const [coreUrl, levelsUrl] = process.argv.slice(1);
 const core = await import(coreUrl);
@@ -1414,7 +1464,13 @@ console.log(JSON.stringify({ d,
   l11: [five('L11', { '4,4': 'catapult' }), five('L11', { '3,4': 'catapult' }), five('L11', {}), five('L11', { '4,4': 'catapult', '10,5': 'ramp' }),
         five('L11', { '4,4': 'catapult', '11,5': 'ramp' })],
   l11b: [five('L11b', { '5,5': 'bridge', '8,5': 'catapult' }), five('L11b', { '3,4': 'bouncer', '5,1': 'floater' }), five('L11b', { '3,4': 'bouncer' }),
-         five('L11b', { '4,4': 'catapult' }), five('L11b', { '5,5': 'bridge' }), five('L11b', { '5,5': 'bridge', '7,5': 'catapult' })] }));
+         five('L11b', { '4,4': 'catapult' }), five('L11b', { '5,5': 'bridge' }), five('L11b', { '5,5': 'bridge', '7,5': 'catapult' })],
+  l12: [five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '12,4': 'signpost' }), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '12,4': 'signpost', '2,1': 'rampL' }),
+        five('L12', { '3,7': 'bouncer', '4,4': 'bouncer' }), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '2,7': 'signpost' }),
+        five('L12', { '3,7': 'bouncer', '12,4': 'signpost' }), five('L12', {}), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '8,4': 'signpost' })],
+  l12b: [five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer', '0,4': 'signpost' }), five('L12b', { '9,7': 'bouncer' }),
+         five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer' }), five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '0,4': 'signpost' }),
+         five('L12b', {}), five('L12b', { '8,7': 'bouncer' })] }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', PJS2, 'file://' + os.path.join(GAME, 'core.js'), 'file://' + os.path.join(GAME, 'levels.js')], capture_output=True, text=True)
 if r.returncode != 0:
@@ -1430,6 +1486,40 @@ else:
     check(q['l11b'] == [['home', False], ['home', True], ['bonk', True], ['splash', False], ['splash', False], ['splash', False]],
           f'level 22, by hand: the low road (a bridge to the island, the spoon at its end) gets home without the seed; the high road (the bouncer onto the willow branch, the '
           f'floater down) home with it; the bouncer alone, a funny fall off the branch\'s end (the seed taken on the way); the spoon from the near bank bonks on the branch and drops into the pond; the bridge alone, or the spoon a square back on the island, a splash ({q["l11b"]})')
+    check(q['d'].get('L12') == {'room': 'park', 'spot': 'frame', 'back': 'frame', 'new': 'signpost', 'twin': None, 'more': None, 'roads': None, 'tray': {'bouncer': 2, 'signpost': 1, 'rampL': 1}, 'h': 9, 'w': 16, 'spare': 'rampL'}
+          and q['d'].get('L12b') == {'room': 'park', 'spot': 'frame2', 'back': 'frame', 'new': None, 'twin': 'L12', 'more': None, 'roads': 2, 'tray': {'bouncer': 2, 'signpost': 2}, 'h': 9, 'w': 20, 'spare': None},
+          f'levels 23 and 24: in the park at the climbing frame\'s two stops on its backdrop (D-208), 9 rows, 16 and 20 wide; 23 brings in the signpost with a spare left ramp; 24 its twin, "pick your road" with 2 roads, no `more` ({q["d"].get("L12")}, {q["d"].get("L12b")})')
+    check(q['l12'] == [['home', False], ['home', True], ['bonk', False], ['nap', False], ['bonk', False], ['splash', False], ['home', False]],
+          f'level 23 (traced in design, 21 Nov): bounce up onto the bar, the signpost at its end turns them back to the second bouncer, which throws them up-left to the top bar and home; '
+          f'the spare left ramp on the top bar takes the seed in the corner; no signpost: off the bar\'s end, a funny fall; the signpost on the ground: turned too soon, a nap in the start tube; '
+          f'no second bouncer: back down where they bounced up, a funny fall; nothing: into the pond; a signpost anywhere along the bar turns them sooner, home too ({q["l12"]})')
+    check(q['l12b'] == [['home', True], ['home', False], ['stuck', False], ['bonk', False], ['splash', False], ['bonk', False]],
+          f'level 24 (traced in design, 21 Nov): the zig-zag (a signpost on the ground, the first bouncer up-left, a signpost at the bar\'s left end, the second bouncer up-right onto the '
+          f'tower\'s top bar, down to home) takes the seed; one bouncer straight up from the ground gets home without it; the zig-zag without its second signpost: stuck at the left edge; '
+          f'without its second bouncer: a funny fall; nothing: into the pond; the one bouncer a square short: a funny fall ({q["l12b"]})')
+
+# the climbing frame's backdrop (D-208): look A of the step 15 mock-ups, copied into art.js unchanged (frameA renamed
+# frameArt), drawn 540 tall as the pond's
+MOCK = open(os.path.join(HERE, 'mock_hamster_frame_backdrops.js'), encoding='utf-8').read()
+ARTSRC = open(os.path.join(GAME, 'art.js'), encoding='utf-8').read()
+def js_function(src, name):
+    i = src.find(f'\nfunction {name}(')
+    return src[i + 1:src.index('\n}\n', i) + 2] if i >= 0 else None
+copied = {n: js_function(MOCK, n) for n in ('frameHill', 'frameBush', 'frameRobin', 'frameLadybird', 'frameA')}
+copied['frameA'] = copied['frameA'] and copied['frameA'].replace('function frameA(', 'function frameArt(')
+missing = [n for n, t in copied.items() if not t or t not in ARTSRC] + [c for c in ("const FH = 540;", "const FRED = '#E8505B';") if c not in ARTSRC]
+check(not missing, f'art.js: the climbing frame\'s backdrop is look A, copied from mock_hamster_frame_backdrops.js 0.1 unchanged (D-208) (not found: {missing})')
+BJS = r"""
+const A = await import(process.argv[1]);
+const b = A.backdrop('frame', 960);
+console.log(JSON.stringify({ h: [A.backHeight('frame'), A.backHeight('pond'), A.backHeight('kitchen')], tagged: b.startsWith('<g data-back="frame">'),
+  closed: (b.match(/<g\b/g) || []).length === (b.match(/<\/g>/g) || []).length, pokes: (b.match(/data-poke="(bird|swing|spider)"/g) || []).length, wide: A.backdrop('frame', 1200).length > b.length }));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', BJS, 'file://' + os.path.join(GAME, 'art.js')], capture_output=True, text=True)
+bk = json.loads(r.stdout) if r.returncode == 0 else {}
+check(bk.get('h') == [540, 540, 420] and bk.get('tagged') and bk.get('closed') and bk.get('pokes', 0) >= 3 and bk.get('wide'),
+      f'art.js: the frame backdrop is drawn 540 tall (the pond\'s too, the house\'s 420), named data-back="frame", every group closed, a robin, a ladybird and a flag '
+      f'to tap, and as wide as the board asks ({bk or r.stderr[-300:]})')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

@@ -1,4 +1,9 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.2 (18 Nov, step 14).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.3 (21 Nov, step 15).
+//
+// Changes at v1.3 (step 15, D-208): the signpost's card, the tenth, storyboard A of the step 15 mock-ups: out of the
+// start tube on a ledge, along it and down to the floor; it stops puzzled at the pond's edge, the signpost drops in; it
+// walks on to it and turns round (a swirl), then walks back left under the ledge (drawn mirrored) and home. Every place
+// the hamster is drawn is a square of core.js's own walk of this board. Caption "Signposts turn them round!"; 6 s.
 //
 // Changes at v1.2 (step 14, D-186, D-194): the spoon catapult's card, the ninth: walks to the pond's edge, stops, the
 // spoon drops in; it steps into the spoon, which flicks, and flies over the water on an arc to the far bank, then
@@ -20,9 +25,9 @@
 // Pure (project rules): it only builds text, and imports only art.js.
 
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
-import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -35,10 +40,11 @@ export const CAPTION = {
   seesaw: 'Two on the end tip it',
   lift: 'Hop in and ride up!',
   catapult: 'The spoon flings them over!',
+  signpost: 'Signposts turn them round!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -102,6 +108,18 @@ SCENE.catapult = () => board(['........', '........', '........', '........', '.
   + cls('hc-catapult-drop', place(cls('hc-catapult-flick', gadget('catapult')), 120, 300, GS)) + sparks('catapult', 142, 340)
   + cls('hc-catapult-ham', cls('hc-catapult-move', legs('catapult')) + cls('hc-catapult-wait', ham(0, 0) + huh(10, -62))
     + cls('hc-catapult-fly', ham(0, 0, 'boing')) + cls('hc-catapult-home', ham(0, -4, 'home')));
+
+// The signpost (D-208): out of the start tube on a ledge, along it and down to the floor; it stops at the pond's edge
+// and the signpost drops in; it walks on to it, turns round, and walks back left under the ledge to home. Facing left,
+// the hamster is the same drawing mirrored, in a still inner group (the moving group's own transform is its animation).
+VIEW.signpost = '0 136 480 284';
+const left = (body) => g(body, 'scale(-1 1)');
+SCENE.signpost = () => board(['........', '........', '........', '........', '.###....', '........', '######..'], [[6, 6], [7, 6]])
+  + place(startArt(), 60, 180, GS) + place(homeArt(), 0, 300, GS) + fit(300, 300, 'signpost')
+  + cls('hc-signpost-drop', place(cls('hc-signpost-wob', gadget('signpost')), 300, 300, GS)) + sparks('signpost', 322, 340)
+  + cls('hc-signpost-swirl', path('M 308 294 A 22 11 0 1 1 350 288', 'none', 4, INK) + path('M 342 280 L 352 288 L 340 294', 'none', 4, INK, ' stroke-linejoin="round"'))
+  + cls('hc-signpost-ham', cls('hc-signpost-move', legs('signpost')) + cls('hc-signpost-fall', ham(0, 0, 'fall')) + cls('hc-signpost-wait', ham(0, 0) + huh(10, -62))
+    + cls('hc-signpost-back', left(legs('signpost'))) + cls('hc-signpost-home', left(ham(0, -4, 'home'))));
 
 // The floater: walks to the end of a high ledge and stops at the drop; the dandelion drops in; it takes it and
 // drifts gently down, swaying, then walks home.
@@ -233,6 +251,22 @@ function css() {
     + rule('hc-catapult-fly', 'hc-catapult-fly 5.5s linear infinite') + rule('hc-catapult-home', 'hc-catapult-home 5.5s ease-in-out infinite')
     + rule('hc-catapult-flick', 'hc-catapult-flick 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 70% 85%; ')
     + dropIn('catapult', 5.5, 30);
+
+  // signpost, 6 s: along the ledge 0% to 15%, the drop to the floor to 19%, waits beside the pond's edge to 40% (the
+  // signpost drops in at 28%), on to it by 45%, turns 45% to 51% (facing left from 48%), back left to home by 76%
+  s += kf('hc-signpost-ham', `0% { ${T(90, 240)} } 15% { ${T(270, 240)} } 19%, 40% { ${T(270, 360)} } 45%, 51% { ${T(330, 360)} } 76%, 100% { ${T(30, 360)} }`)
+    + rule('hc-signpost-ham', 'hc-signpost-ham 6s linear infinite')
+    + kf('hc-signpost-move', '0%, 14.9% { opacity: 1 } 15%, 39.9% { opacity: 0 } 40%, 47.9% { opacity: 1 } 48%, 100% { opacity: 0 }')
+    + kf('hc-signpost-fall', '0%, 14.9% { opacity: 0 } 15%, 18.9% { opacity: 1 } 19%, 100% { opacity: 0 }')
+    + kf('hc-signpost-wait', '0%, 18.9% { opacity: 0 } 19%, 39.9% { opacity: 1 } 40%, 100% { opacity: 0 }')
+    + kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 1 } 76%, 100% { opacity: 0 }')
+    + kf('hc-signpost-home', '0%, 75.9% { opacity: 0; transform: translateY(0) } 76% { opacity: 1; transform: translateY(0) } 81% { transform: translateY(-14px) } 86%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-signpost-wob', '0%, 45% { transform: rotate(0) } 47% { transform: rotate(-12deg) } 50% { transform: rotate(9deg) } 53%, 100% { transform: rotate(0) }')
+    + rule('hc-signpost-move', 'hc-signpost-move 6s linear infinite') + rule('hc-signpost-fall', 'hc-signpost-fall 6s linear infinite')
+    + rule('hc-signpost-wait', 'hc-signpost-wait 6s linear infinite') + rule('hc-signpost-back', 'hc-signpost-back 6s linear infinite')
+    + rule('hc-signpost-home', 'hc-signpost-home 6s ease-in-out infinite')
+    + rule('hc-signpost-wob', 'hc-signpost-wob 6s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
+    + on('hc-signpost-swirl', 6, 45, 52) + dropIn('signpost', 6, 28);
 
   // floater, 5.5 s: takes it at 48%, drifts down, swaying, to the floor at 76%
   s += kf('hc-floater-ham', `0% { ${T(20, 180)} } 20%, 40% { ${T(96, 180)} } 48% { ${T(150, 180)} } 53% { ${T(178, 214)} } 58% { ${T(196, 252)} }`

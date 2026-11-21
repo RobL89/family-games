@@ -1,4 +1,8 @@
-// Hamster Highway's drawings, as SVG text. Version 1.8.
+// Hamster Highway's drawings, as SVG text. Version 1.9.
+//
+// Changes at v1.9 (step 15, D-208): the climbing frame's backdrop for levels 23 and 24 (frameArt, look A: the park's red
+// and yellow frame, monkey bars between two towers, a flag, a robin and a ladybird), drawn 540 tall as the pond's;
+// copied by script from tools/tests/games/mock_hamster_frame_backdrops.js 0.1, the mock-up Rob picked.
 //
 // Changes at v1.8 (step 14b, D-206): the spoon in parts for its throw: catapultReel() and catapultSpoon() (the arm),
 // together the same picture as catapultArt(); the placed gadget wraps them (class spoon-art: reel, spoon) with a puff
@@ -328,11 +332,12 @@ function jar(x, h, col, lid = '#E8505B') {
 
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
-// The height a backdrop is drawn at: the park's are 540 (9 rows, D-185), the house's 420.
-export const backHeight = (name) => (name === 'pond' ? 540 : H);
+// The height a backdrop is drawn at: the park's are 540 (9 rows, D-185: the pond, the frame), the house's 420.
+export const backHeight = (name) => (name === 'pond' || name === 'frame' ? 540 : H);
 
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
+  if (name === 'frame') return g(frameArt(w), '', ' data-back="frame"');
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -576,6 +581,47 @@ function loftArt() {
     + [-1, 1].map((k) => path(`M 676 64 l ${9 * k} -5 M 676 66 l ${10 * k} 2 M 676 68 l ${8 * k} 7`, 'none', 1.4, '#5A3A22')).join(''),
   '', ' class="poke spider" data-poke="spider"');
   return s + g(d, '', ' opacity="0.9"');
+}
+
+// The climbing frame (levels 23 and 24, D-208), w wide and 540 tall: look A of the step 15 mock-ups, the park's red and
+// yellow frame, copied unchanged from tools/tests/games/mock_hamster_frame_backdrops.js 0.1 (its frameA, renamed), with
+// the helpers it uses. It shares the pond's sky (pondSky).
+const FH = 540;
+const FRED = '#E8505B';
+
+function frameHill(w) {
+  return rect(0, 380, w, FH - 380, '#E7F6FC', 0, 0) + path(`M 0 432 Q ${w * 0.25} 404 ${w * 0.5} 424 T ${w} 418 L ${w} ${FH} L 0 ${FH} Z`, '#CDEFB9', 0, 'none')
+    + path(`M 0 432 Q ${w * 0.25} 404 ${w * 0.5} 424 T ${w} 418`, 'none', 3, '#8FC97A');
+}
+function frameBush(x, y) {
+  return circle(x, y, 34, '#9ED98A', 2.4, '#6FB35A') + circle(x + 38, y + 6, 26, '#A9DE94', 2.4, '#6FB35A');
+}
+function frameRobin(x, y) {
+  return g(ellipse(x, y - 12, 16, 13, '#A9744F', 2.2) + ellipse(x + 4, y - 9, 9, 8, CORAL, 0) + circle(x + 12, y - 24, 9, '#A9744F', 2.2)
+    + circle(x + 15, y - 26, 2, INK, 0) + path(`M ${x + 20} ${y - 24} l 7 2 l -7 2 Z`, SUN, 1.4) + path(`M ${x - 14} ${y - 14} l -12 -6 l 2 10 Z`, '#8B5A3C', 1.8)
+    + line(x - 3, y, x - 3, y + 5, INK, 2) + line(x + 4, y, x + 4, y + 5, INK, 2), '', ' class="poke" data-poke="bird"');
+}
+function frameLadybird(x, y) {
+  return g(ellipse(x, y, 10, 12, CORAL, 2) + line(x, y - 12, x, y + 12, INK, 1.6) + circle(x, y - 13, 5, INK, 0)
+    + circle(x - 4, y - 2, 2.2, INK, 0) + circle(x + 4, y + 4, 2.2, INK, 0) + circle(x + 4, y - 4, 1.8, INK, 0), '', ' class="poke" data-poke="spider"');
+}
+function frameArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 420) d += frameBush(x, 448);
+  let k = 0;
+  for (let x = 230; x + 420 <= w + 40; x += 600, k++) {
+    const post = (px, top) => rect(px - 8, top, 16, 452 - top, FRED, 4, 3) + ellipse(px, 452, 14, 5, '#8FC97A', 0);
+    d += post(x, 170) + post(x + 200, 170) + post(x + 420, 230) + post(x + 560, 230);
+    for (const y of [240, 320, 400]) d += rect(x - 10, y - 7, 220, 14, SUN, 7, 3);
+    for (const y of [300, 380]) d += rect(x + 410, y - 7, 160, 14, SUN, 7, 3);
+    d += rect(x + 192, 224, 236, 12, SUN, 6, 3) + rect(x + 192, 254, 236, 12, SUN, 6, 3)
+      + [0, 1, 2, 3, 4, 5, 6].map((i) => line(x + 222 + 30 * i, 236, x + 222 + 30 * i, 254, INK, 3)).join('');
+    d += g(line(x + 100, 170, x + 100, 110, INK, 3.5) + path(`M ${x + 100} 112 L ${x + 146} 126 L ${x + 100} 140 Z`, k % 2 ? LEAF : CORAL, 2.6), '', ' class="poke" data-poke="swing"');
+    d += line(x - 8, 172, x + 208, 172, FRED, 0) + rect(x - 12, 162, 224, 14, FRED, 6, 3);
+    if (k === 0) d += frameRobin(x + 150, 233) + frameLadybird(x + 420, 330);
+  }
+  return s + g(d, '', ' opacity="0.92"');
 }
 
 function backdropArt(name) {

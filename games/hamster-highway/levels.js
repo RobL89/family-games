@@ -1,4 +1,18 @@
-// Hamster Highway's levels. Version 1.7. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.8. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.8 (step 15, D-184, D-190, D-208): levels 23 and 24, the park's climbing frame, 9 rows tall (backdrop
+// 'frame', D-208). Claude's designs (21 Nov), traced square by square and confirmed with core.js 1.8's walk():
+//   L12 Up the frame: the signpost's first level, one road: a bouncer on the ground (3,7) throws them up onto the bar,
+//       where the second bouncer waits where they land (4,4); along the bar to a signpost (at its end, 12,4, or sooner),
+//       which turns them; back into the second bouncer, which throws them up-left onto the top bar and home in the top
+//       left corner. No signpost: off the bar's end, a funny fall; a signpost on the ground: turned too soon, a nap
+//       in the start tube; nothing: into the pond. The seed in the top corner, by the spare left ramp on the top bar
+//       (2,1), which climbs walking left (D-190).
+//   L12b Zig, zag, home, its twin: "pick your road", `roads`: 2: the zig-zag up the tower, starting from a shelf so
+//       the walk back passes under the start (a signpost on the ground, the first bouncer throws them up-left onto the
+//       tower's left bar, where the second waits; a signpost at its left end; the second bouncer throws them up-right
+//       onto the top bar, with the seed, and down to the frame's long bar and home); or one bouncer on the ground
+//       (9,7) straight up onto the long bar and home, without the seed. Nothing: into the pond.
 //
 // Changes at v1.7 (step 14, D-184, D-185, D-187, D-194): levels 21 and 22, the park's duck pond, 9 rows tall (`room`
 // 'park': game.js shows them in the park, park.js's stops; backdrop 'pond', D-203). Checked by solve_hamster_highway.py
@@ -378,6 +392,36 @@ export const LEVELS = [
       '#####.###...########',
       '#####.###...########',
       '#####.###...########',
+    ],
+  },
+  {
+    id: 'L12', name: 'Up the frame', room: 'park', spot: 'frame', back: 'frame', new: 'signpost',
+    tray: { bouncer: 2, signpost: 1, rampL: 1 }, spare: 'rampL',
+    rows: [
+      '..*.............',
+      'G...............',
+      '####............',
+      '................',
+      '................',
+      '....#########...',
+      '................',
+      'S...............',
+      '##############..',
+    ],
+  },
+  {
+    id: 'L12b', name: 'Zig, zag, home', room: 'park', spot: 'frame2', back: 'frame', new: null, twin: 'L12', roads: 2,
+    tray: { bouncer: 2, signpost: 2 },
+    rows: [
+      '....................',
+      '....................',
+      '.....*..............',
+      '...##########.......',
+      '...................G',
+      '###...S...##########',
+      '......#.............',
+      '....................',
+      '################....',
     ],
   },
 ];

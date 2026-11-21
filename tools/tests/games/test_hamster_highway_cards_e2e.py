@@ -1,4 +1,8 @@
-"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.2 (18 Nov, step 14).
+"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.3 (21 Nov, step 15).
+
+Changes at v1.3 (step 15, D-208): with levels 21 and 22 done and the nine cards seen, Play opens the park; level 23
+pops up the signpost's card, moving, with its caption, in the middle of the 9-row window, the hamster drawn facing
+both ways as it plays; seen, it is kept with the other nine.
 
 Changes at v1.2 (step 14, D-194, D-202): the format 1 run opens the garden's 20 levels by their stops; then, with all 20
 done and the eight cards seen, the ride to the park and level 21, where the catapult's card pops up, moves and shows
@@ -284,6 +288,30 @@ with sync_playwright() as pw:
     close_card(pg)
     k = kept(pg)
     check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult']}, f'PC: the catapult\'s card is kept as seen with the other eight ({k and k.get("cards")})')
+    # ---- the climbing frame (step 15): levels 21 and 22 done too and the nine cards seen; level 23's card, the signpost's
+    park_done = HOUSE_IDS + ['L11', 'L11b']
+    pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 2, done: {json.dumps({i: True for i in park_done})}, seeds: {{}}, tries: {json.dumps({'L11': 1, 'L11b': 1})}, cards: {json.dumps({c: True for c in EIGHT + ['catapult']})}}}))")
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    to_house(pg)
+    check(state(pg)['scene'] == 'park', 'PC: with a park level tried, Play opens the park (D-202)')
+    open_level(pg, 'L12')
+    s = state(pg)
+    pg.wait_for_timeout(1500)
+    pg.screenshot(path=os.path.join(OUT, 'pc-card-signpost.png'))
+    cb = pg.locator('#card [data-card]').bounding_box()
+    wb = pg.locator('#window rect').bounding_box()
+    mid = abs((cb['x'] + cb['width'] / 2) - (wb['x'] + wb['width'] / 2)) < 12 and abs((cb['y'] + cb['height'] / 2) - (wb['y'] + wb['height'] / 2)) < 12
+    # the hamster faces right until it turns at the signpost, then left (drawn mirrored): both seen over one loop (6 s)
+    faced = pg.evaluate('''() => new Promise((done) => { const seen = new Set(); const t0 = performance.now(); const id = setInterval(() => {
+        for (const c of ['hc-signpost-move', 'hc-signpost-back']) { const el = document.querySelector('#card .' + c); if (el && Number(getComputedStyle(el).opacity) > 0.5) seen.add(c); }
+        if (performance.now() - t0 > 6500) { clearInterval(id); done([...seen].sort()); } }, 50); })''')
+    check(s['card'] == 'signpost' and card_moving(pg) > 0 and pg.locator('#card text', has_text=s['caption']).count() == 1 and mid and s['caption'] == 'Signposts turn them round!'
+          and faced == ['hc-signpost-back', 'hc-signpost-move'],
+          f'PC: level 23 pops up the signpost\'s card, moving, with its caption "{s["caption"]}", in the middle of the 9-row window; over a loop the hamster walks right, then left ({s["card"]}, {faced})')
+    close_card(pg)
+    k = kept(pg)
+    check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult', 'signpost']}, f'PC: the signpost\'s card is kept as seen with the other nine ({k and k.get("cards")})')
     ctx.close()
 
     # ---- in the stand-in wrapper
