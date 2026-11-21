@@ -1,4 +1,14 @@
-// Hamster Highway's levels. Version 1.9. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.10. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.10 (step 17, D-145, D-192, D-194): levels 27 and 28, the park's playground, 9 rows tall (backdrop
+// 'playground', look A proposed while Rob couldn't test), each with Pudding in the line (`pudding`: its place).
+// Claude's designs (21 Nov), traced and confirmed with core.js 1.10's run():
+//   L14 Pudding comes to play: Pudding third. The bridge over the pond (12,8) gets all five home. The seed is on the
+//       slide: the spare bouncer (3,7) sends the Nibbles up and over the pond, but Pudding squashes it and walks on,
+//       so Pudding still needs the bridge; the bouncer alone leaves Pudding in the pond.
+//   L14b Big and small, its twin: Pudding second, two ponds, `roads`: 2: two bridges for everyone, or the bouncer for
+//       the Nibbles (the slide over both ponds, with the seed) and the bridges for Pudding; the bouncer with one bridge
+//       leaves Pudding in the second pond. (A worn stick as a trap, snapping under Pudding, waits on Rob: Q-079.)
 //
 // Changes at v1.9 (step 16, D-184, D-194): levels 25 and 26, the park's picnic, 9 rows tall (backdrop 'picnic', look A
 // proposed while Rob was out). Claude's designs (21 Nov), traced and confirmed with core.js 1.9's run():
@@ -464,6 +474,36 @@ export const LEVELS = [
       '..................#.....',
       'S.....###..............G',
       '###############....#####',
+    ],
+  },
+  {
+    id: 'L14', name: 'Pudding comes to play', room: 'park', spot: 'playground', back: 'playground', new: 'pudding', pudding: 2,
+    tray: { bridge: 1, bouncer: 1 }, spare: 'bouncer',
+    rows: [
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '......*.............',
+      '....##########......',
+      'S..................G',
+      '############.#######',
+    ],
+  },
+  {
+    id: 'L14b', name: 'Big and small', room: 'park', spot: 'playground2', back: 'playground', new: null, twin: 'L14', roads: 2, pudding: 1,
+    tray: { bridge: 2, bouncer: 1 },
+    rows: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '..........*.............',
+      '....##############......',
+      'S......................G',
+      '########.#######.#######',
     ],
   },
 ];

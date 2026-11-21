@@ -1,5 +1,11 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.15 (21 Nov, step 16).
+tests catch (project rules: test the tests). Version 1.16 (21 Nov, step 17).
+Changes at v1.16 (step 17, D-194): eleven faults in Pudding, levels 27 and 28 and the playground's backdrop, named
+"pudding:" or "playground:": nine by the core test (bounces like a Nibble; a worn stick holds it; it needs a friend on a
+see-saw; any place in the line; one dandelion; the card's Pudding leaves the floor; level 27 without its spare; Pudding
+first on level 27; the backdrop 420 tall) and two by the browser test (not drawn as Pudding; the marshmallow doesn't squish).
+Five older faults' text follows core.js 1.10, cards.js 1.5 and art.js 1.11 (the third-hamster snap, the two cards left out,
+the frame's and picnic's backdrops 420 tall).
 Changes at v1.15 (step 16, D-194): eleven faults in the button, levels 25 and 26 and the picnic's backdrop, named
 "button:" or "picnic:": ten by the core test (never pressed; not pressed on landing; the lid never holds; pressed again
 each time; a gadget on a lid; the card's lid dropping after the gap; level 25 without its spare; its pond a square wider;
@@ -108,7 +114,7 @@ FAULTS = [
     ('all five come out at once', G + 'core.js', 'next: i * RELEASE,', 'next: 0,', CORE),
     ('the seed is taken by every hamster', G + 'core.js', '        seed = false;\n        return true;', '        return true;', CORE),
     ('a gadget fits on a worn stick', G + 'core.js', "const FLOOR = new Set(['#', 'bridge']); ", "const FLOOR = new Set(['#', 'bridge', 'stick']); ", CORE),
-    ('a stick snaps under the third', G + 'core.js', 'const snap = by.size >= SNAP;', 'const snap = by.size >= SNAP - 1;', CORE),
+    ('a stick snaps under the third', G + 'core.js', 'const snap = by.size >= SNAP ||', 'const snap = by.size >= SNAP - 1 ||', CORE),
     ('a snapped stick stays', G + 'core.js', '        if (snap) delete placed[k];\n', '', CORE),
     ('a board 25 wide is accepted', G + 'core.js', 'export const MAX_COLS = 24;', 'export const MAX_COLS = 25;', CORE),
     ('one hamster tips the see-saw', G + 'core.js', 'export const PAIR = 2;', 'export const PAIR = 1;', CORE),
@@ -205,7 +211,7 @@ FAULTS = [
     ('catapult: the seed on the arc missed', G + 'core.js', "        yield mark(touch({ c, r, act: 'fling' }, c, r));", "        yield mark({ c, r, act: 'fling' });", CORE),
     ('catapult: two ticks a square', G + 'core.js', 'zip: 1, fling: 1, hit: 1 };', 'zip: 1, fling: 2, hit: 1 };', CORE),
     ('catapult: not a gadget', G + 'core.js', "'rampL', 'signpost', 'zip', 'catapult'];", "'rampL', 'signpost', 'zip'];", CORE),
-    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button'];", "'seesaw', 'lift', 'signpost', 'button'];", CORE),
+    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'signpost', 'button', 'pudding'];", CORE),
     ('catapult: level 21 without its spare ramp', G + 'levels.js', '    tray: { catapult: 1, ramp: 1 }, spare: \'ramp\',', '    tray: { catapult: 1 }, spare: \'ramp\',', CORE),
     ('catapult: level 21\'s pond 2 wide', G + 'levels.js', "      '#####..........G',\n      '#####...########',\n", "      '#####..........G',\n      '#####..#########',\n", CORE),
     ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '....########........',\n", "      '....#######.........',\n", CORE),
@@ -218,6 +224,17 @@ FAULTS = [
     ('catapult: the spoon only sits there', G + 'game.js', "  el.classList.add('throw');\n", "  el.classList.add('wobble');\n", E2E),
     ('catapult: the spoon in one piece', G + 'art.js', "g(catapultReel(), '', ' class=\"reel\"') + g(catapultSpoon(), '', ' class=\"spoon\"')", "g(catapultArt(), '', ' class=\"spoon\"')", CORE),
     ('catapult: the card in the corner of a tall window', G + 'game.js', '  const mid = BW === 720 && BH === 420 ? cardArt(kind)', '  const mid = true ? cardArt(kind)', CARDS_E2E),
+    ('pudding: bounces like a Nibble', G + 'core.js', "    if (k === 'bouncer' && ctx.heavy) ctx.squash(c, r);", "    if (k === 'bouncer' && false) ctx.squash(c, r);", CORE),
+    ('pudding: a worn stick holds it', G + 'core.js', "const snap = by.size >= SNAP || level.pudding === who;", "const snap = by.size >= SNAP;", CORE),
+    ('pudding: needs a friend on a see-saw', G + 'core.js', "(s.far.size >= PAIR || level.pudding === who)", "(s.far.size >= PAIR)", CORE),
+    ('pudding: any place in the line', G + 'core.js', "def.pudding >= 0 && def.pudding < WALKERS)", "def.pudding >= 0 && def.pudding < 99)", CORE),
+    ('pudding: one dandelion', G + 'art.js', "s = g(dandelion(), 'rotate(-16 8 -72)') + g(dandelion(), 'rotate(16 8 -72)') + s;", "s = '' + s;", CORE),
+    ('pudding: the card\'s Pudding leaves the floor', G + 'cards.js', "50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", "50% { ${T(210, 300)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", CORE),
+    ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 1 }, spare: 'bouncer',", CORE),
+    ('playground: Pudding first on level 27', G + 'levels.js', "new: 'pudding', pudding: 2,", "new: 'pudding', pudding: 0,", CORE),
+    ('playground: the backdrop drawn 420 tall', G + 'art.js', "name === 'picnic' || name === 'playground' ? 540 : H", "name === 'picnic' ? 540 : H", CORE),
+    ('pudding: not drawn as Pudding', G + 'game.js', "? pudding : hamster)(pose);   // Pudding (D-189 A)", "? hamster : hamster)(pose);   // Pudding (D-189 A)", E2E),
+    ('pudding: the marshmallow doesn\'t squish', G + 'game.js', "  if (e.kind === 'squash') { squishMallow(`${e.c},${e.r}`); play('flump'); return; }", "  if (e.kind === 'squash') return;", E2E),
     ('button: never pressed', G + 'core.js', "    if (ctx.press) ctx.press(c, r);   // a bottle-top button", "    // a bottle-top button", CORE),
     ('button: not pressed on landing', G + 'core.js', "    if (fell && ctx.press) ctx.press(c, r);\n", "", CORE),
     ('button: the lid never holds', G + 'core.js', "holds(level, placed, c, r) || lidDown(c, r) || parts.some", "holds(level, placed, c, r) || parts.some", CORE),
@@ -227,9 +244,9 @@ FAULTS = [
     ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { bouncer: 1, ramp: 1 }, spare: 'ramp',", "    tray: { bouncer: 1 }, spare: 'ramp',", CORE),
     ('picnic: level 25\'s pond a square wider', G + 'levels.js', "      '#############..#####',", "      '############...#####',", CORE),
     ('picnic: level 26\'s hamper button gone', G + 'levels.js', ", { kind: 'button', c: 7, r: 6, lid: [[15, 8], [16, 8], [17, 8], [18, 8]] }]", "]", CORE),
-    ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' ? 540 : H", "name === 'frame' ? 540 : H", CORE),
+    ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H", "name === 'frame' || name === 'playground' ? 540 : H", CORE),
     ('button: the lid never swings down', G + 'game.js', "    if (lid) lid.style.transform = 'rotate(0deg)';\n", "", E2E),
-    ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button'];", "'seesaw', 'lift', 'catapult', 'button'];", CORE),
+    ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'catapult', 'button', 'pudding'];", CORE),
     ('signpost: the card\'s caption changed', G + 'cards.js', "  signpost: 'Signposts turn them round!',", "  signpost: 'Signs turn them!',", CORE),
     ('signpost: the card\'s hamster never faces left', G + 'cards.js', "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 1 }", "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 0 }", CORE),
     ('signpost: the card\'s hamster walks back unmirrored', G + 'cards.js', "const left = (body) => g(body, 'scale(-1 1)');", "const left = (body) => g(body, 'scale(1 1)');", CORE),
@@ -240,7 +257,7 @@ FAULTS = [
     ('frame: level 24\'s start on the ground', G + 'levels.js', "      '###...S...##########',\n      '......#.............',\n      '....................',\n",
      "      '###.......##########',\n      '......#.............',\n      '......S.............',\n", CORE),
     ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 2,", "twin: 'L12',", CORE),
-    ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' ? 540 : H)", "(name === 'pond' || name === 'picnic' ? 540 : H)", CORE),
+    ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H)", "(name === 'pond' || name === 'picnic' || name === 'playground' ? 540 : H)", CORE),
     ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
     ('frame: level 24\'s stop off the park', G + 'levels.js', "room: 'park', spot: 'frame2', back: 'frame'", "room: 'park', spot: 'picnic', back: 'frame'", CORE),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),

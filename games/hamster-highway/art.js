@@ -1,4 +1,9 @@
-// Hamster Highway's drawings, as SVG text. Version 1.10.
+// Hamster Highway's drawings, as SVG text. Version 1.11.
+//
+// Changes at v1.11 (step 17, D-189 A, D-192): the playground's backdrop for levels 27 and 28 (playgroundArt, look A,
+// proposed while Rob couldn't test), 540 tall, copied by script from mock_hamster_playground_backdrops.js 0.1. Pudding, the heavy hamster: the hamster in vanilla with caramel on top
+// (pudding(pose)); holding a floater it has three dandelions over its head. The dandelion clock is now its own
+// function (dandelion()), drawn the same as before.
 //
 // Changes at v1.10 (step 16, D-189 A, D-194): the bottle-top button (buttonCap) and its lunchbox lid (lidArt); the
 // picnic's backdrop for levels 25 and 26 (picnicArt, look A, proposed while Rob was out), drawn 540 tall, copied by
@@ -152,13 +157,7 @@ export function hamster(pose) {
   let s = feet.map(([x, y]) => ellipse(x, y - 4, 8, 5, PINK, 2.4)).join('') + g(b, `scale(${sx} ${sy})`);
   if (pose === 'boing') s += motionBelow();
   else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {   // the dandelion clock overhead (D-178)
-    let puff = '';
-    for (let i = 0; i < 14; i++) {
-      const a = (i * Math.PI) / 7;
-      puff += line(8 + 7 * Math.cos(a), -126 + 7 * Math.sin(a), 8 + 20 * Math.cos(a), -126 + 20 * Math.sin(a), '#C9C4E6', 1.4)
-        + circle(8 + 21 * Math.cos(a), -126 + 21 * Math.sin(a), 1.8, '#C9C4E6', 0);
-    }
-    s = line(8, -72, 8, -106, '#3E9B4F', 3.5) + circle(8, -126, 23, WHITE, 2, '#B9B4D6') + puff + circle(8, -126, 4, '#E9E4FF', 1.4, '#B9B4D6') + s;
+    s = dandelion() + s;
   } else if (pose === 'zip') s = reel(8, -92) + s;   // hanging from a cotton reel on the zip-line (D-196)
   else if (pose === 'stuck') s = g(s + zzz(36, -62), '', ' opacity="0.7"');
   else if (pose === 'bonk') {
@@ -168,6 +167,30 @@ export function hamster(pose) {
 }
 
 // Just the head: for the tray's walker count, the house picker's hamster and one peeking from the tube.
+// The dandelion clock a hamster holds overhead (D-178), its stalk from the paws.
+function dandelion() {
+  let puff = '';
+  for (let i = 0; i < 14; i++) {
+    const a = (i * Math.PI) / 7;
+    puff += line(8 + 7 * Math.cos(a), -126 + 7 * Math.sin(a), 8 + 20 * Math.cos(a), -126 + 20 * Math.sin(a), '#C9C4E6', 1.4)
+      + circle(8 + 21 * Math.cos(a), -126 + 21 * Math.sin(a), 1.8, '#C9C4E6', 0);
+  }
+  return line(8, -72, 8, -106, '#3E9B4F', 3.5) + circle(8, -126, 23, WHITE, 2, '#B9B4D6') + puff + circle(8, -126, 4, '#E9E4FF', 1.4, '#B9B4D6');
+}
+
+// Pudding, the heavy hamster (D-189 A): the hamster in vanilla with caramel on top (the step 12 sketch's look A),
+// drawn bigger by game.js; holding a floater, two more dandelions lean out beside the first (D-192).
+export const PUD_FUR = '#FFF4DE';
+export function pudding(pose) {
+  const [sx, sy] = SQUASH[pose] || [1, 1];
+  const up = pose === 'home' ? -8 : 0;
+  let s = hamster(pose).split(FUR).join(PUD_FUR).split(BELLY).join(WHITE);
+  s += g(path('M -28 -54 Q -10 -70 10 -66 Q 28 -64 32 -52 Q 26 -46 22 -54 Q 18 -44 12 -52 Q 4 -42 -2 -54 Q -10 -44 -16 -54 Q -22 -46 -28 -54 Z', '#D9944A', 2.2),
+    `translate(0 ${up}) scale(${sx} ${sy})`);
+  if (pose === 'float' || pose === 'carry1' || pose === 'carry2') s = g(dandelion(), 'rotate(-16 8 -72)') + g(dandelion(), 'rotate(16 8 -72)') + s;
+  return s;
+}
+
 export function hamsterHead(eyes = 'open') {
   return circle(-15, -60, 10, FUR) + circle(-15, -60, 5, PINK, 0) + circle(13, -63, 10, FUR) + circle(13, -63, 5, PINK, 0)
     + ellipse(0, -40, 30, 26, FUR) + ellipse(14, -36, 15, 12, BELLY, 0)
@@ -337,12 +360,13 @@ function jar(x, h, col, lid = '#E8505B') {
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
 // The height a backdrop is drawn at: the park's are 540 (9 rows, D-185: the pond, the frame), the house's 420.
-export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' ? 540 : H);
+export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H);
 
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
   if (name === 'frame') return g(frameArt(w), '', ' data-back="frame"');
   if (name === 'picnic') return g(picnicArt(w), '', ' data-back="picnic"');
+  if (name === 'playground') return g(playgroundArt(w), '', ' data-back="playground"');
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -681,6 +705,29 @@ export function lidArt(n) {
   return rect(0, 0, n * 60, 14, '#7FD3C8', 5, 3) + rect(n * 30 - 12, -7, 24, 8, '#5BB8AC', 3, 2.4);
 }
 
+
+// The playground (levels 27 and 28), w wide and 540 tall: look A of the step 17 mock-ups (swings and a slide), proposed
+// while Rob couldn't test, copied unchanged from tools/tests/games/mock_hamster_playground_backdrops.js 0.1 (its
+// playgroundA, renamed), with the helpers it uses.
+const PLAY_BLUE = '#4FA3E0';
+function playSwing(x) {
+  return line(x - 70, 452, x - 40, 170, PLAY_BLUE, 9) + line(x + 70, 452, x + 40, 170, PLAY_BLUE, 9) + line(x - 46, 170, x + 46, 170, PLAY_BLUE, 9)
+    + g(line(x - 14, 172, x - 14, 340, INK, 2.4) + line(x + 14, 172, x + 14, 340, INK, 2.4) + rect(x - 22, 338, 44, 10, CORAL, 4, 2.6), '', ' class="poke" data-poke="swing"');
+}
+function playSlide(x) {
+  return rect(x - 8, 220, 12, 232, CORAL, 3, 2.6) + rect(x + 52, 220, 12, 232, CORAL, 3, 2.6) + rect(x - 14, 214, 84, 14, SUN, 5, 2.6)
+    + [260, 300, 340, 380, 420].map((y) => line(x - 2, y, x + 58, y, CORAL, 5)).join('')
+    + path(`M ${x + 64} 222 Q ${x + 150} 250 ${x + 210} 440 L ${x + 236} 440 Q ${x + 176} 236 ${x + 70} 204 Z`, SUN, 2.6);
+}
+function playgroundArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 480) d += frameBush(x, 448);
+  for (let x = 230; x + 160 <= w + 40; x += 620) d += playSwing(x) + playSlide(x + 180);
+  d += g(circle(140, 438, 16, CORAL, 2.6) + path('M 124 438 Q 140 430 156 438', 'none', 2.4, WHITE), '', ' class="poke" data-poke="cup"')
+    + g(ellipse(232, 162, 13, 10, '#A9744F', 2.2) + circle(242, 150, 7, '#A9744F', 2.2) + circle(244, 148, 1.6, INK, 0) + path('M 248 150 l 6 2 l -6 2 Z', SUN, 1.2), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
 
 function backdropArt(name) {
   if (name === 'bathroom') return bathroomArt();

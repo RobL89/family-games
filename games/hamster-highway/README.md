@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.23 · 21 Nov 2026 · P-034 (Kids Games Development) · 26 levels (levels 1 to 10, each with its twin, and the park's first three pairs), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.24 · 21 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.24 (step 17, D-194): the playground. Levels 27 and 28, 9 rows tall, on a swings-and-slide backdrop, with Pudding the heavy hamster in the line: drawn bigger in vanilla with caramel, Pudding squashes a marshmallow and walks on, snaps a worn stick at once and tips a see-saw on its own, with its help card ("Pudding is too heavy to bounce!"). Not yet released.
 
 Changes at v1.23 (step 16, D-194): the picnic. Levels 25 and 26, 9 rows tall, on a picnic backdrop (a gingham blanket under a tree with bunting): the bottle-top button, part of the level: the first hamster to step on it drops a lunchbox lid over a gap, for good, with its help card ("Press it to drop the lid!"); level 26 has two roads, each with its own button. Not yet released.
 

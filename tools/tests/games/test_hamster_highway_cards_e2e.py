@@ -1,4 +1,7 @@
-"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.4 (21 Nov, step 16).
+"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.5 (21 Nov, step 17).
+
+Changes at v1.5 (step 17, D-194): with levels 21 to 26 done, level 27 pops up Pudding's card, moving, with its caption,
+in the middle of the 9-row window; seen, it is kept with the other eleven.
 
 Changes at v1.4 (step 16, D-194): with levels 21 to 24 done, level 25 pops up the button's card, moving, with its
 caption, in the middle of the 9-row window; seen, it is kept with the other ten.
@@ -333,6 +336,24 @@ with sync_playwright() as pw:
     close_card(pg)
     k = kept(pg)
     check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult', 'signpost', 'button']}, f'PC: the button\'s card is kept as seen with the other ten ({k and k.get("cards")})')
+    # ---- the playground (step 17): levels 21 to 26 done; level 27's card, Pudding's
+    park_done = HOUSE_IDS + ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b']
+    pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 2, done: {json.dumps({i: True for i in park_done})}, seeds: {{}}, tries: {json.dumps({'L11': 1})}, cards: {json.dumps({c: True for c in EIGHT + ['catapult', 'signpost', 'button']})}}}))")
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    to_house(pg)
+    open_level(pg, 'L14')
+    s = state(pg)
+    pg.wait_for_timeout(1500)
+    pg.screenshot(path=os.path.join(OUT, 'pc-card-pudding.png'))
+    cb = pg.locator('#card [data-card]').bounding_box()
+    wb = pg.locator('#window rect').bounding_box()
+    mid = abs((cb['x'] + cb['width'] / 2) - (wb['x'] + wb['width'] / 2)) < 12 and abs((cb['y'] + cb['height'] / 2) - (wb['y'] + wb['height'] / 2)) < 12
+    check(s['card'] == 'pudding' and card_moving(pg) > 0 and pg.locator('#card text', has_text=s['caption']).count() == 1 and mid,
+          f'PC: level 27 pops up Pudding\'s card, moving, with its caption "{s["caption"]}", in the middle of the 9-row window ({s["card"]})')
+    close_card(pg)
+    k = kept(pg)
+    check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult', 'signpost', 'button', 'pudding']}, f'PC: Pudding\'s card is kept as seen with the other eleven ({k and k.get("cards")})')
     ctx.close()
 
     # ---- in the stand-in wrapper

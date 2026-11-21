@@ -1,4 +1,11 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.16 (21 Nov, step 16).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.17 (21 Nov, step 17).
+
+Changes at v1.17 (step 17, D-145, D-192, D-194): Pudding, worked out by hand before core.js 1.10 (the section "step 17,
+Pudding"); levels 27 and 28 at the playground, traced in design and confirmed with core.js 1.10 (27 *Pudding comes to
+play*: the bridge gets all five home; the bouncer alone sends the Nibbles up the slide with the seed but Pudding
+squashes it and walks on into the pond; 28 *Big and small*: two ponds, two roads, the worn stick a trap that snaps under
+Pudding); the park's stops 27 and 28; Pudding's card (a Nibble bounces up, Pudding squashes the marshmallow and walks
+on); the playground's backdrop, look A of the step 17 mock-ups (proposed, Rob away), copied unchanged.
 
 Changes at v1.16 (step 16, D-194): the bottle-top button, worked out by hand before core.js 1.9 (the section "step 16,
 the bottle-top button"); levels 25 and 26 at the picnic, traced in design and confirmed with core.js 1.9 (25 *Lunchbox
@@ -247,6 +254,9 @@ const SOL = {
   // the picnic (step 16): L13b's answer is its low road (the ramp onto the hamper), its seed the high road's bouncer
   L13: { solve: [['bouncer', 3, 7]], seed: [['ramp', 16, 7]] },
   L13b: { solve: [['ramp', 5, 7]], seed: [['bouncer', 2, 7]] },
+  // the playground (step 17): the low road for everyone; the seed by the Nibbles' bouncer up the slide
+  L14: { solve: [['bridge', 12, 8]], seed: [['bouncer', 3, 7]] },
+  L14b: { solve: [['bridge', 8, 8], ['bridge', 16, 8]], seed: [['bouncer', 3, 7]] },
 };
 // every order of each level's answer and spare: how many orders put a gadget where it doesn't fit (D-177 (1), ER-013),
 // apart from a bridge or stick with nothing beside it yet to hold it up (side: D-139's build out from the edge)
@@ -298,7 +308,10 @@ for (const d of LEVELS) {
     errA: a.error || null, errB: b.error || null,
     solved: ra && ra.outcome, solvedSeed: ra && ra.seed,
     withSeed: rb && rb.outcome, seedTaken: rb && rb.seed,
-    noNew: a.placed ? (core.GADGETS.includes(d.new) ? five(lv, withoutNew).outcome : d.new ? without(d, d.new, a.placed)
+    // Pudding is a hamster, not a gadget or part (D-194): its level is "not solved without it" in the sense that the
+    // tempting road that serves the Nibbles (the seed's gadgets alone) leaves Pudding behind
+    noNew: a.placed ? (core.GADGETS.includes(d.new) ? five(lv, withoutNew).outcome : d.new === 'pudding' ? five(lv, placeAll(lv, s.seed).placed || {}).outcome
+      : d.new ? without(d, d.new, a.placed)
       : ((d.parts || []).map((p) => without(d, p.kind, a.placed)).find((o) => o === 'home') || 'not home')) : null,
     noParts: a.placed ? (d.parts || []).map((p) => [p.kind, without(d, p.kind, a.placed)]) : null,
     oneStickLess: a.placed ? Object.keys(a.placed).filter((k) => a.placed[k] === 'stick').map((k) => { const p = { ...a.placed }; delete p[k]; return five(lv, p).homes; }) : null,
@@ -387,8 +400,8 @@ for name, frag in (('short', 'must be 7 to 9 rows of 12'), ('narrow', 'must be 7
 # levels.js
 lv = {x['id']: x for x in out['levels']}
 ORDER = [x for n in range(1, 11) for x in (f'L{n}', f'L{n}b')]
-PARK = ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
-check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond, 23 and 24 at the climbing frame, 25 and 26 at the picnic (D-184) ({list(lv)})')
+PARK = ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b', 'L14', 'L14b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
+check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond, 23 and 24 at the climbing frame, 25 and 26 at the picnic, 27 and 28 at the playground (D-184) ({list(lv)})')
 check([lv[i]['seed'] for i in ORDER if i.endswith('b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1], [8, 2], [5, 1], [15, 4], [16, 2], [15, 3]], 'each twin has its golden seed where levels.js says')
 check([i for i in ORDER if 'stick' in lv[i]['tray']] == ['L6', 'L6b', 'L7', 'L7b'], 'worn sticks on the 4 levels at the bath and the loft only (D-154, D-170 (b))')
 check(lv['L10b']['parts'] == lv['L10']['parts'] and lv['L10b']['cols'] == 24 and lv['L10b']['back'] == 'treehouse',
@@ -704,16 +717,16 @@ else:
     check(not pbad, f'the park\'s route, from the zip-line\'s foot, never crosses itself or runs back along itself (D-151\'s rule) ({pbad or len(psegs)} segments)')
     check(k['names'] == ['pond', 'pond2', 'frame', 'frame2', 'picnic', 'picnic2', 'playground', 'playground2', 'fair', 'fair2'],
           f'the park\'s ten places in route order, two a place: the pond, the climbing frame, the picnic, the playground, the fair (D-187, D-193) ({k["names"]})')
-    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21), ('L12', 'frame', 22), ('L12b', 'frame2', 23), ('L13', 'picnic', 24), ('L13b', 'picnic2', 25)] and all(xy for _, _, xy, _ in k['stops']),
-          f'levels 21 and 22 at the pond\'s two stops, 23 and 24 at the climbing frame\'s, 25 and 26 at the picnic\'s ({k["stops"]})')
+    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21), ('L12', 'frame', 22), ('L12b', 'frame2', 23), ('L13', 'picnic', 24), ('L13b', 'picnic2', 25), ('L14', 'playground', 26), ('L14b', 'playground2', 27)] and all(xy for _, _, xy, _ in k['stops']),
+          f'levels 21 and 22 at the pond\'s two stops, 23 and 24 at the climbing frame\'s, 25 and 26 at the picnic\'s, 27 and 28 at the playground\'s ({k["stops"]})')
     places = k['places']
     pnear = min(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for i, a in enumerate(places) for b in places[i + 1:])
     check(len(places) == 10 and all(56 <= x <= 2420 - 56 and 56 <= y <= 900 - 56 for x, y in places) and pnear >= 112,
           f'every park stop inside the picture, no two stops\' tap circles overlapping: the closest are {pnear:.0f} apart (112 or more)')
-    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 3 + 3 + 2,
-          f'the park draws its dotted path from the zip-line\'s foot through levels 21 to 26 and on to the next place, the playground\'s bend first ({k["drawn"]})')
-    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 4 and k['marks'] == ['data-level="20"', 'data-level="21"', 'data-level="22"', 'data-level="23"', 'data-level="24"', 'data-level="25"'] and k['closed'] and k['ride'] > 0,
-          f'the park is the house\'s size; 4 places with no level yet are soft; 21 to 26 are stops (data-level 20 to 25); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
+    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 3 + 3 + 3 + 2,
+          f'the park draws its dotted path from the zip-line\'s foot through levels 21 to 28 and on to the next place, the fair\'s bend first ({k["drawn"]})')
+    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 2 and k['marks'] == [f'data-level="{n}"' for n in range(20, 28)] and k['closed'] and k['ride'] > 0,
+          f'the park is the house\'s size; 2 places with no level yet are soft; 21 to 28 are stops (data-level 20 to 27); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -748,7 +761,7 @@ const SOL = {
   L12: [['bouncer', 3, 7], ['bouncer', 4, 4], ['signpost', 12, 4], ['rampL', 2, 1]], L12b: [['signpost', 8, 7], ['bouncer', 3, 7], ['bouncer', 2, 4], ['signpost', 0, 4]],
 };
 for (const d of LEVELS) {
-  if (d.new === 'stick' || (d.tray || {}).stick || (d.parts || []).length) continue;   // worn sticks and moving parts change the route for later hamsters: their own checks
+  if (d.new === 'stick' || (d.tray || {}).stick || (d.parts || []).length || Number.isInteger(d.pudding)) continue;   // and Pudding: its section's run() checks   // worn sticks and moving parts change the route for later hamsters: their own checks
   const lv = core.parseLevel(d);
   const placed = {};
   for (const [k, c, r] of SOL[d.id]) placed[core.key(c, r)] = k;
@@ -1047,18 +1060,18 @@ else:
         check(False, 'node ran cards.js')
     else:
         k = json.loads(r.stdout)
-        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button']   # (eleven now: the catapult's, step 14; the signpost's, 15; the button's, 16)
-        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult', 'signpost', 'button'},
+        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding']   # (twelve now: the catapult's, step 14; the signpost's, 15; the button's, 16; Pudding's, 17)
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'},
               f'cards: 10, one for each of levels 1 to 20\'s six gadgets and two parts, in the order they come in (D-167), then the catapult\'s (level 21, D-186) and the signpost\'s '
-              f'(level 23, D-208) and the button\'s (level 25); the zip-line gets its with its level (step 18); the left ramp is a ramp (the ramp\'s card) ({k["cards"]})')
+              f'(level 23, D-208) the button\'s (level 25) and Pudding\'s (level 27); the zip-line gets its with its level (step 18); the left ramp is a ramp (the ramp\'s card) ({k["cards"]})')
         words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
         check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
         check(k['caption'].get('bridge') == 'Bridges cross the gaps' and k['caption'].get('lift') == 'Hop in and ride up!',
               f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
         check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
         lv = k['levels']
-        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult', 'signpost', 'button'],
-              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult; level 23 the signpost; level 25 the button ({lv})')
+        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult', 'signpost', 'button', 'pudding'],
+              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult; level 23 the signpost; level 25 the button; level 27 Pudding ({lv})')
         check([card for i, _, card in lv if i.endswith('b')] == [None] * sum(1 for i, _, _ in lv if i.endswith('b')) and any(i.endswith('b') for i, _, _ in lv),
               f'cards: the twins bring in nothing, so no card pops up for them (D-166) ({[x for x in lv if x[0].endswith("b")]})')
         check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
@@ -1153,6 +1166,17 @@ else:
               f'card button: the lid stands up, the hamster reaches the bottle top ({pressed}%), it clicks down ({clicked}%), the lid drops ({lid_down}%) before the hamster '
               f'reaches the gap ({reach_gap}%), and it walks over and home (D-194)')
         check(k['caption'].get('button') and k['loops'].get('button'), f'card button: a caption and a loop ({k["caption"].get("button")}, {k["loops"].get("button")})')
+        # Pudding's card (D-194): a Nibble walks onto the marshmallow and is thrown up onto the ledge; Pudding, behind it,
+        # squashes the marshmallow as it walks in (never leaving the floor) and walks on home
+        def pts(name):
+            return [(p, *map(float, re.search(r'translate\(([-\d.]+)px, ([-\d.]+)px\)', b).groups())) for p, b in frames_of(name) if 'translate(' in b]
+        nib, pud = pts('hc-pudding-nib'), pts('hc-pudding-pud')
+        at210 = min((p for p, x, y in pud if x == 210), default=None)
+        squashed = [p for p, b in frames_of('hc-pudding-mm') if 'scale(1.3, 0.45)' in b]
+        check(nib and pud and min(y for _, _, y in nib) < 300 and all(y == 360 for _, _, y in pud) and at210 is not None and squashed and min(squashed) >= at210 - 1
+              and max(x for _, x, _ in pud) >= 390 and 'scale(1.2)' in k['art'].get('pudding', '') and '#FFF4DE' in k['art'].get('pudding', ''),
+              f'card pudding: the Nibble goes up ({min((y for _, _, y in nib), default=None)}), Pudding stays on the floor, reaches the marshmallow at {at210}% and squashes it '
+              f'({squashed[:2]}), walks on home; Pudding drawn bigger and in vanilla (D-189 A)')
         check(k['again'], 'cards: the same card is drawn the same each time')
         # art.js: the carrying poses (D-178): walking feet, arms up and the float pose's dandelion overhead
         po = k['poses']
@@ -1479,6 +1503,68 @@ check(E('art') == [True, True, True, True], f'the spoon\'s art (D-206): its arm 
 check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): all five flung over and home, a square a tick ({E("run")})')
 check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
 
+# ================================================================ step 17, Pudding the heavy hamster (D-145, D-189 A, D-192, D-194).
+# Worked out by hand before core.js 1.10 (21 Nov), on test boards and level 8:
+#   - a level may name one hamster in the line as Pudding (`pudding`: its place, 0 to 4); anything else is refused;
+#     run() marks its hamster heavy;
+#   - Pudding walks into a marshmallow and squashes it: no throw, it walks on (run() records a 'squash'); the next
+#     hamster still bounces; so on a 12 x 7 board with a bouncer at 3,5 and a ceiling-free sky, a Nibble is thrown up
+#     and comes down 3 rows (bonk) while Pudding walks straight on home; with Pudding third, outcomes bonk, bonk, home,
+#     bonk, bonk, one squash, by hamster 2;
+#   - a worn stick snaps under Pudding at once (its first crack is its snap): Pudding first over a 1-wide gap with a
+#     stick, all five splash (the stick is gone for the rest), one snap event, n 1, by hamster 0;
+#   - Pudding tips a see-saw on its own: level 8's answer with Pudding first: all five home, one tip, n 1, by hamster
+#     0, sooner than the pair's tip without Pudding;
+#   - at a floater Pudding floats down like the others (the rules don't change; it is drawn with three dandelions).
+PJS3 = r"""
+const [coreUrl, levelsUrl, artUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const { LEVELS } = await import(levelsUrl);
+const A = await import(artUrl);
+const o = {};
+const tryy = (f) => { try { return f(); } catch (e) { return 'ERROR ' + e.message; } };
+const P = (rows, extra = {}) => core.parseLevel({ id: 't', rows, tray: {}, ...extra });
+const B1 = ['............', '............', '............', '............', '............', 'S..........G', '############'];
+o.nibble = tryy(() => core.walk(P(B1), { '3,5': 'bouncer' }).outcome);
+o.pud = tryy(() => { const w = core.walk(P(B1, { pudding: 0 }), { '3,5': 'bouncer' }); return [w.outcome, w.steps.map((st) => [st.c, st.r, st.act])]; });
+o.line = tryy(() => { const r = core.run(P(B1, { pudding: 2 }), { '3,5': 'bouncer' }); return { outs: r.hamsters.map((h) => h.outcome), heavy: r.hamsters.map((h) => !!h.heavy),
+  squash: r.events.filter((e) => e.kind === 'squash').map((e) => [e.c, e.r, e.who]) }; });
+const B2 = ['............', '............', '............', '............', '............', 'S..........G', '#####.######'];
+o.stick = tryy(() => { const r = core.run(P(B2, { pudding: 0 }), { '5,6': 'stick' }); return { outs: r.hamsters.map((h) => h.outcome),
+  ev: r.events.filter((e) => e.kind === 'crack' || e.kind === 'snap').map((e) => [e.kind, e.n, e.who]) }; });
+o.stickN = tryy(() => core.run(P(B2), { '5,6': 'stick' }).hamsters.map((h) => h.outcome));
+const L8 = LEVELS.find((d) => d.id === 'L8');
+const L8P = { '3,5': 'bridge', '5,4': 'ramp', '10,3': 'ramp' };
+const tips = (lv) => { const r = core.run(lv, L8P); return { outs: r.hamsters.map((h) => h.outcome), tip: r.events.filter((e) => e.kind === 'tip').map((e) => [e.t, e.n, e.who]) }; };
+o.saw = tryy(() => tips(core.parseLevel({ ...L8, pudding: 0 })));
+o.sawN = tryy(() => tips(core.parseLevel(L8)));
+o.refuse = [5, -1, 1.5, 'x'].map((v) => tryy(() => (P(B1, { pudding: v }), 'parsed')));
+const puffs = (sv) => (sv.match(/r="23"/g) || []).length;
+o.art = tryy(() => [A.pudding('walk1').includes('#FFF4DE'), A.pudding('walk1').includes('#F4A259'), A.pudding('walk1').includes('#D9944A'),
+  puffs(A.hamster('float')), puffs(A.pudding('float')), puffs(A.pudding('carry1')), A.hamster('walk1') === A.hamster('walk1')]);
+console.log(JSON.stringify(o));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', PJS3] + ['file://' + os.path.join(GAME, f) for f in ('core.js', 'levels.js', 'art.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-1500:], r.stderr[-1500:])
+    check(False, 'node ran Pudding\'s checks')
+else:
+    pq = json.loads(r.stdout)
+    check(pq['nibble'] == 'bonk', f'a Nibble at the marshmallow is thrown up and comes down 3 rows: a funny fall ({pq["nibble"]})')
+    check(pq['pud'] == ['home', [[0, 5, 'start']] + [[c, 5, 'walk'] for c in range(1, 12)]], f'Pudding squashes the marshmallow and walks straight on home, no step of its own, by hand ({pq["pud"]})')
+    ln = pq['line']
+    check(isinstance(ln, dict) and ln['outs'] == ['bonk', 'bonk', 'home', 'bonk', 'bonk'] and ln['heavy'] == [False, False, True, False, False] and ln['squash'] == [[3, 5, 2]],
+          f'run(), Pudding third: only Pudding gets past the marshmallow (it springs back for the rest); run() marks it heavy; one squash, by hamster 2 ({ln})')
+    st = pq['stick']
+    check(isinstance(st, dict) and st['outs'] == ['splash'] * 5 and st['ev'] == [['snap', 1, 0]] and pq['stickN'] == ['home', 'home', 'home', 'splash', 'splash'],
+          f'a worn stick snaps under Pudding at once (first over it: all five splash, one snap, n 1); without Pudding three cross and the fourth snaps it ({st}, {pq["stickN"]})')
+    sw, swn = pq['saw'], pq['sawN']
+    check(isinstance(sw, dict) and sw['outs'] == ['home'] * 5 and len(sw['tip']) == 1 and sw['tip'][0][1:] == [1, 0] and isinstance(swn, dict) and swn['tip'] and sw['tip'][0][0] < swn['tip'][0][0],
+          f'Pudding first on level 8 tips the see-saw on its own (n 1), sooner than the pair does without it; all five home ({sw}, {swn})')
+    check(all(isinstance(x, str) and 'pudding' in x for x in pq['refuse']), f'parseLevel refuses a Pudding place that isn\'t 0 to 4 ({pq["refuse"]})')
+    check(pq['art'] == [True, False, True, 1, 3, 3, True],
+          f'art.js: Pudding is the hamster in vanilla with caramel on top (D-189 A); holding a floater it has three dandelions over its head (D-192) ({pq["art"]})')
+
 # ================================================================ step 16, the bottle-top button (D-186, D-189 A, D-194; plan-levels-21-30.md 0.4).
 # Worked out by hand before core.js 1.9 (21 Nov), on test boards, not levels:
 #   - a part of the level, not the tray: { kind: 'button', c, r, lid: [[c, r], ...] }; the button sits on a floor, its lid's
@@ -1539,11 +1625,14 @@ const core = await import(coreUrl);
 const { LEVELS } = await import(levelsUrl);
 const five0 = (lv, placed) => { const r = core.run(lv, placed); const bad = r.hamsters.find((h) => h.outcome !== 'home'); return [bad ? bad.outcome : 'home', r.hamsters.some((h) => h.seed)]; };
 const five = (id, placed) => five0(core.parseLevel(LEVELS.find((x) => x.id === id)), placed);
+// each hamster's outcome (whoAt); the level with Pudding a Nibble (noPud)
+const whoAt = (id, placed) => core.run(core.parseLevel(LEVELS.find((x) => x.id === id)), placed).hamsters.map((h) => h.outcome);
+const noPud = (id, placed) => five0(core.parseLevel({ ...LEVELS.find((x) => x.id === id), pudding: null }), placed);
 // a level with its buttons taken away (noBtn), or only one of them kept (onlyBtn: its index in parts)
 const noBtn = (id, placed) => { const x = LEVELS.find((y) => y.id === id); return five0(core.parseLevel({ ...x, parts: [] }), placed); };
 const onlyBtn = (id, i, placed) => { const x = LEVELS.find((y) => y.id === id); return five0(core.parseLevel({ ...x, parts: [x.parts[i]] }), placed); };
 const d = Object.fromEntries(LEVELS.filter((x) => x.room === 'park').map((x) => [x.id, { room: x.room, spot: x.spot, back: x.back, new: x.new, twin: x.twin || null,
-  more: x.more || null, roads: x.roads || null, tray: x.tray, h: x.rows.length, w: x.rows[0].length, spare: x.spare || null, parts: (x.parts || []).map((p) => [p.kind, p.c, p.r, p.lid]) }]));
+  more: x.more || null, roads: x.roads || null, tray: x.tray, h: x.rows.length, w: x.rows[0].length, spare: x.spare || null, parts: (x.parts || []).map((p) => [p.kind, p.c, p.r, p.lid]), ...(x.pudding !== undefined ? { pudding: x.pudding } : {}) }]));
 console.log(JSON.stringify({ d,
   l11: [five('L11', { '4,4': 'catapult' }), five('L11', { '3,4': 'catapult' }), five('L11', {}), five('L11', { '4,4': 'catapult', '10,5': 'ramp' }),
         five('L11', { '4,4': 'catapult', '11,5': 'ramp' })],
@@ -1556,6 +1645,10 @@ console.log(JSON.stringify({ d,
         five('L13', { '3,7': 'ramp' }), five('L13', { '3,7': 'bouncer', '15,7': 'ramp' }), noBtn('L13', { '3,7': 'bouncer' })],
   l13b: [five('L13b', { '2,7': 'bouncer' }), five('L13b', { '5,7': 'ramp' }), five('L13b', {}), five('L13b', { '1,7': 'bouncer' }),
          onlyBtn('L13b', 1, { '2,7': 'bouncer' }), onlyBtn('L13b', 0, { '5,7': 'ramp' })],
+  l14: [five('L14', { '12,8': 'bridge' }), five('L14', { '12,8': 'bridge', '3,7': 'bouncer' }), five('L14', { '3,7': 'bouncer' }), five('L14', {}),
+        whoAt('L14', { '3,7': 'bouncer' }), noPud('L14', { '3,7': 'bouncer' }), whoAt('L14', { '2,7': 'bouncer', '12,8': 'bridge' })],
+  l14b: [five('L14b', { '8,8': 'bridge', '16,8': 'bridge' }), five('L14b', { '8,8': 'bridge', '16,8': 'bridge', '3,7': 'bouncer' }),
+         whoAt('L14b', { '3,7': 'bouncer', '8,8': 'bridge' }), whoAt('L14b', { '3,7': 'bouncer', '16,8': 'bridge' }), five('L14b', {})],
   l12b: [five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer', '0,4': 'signpost' }), five('L12b', { '9,7': 'bouncer' }),
          five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer' }), five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '0,4': 'signpost' }),
          five('L12b', {}), five('L12b', { '8,7': 'bouncer' })] }));
@@ -1599,6 +1692,16 @@ else:
           f'level 26 (traced in design, 21 Nov): the high road (a bouncer onto the cake stand, its button drops the high drawbridge) home with the seed; the low road (a ramp '
           f'onto the hamper, its button drops the pond\'s lid) home without it; nothing: stuck at the hamper; the bouncer a square short: a funny fall; each road needs its own '
           f'button: without the cake stand\'s, off its end; without the hamper\'s, into the pond ({q["l13b"]})')
+    check(q['d'].get('L14') == {'room': 'park', 'spot': 'playground', 'back': 'playground', 'new': 'pudding', 'twin': None, 'more': None, 'roads': None, 'tray': {'bridge': 1, 'bouncer': 1}, 'h': 9, 'w': 20, 'spare': 'bouncer', 'parts': [], 'pudding': 2}
+          and q['d'].get('L14b') == {'room': 'park', 'spot': 'playground2', 'back': 'playground', 'new': None, 'twin': 'L14', 'more': None, 'roads': 2, 'tray': {'bridge': 2, 'bouncer': 1}, 'h': 9, 'w': 24, 'spare': None, 'parts': [], 'pudding': 1},
+          f'levels 27 and 28: at the playground\'s two stops on its backdrop, 9 rows, 20 and 24 wide; 27 brings in Pudding, third in the line, with a spare bouncer; 28 its twin, two roads, Pudding second ({q["d"].get("L14")}, {q["d"].get("L14b")})')
+    check(q['l14'] == [['home', False], ['home', True], ['splash', True], ['splash', False], ['home', 'home', 'splash', 'home', 'home'], ['home', True], ['bonk', 'bonk', 'home', 'bonk', 'bonk']],
+          f'level 27 (traced in design, 21 Nov): the bridge over the pond gets all five home; with the bouncer too, the Nibbles go up the slide for the seed and Pudding squashes it and walks over '
+          f'the bridge; the bouncer alone: the Nibbles home with the seed, Pudding squashes it, walks on and splashes (with Pudding a Nibble, all five home: Pudding is what changes it); '
+          f'nothing: a splash; the bouncer a square short: the Nibbles bonk, Pudding walks on home ({q["l14"]})')
+    check(q['l14b'] == [['home', False], ['home', True], ['home', 'splash', 'home', 'home', 'home'], ['home', 'splash', 'home', 'home', 'home'], ['splash', False]],
+          f'level 28 (traced in design, 21 Nov): two bridges get all five home; with the bouncer too, the Nibbles take the slide over both ponds with the seed; the bouncer with one bridge '
+          f'(either pond): Pudding, second in line, splashes at the other; nothing: a splash ({q["l14b"]})')
 
 # the climbing frame's backdrop (D-208): look A of the step 15 mock-ups, copied into art.js unchanged (frameA renamed
 # frameArt), drawn 540 tall as the pond's
@@ -1610,6 +1713,10 @@ def js_function(src, name):
 copied = {n: js_function(MOCK, n) for n in ('frameHill', 'frameBush', 'frameRobin', 'frameLadybird', 'frameA')}
 PMOCK = open(os.path.join(HERE, 'mock_hamster_picnic_backdrops.js'), encoding='utf-8').read()
 pcopied = {n: js_function(PMOCK, n) for n in ('picBunting', 'picTree', 'picTeacup', 'picnicA')}
+GMOCK = open(os.path.join(HERE, 'mock_hamster_playground_backdrops.js'), encoding='utf-8').read()
+gcopied = {n: js_function(GMOCK, n) for n in ('playSwing', 'playSlide', 'playgroundA')}
+gcopied['playgroundA'] = gcopied['playgroundA'] and gcopied['playgroundA'].replace('function playgroundA(', 'function playgroundArt(')
+gmissing = [n for n, t in gcopied.items() if not t or t not in ARTSRC] + [c for c in ("const PLAY_BLUE = '#4FA3E0';",) if c not in ARTSRC]
 pcopied['picnicA'] = pcopied['picnicA'] and pcopied['picnicA'].replace('function picnicA(', 'function picnicArt(')
 pmissing = [n for n, t in pcopied.items() if not t or t not in ARTSRC] + [c for c in ("const PRED = '#E8505B';",) if c not in ARTSRC]
 copied['frameA'] = copied['frameA'] and copied['frameA'].replace('function frameA(', 'function frameArt(')
@@ -1619,9 +1726,11 @@ BJS = r"""
 const A = await import(process.argv[1]);
 const b = A.backdrop('frame', 960);
 const pb = A.backdrop('picnic', 1200);
+const gb = A.backdrop('playground', 1200);
 console.log(JSON.stringify({ h: [A.backHeight('frame'), A.backHeight('pond'), A.backHeight('kitchen')], tagged: b.startsWith('<g data-back="frame">'),
   closed: (b.match(/<g\b/g) || []).length === (b.match(/<\/g>/g) || []).length, pokes: (b.match(/data-poke="(bird|swing|spider)"/g) || []).length, wide: A.backdrop('frame', 1200).length > b.length,
-  picnic: [A.backHeight('picnic'), pb.startsWith('<g data-back="picnic">'), (pb.match(/<g\b/g) || []).length === (pb.match(/<\/g>/g) || []).length, (pb.match(/data-poke="(bird|swing|cup)"/g) || []).length] }));
+  picnic: [A.backHeight('picnic'), pb.startsWith('<g data-back="picnic">'), (pb.match(/<g\b/g) || []).length === (pb.match(/<\/g>/g) || []).length, (pb.match(/data-poke="(bird|swing|cup)"/g) || []).length],
+  playground: [A.backHeight('playground'), gb.startsWith('<g data-back="playground">'), (gb.match(/<g\b/g) || []).length === (gb.match(/<\/g>/g) || []).length, (gb.match(/data-poke="(bird|swing|cup)"/g) || []).length] }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', BJS, 'file://' + os.path.join(GAME, 'art.js')], capture_output=True, text=True)
 bk = json.loads(r.stdout) if r.returncode == 0 else {}
@@ -1631,6 +1740,9 @@ check(bk.get('h') == [540, 540, 420] and bk.get('tagged') and bk.get('closed') a
 check(not pmissing and bk.get('picnic', [0])[:3] == [540, True, True] and bk['picnic'][3] >= 3,
       f'art.js: the picnic\'s backdrop is look A of mock_hamster_picnic_backdrops.js 0.1, copied unchanged (proposed while Rob was out), 540 tall, data-back="picnic", '
       f'every group closed, a robin, a teapot, cups and bunting to tap (not found: {pmissing}; {bk.get("picnic")})')
+check(not gmissing and bk.get('playground', [0])[:3] == [540, True, True] and bk['playground'][3] >= 3,
+      f'art.js: the playground\'s backdrop is look A of mock_hamster_playground_backdrops.js 0.1, copied unchanged (proposed, Rob away), 540 tall, data-back="playground", '
+      f'every group closed, swings, a ball and a bird to tap (not found: {gmissing}; {bk.get("playground")})')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

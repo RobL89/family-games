@@ -1,4 +1,9 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.4 (21 Nov, step 16).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.5 (21 Nov, step 17).
+//
+// Changes at v1.5 (step 17, D-194): Pudding's card, the twelfth (a hamster, so no drop-in): a Nibble walks onto the
+// marshmallow and is thrown up onto a ledge; Pudding, bigger and in vanilla with caramel (D-189 A), comes behind,
+// squashes the marshmallow flat as it walks in, and walks on home. Caption "Pudding is too heavy to bounce!" (Claude's,
+// proposed while Rob couldn't test); 6 s.
 //
 // Changes at v1.4 (step 16, D-194): the bottle-top button's card, the eleventh (a part, so no drop-in, as the see-saw's
 // and the lift's): the lunchbox lid stands up by a gap; the hamster walks onto the bottle top, which clicks down; the
@@ -30,9 +35,9 @@
 // Pure (project rules): it only builds text, and imports only art.js.
 
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
-import { CELL, INK, SUN, hamster, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+import { CELL, INK, SUN, hamster, pudding, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -47,10 +52,11 @@ export const CAPTION = {
   catapult: 'The spoon flings them over!',
   signpost: 'Signposts turn them round!',
   button: 'Press it to drop the lid!',
+  pudding: 'Pudding is too heavy to bounce!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5, pudding: 6 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -64,6 +70,8 @@ const ham = (x, y, pose = 'walk1') => place(hamster(pose), x, y, SC);
 const cls = (c, body) => `<g class="${c}">${body}</g>`;
 const huh = (x, y) => text(x, y, '?', 30, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"');
 const legs = () => cls('hc-legs1', ham(0, 0, 'walk1')) + cls('hc-legs2', ham(0, 0, 'walk2'));
+// Pudding (D-189 A), drawn a fifth bigger than a Nibble, as game.js draws it
+const pud = (x, y, pose = 'walk1') => place(g(pudding(pose), 'scale(1.2)'), x, y, SC);
 const fit = (x, y, k) => cls(`hc-${k}-fit`, rect(x + 3, y + 1, 54, 54, SUN, 8, 3, SUN, ' fill-opacity="0.3" stroke-dasharray="6 5"'));
 const sparks = (k, x, y) => cls(`hc-${k}-spark`, place(sparkle(0, 0, 12), x - 30, y - 16) + place(sparkle(0, 0, 12), x + 46, y - 20, 0.7));
 
@@ -135,6 +143,14 @@ SCENE.button = () => board(['........', '........', '........', '........', '...
   + place(homeArt(), 420, 300, GS) + path('M 82 346 Q 140 322 184 350', 'none', 2.4, '#8B5A3C')
   + place(cls('hc-button-cap', buttonCap()), 60, 360) + g(cls('hc-button-lid', lidArt(2)), 'translate(180 360)')
   + cls('hc-button-ham', cls('hc-button-move', legs('button')) + cls('hc-button-home', ham(0, -4, 'home')));
+
+// Pudding (D-194): the Nibble walks onto the marshmallow and is thrown up onto the ledge (3,5 up to 3,2, then on to
+// 4,2) and walks off; Pudding comes behind, squashes the marshmallow flat as it walks in and walks on, home.
+VIEW.pudding = '0 136 480 284';
+SCENE.pudding = () => board(['........', '........', '........', '....####', '........', '........', '########'], [])
+  + place(homeArt(), 420, 300, GS) + cls('hc-pudding-mm', place(gadget('bouncer'), 180, 300, GS))
+  + cls('hc-pudding-nib', legs())
+  + cls('hc-pudding-pud', cls('hc-pudding-w1', cls('hc-legs1', pud(0, 0, 'walk1')) + cls('hc-legs2', pud(0, 0, 'walk2'))) + cls('hc-pudding-home', pud(0, -4, 'home')));
 
 // The floater: walks to the end of a high ledge and stops at the drop; the dandelion drops in; it takes it and
 // drifts gently down, swaying, then walks home.
@@ -267,6 +283,17 @@ function css() {
     + rule('hc-catapult-flick', 'hc-catapult-flick 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 70% 85%; ')
     + dropIn('catapult', 5.5, 30);
 
+  // pudding, 6 s: the Nibble onto the marshmallow by 22%, up to 3,2 by 30%, on to 4,2 by 34% and off the right edge by
+  // 60%, then gone; Pudding in from the left from 24%, onto the marshmallow at 50% (it squashes flat, 52% to 58%), home by 80%
+  s += kf('hc-pudding-nib', `0% { ${T(20, 360)}; opacity: 1 } 22% { ${T(210, 360)} } 30% { ${T(210, 180)} } 34% { ${T(270, 180)} } 60% { ${T(500, 180)}; opacity: 1 } 61%, 100% { ${T(500, 180)}; opacity: 0 }`)
+    + rule('hc-pudding-nib', 'hc-pudding-nib 6s linear infinite')
+    + kf('hc-pudding-pud', `0%, 24% { ${T(-40, 360)} } 50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud', 'hc-pudding-pud 6s linear infinite')
+    + kf('hc-pudding-w1', '0%, 79.9% { opacity: 1 } 80%, 100% { opacity: 0 }') + rule('hc-pudding-w1', 'hc-pudding-w1 6s linear infinite')
+    + kf('hc-pudding-home', '0%, 79.9% { opacity: 0; transform: translateY(0) } 80% { opacity: 1; transform: translateY(0) } 85% { transform: translateY(-14px) } 90%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-pudding-home', 'hc-pudding-home 6s ease-in-out infinite')
+    + kf('hc-pudding-mm', '0%, 49% { transform: scale(1, 1) } 52%, 58% { transform: scale(1.3, 0.45) } 64%, 100% { transform: scale(1, 1) }')
+    + rule('hc-pudding-mm', 'hc-pudding-mm 6s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ');
+
   // button, 5.5 s: onto the bottle top by 22% (it clicks down at 24% and stays down), the lid swings down 26% to 37%,
   // on from 30%, over the lid (x 180 to 300) and home by 75%
   s += kf('hc-button-ham', `0% { ${T(20, 360)} } 22%, 30% { ${T(90, 360)} } 75%, 100% { ${T(398, 360)} }`) + rule('hc-button-ham', 'hc-button-ham 5.5s linear infinite')
@@ -390,6 +417,7 @@ export function badgeArt(kind) {
   let s = rect(84, 30, 78, 78, '#FFF', 16, 3);
   if (kind === 'bridge' || kind === 'stick') s += place(gadget(kind), 92, 58, 0.62);
   else if (kind === 'button') s += place(buttonCap(), 93, 84, 1.1);
+  else if (kind === 'pudding') s += place(pudding('walk1'), 123, 100, 0.62);
   else if (kind === 'seesaw') s += place(seesawArt(), 123, 72, 0.26, -24) + place(potArt(0, 0, 30), 123, 72, 0.6);
   else if (kind === 'lift') s += path('M 123 36 L 123 70', 'none', 3, '#E8505B', ' stroke-dasharray="6 4"') + place(teacupBack(), 123, 86) + place(teacupFront(), 123, 86);
   else s += place(gadget(kind), 93, 39, 0.6);

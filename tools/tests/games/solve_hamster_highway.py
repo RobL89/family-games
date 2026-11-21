@@ -1,5 +1,9 @@
 """Hamster Highway's level solver: tries every way to put a level's tray down and says what each gives.
-Version 1.6 (18 Nov, step 14). Not part of the close: a design tool, kept so each level's claims can be re-run.
+Version 1.7 (21 Nov, step 17). Not part of the close: a design tool, kept so each level's claims can be re-run.
+
+Changes at v1.7 (step 17, D-194): a level with Pudding is judged by run() for every placement (the first hamster's
+walk() alone can't see Pudding, who may be further back); for Pudding's own level, "not solved without its new thing"
+becomes "with Pudding made a Nibble, more ways get home" (asNibble). Levels 1 to 26's results are unchanged.
 
 Changes at v1.6 (step 14, D-184, D-194): the spoon catapult is tried like the other gadgets. Every search counts the
 roads home: placements that get home grouped by the gadget kinds the first hamster uses (D-184: a twin of levels
@@ -85,7 +89,7 @@ function home(lv, placed) {
   const saw = lv.parts.length > 0;   // a see-saw or a lift: every placement by run() (a hamster may drop into a lift's shaft)
   const w = saw ? null : core.walk(lv, placed);
   if (w && w.outcome !== 'home') return { home: false, seed: false };
-  if (!lv.parts.length && !Object.values(placed).includes('stick')) return { home: true, seed: w.seed };
+  if (!lv.parts.length && lv.pudding === null && !Object.values(placed).includes('stick')) return { home: true, seed: w.seed };   // Pudding: run() (D-194)
   const r = core.run(lv, placed);
   return { home: r.hamsters.every((h) => h.outcome === 'home'), seed: r.hamsters.some((h) => h.seed) };
 }
@@ -245,7 +249,9 @@ for (const d of LEVELS) {
   }
   const all = count(lv, lv.tray);
   const noNew = core.GADGETS.includes(d.new) ? count(lv, { ...lv.tray, [d.new]: 0 })
-    : d.new ? count(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), lv.tray) : null;
+    : d.new === 'pudding' ? null : d.new ? count(core.parseLevel({ ...d, parts: (d.parts || []).filter((p) => p.kind !== d.new) }), lv.tray) : null;
+  // Pudding's level: with Pudding made a Nibble, more ways get home (the build that serves the Nibbles leaves Pudding behind)
+  const asNibble = d.new === 'pudding' ? count(core.parseLevel({ ...d, pudding: null }), lv.tray) : null;
   // a level that brings in nothing new but has parts (a twin of 8 or 9): without each part, nothing gets home
   const partsOff = !d.new ? (d.parts || []).map((p) => [p.kind, count(core.parseLevel({ ...d, parts: (d.parts || []).filter((q) => q.kind !== p.kind) }), lv.tray).home]) : [];
   // a twin: with its `more` gadget cut to its first level's need, nothing gets home
@@ -253,7 +259,7 @@ for (const d of LEVELS) {
   const noMore = d.more ? count(lv, { ...lv.tray, [d.more]: base }) : null;
   const less = d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
   const fewer = lv.tray.stick ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
-  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff, roads: d.roads || null });
+  out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff, roads: d.roads || null, asNibble });
 }
 console.log(JSON.stringify(out));
 '''
@@ -314,12 +320,13 @@ for L in json.loads(r.stdout):
               + (f"; every placement with one {L['spare']} fewer: {L['lessAll']['tried']} ways, {L['lessAll']['home']} home, {L['lessAll']['seed']} with the seed" if L['lessAll'] else ''))
         continue
     a, n, s, f, m = L['all'], L['noNew'], L['less'], L['fewer'], L['noMore']
-    ok = (a['home'] > 0 and (n is None or n['home'] == 0) and a['seed'] > 0 and (s is None or s['seed'] == 0) and (f is None or f['home'] == 0)
-          and (m is None or m['home'] == 0) and (n is not None or m is not None or L['roads']) and all(h == 0 for _, h in L['partsOff'])
+    p = L.get('asNibble')
+    ok = (a['home'] > 0 and (n is None or n['home'] == 0) and (p is None or p['home'] > a['home']) and a['seed'] > 0 and (s is None or s['seed'] == 0) and (f is None or f['home'] == 0)
+          and (m is None or m['home'] == 0) and (n is not None or m is not None or p is not None or L['roads']) and all(h == 0 for _, h in L['partsOff'])
           and (not L['roads'] or a['roads'] >= L['roads']))
     bad += not ok
     print(f"{'ok  ' if ok else 'FAIL'} {L['id']}: {a['tried']} ways to put the tray down; {a['home']} get home, {a['seed']} with the seed; "
-          + (f"without the {L['new']}: {n['home']} home" if n else f"with {L['base']} {L['more']} (its first level's need): {m['home']} home" if m else 'pick your road')
+          + (f"with Pudding a Nibble: {p['home']} home" if p else f"without the {L['new']}: {n['home']} home" if n else f"with {L['base']} {L['more']} (its first level's need): {m['home']} home" if m else 'pick your road')
           + ''.join(f"; without the {k}: {h} home" for k, h in L['partsOff'])
           + (f"; with one {L['spare']} fewer: {s['seed']} with the seed" if s else '; no spare named')
           + (f"; with one stick fewer: {f['home']} home" if f else '')

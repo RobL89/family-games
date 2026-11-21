@@ -1,4 +1,8 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.15 (21 Nov, step 16).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.16 (21 Nov, step 17).
+//
+// Changes at v1.16 (step 17, D-189 A, D-194): Pudding, the heavy hamster: the walker at the level's Pudding place is
+// drawn with art.js's pudding() (vanilla with caramel; three dandelions at a floater) a fifth bigger; when run()'s
+// 'squash' event comes, the marshmallow squishes under it, with a flump.
 //
 // Changes at v1.15 (step 16, D-194): the bottle-top button, a level part: drawn on its square (data-cap), its lunchbox
 // lid standing up at the gap's left edge (data-lid, turned -90 degrees about its hinge), a string between them. When
@@ -89,7 +93,7 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
 import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
@@ -946,6 +950,7 @@ function stopRun() {
 // A worn stick's crack or snap (run()'s events), when its tick comes: a deeper crack drawn, or the stick gone with
 // its halves falling. The sticks come back whole when the run ends (renderGadgets).
 function stickEvent(e) {
+  if (e.kind === 'squash') { squishMallow(`${e.c},${e.r}`); play('flump'); return; }   // Pudding on a marshmallow (D-194)
   if (e.kind === 'press') {   // a bottle-top button (D-194): it clicks down and its lid swings down over the gap
     const i = S.level.parts.filter((p) => p.kind === 'button').findIndex((p) => p.c === e.c && p.r === e.r);
     const cap = board.querySelector(`[data-cap="${i}"] .cap`);
@@ -1018,9 +1023,10 @@ function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
   if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
-  w.el.firstElementChild.innerHTML = hamster(pose);
+  w.el.firstElementChild.innerHTML = (S.level && w.i !== undefined && w.i === S.level.pudding ? pudding : hamster)(pose);   // Pudding (D-189 A)
 }
 function setAt(w, x, y, rot = 0, sc = SC, op = 1, dir = 1) {
+  if (S.level && w.i !== undefined && w.i === S.level.pudding) sc *= 1.2;   // Pudding, a fifth bigger
   // two hamsters on one square are drawn a little apart, so a child sees both
   const R = S.run;
   if (R && R.drawn) {

@@ -1,4 +1,9 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.9.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.10.
+//
+// Changes at v1.10 (step 17, D-145, D-192, D-194): Pudding, the heavy hamster: a level may name one place in the line
+// (`pudding`, 0 to WALKERS - 1). Pudding walks into a marshmallow and squashes it (no throw; run() records a 'squash';
+// it springs back for the next); a worn stick snaps under it at once; it tips a see-saw on its own; at a floater it
+// floats down as the others do. run()'s hamsters carry heavy: true for Pudding.
 //
 // Changes at v1.9 (step 16, D-194; plan-levels-21-30.md 0.4): the bottle-top button, a part of the level ({ kind:
 // 'button', c, r, lid: [[c, r], ...] }): it sits on a floor, its lid's squares are clear; no gadget goes on either
@@ -169,7 +174,10 @@ export function parseLevel(def) {
     }
     parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom, cups });
   }
-  return { id: def.id, rows, cols, height, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space, buttons, lids };
+  if (def.pudding !== undefined && def.pudding !== null && !(Number.isInteger(def.pudding) && def.pudding >= 0 && def.pudding < WALKERS)) {
+    throw new Error(`level ${def.id}: bad pudding place ${def.pudding}`);
+  }
+  return { id: def.id, rows, cols, height, pudding: Number.isInteger(def.pudding) ? def.pudding : null, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space, buttons, lids };
 }
 
 // A teacup lift's loop: stopped at the bottom for LIFT_STOP ticks, up a row every LIFT_MOVE, stopped at the top,
@@ -366,7 +374,8 @@ export function* trip(level, ctx) {
       if (hit) yield mark({ c, r, act: 'hit' });
       else continue;   // landed: that square's own rules (home, a signpost, another gadget), then on
     }
-    if (k === 'bouncer') {
+    if (k === 'bouncer' && ctx.heavy) ctx.squash(c, r);   // Pudding: the marshmallow squashes under it; it walks on (D-194)
+    else if (k === 'bouncer') {
       for (let i = 1; i <= BOUNCE; i++) if (r - i < 0 || at(c, r - i) === '#') return done('bonk-head');
       const c0 = c;
       r -= BOUNCE;
@@ -513,6 +522,8 @@ function world(level, placed0, seedLeft) {
     events,
     setNow: (tick) => { t = tick; },
     ctx: (who) => ({
+      heavy: level.pudding === who,
+      squash: (c, r) => { events.push({ t, kind: 'squash', c, r, who }); },
       at,
       now: () => t,
       holds: (c, r) => holds(level, placed, c, r) || lidDown(c, r) || parts.some((p) => p.c === c && cups(p).some((k) => cupRow(p, t, k) === r)) || !!plank(c, r),
@@ -521,7 +532,7 @@ function world(level, placed0, seedLeft) {
       tipped,
       weigh: (s) => {
         s.far.add(who);
-        if (s.tippedAt === null && s.far.size >= PAIR) {
+        if (s.tippedAt === null && (s.far.size >= PAIR || level.pudding === who)) {
           s.tippedAt = t;
           events.push({ t, kind: 'tip', c: s.p.c, r: s.p.r, n: s.far.size, who });
         }
@@ -545,7 +556,7 @@ function world(level, placed0, seedLeft) {
         if (by.has(who)) return false;
         by.add(who);
         worn.set(k, by);
-        const snap = by.size >= SNAP;
+        const snap = by.size >= SNAP || level.pudding === who;
         events.push({ t, kind: snap ? 'snap' : 'crack', c, r: r + 1, n: by.size, who });
         if (snap) delete placed[k];
         return snap;
@@ -622,5 +633,5 @@ export function run(level, placed, walkers = WALKERS) {
     }
   }
   for (const h of hs) if (!h.outcome) { h.outcome = 'stuck'; h.end = MAX_TICKS; }
-  return { hamsters: hs.map(({ outcome, steps, seed, fell, end }) => ({ outcome, steps, seed, fell, end })), events: w.events, ticks: Math.max(0, ...hs.map((h) => h.end)) };
+  return { hamsters: hs.map(({ i, outcome, steps, seed, fell, end }) => ({ outcome, steps, seed, fell, end, ...(level.pudding === i ? { heavy: true } : {}) })), events: w.events, ticks: Math.max(0, ...hs.map((h) => h.end)) };
 }
