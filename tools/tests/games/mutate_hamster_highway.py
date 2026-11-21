@@ -3,8 +3,10 @@ tests catch (project rules: test the tests). Version 1.14 (21 Nov, step 15).
 Changes at v1.14 (step 15, D-208): thirteen faults in the signpost's card, levels 23 and 24 and the frame's backdrop,
 their names starting "signpost:" or "frame:", all by the core test (no card; its caption; the hamster never facing left;
 not drawn mirrored; the signpost dropping in after the turn; a keyframe off the walk; level 23 without its spare, its bar
-a square shorter; level 24's shelf gone, one road; the backdrop drawn 420 tall, the pond's drawn there, a stop off the
+a square shorter; level 24's start on the ground, one road; the backdrop drawn 420 tall, the pond's drawn there, a stop off the
 park). One older fault's text follows cards.js 1.3 (the catapult's card left out of the longer list).
+(Level 24's shelf taken away was tried and dropped: its start tube sits a row above the ground walk with or without the
+block under it, so the rules don't change; the block only holds the tube up in the picture.)
 Changes at v1.13 (step 14b, D-206): two faults in the spoon's throw: the throw never started (the browser test) and the
 spoon's arm not split from its reel (the core test).
 Changes at v1.12 (step 14, D-194, D-202 to D-204): two older faults' text follows core.js 1.8 and game.js 1.13 (the slide's
@@ -218,7 +220,8 @@ FAULTS = [
     ('signpost: the card\'s hamster off the walk', G + 'cards.js', "19%, 40% { ${T(270, 360)} }", "19%, 40% { ${T(240, 360)} }", CORE),
     ('frame: level 23 without its spare left ramp', G + 'levels.js', "    tray: { bouncer: 2, signpost: 1, rampL: 1 }, spare: 'rampL',", "    tray: { bouncer: 2, signpost: 1 }, spare: 'rampL',", CORE),
     ('frame: level 23\'s bar a square shorter', G + 'levels.js', "      '....#########...',\n", "      '....########....',\n", CORE),
-    ('frame: level 24\'s shelf gone', G + 'levels.js', "      '......#.............',\n", "      '....................',\n", CORE),
+    ('frame: level 24\'s start on the ground', G + 'levels.js', "      '###...S...##########',\n      '......#.............',\n      '....................',\n",
+     "      '###.......##########',\n      '......#.............',\n      '......S.............',\n", CORE),
     ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 2,", "twin: 'L12',", CORE),
     ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' ? 540 : H)", "(name === 'pond' ? 540 : H)", CORE),
     ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
