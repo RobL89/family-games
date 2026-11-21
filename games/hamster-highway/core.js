@@ -1,4 +1,10 @@
-// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.8.
+// Hamster Highway's rules: the board, where each gadget fits, and where the hamsters go. Version 1.9.
+//
+// Changes at v1.9 (step 16, D-194; plan-levels-21-30.md 0.4): the bottle-top button, a part of the level ({ kind:
+// 'button', c, r, lid: [[c, r], ...] }): it sits on a floor, its lid's squares are clear; no gadget goes on either
+// (terrain 'button', 'lid'). The first hamster to walk into its square, or land in it, presses it (no step of its own):
+// from that tick its lid is down for good, ground ('#') to every hamster; run()'s events record { t, kind: 'press',
+// c, r, who } once.
 //
 // Changes at v1.8 (step 14, D-194; plan-levels-21-30.md 0.4): the spoon catapult ('catapult', on a floor, as a bouncer).
 // A hamster that walks into its square is flung CATAPULT (4) squares on the way it faces, on an arc 1, 2, 1 rows up
@@ -126,7 +132,20 @@ export function parseLevel(def) {
   const parts = [];
   const shaft = new Set();
   const space = new Set();
+  const buttons = new Map();   // the button's square: its part
+  const lids = new Set();
   for (const p of def.parts || []) {
+    if (p && p.kind === 'button') {
+      const sq = (q) => Array.isArray(q) && q.length === 2 && q.every(Number.isInteger) && q[0] >= 0 && q[0] < cols && q[1] >= 0 && q[1] < height;
+      const fine = sq([p.c, p.r]) && p.r + 1 < height && rows[p.r][p.c] === '.' && rows[p.r + 1][p.c] === '#' && Array.isArray(p.lid) && p.lid.length > 0
+        && p.lid.every((q) => sq(q) && rows[q[1]][q[0]] === '.');
+      if (!fine) throw new Error(`level ${def.id}: bad button part ${JSON.stringify(p)}`);
+      const part = { kind: 'button', c: p.c, r: p.r, lid: p.lid.map(([c, r]) => [c, r]) };
+      buttons.set(key(p.c, p.r), part);
+      for (const [c, r] of p.lid) lids.add(key(c, r));
+      parts.push(part);
+      continue;
+    }
     if (p && p.kind === 'seesaw') {
       const fine = [p.c, p.r].every(Number.isInteger) && p.c >= 1 && p.c + 2 < cols && p.r >= 1 && p.r + 2 < height;
       if (!fine) throw new Error(`level ${def.id}: bad part ${JSON.stringify(p)}`);
@@ -150,7 +169,7 @@ export function parseLevel(def) {
     }
     parts.push({ kind: 'lift', c: p.c, top: p.top, bottom: p.bottom, cups });
   }
-  return { id: def.id, rows, cols, height, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space };
+  return { id: def.id, rows, cols, height, start: found.S[0], home: found.G[0], seed: found['*'][0] || null, tray, parts, shaft, space, buttons, lids };
 }
 
 // A teacup lift's loop: stopped at the bottom for LIFT_STOP ticks, up a row every LIFT_MOVE, stopped at the top,
@@ -191,6 +210,8 @@ export function terrain(level, placed, c, r) {
   if (g) return kindOf(g);
   if (level.shaft && level.shaft.has(key(c, r))) return 'shaft';
   if (level.space && level.space.has(key(c, r))) return 'seesaw';
+  if (level.buttons && level.buttons.has(key(c, r))) return 'button';
+  if (level.lids && level.lids.has(key(c, r))) return 'lid';
   const ch = level.rows[r][c];
   return ch === '*' ? '.' : ch;
 }
@@ -202,7 +223,8 @@ export const holds = (level, placed, c, r) => HOLDS.has(terrain(level, placed, c
 // (1)); a ramp, left ramp, bouncer, floater or signpost
 // on ground or a bridge, as a catapult; a tube on any empty square; a zip-line's high end where zipHighs() says.
 const empty = (level, placed, c, r) => c >= 0 && c < (level.cols || COLS) && r >= 0 && r < tall(level) && level.rows[r][c] === '.' && !placed[key(c, r)]
-  && !(level.shaft && level.shaft.has(key(c, r))) && !(level.space && level.space.has(key(c, r)));
+  && !(level.shaft && level.shaft.has(key(c, r))) && !(level.space && level.space.has(key(c, r)))
+  && !(level.buttons && level.buttons.has(key(c, r))) && !(level.lids && level.lids.has(key(c, r)));
 export function fits(level, placed, kind, c, r) {
   if (!GADGETS.includes(kind) || !empty(level, placed, c, r)) return false;
   if (kind === 'zip') return zipLows(level, placed, c, r).length > 0;
@@ -305,6 +327,7 @@ export function* trip(level, ctx) {
   const done = (outcome, fell = 0) => { if (riding) ctx.leave(riding); riding = null; return { outcome, fell }; };
   yield { c, r, act: 'start' };
   for (let guard = 0; guard < 600; guard++) {
+    if (ctx.press) ctx.press(c, r);   // a bottle-top button: walked into, climbed into or landed in (D-194)
     const k = at(c, r);
     if (k === 'G') return done('home');
     if (k === 'S' && away) return done('nap');   // back into the start tube (D-190)
@@ -391,6 +414,7 @@ export function* trip(level, ctx) {
       if (!ctx.stand(c, r)) break;   // a worn stick that snaps under it: on down
     }
     if (fell) last.land = fell;
+    if (fell && ctx.press) ctx.press(c, r);
     if (fell >= BIG_FALL && !floater) return done('bonk', fell);
     if (fell) floater = false;
     if (at(c, r) === 'G') return done('home');
@@ -466,7 +490,9 @@ function world(level, placed0, seedLeft) {
   const events = [];
   const parts = (level.parts || []).filter((p) => p.kind === 'lift');
   const saws = (level.parts || []).filter((p) => p.kind === 'seesaw').map((p) => ({ p, tippedAt: null, far: new Set() }));
-  const at = (c, r) => terrain(level, placed, c, r);
+  const pressed = new Map();   // a button's part: the tick it was pressed
+  const lidDown = (c, r) => [...pressed].some(([p, at0]) => at0 <= t && p.lid.some(([lc, lr]) => lc === c && lr === r));
+  const at = (c, r) => (lidDown(c, r) ? '#' : terrain(level, placed, c, r));
   const cups = (p) => Array.from({ length: p.cups || 1 }, (_, k) => k);
   const aboard = (p, k) => riders.get(`${p.c},${p.top},${k}`) || [];
   // the empty cup stopped at a stop's end with time to step in, if any
@@ -489,7 +515,7 @@ function world(level, placed0, seedLeft) {
     ctx: (who) => ({
       at,
       now: () => t,
-      holds: (c, r) => holds(level, placed, c, r) || parts.some((p) => p.c === c && cups(p).some((k) => cupRow(p, t, k) === r)) || !!plank(c, r),
+      holds: (c, r) => holds(level, placed, c, r) || lidDown(c, r) || parts.some((p) => p.c === c && cups(p).some((k) => cupRow(p, t, k) === r)) || !!plank(c, r),
       plank,
       standAt: (s, i) => plankStand(s.p, i, tipped(s)),
       tipped,
@@ -527,6 +553,12 @@ function world(level, placed0, seedLeft) {
       zip: (c, r) => {
         const v = placed[key(c, r)];
         return v && v.startsWith('zip:') ? v.slice(4).split(',').map(Number) : null;
+      },
+      press: (c, r) => {
+        const p = level.buttons && level.buttons.get(key(c, r));
+        if (!p || pressed.has(p)) return;
+        pressed.set(p, t);
+        events.push({ t, kind: 'press', c, r, who });
       },
       take: (c, r) => {
         if (!seed || level.seed[0] !== c || level.seed[1] !== r) return false;

@@ -1,4 +1,9 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.14 (20 Nov, step 14b).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.15 (21 Nov, step 16).
+//
+// Changes at v1.15 (step 16, D-194): the bottle-top button, a level part: drawn on its square (data-cap), its lunchbox
+// lid standing up at the gap's left edge (data-lid, turned -90 degrees about its hinge), a string between them. When
+// run()'s 'press' event comes, the bottle top clicks down and the lid swings down over the gap (a CSS transition on
+// the lid's own style, 0.45 s), with a clink; renderParts() stands it up again when the run ends.
 //
 // Changes at v1.14 (step 14b, D-206): the spoon throws each hamster (class throw on the placed spoon's art, 1 s, mirrored
 // for a throw to the left; style.css draws it), in place of its wobble.
@@ -84,7 +89,7 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { CELL, INK, SUN, CORAL, LOOP, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
 import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
@@ -354,6 +359,14 @@ function renderParts() {
     }
   });
   layer('parts').innerHTML += back;
+  // the bottle-top buttons (D-194): the cap, the string and the lid standing up at its hinge (the gap's left edge)
+  layer('parts').innerHTML += S.level.parts.filter((p) => p.kind === 'button').map((p, i) => {
+    const [lc, lr] = p.lid.slice().sort((a, b) => a[0] - b[0])[0];
+    const [hx, hy, bx, by] = [lc * CELL, lr * CELL, p.c * CELL, (p.r + 1) * CELL];
+    return `<g data-button="${i}" data-at="${p.c},${p.r}">${path(`M ${bx + 30} ${by - 14} Q ${(bx + hx) / 2} ${Math.min(by, hy) - 40} ${hx + 6} ${hy - 4}`, 'none', 2.4, '#8B5A3C')}`
+      + `<g data-cap="${i}" transform="translate(${bx} ${by})"><g class="cap">${buttonCap()}</g></g>`
+      + `<g transform="translate(${hx} ${hy})"><g data-lid="${i}" style="transform: rotate(-90deg); transition: transform .45s ease-in">${lidArt(p.lid.length)}</g></g></g>`;
+  }).join('');
   layer('cupfront').innerHTML = front;
   for (const el of layer('bg').querySelectorAll('.loop')) el.removeAttribute('stroke-dashoffset');
 }
@@ -933,6 +946,15 @@ function stopRun() {
 // A worn stick's crack or snap (run()'s events), when its tick comes: a deeper crack drawn, or the stick gone with
 // its halves falling. The sticks come back whole when the run ends (renderGadgets).
 function stickEvent(e) {
+  if (e.kind === 'press') {   // a bottle-top button (D-194): it clicks down and its lid swings down over the gap
+    const i = S.level.parts.filter((p) => p.kind === 'button').findIndex((p) => p.c === e.c && p.r === e.r);
+    const cap = board.querySelector(`[data-cap="${i}"] .cap`);
+    const lid = board.querySelector(`[data-lid="${i}"]`);
+    if (cap) cap.style.cssText = 'transform: scale(1, 0.5); transform-box: fill-box; transform-origin: 50% 100%; transition: transform .15s';
+    if (lid) lid.style.transform = 'rotate(0deg)';
+    play('clink');
+    return;
+  }
   if (e.kind === 'tip') { play('creak'); S.run.tips[`${e.c},${e.r}`] = e.t * TICK; return; }
   const el = board.querySelector(`[data-placed="${e.c},${e.r}"]`);
   if (!el) return;

@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.22 · 21 Nov 2026 · P-034 (Kids Games Development) · 24 levels (levels 1 to 10, each with its twin, and the park's first two pairs), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.23 · 21 Nov 2026 · P-034 (Kids Games Development) · 26 levels (levels 1 to 10, each with its twin, and the park's first three pairs), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.23 (step 16, D-194): the picnic. Levels 25 and 26, 9 rows tall, on a picnic backdrop (a gingham blanket under a tree with bunting): the bottle-top button, part of the level: the first hamster to step on it drops a lunchbox lid over a gap, for good, with its help card ("Press it to drop the lid!"); level 26 has two roads, each with its own button. Not yet released.
 
 Changes at v1.22 (step 15, D-208): the climbing frame. Levels 23 and 24, 9 rows tall, on a red and yellow climbing-frame backdrop: the twig signpost turns the hamsters round, with its help card ("Signposts turn them round!"); level 23 climbs the frame by two bouncers and a turn, its seed by a spare left ramp; level 24 has two roads, a zig-zag up the tower with two signposts or one bounce straight up. Not yet released.
 

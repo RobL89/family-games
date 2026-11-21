@@ -1,4 +1,9 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.3 (21 Nov, step 15).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.4 (21 Nov, step 16).
+//
+// Changes at v1.4 (step 16, D-194): the bottle-top button's card, the eleventh (a part, so no drop-in, as the see-saw's
+// and the lift's): the lunchbox lid stands up by a gap; the hamster walks onto the bottle top, which clicks down; the
+// lid swings down over the gap, and the hamster walks over it and home. Caption "Press it to drop the lid!" (Claude's,
+// proposed while Rob was out); 5.5 s.
 //
 // Changes at v1.3 (step 15, D-208): the signpost's card, the tenth, storyboard A of the step 15 mock-ups: out of the
 // start tube on a ledge, along it and down to the floor; it stops puzzled at the pond's edge, the signpost drops in; it
@@ -25,9 +30,9 @@
 // Pure (project rules): it only builds text, and imports only art.js.
 
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
-import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+import { CELL, INK, SUN, hamster, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -41,10 +46,11 @@ export const CAPTION = {
   lift: 'Hop in and ride up!',
   catapult: 'The spoon flings them over!',
   signpost: 'Signposts turn them round!',
+  button: 'Press it to drop the lid!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -120,6 +126,15 @@ SCENE.signpost = () => board(['........', '........', '........', '........', '.
   + cls('hc-signpost-swirl', path('M 308 294 A 22 11 0 1 1 350 288', 'none', 4, INK) + path('M 342 280 L 352 288 L 340 294', 'none', 4, INK, ' stroke-linejoin="round"'))
   + cls('hc-signpost-ham', cls('hc-signpost-move', legs('signpost')) + cls('hc-signpost-fall', ham(0, 0, 'fall')) + cls('hc-signpost-wait', ham(0, 0) + huh(10, -62))
     + cls('hc-signpost-back', left(legs('signpost'))) + cls('hc-signpost-home', left(ham(0, -4, 'home'))));
+
+// The button (D-194): the lid stands up at the gap's left edge, tied by a string to the bottle top; the hamster walks
+// onto the bottle top, which clicks down and stays down; the lid swings down over the gap; over it and home. The lid
+// turns about its hinge, the origin of its still outer group (translate), so its moving group needs no transform.
+VIEW.button = '0 136 480 284';
+SCENE.button = () => board(['........', '........', '........', '........', '........', '........', '###..###'], [[3, 6], [4, 6]])
+  + place(homeArt(), 420, 300, GS) + path('M 82 346 Q 140 322 184 350', 'none', 2.4, '#8B5A3C')
+  + place(cls('hc-button-cap', buttonCap()), 60, 360) + g(cls('hc-button-lid', lidArt(2)), 'translate(180 360)')
+  + cls('hc-button-ham', cls('hc-button-move', legs('button')) + cls('hc-button-home', ham(0, -4, 'home')));
 
 // The floater: walks to the end of a high ledge and stops at the drop; the dandelion drops in; it takes it and
 // drifts gently down, swaying, then walks home.
@@ -252,6 +267,17 @@ function css() {
     + rule('hc-catapult-flick', 'hc-catapult-flick 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 70% 85%; ')
     + dropIn('catapult', 5.5, 30);
 
+  // button, 5.5 s: onto the bottle top by 22% (it clicks down at 24% and stays down), the lid swings down 26% to 37%,
+  // on from 30%, over the lid (x 180 to 300) and home by 75%
+  s += kf('hc-button-ham', `0% { ${T(20, 360)} } 22%, 30% { ${T(90, 360)} } 75%, 100% { ${T(398, 360)} }`) + rule('hc-button-ham', 'hc-button-ham 5.5s linear infinite')
+    + kf('hc-button-move', '0%, 74.9% { opacity: 1 } 75%, 100% { opacity: 0 }')
+    + kf('hc-button-home', '0%, 74.9% { opacity: 0; transform: translateY(0) } 75% { opacity: 1; transform: translateY(0) } 80% { transform: translateY(-14px) } 85%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-button-cap', '0%, 21% { transform: scale(1, 1) } 24%, 100% { transform: scale(1, 0.5) }')
+    + kf('hc-button-lid', '0%, 26% { transform: rotate(-90deg) } 34% { transform: rotate(4deg) } 37%, 100% { transform: rotate(0deg) }')
+    + rule('hc-button-move', 'hc-button-move 5.5s linear infinite') + rule('hc-button-home', 'hc-button-home 5.5s ease-in-out infinite')
+    + rule('hc-button-cap', 'hc-button-cap 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
+    + rule('hc-button-lid', 'hc-button-lid 5.5s ease-in infinite', 'transform-origin: 0 0; ');
+
   // signpost, 6 s: along the ledge 0% to 15%, the drop to the floor to 19%, waits beside the pond's edge to 40% (the
   // signpost drops in at 28%), on to it by 45%, turns 45% to 51% (facing left from 48%), back left to home by 76%
   s += kf('hc-signpost-ham', `0% { ${T(90, 240)} } 15% { ${T(270, 240)} } 19%, 40% { ${T(270, 360)} } 45%, 51% { ${T(330, 360)} } 76%, 100% { ${T(30, 360)} }`)
@@ -363,6 +389,7 @@ export const CARD_CSS = css();
 export function badgeArt(kind) {
   let s = rect(84, 30, 78, 78, '#FFF', 16, 3);
   if (kind === 'bridge' || kind === 'stick') s += place(gadget(kind), 92, 58, 0.62);
+  else if (kind === 'button') s += place(buttonCap(), 93, 84, 1.1);
   else if (kind === 'seesaw') s += place(seesawArt(), 123, 72, 0.26, -24) + place(potArt(0, 0, 30), 123, 72, 0.6);
   else if (kind === 'lift') s += path('M 123 36 L 123 70', 'none', 3, '#E8505B', ' stroke-dasharray="6 4"') + place(teacupBack(), 123, 86) + place(teacupFront(), 123, 86);
   else s += place(gadget(kind), 93, 39, 0.6);

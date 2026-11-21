@@ -1,4 +1,14 @@
-// Hamster Highway's levels. Version 1.8. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.9. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.9 (step 16, D-184, D-194): levels 25 and 26, the park's picnic, 9 rows tall (backdrop 'picnic', look A
+// proposed while Rob was out). Claude's designs (21 Nov), traced and confirmed with core.js 1.9's run():
+//   L13 Lunchbox drawbridge: the button's first level (a part, `parts`), one road: a bouncer (3,7) up onto the
+//       sandwiches, where the bottle-top button (7,5) drops the lunchbox lid over the pond (13,8 and 14,8); off the
+//       sandwiches' end and over. The low road reaches the pond before anyone pressed it: a splash. The seed by the
+//       spare ramp on the far bank (16,7 or 17,7).
+//   L13b Lunch is served, its twin, `roads`: 2, a button for each: high, a bouncer (2,7) onto the cake stand, whose
+//       button (10,4) drops a drawbridge (13 to 15, 5) to the far shelf, with the seed on the stand; low, a ramp (5,7)
+//       onto the hamper, whose button (7,6) drops the lid over the pond (15 to 18, 8).
 //
 // Changes at v1.8 (step 15, D-184, D-190, D-208): levels 23 and 24, the park's climbing frame, 9 rows tall (backdrop
 // 'frame', D-208). Claude's designs (21 Nov), traced square by square and confirmed with core.js 1.8's walk():
@@ -422,6 +432,38 @@ export const LEVELS = [
       '......#.............',
       '....................',
       '################....',
+    ],
+  },
+  {
+    id: 'L13', name: 'Lunchbox drawbridge', room: 'park', spot: 'picnic', back: 'picnic', new: 'button',
+    tray: { bouncer: 1, ramp: 1 }, spare: 'ramp',
+    parts: [{ kind: 'button', c: 7, r: 5, lid: [[13, 8], [14, 8]] }],
+    rows: [
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....................',
+      '....######.......*..',
+      'S..................G',
+      '#############..#####',
+    ],
+  },
+  {
+    id: 'L13b', name: 'Lunch is served', room: 'park', spot: 'picnic2', back: 'picnic', new: null, twin: 'L13', roads: 2,
+    tray: { bouncer: 1, ramp: 1 },
+    parts: [{ kind: 'button', c: 10, r: 4, lid: [[13, 5], [14, 5], [15, 5]] }, { kind: 'button', c: 7, r: 6, lid: [[15, 8], [16, 8], [17, 8], [18, 8]] }],
+    rows: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '.......*................',
+      '...##########...##......',
+      '..................#.....',
+      'S.....###..............G',
+      '###############....#####',
     ],
   },
 ];

@@ -1,4 +1,12 @@
-"""Hamster Highway's pure core, its levels and its boundaries. Version 1.15 (21 Nov, step 15).
+"""Hamster Highway's pure core, its levels and its boundaries. Version 1.16 (21 Nov, step 16).
+
+Changes at v1.16 (step 16, D-194): the bottle-top button, worked out by hand before core.js 1.9 (the section "step 16,
+the bottle-top button"); levels 25 and 26 at the picnic, traced in design and confirmed with core.js 1.9 (25 *Lunchbox
+drawbridge*: a bouncer up onto the sandwiches, the button there drops the lunchbox lid over the pond; the low road
+splashes; the seed by a spare ramp; 26 *Lunch is served*: two roads, each with its own button: a bouncer onto the cake
+stand, whose button drops a high drawbridge, with the seed; or a ramp onto the hamper, whose button drops the pond's
+lid); the park's stops 25 and 26; the button's card (the hamster presses it, the lid drops before it reaches the gap,
+and it walks over); the picnic's backdrop, look A of the step 16 mock-ups (proposed, Rob out), copied unchanged.
 
 Changes at v1.15 (step 15, D-184, D-190, D-208): levels 23 and 24 at the climbing frame, written before levels.js 1.8
 (their roads and wrong roads traced square by square in design, then confirmed with core.js 1.8's walk() in a scratch
@@ -236,6 +244,9 @@ const SOL = {
   // other road, one bouncer straight up, is checked with the level's roads below)
   L12: { solve: [['bouncer', 3, 7], ['bouncer', 4, 4], ['signpost', 12, 4]], seed: [['rampL', 2, 1]] },
   L12b: { solve: [['signpost', 8, 7], ['bouncer', 3, 7], ['bouncer', 2, 4], ['signpost', 0, 4]], seed: [] },
+  // the picnic (step 16): L13b's answer is its low road (the ramp onto the hamper), its seed the high road's bouncer
+  L13: { solve: [['bouncer', 3, 7]], seed: [['ramp', 16, 7]] },
+  L13b: { solve: [['ramp', 5, 7]], seed: [['bouncer', 2, 7]] },
 };
 // every order of each level's answer and spare: how many orders put a gadget where it doesn't fit (D-177 (1), ER-013),
 // apart from a bridge or stick with nothing beside it yet to hold it up (side: D-139's build out from the edge)
@@ -376,8 +387,8 @@ for name, frag in (('short', 'must be 7 to 9 rows of 12'), ('narrow', 'must be 7
 # levels.js
 lv = {x['id']: x for x in out['levels']}
 ORDER = [x for n in range(1, 11) for x in (f'L{n}', f'L{n}b')]
-PARK = ['L11', 'L11b', 'L12', 'L12b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
-check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond, 23 and 24 at the climbing frame (D-184) ({list(lv)})')
+PARK = ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b']   # levels 21 on, in the park (D-187), in pairs as D-184; grows by a pair a step
+check(list(lv) == ORDER + PARK, f'levels.js holds levels 1 to 10, each with its twin straight after it, played in pairs (D-166), then the park\'s: 21 and 22 at the pond, 23 and 24 at the climbing frame, 25 and 26 at the picnic (D-184) ({list(lv)})')
 check([lv[i]['seed'] for i in ORDER if i.endswith('b')] == [[8, 3], [6, 3], [11, 3], [9, 3], [8, 1], [8, 2], [5, 1], [15, 4], [16, 2], [15, 3]], 'each twin has its golden seed where levels.js says')
 check([i for i in ORDER if 'stick' in lv[i]['tray']] == ['L6', 'L6b', 'L7', 'L7b'], 'worn sticks on the 4 levels at the bath and the loft only (D-154, D-170 (b))')
 check(lv['L10b']['parts'] == lv['L10']['parts'] and lv['L10b']['cols'] == 24 and lv['L10b']['back'] == 'treehouse',
@@ -693,16 +704,16 @@ else:
     check(not pbad, f'the park\'s route, from the zip-line\'s foot, never crosses itself or runs back along itself (D-151\'s rule) ({pbad or len(psegs)} segments)')
     check(k['names'] == ['pond', 'pond2', 'frame', 'frame2', 'picnic', 'picnic2', 'playground', 'playground2', 'fair', 'fair2'],
           f'the park\'s ten places in route order, two a place: the pond, the climbing frame, the picnic, the playground, the fair (D-187, D-193) ({k["names"]})')
-    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21), ('L12', 'frame', 22), ('L12b', 'frame2', 23)] and all(xy for _, _, xy, _ in k['stops']),
-          f'levels 21 and 22 at the pond\'s two stops, 23 and 24 at the climbing frame\'s ({k["stops"]})')
+    check([(i, sp, n) for i, sp, _, n in k['stops']] == [('L11', 'pond', 20), ('L11b', 'pond2', 21), ('L12', 'frame', 22), ('L12b', 'frame2', 23), ('L13', 'picnic', 24), ('L13b', 'picnic2', 25)] and all(xy for _, _, xy, _ in k['stops']),
+          f'levels 21 and 22 at the pond\'s two stops, 23 and 24 at the climbing frame\'s, 25 and 26 at the picnic\'s ({k["stops"]})')
     places = k['places']
     pnear = min(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for i, a in enumerate(places) for b in places[i + 1:])
     check(len(places) == 10 and all(56 <= x <= 2420 - 56 and 56 <= y <= 900 - 56 for x, y in places) and pnear >= 112,
           f'every park stop inside the picture, no two stops\' tap circles overlapping: the closest are {pnear:.0f} apart (112 or more)')
-    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 3 + 2,
-          f'the park draws its dotted path from the zip-line\'s foot through levels 21 to 24 and on to the next place, the picnic\'s bend first ({k["drawn"]})')
-    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 6 and k['marks'] == ['data-level="20"', 'data-level="21"', 'data-level="22"', 'data-level="23"'] and k['closed'] and k['ride'] > 0,
-          f'the park is the house\'s size; 6 places with no level yet are soft; 21 to 24 are stops (data-level 20 to 23); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
+    check(k['drawn'][0] == k['zip'][1] and k['drawn'] == k['pts'][:len(k['drawn'])] and len(k['drawn']) == 1 + 2 + 3 + 3 + 2,
+          f'the park draws its dotted path from the zip-line\'s foot through levels 21 to 26 and on to the next place, the playground\'s bend first ({k["drawn"]})')
+    check(k['size'] == [2420, 900, 2420, 900] and k['soft'] == 4 and k['marks'] == ['data-level="20"', 'data-level="21"', 'data-level="22"', 'data-level="23"', 'data-level="24"', 'data-level="25"'] and k['closed'] and k['ride'] > 0,
+          f'the park is the house\'s size; 4 places with no level yet are soft; 21 to 26 are stops (data-level 20 to 25); every group closed ({k["size"]}, {k["soft"]}, {k["marks"]})')
 
 # the timed model (step 3's spike, D-144): every hamster's place at each tick, with one slow, looping moving part.
 # What to expect was worked out by hand before core.js 1.1 was written (15 Nov):
@@ -1036,18 +1047,18 @@ else:
         check(False, 'node ran cards.js')
     else:
         k = json.loads(r.stdout)
-        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost']   # (ten now: the catapult's, step 14; the signpost's, step 15)
-        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult', 'signpost'},
+        EIGHT = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button']   # (eleven now: the catapult's, step 14; the signpost's, 15; the button's, 16)
+        check(k['cards'] == EIGHT and set(k['cards']) == set(k['gadgets'][:6]) | {'seesaw', 'lift', 'catapult', 'signpost', 'button'},
               f'cards: 10, one for each of levels 1 to 20\'s six gadgets and two parts, in the order they come in (D-167), then the catapult\'s (level 21, D-186) and the signpost\'s '
-              f'(level 23, D-208); the zip-line gets its with its level (step 18); the left ramp is a ramp (the ramp\'s card) ({k["cards"]})')
+              f'(level 23, D-208) and the button\'s (level 25); the zip-line gets its with its level (step 18); the left ramp is a ramp (the ramp\'s card) ({k["cards"]})')
         words = {c: len(k['caption'].get(c, '').split()) for c in EIGHT}
         check(all(3 <= n <= 6 for n in words.values()), f'cards: every caption is 3 to 6 words (D-167) ({words})')
         check(k['caption'].get('bridge') == 'Bridges cross the gaps' and k['caption'].get('lift') == 'Hop in and ride up!',
               f'cards: the bridge\'s and the lift\'s captions are the agreed ones (D-168) ({k["caption"].get("bridge")}, {k["caption"].get("lift")})')
         check(all(isinstance(k['loops'].get(c), (int, float)) and 3 <= k['loops'][c] <= 8 for c in EIGHT), f'cards: each loops in a few seconds, 3 to 8 (D-168) ({k["loops"]})')
         lv = k['levels']
-        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult', 'signpost'],
-              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult; level 23 the signpost ({lv})')
+        check(all(new == card for _, new, card in lv) and [new for i, new, _ in lv if not i.endswith('b')] == ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'stick', 'seesaw', 'lift', None, 'catapult', 'signpost', 'button'],
+              f'cards: each level\'s new gadget or part has its card; level 10 brings in nothing; level 21 the catapult; level 23 the signpost; level 25 the button ({lv})')
         check([card for i, _, card in lv if i.endswith('b')] == [None] * sum(1 for i, _, _ in lv if i.endswith('b')) and any(i.endswith('b') for i, _, _ in lv),
               f'cards: the twins bring in nothing, so no card pops up for them (D-166) ({[x for x in lv if x[0].endswith("b")]})')
         check(k['odd'] == [None, None, None], f'cards: no card for nothing new or a gadget the game doesn\'t have ({k["odd"]})')
@@ -1124,6 +1135,24 @@ else:
         check(mirrored and 'hc-signpost-swirl' in sart and 'hc-signpost-wait' in sart, 'card signpost: the hamster facing left is drawn mirrored, walking and at home; a swirl shows the turn; it waits puzzled')
         check(k['caption'].get('signpost') == 'Signposts turn them round!' and k['loops'].get('signpost') == 6,
               f'card signpost: the caption Rob kept (D-208) and a loop of 6 s ({k["caption"].get("signpost")}, {k["loops"].get("signpost")})')
+        # the button's card (D-194): the hamster walks onto the bottle top, which clicks down; the lid drops over the gap
+        # before the hamster reaches it; it walks over the lid and home
+        bh = [(p, float(re.search(r'translate\(([-\d.]+)px', b).group(1))) for p, b in frames_of('hc-button-ham') if 'translate(' in b]
+        pressed = min((p for p, x in bh if x == 90), default=None)
+        def at_x(x0):   # when the hamster's x first reaches x0, by its keyframes
+            for (p1, a), (p2, b2) in zip(bh, bh[1:]):
+                if a < x0 <= b2:
+                    return p1 + (p2 - p1) * (x0 - a) / (b2 - a)
+            return None
+        reach_gap = at_x(180)
+        lidf = frames_of('hc-button-lid')
+        lid_down = min((p for p, b in lidf if 'rotate(0' in b), default=None)
+        lid_up = [p for p, b in lidf if 'rotate(-90deg)' in b]
+        clicked = min((p for p, b in frames_of('hc-button-cap') if 'scale(1, 0.5)' in b), default=None)
+        check(None not in (pressed, reach_gap, lid_down, clicked) and lid_up and min(lid_up) == 0 and pressed <= clicked < lid_down < reach_gap and max(x for _, x in bh) >= 390,
+              f'card button: the lid stands up, the hamster reaches the bottle top ({pressed}%), it clicks down ({clicked}%), the lid drops ({lid_down}%) before the hamster '
+              f'reaches the gap ({reach_gap}%), and it walks over and home (D-194)')
+        check(k['caption'].get('button') and k['loops'].get('button'), f'card button: a caption and a loop ({k["caption"].get("button")}, {k["loops"].get("button")})')
         check(k['again'], 'cards: the same card is drawn the same each time')
         # art.js: the carrying poses (D-178): walking feet, arms up and the float pose's dandelion overhead
         po = k['poses']
@@ -1450,16 +1479,71 @@ check(E('art') == [True, True, True, True], f'the spoon\'s art (D-206): its arm 
 check(E('run') == {'outs': ['home'] * 5, 'flingTicks': [1, 1, 1, 1]}, f'run(): all five flung over and home, a square a tick ({E("run")})')
 check(E('runHit') == {'outs': ['splash'] * 5, 'hitTicks': 1}, f'run(): a bonk on the arc takes 1 tick; all five splash ({E("runHit")})')
 
+# ================================================================ step 16, the bottle-top button (D-186, D-189 A, D-194; plan-levels-21-30.md 0.4).
+# Worked out by hand before core.js 1.9 (21 Nov), on test boards, not levels:
+#   - a part of the level, not the tray: { kind: 'button', c, r, lid: [[c, r], ...] }; the button sits on a floor, its lid's
+#     squares are clear (a gap); anything else is refused; no gadget goes on the button or a lid square; terrain says
+#     'button' and 'lid'; an unpressed lid holds nobody;
+#   - the first hamster to walk into (or land in) the button's square presses it: no step of its own; from that tick its
+#     lid is down for good and holds hamsters like ground; run() records { t, kind: 'press', c, r, who } once;
+#   - on a 12 x 7 board, start 0,4, button 2,4, a 2-wide gap at 6,5 and 7,5 with the lid: home, walking straight over;
+#     without the button part: into the gap, a splash; the button after the gap (9,4): a splash, all five (nobody had
+#     pressed it); falling from a ledge into the button's square presses it too; a lid that is down is ground ('#').
+BJS2 = r"""
+const [coreUrl] = process.argv.slice(1);
+const core = await import(coreUrl);
+const o = {};
+const tryy = (f) => { try { return f(); } catch (e) { return 'ERROR ' + e.message; } };
+const P = (rows, parts) => core.parseLevel({ id: 't', rows, tray: {}, parts });
+const W = (rows, parts, placed = {}) => tryy(() => { const w = core.walk(P(rows, parts), placed); return [w.outcome, w.steps.map((st) => [st.c, st.r, st.act])]; });
+const R1 = ['............', '............', '............', '............', 'S..........G', '######..####', '######..####'];
+const BTN = (c, r) => [{ kind: 'button', c, r, lid: [[6, 5], [7, 5]] }];
+o.press = W(R1, BTN(2, 4));
+o.none = W(R1, []);
+o.after = W(R1, BTN(9, 4));
+o.land = W(['............', '............', 'S...........', '###.........', '...........G', '#####..#####', '#####..#####'], [{ kind: 'button', c: 3, r: 4, lid: [[5, 5], [6, 5]] }]);
+o.run = tryy(() => { const r = core.run(P(R1, BTN(2, 4)), {}); const h0 = r.hamsters[0].steps.find((st) => st.c === 2 && st.r === 4);
+  return { outs: r.hamsters.map((h) => h.outcome), press: r.events.filter((e) => e.kind === 'press').map((e) => [e.t, e.c, e.r, e.who]), arrive: h0 && h0.t1 }; });
+o.runAfter = tryy(() => core.run(P(R1, BTN(9, 4)), {}).hamsters.map((h) => h.outcome));
+o.fits = tryy(() => { const lv = P(R1, BTN(2, 4)); return [core.fits(lv, {}, 'ramp', 2, 4), core.fits(lv, {}, 'bridge', 6, 5), core.fits(lv, {}, 'tube', 7, 5),
+  core.fits(lv, {}, 'ramp', 3, 4), core.terrain(lv, {}, 2, 4), core.terrain(lv, {}, 6, 5), core.holds(lv, {}, 6, 5)]; });
+o.refuse = [BTN(2, 3), [{ kind: 'button', c: 2, r: 4, lid: [[5, 5]] }], [{ kind: 'button', c: 2, r: 4, lid: [] }], [{ kind: 'button', c: 6, r: 4, lid: [[7, 5]] }]]
+  .map((parts) => tryy(() => (P(R1, parts), 'parsed')));
+console.log(JSON.stringify(o));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', BJS2, 'file://' + os.path.join(GAME, 'core.js')], capture_output=True, text=True)
+if r.returncode != 0:
+    print(r.stdout[-1500:], r.stderr[-1500:])
+    check(False, 'node ran the button\'s checks')
+else:
+    b = json.loads(r.stdout)
+    walk_over = [[0, 4, 'start']] + [[c, 4, 'walk'] for c in range(1, 12)]
+    check(b['press'] == ['home', walk_over], f'the button: walking into it presses it (no step of its own) and the lid drops: home straight over the gap, by hand ({b["press"]})')
+    check(isinstance(b['none'], list) and b['none'][0] == 'splash', f'without the button part, the same gap: a splash ({b["none"]})')
+    check(isinstance(b['after'], list) and b['after'][0] == 'splash', f'the button after the gap: they reach the gap before anyone pressed it, a splash ({b["after"]})')
+    check(isinstance(b['land'], list) and b['land'][0] == 'home' and [3, 4, 'fall'] in b['land'][1], f'falling into the button\'s square presses it too: home over the lid, by hand ({b["land"]})')
+    ru = b['run']
+    check(isinstance(ru, dict) and ru['outs'] == ['home'] * 5 and ru['press'] == [[ru['arrive'], 2, 4, 0]],
+          f'run(): all five home; pressed once, by the first hamster, at the tick it reaches the button ({ru})')
+    check(b['runAfter'] == ['splash'] * 5, f'run(): the button after the gap: all five splash ({b["runAfter"]})')
+    check(b['fits'] == [False, False, False, True, 'button', 'lid', False],
+          f'no gadget on the button or a lid square (not even a tube); beside the button a ramp fits; terrain says button and lid; an unpressed lid holds nobody ({b["fits"]})')
+    check(all(isinstance(x, str) and 'button' in x for x in b['refuse']),
+          f'parseLevel refuses a button in the air, a lid on a square that is not clear, a button with no lid, a button that is its own lid\'s neighbour in the air ({b["refuse"]})')
+
 # levels 21 and 22 at the duck pond (step 14, D-184): their roads, each by run() (all five), worked out by hand (18 Nov)
 # and levels 23 and 24 at the climbing frame (step 15): their roads, traced in design and confirmed with core.js 1.8's walk() (21 Nov)
 PJS2 = r"""
 const [coreUrl, levelsUrl] = process.argv.slice(1);
 const core = await import(coreUrl);
 const { LEVELS } = await import(levelsUrl);
-const five = (id, placed) => { const d = LEVELS.find((x) => x.id === id); const r = core.run(core.parseLevel(d), placed);
-  const bad = r.hamsters.find((h) => h.outcome !== 'home'); return [bad ? bad.outcome : 'home', r.hamsters.some((h) => h.seed)]; };
+const five0 = (lv, placed) => { const r = core.run(lv, placed); const bad = r.hamsters.find((h) => h.outcome !== 'home'); return [bad ? bad.outcome : 'home', r.hamsters.some((h) => h.seed)]; };
+const five = (id, placed) => five0(core.parseLevel(LEVELS.find((x) => x.id === id)), placed);
+// a level with its buttons taken away (noBtn), or only one of them kept (onlyBtn: its index in parts)
+const noBtn = (id, placed) => { const x = LEVELS.find((y) => y.id === id); return five0(core.parseLevel({ ...x, parts: [] }), placed); };
+const onlyBtn = (id, i, placed) => { const x = LEVELS.find((y) => y.id === id); return five0(core.parseLevel({ ...x, parts: [x.parts[i]] }), placed); };
 const d = Object.fromEntries(LEVELS.filter((x) => x.room === 'park').map((x) => [x.id, { room: x.room, spot: x.spot, back: x.back, new: x.new, twin: x.twin || null,
-  more: x.more || null, roads: x.roads || null, tray: x.tray, h: x.rows.length, w: x.rows[0].length, spare: x.spare || null }]));
+  more: x.more || null, roads: x.roads || null, tray: x.tray, h: x.rows.length, w: x.rows[0].length, spare: x.spare || null, parts: (x.parts || []).map((p) => [p.kind, p.c, p.r, p.lid]) }]));
 console.log(JSON.stringify({ d,
   l11: [five('L11', { '4,4': 'catapult' }), five('L11', { '3,4': 'catapult' }), five('L11', {}), five('L11', { '4,4': 'catapult', '10,5': 'ramp' }),
         five('L11', { '4,4': 'catapult', '11,5': 'ramp' })],
@@ -1468,6 +1552,10 @@ console.log(JSON.stringify({ d,
   l12: [five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '12,4': 'signpost' }), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '12,4': 'signpost', '2,1': 'rampL' }),
         five('L12', { '3,7': 'bouncer', '4,4': 'bouncer' }), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '2,7': 'signpost' }),
         five('L12', { '3,7': 'bouncer', '12,4': 'signpost' }), five('L12', {}), five('L12', { '3,7': 'bouncer', '4,4': 'bouncer', '8,4': 'signpost' })],
+  l13: [five('L13', { '3,7': 'bouncer' }), five('L13', { '3,7': 'bouncer', '16,7': 'ramp' }), five('L13', {}), five('L13', { '2,7': 'bouncer' }),
+        five('L13', { '3,7': 'ramp' }), five('L13', { '3,7': 'bouncer', '15,7': 'ramp' }), noBtn('L13', { '3,7': 'bouncer' })],
+  l13b: [five('L13b', { '2,7': 'bouncer' }), five('L13b', { '5,7': 'ramp' }), five('L13b', {}), five('L13b', { '1,7': 'bouncer' }),
+         onlyBtn('L13b', 1, { '2,7': 'bouncer' }), onlyBtn('L13b', 0, { '5,7': 'ramp' })],
   l12b: [five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer', '0,4': 'signpost' }), five('L12b', { '9,7': 'bouncer' }),
          five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '2,4': 'bouncer' }), five('L12b', { '8,7': 'signpost', '3,7': 'bouncer', '0,4': 'signpost' }),
          five('L12b', {}), five('L12b', { '8,7': 'bouncer' })] }));
@@ -1478,16 +1566,16 @@ if r.returncode != 0:
     check(False, 'node ran levels 21 and 22\'s checks')
 else:
     q = json.loads(r.stdout)
-    check(q['d'].get('L11') == {'room': 'park', 'spot': 'pond', 'back': 'pond', 'new': 'catapult', 'twin': None, 'more': None, 'roads': None, 'tray': {'catapult': 1, 'ramp': 1}, 'h': 9, 'w': 16, 'spare': 'ramp'}
-          and q['d'].get('L11b') == {'room': 'park', 'spot': 'pond2', 'back': 'pond', 'new': None, 'twin': 'L11', 'more': None, 'roads': 2, 'tray': {'bridge': 1, 'catapult': 1, 'bouncer': 1, 'floater': 1}, 'h': 9, 'w': 20, 'spare': None},
+    check(q['d'].get('L11') == {'room': 'park', 'spot': 'pond', 'back': 'pond', 'new': 'catapult', 'twin': None, 'more': None, 'roads': None, 'tray': {'catapult': 1, 'ramp': 1}, 'h': 9, 'w': 16, 'spare': 'ramp', 'parts': []}
+          and q['d'].get('L11b') == {'room': 'park', 'spot': 'pond2', 'back': 'pond', 'new': None, 'twin': 'L11', 'more': None, 'roads': 2, 'tray': {'bridge': 1, 'catapult': 1, 'bouncer': 1, 'floater': 1}, 'h': 9, 'w': 20, 'spare': None, 'parts': []},
           f'levels 21 and 22: in the park at the pond\'s two stops on its backdrop, 9 rows (D-185), 16 and 20 wide; 21 brings in the catapult with a spare ramp; 22 its twin, "pick your road" with 2 roads (D-184), no `more` ({q["d"]})')
     check(q['l11'] == [['home', False], ['splash', False], ['splash', False], ['home', True], ['home', True]],
           f'level 21, by hand: the spoon at the bank\'s edge (4,4) gets all five home; a square further back they land short and splash; with nothing, a splash; the spare ramp at 10,5 or 11,5 takes the seed ({q["l11"]})')
     check(q['l11b'] == [['home', False], ['home', True], ['bonk', True], ['splash', False], ['splash', False], ['splash', False]],
           f'level 22, by hand: the low road (a bridge to the island, the spoon at its end) gets home without the seed; the high road (the bouncer onto the willow branch, the '
           f'floater down) home with it; the bouncer alone, a funny fall off the branch\'s end (the seed taken on the way); the spoon from the near bank bonks on the branch and drops into the pond; the bridge alone, or the spoon a square back on the island, a splash ({q["l11b"]})')
-    check(q['d'].get('L12') == {'room': 'park', 'spot': 'frame', 'back': 'frame', 'new': 'signpost', 'twin': None, 'more': None, 'roads': None, 'tray': {'bouncer': 2, 'signpost': 1, 'rampL': 1}, 'h': 9, 'w': 16, 'spare': 'rampL'}
-          and q['d'].get('L12b') == {'room': 'park', 'spot': 'frame2', 'back': 'frame', 'new': None, 'twin': 'L12', 'more': None, 'roads': 2, 'tray': {'bouncer': 2, 'signpost': 2}, 'h': 9, 'w': 20, 'spare': None},
+    check(q['d'].get('L12') == {'room': 'park', 'spot': 'frame', 'back': 'frame', 'new': 'signpost', 'twin': None, 'more': None, 'roads': None, 'tray': {'bouncer': 2, 'signpost': 1, 'rampL': 1}, 'h': 9, 'w': 16, 'spare': 'rampL', 'parts': []}
+          and q['d'].get('L12b') == {'room': 'park', 'spot': 'frame2', 'back': 'frame', 'new': None, 'twin': 'L12', 'more': None, 'roads': 2, 'tray': {'bouncer': 2, 'signpost': 2}, 'h': 9, 'w': 20, 'spare': None, 'parts': []},
           f'levels 23 and 24: in the park at the climbing frame\'s two stops on its backdrop (D-208), 9 rows, 16 and 20 wide; 23 brings in the signpost with a spare left ramp; 24 its twin, "pick your road" with 2 roads, no `more` ({q["d"].get("L12")}, {q["d"].get("L12b")})')
     check(q['l12'] == [['home', False], ['home', True], ['bonk', False], ['nap', False], ['bonk', False], ['splash', False], ['home', False]],
           f'level 23 (traced in design, 21 Nov): bounce up onto the bar, the signpost at its end turns them back to the second bouncer, which throws them up-left to the top bar and home; '
@@ -1497,6 +1585,20 @@ else:
           f'level 24 (traced in design, 21 Nov): the zig-zag (a signpost on the ground, the first bouncer up-left, a signpost at the bar\'s left end, the second bouncer up-right onto the '
           f'tower\'s top bar, down to home) takes the seed; one bouncer straight up from the ground gets home without it; the zig-zag without its second signpost: stuck at the left edge; '
           f'without its second bouncer: a funny fall; nothing: into the pond; the one bouncer a square short: a funny fall ({q["l12b"]})')
+    check(q['d'].get('L13') == {'room': 'park', 'spot': 'picnic', 'back': 'picnic', 'new': 'button', 'twin': None, 'more': None, 'roads': None, 'tray': {'bouncer': 1, 'ramp': 1}, 'h': 9, 'w': 20, 'spare': 'ramp',
+                                'parts': [['button', 7, 5, [[13, 8], [14, 8]]]]}
+          and q['d'].get('L13b') == {'room': 'park', 'spot': 'picnic2', 'back': 'picnic', 'new': None, 'twin': 'L13', 'more': None, 'roads': 2, 'tray': {'bouncer': 1, 'ramp': 1}, 'h': 9, 'w': 24, 'spare': None,
+                                     'parts': [['button', 10, 4, [[13, 5], [14, 5], [15, 5]]], ['button', 7, 6, [[15, 8], [16, 8], [17, 8], [18, 8]]]]},
+          f'levels 25 and 26: at the picnic\'s two stops on its backdrop, 9 rows, 20 and 24 wide; 25 brings in the button (a part) with a spare ramp; 26 its twin, two roads, '
+          f'a button for each ({q["d"].get("L13")}, {q["d"].get("L13b")})')
+    check(q['l13'] == [['home', False], ['home', True], ['splash', False], ['bonk', False], ['stuck', False], ['home', False], ['splash', False]],
+          f'level 25 (traced in design, 21 Nov): the bouncer up onto the sandwiches, the button there drops the lid over the pond: home; the spare ramp by the far bank takes '
+          f'the seed (a square back, not); nothing: the low road reaches the pond before anyone pressed the button, a splash; the bouncer a square short: a funny fall; '
+          f'a ramp at the sandwiches: stuck; without the button part: a splash ({q["l13"]})')
+    check(q['l13b'] == [['home', True], ['home', False], ['stuck', False], ['bonk', False], ['bonk', True], ['splash', False]],
+          f'level 26 (traced in design, 21 Nov): the high road (a bouncer onto the cake stand, its button drops the high drawbridge) home with the seed; the low road (a ramp '
+          f'onto the hamper, its button drops the pond\'s lid) home without it; nothing: stuck at the hamper; the bouncer a square short: a funny fall; each road needs its own '
+          f'button: without the cake stand\'s, off its end; without the hamper\'s, into the pond ({q["l13b"]})')
 
 # the climbing frame's backdrop (D-208): look A of the step 15 mock-ups, copied into art.js unchanged (frameA renamed
 # frameArt), drawn 540 tall as the pond's
@@ -1506,20 +1608,29 @@ def js_function(src, name):
     i = src.find(f'\nfunction {name}(')
     return src[i + 1:src.index('\n}\n', i) + 2] if i >= 0 else None
 copied = {n: js_function(MOCK, n) for n in ('frameHill', 'frameBush', 'frameRobin', 'frameLadybird', 'frameA')}
+PMOCK = open(os.path.join(HERE, 'mock_hamster_picnic_backdrops.js'), encoding='utf-8').read()
+pcopied = {n: js_function(PMOCK, n) for n in ('picBunting', 'picTree', 'picTeacup', 'picnicA')}
+pcopied['picnicA'] = pcopied['picnicA'] and pcopied['picnicA'].replace('function picnicA(', 'function picnicArt(')
+pmissing = [n for n, t in pcopied.items() if not t or t not in ARTSRC] + [c for c in ("const PRED = '#E8505B';",) if c not in ARTSRC]
 copied['frameA'] = copied['frameA'] and copied['frameA'].replace('function frameA(', 'function frameArt(')
 missing = [n for n, t in copied.items() if not t or t not in ARTSRC] + [c for c in ("const FH = 540;", "const FRED = '#E8505B';") if c not in ARTSRC]
 check(not missing, f'art.js: the climbing frame\'s backdrop is look A, copied from mock_hamster_frame_backdrops.js 0.1 unchanged (D-208) (not found: {missing})')
 BJS = r"""
 const A = await import(process.argv[1]);
 const b = A.backdrop('frame', 960);
+const pb = A.backdrop('picnic', 1200);
 console.log(JSON.stringify({ h: [A.backHeight('frame'), A.backHeight('pond'), A.backHeight('kitchen')], tagged: b.startsWith('<g data-back="frame">'),
-  closed: (b.match(/<g\b/g) || []).length === (b.match(/<\/g>/g) || []).length, pokes: (b.match(/data-poke="(bird|swing|spider)"/g) || []).length, wide: A.backdrop('frame', 1200).length > b.length }));
+  closed: (b.match(/<g\b/g) || []).length === (b.match(/<\/g>/g) || []).length, pokes: (b.match(/data-poke="(bird|swing|spider)"/g) || []).length, wide: A.backdrop('frame', 1200).length > b.length,
+  picnic: [A.backHeight('picnic'), pb.startsWith('<g data-back="picnic">'), (pb.match(/<g\b/g) || []).length === (pb.match(/<\/g>/g) || []).length, (pb.match(/data-poke="(bird|swing|cup)"/g) || []).length] }));
 """
 r = subprocess.run(['node', '--input-type=module', '-e', BJS, 'file://' + os.path.join(GAME, 'art.js')], capture_output=True, text=True)
 bk = json.loads(r.stdout) if r.returncode == 0 else {}
 check(bk.get('h') == [540, 540, 420] and bk.get('tagged') and bk.get('closed') and bk.get('pokes', 0) >= 3 and bk.get('wide'),
       f'art.js: the frame backdrop is drawn 540 tall (the pond\'s too, the house\'s 420), named data-back="frame", every group closed, a robin, a ladybird and a flag '
       f'to tap, and as wide as the board asks ({bk or r.stderr[-300:]})')
+check(not pmissing and bk.get('picnic', [0])[:3] == [540, True, True] and bk['picnic'][3] >= 3,
+      f'art.js: the picnic\'s backdrop is look A of mock_hamster_picnic_backdrops.js 0.1, copied unchanged (proposed while Rob was out), 540 tall, data-back="picnic", '
+      f'every group closed, a robin, a teapot, cups and bunting to tap (not found: {pmissing}; {bk.get("picnic")})')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

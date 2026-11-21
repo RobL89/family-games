@@ -1,4 +1,8 @@
-// Hamster Highway's drawings, as SVG text. Version 1.9.
+// Hamster Highway's drawings, as SVG text. Version 1.10.
+//
+// Changes at v1.10 (step 16, D-189 A, D-194): the bottle-top button (buttonCap) and its lunchbox lid (lidArt); the
+// picnic's backdrop for levels 25 and 26 (picnicArt, look A, proposed while Rob was out), drawn 540 tall, copied by
+// script from tools/tests/games/mock_hamster_picnic_backdrops.js 0.1.
 //
 // Changes at v1.9 (step 15, D-208): the climbing frame's backdrop for levels 23 and 24 (frameArt, look A: the park's red
 // and yellow frame, monkey bars between two towers, a flag, a robin and a ladybird), drawn 540 tall as the pond's;
@@ -333,11 +337,12 @@ function jar(x, h, col, lid = '#E8505B') {
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
 // The height a backdrop is drawn at: the park's are 540 (9 rows, D-185: the pond, the frame), the house's 420.
-export const backHeight = (name) => (name === 'pond' || name === 'frame' ? 540 : H);
+export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' ? 540 : H);
 
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
   if (name === 'frame') return g(frameArt(w), '', ' data-back="frame"');
+  if (name === 'picnic') return g(picnicArt(w), '', ' data-back="picnic"');
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -623,6 +628,59 @@ function frameArt(w) {
   }
   return s + g(d, '', ' opacity="0.92"');
 }
+
+// The picnic (levels 25 and 26), w wide and 540 tall: look A of the step 16 mock-ups (a gingham blanket under a tree with
+// bunting, a teapot and cups, a robin), proposed while Rob was out, copied unchanged from tools/tests/games/
+// mock_hamster_picnic_backdrops.js 0.1 (its picnicA, renamed), with the helpers it uses.
+const PRED = '#E8505B';
+function picBunting(x0, x1, y) {
+  let s = path(`M ${x0} ${y} Q ${(x0 + x1) / 2} ${y + 40} ${x1} ${y}`, 'none', 2.4);
+  const cols = [PRED, SUN, LEAF, '#4FA3E0', PINK];
+  for (let i = 1; i < 9; i++) {
+    const x = x0 + ((x1 - x0) * i) / 9;
+    const yy = y + 40 * (1 - ((2 * i) / 9 - 1) ** 2) * 0.9;
+    s += path(`M ${x - 12} ${yy - 2} L ${x} ${yy + 22} L ${x + 12} ${yy - 2} Z`, cols[i % 5], 2);
+  }
+  return g(s, '', ' class="poke" data-poke="swing"');
+}
+function picTree(x) {
+  return path(`M ${x - 26} 452 Q ${x - 16} 330 ${x - 22} 220 L ${x + 22} 220 Q ${x + 16} 330 ${x + 26} 452 Z`, '#8B5A3C', 3)
+    + [[-100, 190, 86], [0, 150, 104], [100, 190, 86]].map(([dx, y, r]) => circle(x + dx, y, r, '#8FD46E', 3)).join('');
+}
+function picTeacup(x, y) {
+  return g(path(`M ${x - 16} ${y - 18} L ${x + 16} ${y - 18} L ${x + 12} ${y} L ${x - 12} ${y} Z`, WHITE, 2.4)
+    + path(`M ${x + 15} ${y - 14} q 10 0 8 8 q -2 6 -10 4`, 'none', 2.4) + ellipse(x, y + 1, 20, 4, WHITE, 2.4)
+    + circle(x - 4, y - 9, 3, PINK, 0), '', ' class="poke" data-poke="cup"');
+}
+function picnicArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 460) d += frameBush(x, 448);
+  const tx = w - 170;
+  d += picTree(tx) + picBunting(tx - 520, tx - 60, 200);
+  for (let x = 160; x + 300 <= w + 40; x += 640) {
+    d += path(`M ${x} 452 L ${x + 300} 452 L ${x + 270} 420 L ${x + 30} 420 Z`, PRED, 3);
+    for (let i = 1; i < 6; i++) d += line(x + 30 + 48 * i - 6, 420, x + 48 * i - 6, 452, WHITE, 6, ' opacity="0.7"');
+    d += line(x + 15, 436, x + 285, 436, WHITE, 6, ' opacity="0.7"');
+    d += g(ellipse(x + 90, 410, 26, 20, '#9FD3F5', 2.6) + path(`M ${x + 114} 404 q 18 -6 16 -20`, 'none', 4) + rect(x + 82, 384, 16, 8, '#9FD3F5', 3, 2.4), '', ' class="poke" data-poke="cup"')
+      + picTeacup(x + 160, 418) + picTeacup(x + 210, 420);
+  }
+  d += g(ellipse(260, 440, 14, 11, '#A9744F', 2.2) + ellipse(263, 443, 8, 6, CORAL, 0) + circle(272, 428, 8, '#A9744F', 2.2) + circle(275, 426, 1.8, INK, 0)
+    + path('M 279 428 l 6 2 l -6 2 Z', SUN, 1.4), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+// The bottle-top button (D-189 A, D-194), in a square: a red bottle top with crimped teeth on the floor, x 6 to 54,
+// its foot at y 0 (the square's bottom); and the lunchbox lid it drops, n squares long, hinged at its left end (0, 0),
+// lying along the top of its row (a teal lid with a handle). game.js stands it up (rotated -90) until it is pressed.
+export function buttonCap() {
+  let teeth = '';
+  for (let i = 0; i < 8; i++) teeth += `L ${9 + i * 6} -16 L ${12 + i * 6} -12 `;
+  return path(`M 6 0 L 6 -12 ${teeth}L 54 -12 L 54 0 Z`, PRED, 2.6) + ellipse(30, -7, 14, 3, 'rgba(255,255,255,0.45)', 0);
+}
+export function lidArt(n) {
+  return rect(0, 0, n * 60, 14, '#7FD3C8', 5, 3) + rect(n * 30 - 12, -7, 24, 8, '#5BB8AC', 3, 2.4);
+}
+
 
 function backdropArt(name) {
   if (name === 'bathroom') return bathroomArt();
