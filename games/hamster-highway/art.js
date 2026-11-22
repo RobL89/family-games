@@ -1,4 +1,9 @@
-// Hamster Highway's drawings, as SVG text. Version 1.11.
+// Hamster Highway's drawings, as SVG text. Version 1.12.
+//
+// Changes at v1.12 (step 17b (ii), D-211, D-216): the climbing frame's backdrop is look Q1, the frame faded to 40%
+// (frameQ1, with frameQShapes and frameQuiet, copied by script from mock_hamster_frame_quiet.js 0.1; frameArt, look A
+// at full strength, is kept but no longer drawn). Pudding's face for the hamster counter, look C2 (puddingHead and
+// countHead, copied by script from mock_hamster_counter_looks.js 0.1).
 //
 // Changes at v1.11 (step 17, D-189 A, D-192): the playground's backdrop for levels 27 and 28 (playgroundArt, look A,
 // proposed while Rob couldn't test), 540 tall, copied by script from mock_hamster_playground_backdrops.js 0.1. Pudding, the heavy hamster: the hamster in vanilla with caramel on top
@@ -364,7 +369,7 @@ export const backHeight = (name) => (name === 'pond' || name === 'frame' || name
 
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
-  if (name === 'frame') return g(frameArt(w), '', ' data-back="frame"');
+  if (name === 'frame') return g(frameQ1(w), '', ' data-back="frame"');   // look Q1, faded (D-211)
   if (name === 'picnic') return g(picnicArt(w), '', ' data-back="picnic"');
   if (name === 'playground') return g(playgroundArt(w), '', ' data-back="playground"');
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
@@ -792,4 +797,64 @@ export function houseButton(x, y, r) {
   const s = circle(x, y, r, '#FFF8EE', 3) + path(`M ${x - 15} ${y + 2} L ${x} ${y - 13} L ${x + 15} ${y + 2}`, 'none', 3.5, INK)
     + rect(x - 11, y, 22, 15, '#E7B26F', 2, 2.6) + rect(x - 4, y + 5, 8, 10, '#5A3A22', 2, 0);
   return g(s, '', ' class="btn" data-btn="house"');
+}
+
+// The climbing frame's backdrop faded (D-211, look Q1: the frame as frameArt draws it at 40%), copied by script from
+// tools/tests/games/mock_hamster_frame_quiet.js 0.1 unchanged (its looks Q2 and Q3 not taken, their colours kept as
+// frameQuiet() names them).
+const FQ_SOFT = { post: '#F4B6BA', bar: '#FBE7A1', line: '#D9B3A2', sw: 1.4, flag1: '#F7B7BF', flag2: '#BFE3B4' };
+const FQ_FAR = { post: '#EFC6CB', bar: '#F6ECC8', line: '#EFC6CB', sw: 0, flag1: '#F2C9CF', flag2: '#CFE7C7' };
+const FQ_NOW = { post: FRED, bar: SUN, line: INK, sw: 3, flag1: CORAL, flag2: LEAF };
+
+function frameQShapes(x, k, o) {
+  const post = (px, top) => rect(px - 8, top, 16, 452 - top, o.post, 4, o.sw, o.line) + ellipse(px, 452, 14, 5, '#8FC97A', 0);
+  let d = post(x, 170) + post(x + 200, 170) + post(x + 420, 230) + post(x + 560, 230);
+  for (const y of [240, 320, 400]) d += rect(x - 10, y - 7, 220, 14, o.bar, 7, o.sw, o.line);
+  for (const y of [300, 380]) d += rect(x + 410, y - 7, 160, 14, o.bar, 7, o.sw, o.line);
+  d += rect(x + 192, 224, 236, 12, o.bar, 6, o.sw, o.line) + rect(x + 192, 254, 236, 12, o.bar, 6, o.sw, o.line)
+    + [0, 1, 2, 3, 4, 5, 6].map((i) => line(x + 222 + 30 * i, 236, x + 222 + 30 * i, 254, o.sw ? o.line : o.bar, o.sw ? o.sw + 0.6 : 3)).join('');
+  d += g(line(x + 100, 170, x + 100, 110, o.sw ? o.line : o.post, o.sw ? o.sw + 0.5 : 3) + path(`M ${x + 100} 112 L ${x + 146} 126 L ${x + 100} 140 Z`, k % 2 ? o.flag2 : o.flag1, o.sw, o.line), '', ' class="poke" data-poke="swing"');
+  d += rect(x - 12, 162, 224, 14, o.post, 6, o.sw, o.line);
+  return d;
+}
+
+function frameQuiet(w, look) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  let frames = '';
+  let k = 0;
+  for (let x = 230; x + 420 <= w + 40; x += 600, k++) {
+    if (look === 'Q1') frames += g(frameQShapes(x, k, FQ_NOW), '', ' opacity="0.4"');
+    else if (look === 'Q2') frames += g(frameQShapes(x, k, FQ_SOFT), '', ' opacity="0.75"');
+    else frames += g(frameQShapes(x, k, FQ_FAR), `translate(${x + 280} 428) scale(0.62) translate(${-(x + 280)} -452)`, ' opacity="0.7"');
+  }
+  let bushes = '';
+  for (let x = 40; x < w; x += 420) bushes += frameBush(x, 448);
+  d += look === 'Q3' ? frames + bushes : bushes + frames;   // as now, the bushes behind the frame; the far frame behind them
+  if (look === 'Q3') d += frameRobin(60, 418) + frameLadybird(478, 446);
+  else d += frameRobin(380, 233) + frameLadybird(650, 330);
+  return s + g(d, '', ' opacity="0.92"');
+}
+const frameQ1 = (w) => frameQuiet(w, 'Q1');
+
+// Pudding's face in the hamster counter (D-216, look C2: a fifth bigger, on a caramel ring), copied by script from
+// tools/tests/games/mock_hamster_counter_looks.js 0.1 unchanged; game.js's renderCount() draws every head with
+// countHead('C2', ...), so a Nibble's head is drawn as before.
+const CARAMEL = '#D9944A';
+
+export function puddingHead(eyes = 'open') {
+  const head = hamsterHead(eyes).split(FUR).join(PUD_FUR).split(BELLY).join(WHITE);
+  const cap = path('M -28 -54 Q -10 -70 10 -66 Q 28 -64 32 -52 Q 26 -46 22 -54 Q 18 -44 12 -52 Q 4 -42 -2 -54 Q -10 -44 -16 -54 Q -22 -46 -28 -54 Z', CARAMEL, 2.2);
+  return head + g(cap, 'translate(0 -6) scale(0.86 0.9)');
+}
+
+export function countHead(look, isPudding, lit, x, y, k) {
+  const pud = isPudding && look !== 'now';
+  let body = pud ? puddingHead() : hamsterHead();
+  let kk = k;
+  if (pud && look === 'C2') {
+    kk = k * 1.2;
+    body = circle(0, -40, 40, '#FBE3C4', 3, CARAMEL) + body;
+  }
+  return place(g(body, '', lit ? ' class="tiny-hop"' : ''), x, y, kk, 0, (lit ? '' : ' opacity="0.3"') + (pud ? ` data-pudhead="${look}"` : ''));
 }

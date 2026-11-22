@@ -1,5 +1,18 @@
 """Hamster Highway's level solver: tries every way to put a level's tray down and says what each gives.
-Version 1.7 (21 Nov, step 17). Not part of the close: a design tool, kept so each level's claims can be re-run.
+Version 1.8 (22 Nov, step 17b (ii)). Not part of the close: a design tool, kept so each level's claims can be re-run.
+
+Changes at v1.8 (step 17b (ii), D-212, D-214, D-215): levels 25 to 30 (those with a floor in the core test's FLOOR)
+are checked from their answers, read from the core test (SOL, ROADS, FLOOR: one home each), as their trays of 5 to 13
+are far beyond every placement. A first level (25, 27) as level 20 is (near its answer and seed), plus: no way home near
+it with fewer gadgets than the floor, and for Pudding's level more ways home near it with Pudding made a Nibble. A twin
+(26, 28): its listed roads each checked with run() (all five home, each gadget needed, the seed on one, each its own
+gadget kinds as the first hamster uses them), and near each no way home under the floor. Both: a search along the
+hamsters' paths from the empty board (every gadget left, on squares near where a hamster goes, up to the floor less
+one: mock_hamster_step17b_levels.py 0.1's search) finds no way home under the floor; it catches the sketch page's
+fault 3 (level 26 without the hamper's handle: a 3-gadget road), which the near search misses. A level's trap
+(`trap: 'stick'`, D-214) is skipped by the "worn sticks all needed" rule and checked instead: near each road, every
+way of putting one or both sticks gets nobody home over a stick, but with Pudding a Nibble some way does. Worn sticks
+in a tray with no trap named fail a listed level. Levels 1 to 24's results unchanged (their lines compared with 1.7's).
 
 Changes at v1.7 (step 17, D-194): a level with Pudding is judged by run() for every placement (the first hamster's
 walk() alone can't see Pudding, who may be further back); for Pudding's own level, "not solved without its new thing"
@@ -165,7 +178,7 @@ function near(lv, answer, extra) {
   const base = Object.entries(answer).map(([k, kind]) => [k, kind]);
   const put = (placed, kind) => core.fitCells(lv, { ...placed, ...fixed }, kind).map(([c, r]) => core.key(c, r));
   const seen = new Set();
-  const res = { tried: 0, home: 0, seed: 0, seedWays: [] };
+  const res = { tried: 0, home: 0, seed: 0, seedWays: [], fewest: null };
   const judge = (placed0) => {
     const placed = { ...placed0, ...fixed };
     const sig = Object.keys(placed).sort().map((k) => k + placed[k]).join(' ');
@@ -173,7 +186,12 @@ function near(lv, answer, extra) {
     seen.add(sig);
     res.tried++;
     const r = home(lv, placed);
-    if (r.home) { res.home++; if (r.seed) { res.seed++; if (res.seedWays.length < 3) res.seedWays.push({ ...placed }); } }
+    if (r.home) {
+      res.home++;
+      const n = Object.values(placed).filter((v) => !v.startsWith('peg:')).length;
+      if (res.fewest === null || n < res.fewest) res.fewest = n;
+      if (r.seed) { res.seed++; if (res.seedWays.length < 3) res.seedWays.push({ ...placed }); }
+    }
   };
   const all = { ...answer, ...extra };
   judge(all);
@@ -201,6 +219,65 @@ function near(lv, answer, extra) {
     }
   }
   return res;
+}
+// A level's trap (D-214: `trap: 'stick'`, the worn sticks in its tray): near each listed road (none or one of its gadgets
+// taken away), every way of putting one or both sticks where they fit: no way gets all five home over a stick; with
+// Pudding made a Nibble, some way does (the trap tempts: the sticks would carry five Nibbles)
+function trapCheck(lv, lvNib, roads) {
+  const res = { tried: 0, home: 0, nibHome: 0, nibWay: null, way: null };
+  const seen = new Set();
+  const judge = (placed) => {
+    const sig = Object.keys(placed).sort().map((k) => k + placed[k]).join(' ');
+    if (seen.has(sig)) return;
+    seen.add(sig);
+    res.tried++;
+    const overStick = used(lv, placed).split('+').includes('stick');
+    if (!overStick) return;
+    if (home(lv, placed).home) { res.home++; res.way = res.way || { ...placed }; }
+    if (home(lvNib, placed).home) { res.nibHome++; res.nibWay = res.nibWay || { ...placed }; }
+  };
+  for (const ans of roads) {
+    for (const k1 of [null, ...Object.keys(ans)]) {
+      const base = { ...ans };
+      if (k1) delete base[k1];
+      for (const [c1, r1] of core.fitCells(lv, base, 'stick')) {
+        const one = { ...base, [core.key(c1, r1)]: 'stick' };
+        judge(one);
+        if ((lv.tray.stick || 0) < 2) continue;
+        for (const [c2, r2] of core.fitCells(lv, one, 'stick')) judge({ ...one, [core.key(c2, r2)]: 'stick' });
+      }
+    }
+  }
+  return res;
+}
+// Under the floor (D-212): from the empty board, every gadget left in the tray put on every square near where a hamster
+// goes (one square either side, one above to two below each step), run, and again, up to depth gadgets: any way home is
+// a shortcut under the floor. Squares near the paths only, not every placement (mock_hamster_step17b_levels.py 0.1's search)
+function pathSearch(lv, depth) {
+  const kinds = Object.keys(lv.tray);
+  const seen = new Set();
+  const found = [];
+  const canon = (p) => Object.entries(p).map(([k, v]) => `${v}@${k}`).sort().join(' ');
+  const dfs = (placed, n) => {
+    const c = canon(placed);
+    if (seen.has(c)) return;
+    seen.add(c);
+    const res = core.run(lv, placed);
+    if (res.hamsters.every((h) => h.outcome === 'home')) { found.push({ n, c }); return; }
+    if (n >= depth) return;
+    const nearSq = new Set();
+    for (const h of res.hamsters) for (const st of h.steps) {
+      const r0 = Math.round(st.r);
+      for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 2; dr++) nearSq.add(core.key(st.c + dc, r0 + dr));
+    }
+    const left = core.left(lv, placed);
+    for (const sq of nearSq) {
+      const [cc, rr] = sq.split(',').map(Number);
+      for (const k of kinds) if (k !== 'zip' && (left[k] || 0) > 0 && core.fits(lv, placed, k, cc, rr)) dfs({ ...placed, [sq]: k }, n + 1);
+    }
+  };
+  dfs({}, 0);
+  return { tried: seen.size, ways: found.length, fewest: found.length ? Math.min(...found.map((f) => f.n)) : null, sample: found.slice(0, 2).map((f) => f.c) };
 }
 const out = [];
 if (boardJson) {
@@ -230,6 +307,19 @@ for (const d of LEVELS) {
   if (want && !want.split(',').includes(d.id)) continue;
   const lv = core.parseLevel(d);
   const A = ANSWERS[d.id];
+  if (A && A.roads && !explore) {
+    // a twin of levels 25 to 30 (D-212): its roads listed, each checked with run(), and near each (moving one or two of
+    // its gadgets) no way home with fewer gadgets than the floor
+    const roads = A.roads.map((ans) => {
+      const r = home(lv, ans);
+      const each = Object.keys(ans).map((k) => { const p = { ...ans }; delete p[k]; return home(lv, p).home; });
+      const n = near(lv, ans, {});
+      return { home: r.home, seed: r.seed, kinds: used(lv, ans), each, gadgets: Object.keys(ans).length, near: { tried: n.tried, home: n.home, fewest: n.fewest } };
+    });
+    const trap = d.trap === 'stick' ? trapCheck(lv, core.parseLevel({ ...d, pudding: null }), A.roads) : null;
+    out.push({ id: d.id, listed: true, roads, want: d.roads || null, floor: A.floor, trap, stick: lv.tray.stick || 0, trapName: d.trap || null, under: pathSearch(lv, A.floor - 1) });
+    continue;
+  }
   if (A && !explore) {
     const ans = home(lv, A.answer);
     const each = Object.keys(A.answer).map((k) => { const p = { ...A.answer }; delete p[k]; return [k, A.answer[k], home(lv, p).home]; });
@@ -244,7 +334,10 @@ for (const d of LEVELS) {
       : Object.keys(A.answer).filter((k) => A.answer[k] === d.more).map((k) => { const a = { ...A.answer }; delete a[k]; return near(lv, a, {}); })
           .reduce((x, y) => ({ tried: x.tried + y.tried, home: x.home + y.home }), { tried: 0, home: 0 });
     const lessAll = A.full && d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
-    out.push({ id: d.id, near: true, ans, each, spareAt, nearAll, nearLess, noPart, spare: d.spare, more: d.more || null, base, noMore, lessAll });
+    // Pudding's level: near its answer and seed, more ways home with Pudding made a Nibble (D-194)
+    const asNibble = d.new === 'pudding' ? near(core.parseLevel({ ...d, pudding: null }), A.answer, A.seed) : null;
+    out.push({ id: d.id, near: true, ans, each, spareAt, nearAll, nearLess, noPart, spare: d.spare, more: d.more || null, base, noMore, lessAll,
+               floor: A.floor || null, asNibble: asNibble && { tried: asNibble.tried, home: asNibble.home }, under: A.floor ? pathSearch(lv, A.floor - 1) : null });
     continue;
   }
   const all = count(lv, lv.tray);
@@ -258,7 +351,8 @@ for (const d of LEVELS) {
   const base = d.more ? lv.tray[d.more] - 1 - (d.spare === d.more ? 1 : 0) : null;
   const noMore = d.more ? count(lv, { ...lv.tray, [d.more]: base }) : null;
   const less = d.spare ? count(lv, { ...lv.tray, [d.spare]: lv.tray[d.spare] - 1 }) : null;
-  const fewer = lv.tray.stick ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
+  // worn sticks must all be needed (D-143), unless the level names them as a trap (D-214)
+  const fewer = lv.tray.stick && d.trap !== 'stick' ? count(lv, { ...lv.tray, stick: lv.tray.stick - 1 }) : null;
   out.push({ id: d.id, new: d.new, spare: d.spare || null, all, noNew, less, fewer, more: d.more || null, base, noMore, partsOff, roads: d.roads || null, asNibble });
 }
 console.log(JSON.stringify(out));
@@ -287,6 +381,26 @@ ANSWERS = {
              'seed': {'15,4': 'ramp'}},
     'L5b': {'answer': {'1,6': 'bridge', '7,5': 'tube', '7,4': 'tube', '7,3': 'tube', '7,2': 'tube'}, 'seed': {'7,1': 'tube'}, 'full': True},
 }
+# Levels 25 to 30 (D-212): their answers, listed roads and floors read from the core test (SOL, ROADS, FLOOR; one home
+# for each), not copied here: a first level's answer and its seed gadgets; a twin's roads
+CORE = open(os.path.join(HERE, 'test_hamster_highway_core.py'), encoding='utf-8').read()
+def js_const(name):
+    i = CORE.index(f'const {name} = {{')
+    line = CORE[i:CORE.index('\n', i)]
+    return line if line.endswith('};') else CORE[i:CORE.index('\n};\n', i) + 3]
+READ = 'const key = (c, r) => `${c},${r}`;\n' + js_const('SOL') + '\n' + js_const('FLOOR') + '\n' + js_const('ROADS') + r'''
+const P = (list) => Object.fromEntries(list.map(([k, c, r]) => [key(c, r), k]));
+const out = {};
+for (const [id, f] of Object.entries(FLOOR)) {
+  out[id] = ROADS[id] ? { roads: ROADS[id].map(P), floor: f.g } : { answer: P(SOL[id].solve), seed: P(SOL[id].seed), floor: f.g };
+}
+console.log(JSON.stringify(out));
+'''
+rr = subprocess.run(['node', '--input-type=module', '-e', READ], capture_output=True, text=True)
+if rr.returncode != 0:
+    print(rr.stderr)
+    sys.exit(1)
+ANSWERS.update(json.loads(rr.stdout))
 r = subprocess.run(['node', '--input-type=module', '-e', JS, 'file://' + os.path.join(GAME, 'core.js'),
                     'file://' + os.path.join(GAME, 'levels.js'), want, explore, json.dumps(ANSWERS), board], capture_output=True, text=True)
 if r.returncode != 0:
@@ -305,11 +419,33 @@ for L in json.loads(r.stdout):
               f"gadgets: {sum(1 for _, _, h in L['each'] if h)} of {len(L['each'])} still home; moving one or two gadgets (the zip-line kept): "
               f"{n['tried']} ways, {n['home']} home; {L['ms'] / 1000:.1f} s")
         continue
+    if L.get('listed'):
+        R, fl, t = L['roads'], L['floor'], L['trap']
+        kinds = {x['kinds'] for x in R}
+        under = [x['near']['fewest'] for x in R if x['near']['fewest'] is not None and x['near']['fewest'] < fl]
+        trap_ok = t is None or (t['home'] == 0 and t['nibHome'] > 0)
+        stick_ok = not L['stick'] or L['trapName'] == 'stick'
+        ok = (all(x['home'] and not any(x['each']) and x['gadgets'] >= fl for x in R) and len(kinds) == len(R) >= (L['want'] or 2)
+              and any(x['seed'] for x in R) and not under and trap_ok and stick_ok and L['under']['fewest'] is None)
+        bad += not ok
+        print(f"{'ok  ' if ok else 'FAIL'} {L['id']} (its listed roads, each by run(); near each, not every placement): "
+              + '; '.join(f"road {i + 1} ({x['kinds']}, {x['gadgets']} gadgets{', the seed' if x['seed'] else ''}): home {x['home']}, without any one of its gadgets "
+                          f"{sum(1 for e in x['each'] if e)} still home, moving one or two: {x['near']['tried']} ways, {x['near']['home']} home, fewest {x['near']['fewest']} gadgets (floor {fl})"
+                          for i, x in enumerate(R))
+              + f"; {len(kinds)} roads of their own (at least {L['want']} wanted)"
+              + (f"; the trap: {t['tried']} ways with worn sticks near the roads, {t['home']} home over a stick, {t['nibHome']} with Pudding a Nibble (e.g. {t['nibWay']})"
+                 + (f" FOUND {t['way']}" if t['way'] else '') if t else '')
+              + ('' if stick_ok else '; worn sticks in the tray but not named a trap')
+              + f"; along the paths with up to {fl - 1} gadgets: {L['under']['tried']} placements, {L['under']['ways']} home {L['under']['sample']}")
+        continue
     if L.get('near'):
         each_ok = all(not h for _, _, h in L['each'])
         less_seed = L['nearLess']['seed'] if L['spare'] else 0
+        fl, nib = L.get('floor'), L.get('asNibble')
+        floor_ok = fl is None or (all(x['fewest'] is None or x['fewest'] >= fl for x in (L['nearAll'], L['nearLess'])) and L['under']['fewest'] is None)
         ok = (L['ans']['home'] and each_ok and L['spareAt'] and less_seed == 0 and all(h == 0 for _, _, h in L['noPart'])
-              and (L['noMore'] is None or L['noMore']['home'] == 0) and (L['lessAll'] is None or L['lessAll']['seed'] == 0))
+              and (L['noMore'] is None or L['noMore']['home'] == 0) and (L['lessAll'] is None or L['lessAll']['seed'] == 0)
+              and floor_ok and (nib is None or nib['home'] > L['nearAll']['home']))
         bad += not ok
         na, nl = L['nearAll'], L['nearLess']
         print(f"{'ok  ' if ok else 'FAIL'} {L['id']} (near its answer, not every placement): the answer gets all five home: {L['ans']['home']}; "
@@ -317,7 +453,10 @@ for L in json.loads(r.stdout):
               f"moving one or two gadgets: {na['tried']} ways, {na['home']} home, {na['seed']} with the seed; with one {L['spare']} fewer: {nl['tried']} ways, {nl['home']} home, {nl['seed']} with the seed"
               + ''.join(f'; without the {k}: {t} ways, {h} home' for k, t, h in L['noPart'])
               + (f"; {'every placement' if L['lessAll'] else 'near the answer'} with {L['base']} {L['more']} (its first level's need): {L['noMore']['tried']} ways, {L['noMore']['home']} home" if L['noMore'] else '')
-              + (f"; every placement with one {L['spare']} fewer: {L['lessAll']['tried']} ways, {L['lessAll']['home']} home, {L['lessAll']['seed']} with the seed" if L['lessAll'] else ''))
+              + (f"; every placement with one {L['spare']} fewer: {L['lessAll']['tried']} ways, {L['lessAll']['home']} home, {L['lessAll']['seed']} with the seed" if L['lessAll'] else '')
+              + (f"; fewest gadgets home near it: {na['fewest']}, without the spare {nl['fewest']} (floor {fl}); along the paths with up to {fl - 1} gadgets: "
+                 f"{L['under']['tried']} placements, {L['under']['ways']} home {L['under']['sample']}" if fl else '')
+              + (f"; with Pudding a Nibble: {nib['tried']} ways, {nib['home']} home" if nib else ''))
         continue
     a, n, s, f, m = L['all'], L['noNew'], L['less'], L['fewer'], L['noMore']
     p = L.get('asNibble')

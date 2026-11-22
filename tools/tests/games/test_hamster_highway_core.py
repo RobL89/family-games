@@ -10,6 +10,10 @@ before levels.js 1.11 was copied from the designs: 25 *Lunchbox drawbridge*; 26 
 table, road B round the back over the button's lid; 27 *Pudding comes to play*; 28 *Big and small*, its trap of two
 worn sticks that Pudding snaps (two snaps, by Pudding) and that carry five Nibbles. One expectation was mine and wrong,
 fixed after re-tracing: road B without its signpost or its button still takes the seed (in the spoon's flight).
+Also, written first and failing on art.js 1.11 and game.js 1.16: the frame's look Q1 (D-211) and the counter's
+countHead() and puddingHead() (D-216) copied into art.js unchanged from their mock-ups; the frame drawn faded (one frame
+960 wide, two 1440 wide, each in a 40% group); a Nibble's counter head as before, Pudding's a fifth bigger on a caramel
+ring; game.js's counter lit by who on Pudding's levels (my first guess of two frames 1200 wide was wrong: one).
 
 Changes at v1.17 (step 17, D-145, D-192, D-194): Pudding, worked out by hand before core.js 1.10 (the section "step 17,
 Pudding"); levels 27 and 28 at the playground, traced in design and confirmed with core.js 1.10 (27 *Pudding comes to
@@ -1823,6 +1827,45 @@ check(not pmissing and bk.get('picnic', [0])[:3] == [540, True, True] and bk['pi
 check(not gmissing and bk.get('playground', [0])[:3] == [540, True, True] and bk['playground'][3] >= 3,
       f'art.js: the playground\'s backdrop is look A of mock_hamster_playground_backdrops.js 0.1, copied unchanged (proposed, Rob away), 540 tall, data-back="playground", '
       f'every group closed, swings, a ball and a bird to tap (not found: {gmissing}; {bk.get("playground")})')
+
+# step 17b (ii): the frame faded (D-211, look Q1) and Pudding's face in the counter (D-216, look C2), each copied into art.js
+# unchanged from its mock-up (mock_hamster_frame_quiet.js 0.1 at 5f876b5; mock_hamster_counter_looks.js 0.1 at 861d12d)
+def js_block(src, start):
+    """From a line starting `start` to its end: a one-line const, or a function to its closing brace."""
+    i = src.find('\n' + start)
+    if i < 0:
+        return None
+    line = src[i + 1:src.index('\n', i + 1)]
+    return line if line.endswith(';') else src[i + 1:src.index('\n}\n', i) + 2]
+QMOCK = open(os.path.join(HERE, 'mock_hamster_frame_quiet.js'), encoding='utf-8').read()
+CMOCK = open(os.path.join(HERE, 'mock_hamster_counter_looks.js'), encoding='utf-8').read()
+QPARTS = [js_block(QMOCK, s) for s in ('const FQ_SOFT', 'const FQ_FAR', 'const FQ_NOW', 'function frameQShapes(', 'function frameQuiet(', 'const frameQ1 =')]
+CPARTS = [js_block(CMOCK, s) for s in ("const CARAMEL", 'export function puddingHead(', 'export function countHead(')]
+qmissing = [i for i, t in enumerate(QPARTS + CPARTS) if not t or t not in ARTSRC]
+check(not qmissing, f'art.js: the frame\'s look Q1 (D-211) and the counter\'s looks with Pudding\'s head (D-216) copied unchanged from their mock-ups (parts not found: {qmissing})')
+QJS = r"""
+const A = await import(process.argv[1]);
+const b = A.backdrop('frame', 960);
+const k = 0.5;
+const nib = A.countHead('C2', false, true, 100, 200, k);
+const pud = A.countHead('C2', true, false, 100, 200, k);
+const now = A.place(A.g(A.hamsterHead(), '', ' class="tiny-hop"'), 100, 200, k, 0, '');
+console.log(JSON.stringify({ faded: (b.match(/<g opacity="0\.4">/g) || []).length, full: b.includes('<g data-back="frame">'), wide: (A.backdrop('frame', 1440).match(/<g opacity="0\.4">/g) || []).length,
+  closed: (b.match(/<g\b/g) || []).length === (b.match(/<\/g>/g) || []).length, nibSame: nib === now, pudC2: pud.includes('data-pudhead="C2"') && pud.includes('opacity="0.3"'),
+  pudBig: pud.includes(`scale(${k * 1.2})`), ring: pud.includes('#FBE3C4'), caramel: A.puddingHead().includes('#D9944A') && A.puddingHead().includes(A.PUD_FUR) }));
+"""
+r = subprocess.run(['node', '--input-type=module', '-e', QJS, 'file://' + os.path.join(GAME, 'art.js')], capture_output=True, text=True)
+qk = json.loads(r.stdout) if r.returncode == 0 else {}
+check(qk.get('faded', 0) == 1 and qk.get('wide', 0) == 2 and qk.get('full') and qk.get('closed'),
+      f'art.js: the frame\'s backdrop drawn as look Q1, every frame in a group at 40% (D-211; one frame 960 wide, two 1440 wide, by hand from its spacing of 600), still data-back="frame", every group closed ({qk or r.stderr[-300:]})')
+check(qk.get('nibSame') and qk.get('pudC2') and qk.get('pudBig') and qk.get('ring') and qk.get('caramel'),
+      f'art.js: in the counter a Nibble\'s head is drawn as now; Pudding\'s (look C2) is its own face in vanilla with caramel, a fifth bigger, on a caramel ring, '
+      f'faded until it is home (data-pudhead="C2") ({qk or r.stderr[-300:]})')
+GSRC = open(os.path.join(GAME, 'game.js'), encoding='utf-8').read()
+rc = GSRC[GSRC.find('function renderCount('):GSRC.find('\n}\n', GSRC.find('function renderCount('))]
+check("countHead('C2', who === pud" in rc and 'got.has(who)' in rc and 'i < home' in rc and 'R.got.add(w.i)' in GSRC,
+      'game.js: the counter draws each head with countHead(\'C2\', ...): on a level with Pudding each lit when that hamster gets home (the run\'s got), '
+      'on others in order by count as now (D-216)')
 
 # levels 1 to 20 run byte-identically to the pins written from core.js 1.6 before the change (pin_hamster_runs.py)
 sys.path.insert(0, HERE)

@@ -1,4 +1,10 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.14 (21 Nov, step 17).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.15 (22 Nov, step 17b (ii)).
+
+Changes at v1.15 (step 17b (ii), D-215, D-216): levels 25 to 28 played by their new roads (25 its road and spare ramp; 26
+road B round the back over its one lid; 27 its road and the spare bouncer; 28 road 2 round the sandpit); the hamster
+counter watched as it is drawn: on 25 five Nibble heads lit in order; on 27, first the wrong road (the bouncer in
+place of the bridge: a GO press, so level 27's tries are 2), Pudding's own face third, the four Nibbles' faces lit
+and Pudding's left faded (lit by who); on 28 Pudding's face second.
 
 Changes at v1.14 (step 17, D-194): after level 26, Next goes on to level 27 at the playground: Pudding's card pops up;
 with the bridge and the spare bouncer, the third hamster is drawn as Pudding (vanilla) and squashes the marshmallow
@@ -694,53 +700,88 @@ with sync_playwright() as pw:
     lid0 = pg.evaluate('getComputedStyle(document.querySelector("[data-lid=\\"0\\"]")).transform')
     check(cards[-1] == 'button' and pg.locator('#bg [data-back="picnic"]').count() == 1 and pg.locator('[data-cap="0"]').count() == 1 and lid0 not in ('none', 'matrix(1, 0, 0, 1, 0, 0)'),
           f'PC: level 25 opens on the picnic, the bottle top drawn and its lid standing up ({lid0}), and the button\'s card pops up (D-194) ({cards[-1]})')
-    for kind, c, r in (('bouncer', 3, 7), ('ramp', 16, 7)):
+    for kind, c, r in (('ramp', 2, 7), ('bouncer', 5, 6), ('floater', 10, 3), ('bridge', 17, 8), ('ramp', 15, 7)):
         place(pg, kind, c, r)
+    # the counter's heads, each time it is drawn: [Pudding's head here?, lit?] for each of the five (D-216)
+    pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
+      new MutationObserver(() => { const h = box.querySelector('[data-hud="count"]'); if (!h) return;
+        const heads = [...h.children].filter((e) => e.tagName === 'g' && e.id !== 'hud-seed');
+        window.__heads.push(heads.map((e) => [e.dataset.pudhead || null, e.getAttribute('opacity') === null])); }).observe(box, { childList: true, subtree: true }); }''')
     pg.evaluate('''() => { window.__lid = []; const el = document.querySelector('[data-lid="0"]');
       new MutationObserver(() => window.__lid.push(el.style.transform)).observe(el, { attributes: true, attributeFilter: ['style'] }); }''')
     go_and_wait(pg, 'party')
     s = state(pg)
     lid = pg.evaluate('window.__lid')
+    heads = pg.evaluate('window.__heads')
     check(s['home'] == 5 and s['seedTaken'] and 'rotate(0deg)' in lid and 'clink' in s['heard'],
-          f'PC: level 25: bounced onto the sandwiches, the bottle top clicked and the lid swung down ({lid[:2]}), all five over the pond and home with the seed')
+          f'PC: level 25 (D-215): up the ramp onto the hamper, bounced onto the cake stand, the bottle top clicked and the lid swung down ({lid[:2]}), the dandelion down onto it, '
+          f'the bridge and the spare ramp: all five home with the seed')
+    check(heads and all(len(x) == 5 and not any(p for p, _ in x) for x in heads) and all([l for _, l in x] == sorted([l for _, l in x], reverse=True) for x in heads) and all(l for _, l in heads[-1]),
+          f'PC: level 25 has no Pudding: the counter shows five Nibble heads, lit in order by count as before (D-216) ({len(heads)} drawings, last {heads[-1] if heads else None})')
     pg.screenshot(path=os.path.join(OUT, 'pc-25-level25-party.png'))
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L13b'))
     lids = pg.evaluate('[...document.querySelectorAll("[data-lid]")].map((e) => e.style.transform)')
-    check(lids == ['rotate(-90deg)', 'rotate(-90deg)'], f'PC: level 26 opens with both lids standing up ({lids})')
-    place(pg, 'bouncer', 2, 7)
+    check(lids == ['rotate(-90deg)'], f'PC: level 26 opens with its lid standing up ({lids})')
+    for kind, c, r in (('ramp', 2, 7), ('catapult', 7, 7), ('tube', 20, 7), ('tube', 20, 6), ('tube', 20, 5), ('signpost', 23, 5)):
+        place(pg, kind, c, r)
     go_and_wait(pg, 'party')
     s = state(pg)
-    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('[data-cap]').count() == 2 and pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 26, its twin: no card, two bottle tops; the high road (the bouncer onto the cake stand, its drawbridge) home with the seed ({cards[-1]})')
+    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('[data-cap]').count() == 1 and pg.locator('#party [data-act="next"]').is_visible(),
+          f'PC: level 26, its twin (D-215): no card, one bottle top; road B round the back (the spoon over the jam pond, up the straw, the button, the signpost back over the lid) '
+          f'home with the seed ({cards[-1]})')
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L14'))
     check(cards[-1] == 'pudding' and pg.locator('#bg [data-back="playground"]').count() == 1, f'PC: level 27 opens on the playground and Pudding\'s card pops up ({cards[-1]})')
-    for kind, c, r in (('bridge', 12, 8), ('bouncer', 3, 7)):
+    # first the wrong road, the bouncer in place of the bridge: the Nibbles go over the bars, Pudding squashes the bouncer
+    # and falls into the pond; the counter's heads watched as they are drawn (D-216: lit by who)
+    for kind, c, r in (('bouncer', 4, 4), ('catapult', 10, 4), ('ramp', 15, 4), ('floater', 16, 3)):
         place(pg, kind, c, r)
+    pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
+      new MutationObserver(() => { const h = box.querySelector('[data-hud="count"]'); if (!h) return;
+        const heads = [...h.children].filter((e) => e.tagName === 'g' && e.id !== 'hud-seed');
+        window.__heads.push(heads.map((e) => [e.dataset.pudhead || null, e.getAttribute('opacity') === null])); }).observe(box, { childList: true, subtree: true }); }''')
+    go_and_wait(pg, 'build')
+    heads = pg.evaluate('window.__heads')
+    out_of_order = [x for x in heads if not x[2][1] and any(l for _, l in x[3:])]
+    check(heads and all([p for p, _ in x] == [None, None, 'C2', None, None] for x in heads) and [l for _, l in heads[-1]] == [True, True, False, True, True] and out_of_order,
+          f'PC: level 27\'s counter (D-216): Pudding\'s own face in its place (third); with the bouncer in place of the bridge the four Nibbles get home and their faces light, '
+          f'Pudding\'s stays faded (lit by who, not by count) ({len(heads)} drawings, last {heads[-1] if heads else None})')
+    # then the bridge too: the road with the spare bouncer
+    place(pg, 'bridge', 7, 5)
     pg.evaluate('''() => { window.__pud = false; const t = setInterval(() => { const w = document.querySelector('#walkers [data-walker="2"]');
       if (w && w.innerHTML.includes('#FFF4DE')) window.__pud = true; if (__test.state().screen !== 'level' || document.querySelector('#party:not([hidden])')) clearInterval(t); }, 40); }''')
     go_and_wait(pg, 'party')
     s = state(pg)
     pud = pg.evaluate('window.__pud')
     check(s['home'] == 5 and s['seedTaken'] and pud and 'flump' in s['heard'],
-          f'PC: level 27: the third hamster drawn as Pudding squashes the marshmallow (a flump) and takes the bridge; the Nibbles go up the slide; all five home with the seed ({pud})')
+          f'PC: level 27 (D-215): the third hamster drawn as Pudding squashes the marshmallow (a flump) and plods on over the bridge; the Nibbles bounce up onto the monkey bars; '
+          f'all five home with the seed ({pud})')
     pg.screenshot(path=os.path.join(OUT, 'pc-27-level27-party.png'))
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L14b'))
-    for kind, c, r in (('bridge', 8, 8), ('bridge', 16, 8), ('bouncer', 3, 7)):
+    for kind, c, r in (('ramp', 2, 7), ('catapult', 11, 7), ('ramp', 17, 7), ('tube', 20, 6), ('tube', 20, 5), ('tube', 20, 4), ('signpost', 23, 4), ('rampL', 17, 4)):
         place(pg, kind, c, r)
+    # the counter's heads, each time it is drawn: [Pudding's head here?, lit?] for each of the five (D-216)
+    pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
+      new MutationObserver(() => { const h = box.querySelector('[data-hud="count"]'); if (!h) return;
+        const heads = [...h.children].filter((e) => e.tagName === 'g' && e.id !== 'hud-seed');
+        window.__heads.push(heads.map((e) => [e.dataset.pudhead || null, e.getAttribute('opacity') === null])); }).observe(box, { childList: true, subtree: true }); }''')
     go_and_wait(pg, 'party')
     s = state(pg)
+    heads = pg.evaluate('window.__heads')
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and not pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 28, its twin: no card; two bridges for Pudding and the bouncer for the Nibbles: home with the seed; no Next after the last level ({cards[-1]})')
+          f'PC: level 28, its twin (D-215): no card; road 2 round the sandpit (the spoon, up the tube tunnel, the signpost, back along the slide\'s top, the left ramp up the podium): '
+          f'home with the seed; no Next after the last level ({cards[-1]})')
+    check(heads and all([p for p, _ in x] == [None, 'C2', None, None, None] for x in heads) and all(l for _, l in heads[-1]),
+          f'PC: level 28\'s counter: Pudding\'s face second, as Pudding is (D-216) ({heads[-1] if heads else None})')
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     check(state(pg)['scene'] == 'park', 'PC: the house button after a park level goes back to the park')
     sizes_ok(pg, 'PC 1366x712', errors, asked)
     ids = IDS
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
-            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 1, 'L14b': 1},
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 2, 'L14b': 1},
             'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding')}}
     check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None, 'button', None, 'pudding', None],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')

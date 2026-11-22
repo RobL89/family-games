@@ -1,5 +1,13 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.16 (21 Nov, step 17).
+tests catch (project rules: test the tests). Version 1.17 (22 Nov, step 17b (ii)).
+Changes at v1.17 (step 17b (ii), D-211, D-212, D-214 to D-216): ten faults named "17b": five by the core test (level
+25's last gap filled; level 28's trap not named; Pudding third on level 28; the frame at full strength; Pudding's counter
+face a Nibble's size), two by the browser test (the counter lit by count on Pudding's levels; Pudding's face never
+drawn) and three by the solver, a new kind of test here (`SOLVE + ' L13b'`: the solver on those levels): level 26
+without the hamper's handle (a 3-gadget road, under the floor), level 28's sticks not named a trap, a worn stick that
+holds Pudding (the trap no longer one). Four older faults' text follows levels.js 1.11 and art.js 1.12 (level 27's and
+25's spares, level 26's one button, the pond's backdrop on the frame); "level 25's pond a square wider" becomes "its lid a
+square shorter" (the new pond is not crossed on foot).
 Changes at v1.16 (step 17, D-194): eleven faults in Pudding, levels 27 and 28 and the playground's backdrop, named
 "pudding:" or "playground:": nine by the core test (bounces like a Nibble; a worn stick holds it; it needs a friend on a
 see-saw; any place in the line; one dandelion; the card's Pudding leaves the floor; level 27 without its spare; Pudding
@@ -95,6 +103,7 @@ G = 'games/hamster-highway/'
 CORE, E2E = 'test_hamster_highway_core.py', 'test_hamster_highway_e2e.py'
 CARDS_E2E = 'test_hamster_highway_cards_e2e.py'
 SPIKE_E2E = 'test_hamster_highway_spike_e2e.py'
+SOLVE = 'solve_hamster_highway.py'   # with level ids after it: the solver on those levels (a design tool, not in the close)
 FAULTS = [
     ('a drop of 3 is safe', G + 'core.js', 'export const BIG_FALL = 3;', 'export const BIG_FALL = 4;', CORE),
     ('a bouncer throws 2 up', G + 'core.js', 'export const BOUNCE = 3;', 'export const BOUNCE = 2;', CORE),
@@ -230,7 +239,7 @@ FAULTS = [
     ('pudding: any place in the line', G + 'core.js', "def.pudding >= 0 && def.pudding < WALKERS)", "def.pudding >= 0 && def.pudding < 99)", CORE),
     ('pudding: one dandelion', G + 'art.js', "s = g(dandelion(), 'rotate(-16 8 -72)') + g(dandelion(), 'rotate(16 8 -72)') + s;", "s = '' + s;", CORE),
     ('pudding: the card\'s Pudding leaves the floor', G + 'cards.js', "50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", "50% { ${T(210, 300)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", CORE),
-    ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 1 }, spare: 'bouncer',", CORE),
+    ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1 }, spare: 'bouncer',", CORE),
     ('playground: Pudding first on level 27', G + 'levels.js', "new: 'pudding', pudding: 2,", "new: 'pudding', pudding: 0,", CORE),
     ('playground: the backdrop drawn 420 tall', G + 'art.js', "name === 'picnic' || name === 'playground' ? 540 : H", "name === 'picnic' ? 540 : H", CORE),
     ('pudding: not drawn as Pudding', G + 'game.js', "? pudding : hamster)(pose);   // Pudding (D-189 A)", "? hamster : hamster)(pose);   // Pudding (D-189 A)", E2E),
@@ -241,9 +250,9 @@ FAULTS = [
     ('button: pressed again each time', G + 'core.js', "        if (!p || pressed.has(p)) return;", "        if (!p) return;", CORE),
     ('button: a gadget on a lid', G + 'core.js', " && !(level.lids && level.lids.has(key(c, r)));", ";", CORE),
     ('button: the card\'s lid drops after the gap', G + 'cards.js', "37%, 100% { transform: rotate(0deg) }", "50%, 100% { transform: rotate(0deg) }", CORE),
-    ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { bouncer: 1, ramp: 1 }, spare: 'ramp',", "    tray: { bouncer: 1 }, spare: 'ramp',", CORE),
-    ('picnic: level 25\'s pond a square wider', G + 'levels.js', "      '#############..#####',", "      '############...#####',", CORE),
-    ('picnic: level 26\'s hamper button gone', G + 'levels.js', ", { kind: 'button', c: 7, r: 6, lid: [[15, 8], [16, 8], [17, 8], [18, 8]] }]", "]", CORE),
+    ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { ramp: 2, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',", "    tray: { ramp: 1, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',", CORE),
+    ('picnic: level 25\'s lid a square shorter', G + 'levels.js', "lid: [[12, 8], [13, 8], [14, 8]] }]", "lid: [[12, 8], [13, 8]] }]", CORE),
+    ('picnic: level 26\'s button gone', G + 'levels.js', "    parts: [{ kind: 'button', c: 22, r: 5, lid: [[17, 6], [18, 6], [19, 6]] }],\n", "", CORE),
     ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H", "name === 'frame' || name === 'playground' ? 540 : H", CORE),
     ('button: the lid never swings down', G + 'game.js', "    if (lid) lid.style.transform = 'rotate(0deg)';\n", "", E2E),
     ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'catapult', 'button', 'pudding'];", CORE),
@@ -258,7 +267,7 @@ FAULTS = [
      "      '###.......##########',\n      '......#.............',\n      '......S.............',\n", CORE),
     ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 2,", "twin: 'L12',", CORE),
     ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H)", "(name === 'pond' || name === 'picnic' || name === 'playground' ? 540 : H)", CORE),
-    ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
+    ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameQ1(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
     ('frame: level 24\'s stop off the park', G + 'levels.js', "room: 'park', spot: 'frame2', back: 'frame'", "room: 'park', spot: 'picnic', back: 'frame'", CORE),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
     ('spike: the test board\'s party is saved', G + 'game.js', '    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }', '    S.progress = finished(IDS, S.progress, id, S.seedTaken); keep();', SPIKE_E2E),
@@ -267,6 +276,17 @@ FAULTS = [
     ('spike: the slots stay during a run', G + 'game.js', '  const slots = run ? \'\' : slotBoxes()', '  const slots = false ? \'\' : slotBoxes()', SPIKE_E2E),
     ('spike: the panel counts a tap on the ring as wrong', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (cell[0] === t.c && cell[1] === t.r) T.gadgetHits += 1;', '      if (false) T.gadgetHits += 1;', SPIKE_E2E),
     ('spike: the panel misses a line let go of', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (before.zipFrom && !after.zipFrom && lines(after.placed) === lines(before.placed)) T.zipCancelled += 1;', '', SPIKE_E2E),
+    # step 17b (ii) (D-211, D-212, D-214 to D-216)
+    ('17b: level 25\'s last gap filled', G + 'levels.js', "      '############...##.##',", "      '############...#####',", CORE),
+    ('17b: level 28 without its trap named', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 1,", CORE),
+    ('17b: Pudding third on level 28', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 2, trap: 'stick',", CORE),
+    ('17b: the frame at full strength again', G + 'art.js', "  if (name === 'frame') return g(frameQ1(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", CORE),
+    ('17b: Pudding\'s counter face the size of a Nibble\'s', G + 'art.js', "    kk = k * 1.2;\n", "    kk = k;\n", CORE),
+    ('17b: the counter lit by count on Pudding\'s levels', G + 'game.js', "    const lit = pud !== null ? got.has(who) : i < home;", "    const lit = i < home;", E2E),
+    ('17b: Pudding\'s counter face never drawn', G + 'game.js', "    s += countHead('C2', who === pud, lit,", "    s += countHead('C2', false, lit,", E2E),
+    ('17b solver: level 26 without the hamper\'s handle', G + 'levels.js', "      '......#####..#..........',", "      '......#####.............',", SOLVE + ' L13b'),
+    ('17b solver: level 28\'s sticks not named a trap', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 1,", SOLVE + ' L14b'),
+    ('17b solver: a worn stick holds Pudding', G + 'core.js', "const snap = by.size >= SNAP || level.pudding === who;", "const snap = by.size >= SNAP;", SOLVE + ' L14b'),
 ]
 
 
@@ -285,8 +305,9 @@ def run(fault):
             env = dict(os.environ, GIT_AUTHOR_NAME='bench', GIT_AUTHOR_EMAIL='bench@localhost', GIT_COMMITTER_NAME='bench', GIT_COMMITTER_EMAIL='bench@localhost')
             for cmd in (['init', '-q'], ['add', '-A'], ['commit', '-q', '-m', 'bench copy']):
                 subprocess.run(['git', '-C', tmp] + cmd, capture_output=True, env=env, check=True)
-        r = subprocess.run([sys.executable, '-B', os.path.join(tmp, 'tools/tests/games', test), os.path.join(tmp, 'pics')],
-                           capture_output=True, text=True, timeout=600)
+        script, *ids = test.split(' ')   # the solver's faults name the levels to solve after it
+        r = subprocess.run([sys.executable, '-B', os.path.join(tmp, 'tools/tests/games', script)] + (ids or [os.path.join(tmp, 'pics')]),
+                           capture_output=True, text=True, timeout=900)
         return name, 'caught' if r.returncode != 0 else 'MISSED'
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

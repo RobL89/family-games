@@ -1,4 +1,9 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.16 (21 Nov, step 17).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.17 (22 Nov, step 17b (ii)).
+//
+// Changes at v1.17 (step 17b (ii), D-216): the hamster counter draws each head with art.js's countHead('C2', ...):
+// Pudding's own face, a fifth bigger on a caramel ring, in Pudding's place in the line; on a level with Pudding each
+// face lights when that hamster gets home (the run's `got`), so Pudding's lights only for Pudding; on other levels
+// they light in order by count, as before (D-200).
 //
 // Changes at v1.16 (step 17, D-189 A, D-194): Pudding, the heavy hamster: the walker at the level's Pudding place is
 // drawn with art.js's pudding() (vanilla with caramel; three dandelions at a floater) a fifth bigger; when run()'s
@@ -93,7 +98,7 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
 import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
@@ -520,10 +525,13 @@ function renderCount() {
   const at = (i) => (side ? { x: box.x + box.w / 2, y: box.y + step * (i + 0.5) } : { x: box.x + step * (i + 0.5), y: box.y + box.h / 2 });
   const k = Math.min(0.5, (Math.min(step, side ? box.w : box.h) - 8) / 80);   // a head is about 80 across
   let s = rect(box.x, box.y, box.w, box.h, 'rgba(255,255,255,0.88)', 20, 2.5);
-  for (let i = 0; i < WALKERS; i++) {
-    const lit = i < home;
+  const pud = S.level.pudding;
+  const got = (S.run && S.run.got) || new Set();
+  for (let who = 0; who < WALKERS; who++) {
+    const i = who;
+    const lit = pud !== null ? got.has(who) : i < home;   // D-216: by who on Pudding's levels, by count on others
     const p = at(i);
-    s += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), p.x, p.y + 40 * k, k, 0, lit ? '' : ' opacity="0.3"');
+    s += countHead('C2', who === pud, lit, p.x, p.y + 40 * k, k);
   }
   if (seed) {
     const got = S.seedTaken || S.progress.seeds[S.level.id];
@@ -921,7 +929,7 @@ function startRun() {
   S.help = false;
   S.seedTaken = false;
   renderSeed();
-  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, got: new Set(), walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
@@ -1127,7 +1135,7 @@ function endWalker(R, w, e) {
   const dir = R.hs[w.i].dir;
   const once = (name, fn) => { if (!w.endFx[name]) { w.endFx[name] = true; fn(); } };
   if (out === 'home') {
-    once('home', () => { play('home'); R.home += 1; renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
+    once('home', () => { play('home'); R.home += 1; R.got.add(w.i); renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
     const f = Math.min(1, e / 0.6);
     setPose(w, 'home');
     setAt(w, p.x + 18 * f, p.y - 20 * Math.sin(Math.PI * f), 0, SC * (1 - 0.85 * f), 1 - f);
