@@ -1,4 +1,22 @@
-// Hamster Highway's levels. Version 1.10. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.11. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.11 (step 17b (ii), D-210, D-212, D-214, D-215): levels 25 to 28 redesigned to D-212's floor, as Rob
+// agreed them on step 17b (i)'s sketch page: their trays, parts and rows copied by script
+// (tools/tests/games/copy_hamster_step17b_levels.py 0.1) from their masters, mock_hamster_step17b_levels.py 0.1's
+// DESIGNS (861d12d); ids, names, places, backdrops and Pudding's places kept, so saved progress stays valid.
+//   L13 Lunchbox drawbridge: one road, 4 gadgets on 3 heights: a ramp onto the hamper, a bouncer up onto the cake stand,
+//       the button there (9,3) drops the lunchbox lid over the pond (12 to 14, 8), the dandelion down onto it, a bridge
+//       over the last gap; the spare ramp before that gap takes the seed.
+//   L13b Lunch is served, its twin, `roads`: 2, home on the hamper in the middle: road A over the table (a ramp, a
+//       bouncer, two bridges under the parasol); road B round the back (a ramp, the spoon over the jam pond with the seed,
+//       three tubes up the straw, the button at the far end (22,5), a signpost back over its lid).
+//   L14 Pudding comes to play: Pudding third; one road, 4 gadgets on 4 heights (a bridge, the spoon over the sandpit
+//       pond, a ramp, the dandelion down); the spare bouncer takes the Nibbles up the monkey bars for the seed while
+//       Pudding squashes it and plods on below.
+//   L14b Big and small, its twin: Pudding second, `roads`: 2, 8 gadgets each, to a podium at the top of the slide: up
+//       the frame, or round the sandpit and doubling back. `trap: 'stick'` (D-214): the two worn sticks in the tray,
+//       stacked in the last gap, carry five Nibbles but snap under Pudding; the solver's "worn sticks needed" rule skips
+//       them (solve_hamster_highway.py 1.8).
 //
 // Changes at v1.10 (step 17, D-145, D-192, D-194): levels 27 and 28, the park's playground, 9 rows tall (backdrop
 // 'playground', look A proposed while Rob couldn't test), each with Pudding in the line (`pudding`: its place).
@@ -446,64 +464,64 @@ export const LEVELS = [
   },
   {
     id: 'L13', name: 'Lunchbox drawbridge', room: 'park', spot: 'picnic', back: 'picnic', new: 'button',
-    tray: { bouncer: 1, ramp: 1 }, spare: 'ramp',
-    parts: [{ kind: 'button', c: 7, r: 5, lid: [[13, 8], [14, 8]] }],
+    tray: { ramp: 2, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',
+    parts: [{ kind: 'button', c: 9, r: 3, lid: [[12, 8], [13, 8], [14, 8]] }],
     rows: [
       '....................',
       '....................',
       '....................',
       '....................',
+      '#####.######........',
       '....................',
-      '....................',
-      '....######.......*..',
-      'S..................G',
-      '#############..#####',
+      '................*...',
+      'S..######..........G',
+      '############...##.##',
     ],
   },
   {
     id: 'L13b', name: 'Lunch is served', room: 'park', spot: 'picnic2', back: 'picnic', new: null, twin: 'L13', roads: 2,
-    tray: { bouncer: 1, ramp: 1 },
-    parts: [{ kind: 'button', c: 10, r: 4, lid: [[13, 5], [14, 5], [15, 5]] }, { kind: 'button', c: 7, r: 6, lid: [[15, 8], [16, 8], [17, 8], [18, 8]] }],
+    tray: { ramp: 1, bouncer: 1, bridge: 2, catapult: 1, signpost: 1, tube: 3 },
+    parts: [{ kind: 'button', c: 22, r: 5, lid: [[17, 6], [18, 6], [19, 6]] }],
     rows: [
       '........................',
       '........................',
+      '..........####..........',
       '........................',
-      '........................',
-      '.......*................',
-      '...##########...##......',
-      '..................#.....',
-      'S.....###..............G',
-      '###############....#####',
+      '......#####..#..........',
+      '.........*.....G........',
+      '.............####....###',
+      'S..###..................',
+      '########...#############',
     ],
   },
   {
     id: 'L14', name: 'Pudding comes to play', room: 'park', spot: 'playground', back: 'playground', new: 'pudding', pudding: 2,
-    tray: { bridge: 1, bouncer: 1 }, spare: 'bouncer',
+    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1, bouncer: 1 }, spare: 'bouncer',
     rows: [
       '....................',
       '....................',
+      'S......*............',
+      '###..####...........',
+      '................##..',
+      '...####.###...##....',
       '....................',
-      '....................',
-      '....................',
-      '......*.............',
-      '....##########......',
-      'S..................G',
-      '############.#######',
+      '...................G',
+      '#######.......######',
     ],
   },
   {
-    id: 'L14b', name: 'Big and small', room: 'park', spot: 'playground2', back: 'playground', new: null, twin: 'L14', roads: 2, pudding: 1,
-    tray: { bridge: 2, bouncer: 1 },
+    id: 'L14b', name: 'Big and small', room: 'park', spot: 'playground2', back: 'playground', new: null, twin: 'L14', roads: 2, pudding: 1, trap: 'stick',
+    tray: { ramp: 3, tube: 3, bridge: 2, catapult: 1, signpost: 1, rampL: 1, stick: 2 },
     rows: [
       '........................',
       '........................',
       '........................',
-      '........................',
-      '........................',
-      '..........*.............',
-      '....##############......',
-      'S......................G',
-      '########.#######.#######',
+      '................G.......',
+      '..........###...#.......',
+      '........#####.######.###',
+      '..............*.........',
+      'S..###............######',
+      '############...#########',
     ],
   },
 ];
