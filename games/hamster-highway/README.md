@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.24 · 21 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.25 · 22 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.25 (step 17b (ii), D-211, D-212, D-214 to D-216): levels 25 to 28 redesigned as agreed on a sketch page, each road walking 3 or 4 floor heights with 4 to 8 gadgets: 25 *Lunchbox drawbridge*, 26 *Lunch is served* (two roads to the hamper), 27 *Pudding comes to play*, 28 *Big and small* (two roads to a podium, and two worn sticks in the tray that carry the Nibbles but snap under Pudding). The climbing frame's backdrop is faded to 40%. In the hamster counter Pudding has its own face, a fifth bigger on a caramel ring; on Pudding's levels each face lights when that hamster gets home.
 
 Changes at v1.24 (step 17, D-194): the playground. Levels 27 and 28, 9 rows tall, on a swings-and-slide backdrop, with Pudding the heavy hamster in the line: drawn bigger in vanilla with caramel, Pudding squashes a marshmallow and walks on, snaps a worn stick at once and tips a see-saw on its own, with its help card ("Pudding is too heavy to bounce!"). Not yet released.
 
@@ -117,6 +119,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.25 | 2026-11-22 | Levels 25 to 28 redesigned to the floor (D-212, D-215), the trap stick on 28 (D-214), the frame faded (D-211), Pudding's counter face (D-216); 1.22 to 1.24's rows were not added here: their notes are at the top |
 | 1.21 | 2026-11-20 | The spoon's throw (step 14b, D-206) |
 | 1.20 | 2026-11-18 | The park, reached by the zip-line ride; levels 21 and 22 at the duck pond; the spoon catapult and its card (step 14) |
 | 1.19 | 2026-11-18 | Once GO is pressed, the hamster counter and seed badge take the tray's place, never over the board (D-200) |
