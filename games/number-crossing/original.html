@@ -37,8 +37,15 @@ DESIGN DECISIONS THAT SHOULD NOT CHANGE
   options and rules are the same in every theme. Add new themes to the THEMES registry in the
   script. The title and intro text are the same for every theme.
 
+TIMER (optional, chosen on the setup screen; off by default)
+- No timer, a timer for each question (5-60 seconds), or one clock for the whole journey
+  (1-10 minutes). The time left shows top-right in the sky and turns red with a tick for the
+  last 5 seconds. The clock stops while the character is jumping or falling.
+- Running out of time counts like a wrong answer: the character jumps, the platform sinks and
+  the game ends ("Out of time!"). Settings saved as timer ('off'/'q'/'all'), qSecs, allMins.
+
 IDEAS NOT BUILT YET (only suggested, nothing recorded in the project)
-Timer, high-score list, a lives option, resetting the total on a fresh-start sum, more themes.
+High-score list, a lives option, resetting the total on a fresh-start sum, more themes.
 -->
 <title>Number Crossing (Copy)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -138,6 +145,10 @@ button{font-family:inherit}
 .hud-total .lab{display:block;font:800 clamp(11px,1.6cqw,22px)/1 var(--font-body);letter-spacing:.22em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 rgba(58,33,18,.75),0 0 8px rgba(20,40,70,.4);margin-bottom:.4cqw}
 .hud-total .val{display:block;font:800 clamp(34px,7.2cqw,112px)/1 var(--font-display)}
 .hud-sum{flex:1;min-width:0;display:flex;justify-content:center;padding-right:11cqw}
+.hud-time{position:absolute;right:0;top:0;min-width:11cqw;text-align:center}
+.hud-time .lab{display:block;font:800 clamp(11px,1.6cqw,22px)/1 var(--font-body);letter-spacing:.22em;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 rgba(58,33,18,.75),0 0 8px rgba(20,40,70,.4);margin-bottom:.4cqw}
+.hud-time .val{display:block;font:800 clamp(28px,5.6cqw,88px)/1 var(--font-display)}
+.hud-time.low .val{color:#FF6B5E}
 #sum{display:inline-block;max-width:100%;white-space:nowrap;font:800 clamp(40px,10.5cqw,168px)/1.05 var(--font-display)}
 .pop{animation:pop .35s ease-out}
 @keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
@@ -244,6 +255,13 @@ body.fs .stage,body.fs .panel{width:min(100%,calc((100dvh - 110px) * 16 / 9));fl
       </div>
     </div>
 
+    <div class="card">
+      <h2>Timer</h2>
+      <p class="hint">Run out of time and you fall, just like a wrong answer. The clock stops while you jump.</p>
+      <div id="timerChips" class="chips"></div>
+      <div id="timerExtra"></div>
+    </div>
+
     <p id="setupMsg" class="msg" role="alert"></p>
     <button id="startBtn" class="btn" type="button">Start the journey</button>
   </section>
@@ -254,6 +272,7 @@ body.fs .stage,body.fs .panel{width:min(100%,calc((100dvh - 110px) * 16 / 9));fl
       <div class="hudbar">
         <div class="hud-total"><span class="lab">Total</span><span id="totalNum" class="val sky-num">0</span></div>
         <div class="hud-sum"><span id="sum" class="sky-num" aria-live="polite"></span></div>
+        <div id="hudTime" class="hud-time" hidden><span class="lab">Time</span><span id="timeNum" class="val sky-num">0</span></div>
       </div>
       <div id="confetti" aria-hidden="true"></div>
       <div id="overlay" class="overlay" hidden>
@@ -290,7 +309,8 @@ var KEY='gingerbread-river-v1';
 var SYM={add:'+',sub:'−',mul:'×',div:'÷'};
 var NAME={add:'Add',sub:'Subtract',mul:'Multiply',div:'Divide'};
 var ORDER=['add','sub','mul','div'];
-var DEF={ops:{add:true,sub:true,mul:false,div:false},max:50,addMax:10,subMax:10,mul:[2,5,10],div:[2,5,10],count:10,mode:'type',theme:'gingerbread'};
+var DEF={ops:{add:true,sub:true,mul:false,div:false},max:50,addMax:10,subMax:10,mul:[2,5,10],div:[2,5,10],count:10,mode:'type',theme:'gingerbread',timer:'off',qSecs:15,allMins:3};
+var QSECS=[5,10,15,20,30,60],ALLMINS=[1,2,3,5,10];
 
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function loadCfg(){
@@ -303,6 +323,9 @@ function loadCfg(){
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg));}catch(e){}}
 var cfg=loadCfg();
 if(cfg.theme!=='dino'&&cfg.theme!=='unicorn')cfg.theme='gingerbread';
+if(['off','q','all'].indexOf(cfg.timer)<0)cfg.timer='off';
+if(QSECS.indexOf(cfg.qSecs)<0)cfg.qSecs=15;
+if(ALLMINS.indexOf(cfg.allMins)<0)cfg.allMins=3;
 
 /* ---------- sound ---------- */
 var audio=null,soundOn=true;
@@ -420,8 +443,29 @@ $('#maxIn').addEventListener('input',function(){
 });
 $('#countIn').addEventListener('input',function(){
   var v=parseInt(this.value,10);if(v>0)cfg.count=v;renderPresets('#countPresets','#countIn',[5,10,15,20,30],'count');
+  if(cfg.timer==='all')renderTimer();
 });
+$('#countPresets').addEventListener('click',function(){if(cfg.timer==='all')setTimeout(renderTimer,0);});
+function renderTimer(){
+  var box=$('#timerChips');box.innerHTML='';
+  [['off','No timer'],['q','Timer for each question'],['all','Timer for the whole journey']].forEach(function(o){
+    box.appendChild(chip(o[1],cfg.timer===o[0],function(){cfg.timer=o[0];renderTimer();}));
+  });
+  var ex=$('#timerExtra');ex.innerHTML='';
+  if(cfg.timer==='q'){
+    ex.appendChild(singlePick('Seconds for each question','qSecs',QSECS));
+  }else if(cfg.timer==='all'){
+    var d=singlePick('Minutes to reach the other side','allMins',ALLMINS);
+    var n=parseInt($('#countIn').value,10)||cfg.count;
+    if(n>0){var p=document.createElement('p');p.className='hint';p.id='allHint';
+      p.textContent='With '+n+' questions that is about '+Math.round(cfg.allMins*60/n)+' seconds for each sum.';d.appendChild(p);}
+    ex.appendChild(d);
+  }
+  ex.className=cfg.timer==='off'?'':'extra';
+  ex.querySelectorAll('.chip').forEach(function(b){b.addEventListener('click',function(){setTimeout(renderTimer,0);});});
+}
 function renderSetup(){
+  renderTimer();
   renderTheme();
   renderOps();
   $('#maxIn').value=cfg.max;renderPresets('#maxPresets','#maxIn',[20,50,100,200,500,1000],'max');
@@ -1145,8 +1189,46 @@ function startGame(){
   P.ring.setAttribute('visibility','hidden');P.bubbles.innerHTML='';P.say.setAttribute('visibility','hidden');P.burst.setAttribute('visibility','hidden');
   setTotal(0);
   setArms(gm,0);setMan(gm);
+  startTimer(gm);
   showQuestion();
   cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
+}
+
+/* ---------- timer ---------- */
+var tick=null;
+function fmtTime(ms){
+  var s=Math.max(0,Math.ceil(ms/1000));
+  return s<60?String(s):Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);
+}
+function showTime(gm){
+  var left=gm.tLeft,e=$('#hudTime'),low=left<=5000,txt=fmtTime(left);
+  e.classList.toggle('low',low);
+  if($('#timeNum').textContent!==txt){
+    $('#timeNum').textContent=txt;
+    if(low&&left>0&&!gm.busy&&!gm.over){popEl($('#timeNum'));tone(1100,1100,0.05,'square',0.04);}
+  }
+}
+function startTimer(gm){
+  clearInterval(tick);tick=null;
+  $('#hudTime').hidden=gm.c.timer==='off';
+  if(gm.c.timer==='off')return;
+  gm.tLeft=gm.c.timer==='q'?gm.c.qSecs*1000:gm.c.allMins*60000;
+  gm.tLast=performance.now();
+  $('#timeNum').textContent='';showTime(gm);
+  tick=setInterval(function(){
+    if(G!==gm||gm.over){clearInterval(tick);tick=null;return;}
+    var now=performance.now(),dt=now-gm.tLast;gm.tLast=now;
+    if(gm.busy||document.hidden)return;
+    gm.tLeft-=Math.min(dt,500);
+    showTime(gm);
+    if(gm.tLeft<=0)timeUp(gm);
+  },100);
+}
+function timeUp(gm){
+  if(G!==gm||gm.busy||gm.over)return;
+  gm.timeUp=true;
+  var lane=gm.mode==='mc'?1-gm.qs[gm.i].lane:0;
+  resolve(gm.plats[gm.i][lane],false);
 }
 
 function setBusy(b){
@@ -1159,6 +1241,7 @@ function showQuestion(){
   $('#hintText').textContent=gm.mode==='mc'?q.hint+'. Click the '+T.thing+' with the right answer on it (or use the left and right arrow keys).':q.hint;
   $('#progText').textContent=T.Thing+' '+(gm.i+1)+' of '+gm.N;
   $('#progBar').style.width=(gm.i/gm.N*100)+'%';
+  if(gm.c.timer==='q'){gm.tLeft=gm.c.qSecs*1000;showTime(gm);}
   setBusy(false);
   if(gm.mode==='type'){
     $('#ans').value='';
@@ -1418,10 +1501,10 @@ function showOver(gm,win){
   var q=gm.qs[Math.min(gm.i,gm.N-1)];
   if(win){
     $('#oTitle').textContent=T.t.win;
-    $('#oText').textContent=T.t.winText+' '+gm.N+' out of '+gm.N+' sums right.';
+    $('#oText').textContent=T.t.winText+' '+gm.N+' out of '+gm.N+' sums right.'+(gm.c.timer==='all'?' You had '+fmtTime(gm.tLeft)+(gm.tLeft<60000?' seconds':'')+' to spare.':'');
   }else{
-    $('#oTitle').textContent=T.t.lose;
-    $('#oText').textContent='You got '+gm.i+' of '+gm.N+' sums right. The answer was '+q.full+'.';
+    $('#oTitle').textContent=gm.timeUp?'Out of time!':T.t.lose;
+    $('#oText').textContent=(gm.timeUp?'The clock ran out. ':'')+'You got '+gm.i+' of '+gm.N+' sums right. The answer was '+q.full+'.';
   }
   $('#overlay').hidden=false;
   $('#againBtn').focus();
@@ -1465,7 +1548,7 @@ function setFs(on){
 }
 $('#fsBtn').addEventListener('click',function(){setFs(!fsOn);});
 document.addEventListener('fullscreenchange',function(){if(!document.fullscreenElement&&fsReal&&fsOn){fsReal=false;setFs(false);}});
-function toSetup(){if(fsOn)setFs(false);G=null;document.body.classList.remove('playing');$('#game').hidden=true;$('#setup').hidden=false;window.scrollTo(0,0);}
+function toSetup(){if(fsOn)setFs(false);G=null;clearInterval(tick);tick=null;document.body.classList.remove('playing');$('#game').hidden=true;$('#setup').hidden=false;window.scrollTo(0,0);}
 $('#quitBtn').addEventListener('click',toSetup);
 $('#menuBtn').addEventListener('click',toSetup);
 $('#againBtn').addEventListener('click',startGame);

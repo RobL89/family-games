@@ -12,7 +12,7 @@ An artifact game: the child answers sums to help their character cross, one jump
 **What else the adapter does:** each child has their own setup, and it follows them between devices (P84). The game keeps one setup on the device (its own key `gingerbread-river-v1`); the adapter swaps in this child's as the page opens (reloading once if it had to change) and passes it on with `games/_common/keep-progress/` (P77). A child new to a device starts from the game's defaults.
 
 **Its own rules:**
-- The setup screen: theme, which sums (add, subtract, multiply, divide), the biggest total, how many questions (3 to 50), and how to answer (type the number, or pick one of two logs).
+- The setup screen: theme, which sums (add, subtract, multiply, divide), the biggest total, how many questions (3 to 50), how to answer (type the number, or pick one of two logs), and a timer (none, 5 to 60 seconds a sum, or 1 to 10 minutes for the whole crossing; added 23 Nov). Running out of time counts as a wrong answer. The timer is part of the child's setup, so it follows them too.
 - After the first sum, each sum carries on from the last answer ("+ 3"), so the running total never goes above the biggest total.
 - Its own **Sound** button, and **Full screen**, which fills the screen and hides the wrapper's bar until **Exit full screen** or **Quit game**.
 - Needs the internet only for its fonts (Google Fonts); without them it uses other fonts.
