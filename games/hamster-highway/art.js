@@ -1,4 +1,9 @@
-// Hamster Highway's drawings, as SVG text. Version 1.12.
+// Hamster Highway's drawings, as SVG text. Version 1.13.
+//
+// Changes at v1.13 (step 17c (ii), D-219, D-226): the picnic's and the playground's backdrops faded as the frame's look
+// Q1: picnicQ1 and playgroundQ1 (the tree, bunting, blankets, teapots and cups, and the swings and slides, in a group
+// at 40%; the rest as look A), copied by script from tools/tests/games/mock_hamster_park_quiet.js 0.1, as Rob agreed
+// them on step 17c (i)'s sketch page. picnicArt and playgroundArt (look A at full strength) are kept but no longer drawn.
 //
 // Changes at v1.12 (step 17b (ii), D-211, D-216): the climbing frame's backdrop is look Q1, the frame faded to 40%
 // (frameQ1, with frameQShapes and frameQuiet, copied by script from mock_hamster_frame_quiet.js 0.1; frameArt, look A
@@ -370,8 +375,8 @@ export const backHeight = (name) => (name === 'pond' || name === 'frame' || name
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
   if (name === 'frame') return g(frameQ1(w), '', ' data-back="frame"');   // look Q1, faded (D-211)
-  if (name === 'picnic') return g(picnicArt(w), '', ' data-back="picnic"');
-  if (name === 'playground') return g(playgroundArt(w), '', ' data-back="playground"');
+  if (name === 'picnic') return g(picnicQ1(w), '', ' data-back="picnic"');   // faded (D-226)
+  if (name === 'playground') return g(playgroundQ1(w), '', ' data-back="playground"');   // faded (D-226)
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -836,6 +841,41 @@ function frameQuiet(w, look) {
   return s + g(d, '', ' opacity="0.92"');
 }
 const frameQ1 = (w) => frameQuiet(w, 'Q1');
+
+// The picnic and the playground faded (D-219, agreed D-226), copied unchanged from
+// tools/tests/games/mock_hamster_park_quiet.js 0.1 (from its PARK_QUIET to its end).
+const PARK_QUIET = 0.4;
+
+function picnicQ1(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 460) d += frameBush(x, 448);
+  const tx = w - 170;
+  let busy = picTree(tx) + picBunting(tx - 520, tx - 60, 200);
+  for (let x = 160; x + 300 <= w + 40; x += 640) {
+    busy += path(`M ${x} 452 L ${x + 300} 452 L ${x + 270} 420 L ${x + 30} 420 Z`, PRED, 3);
+    for (let i = 1; i < 6; i++) busy += line(x + 30 + 48 * i - 6, 420, x + 48 * i - 6, 452, WHITE, 6, ' opacity="0.7"');
+    busy += line(x + 15, 436, x + 285, 436, WHITE, 6, ' opacity="0.7"');
+    busy += g(ellipse(x + 90, 410, 26, 20, '#9FD3F5', 2.6) + path(`M ${x + 114} 404 q 18 -6 16 -20`, 'none', 4) + rect(x + 82, 384, 16, 8, '#9FD3F5', 3, 2.4), '', ' class="poke" data-poke="cup"')
+      + picTeacup(x + 160, 418) + picTeacup(x + 210, 420);
+  }
+  d += g(busy, '', ` opacity="${PARK_QUIET}" data-quiet="picnic"`);
+  d += g(ellipse(260, 440, 14, 11, '#A9744F', 2.2) + ellipse(263, 443, 8, 6, CORAL, 0) + circle(272, 428, 8, '#A9744F', 2.2) + circle(275, 426, 1.8, INK, 0)
+    + path('M 279 428 l 6 2 l -6 2 Z', SUN, 1.4), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+function playgroundQ1(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 480) d += frameBush(x, 448);
+  let busy = '';
+  for (let x = 230; x + 160 <= w + 40; x += 620) busy += playSwing(x) + playSlide(x + 180);
+  d += g(busy, '', ` opacity="${PARK_QUIET}" data-quiet="playground"`);
+  d += g(circle(140, 438, 16, CORAL, 2.6) + path('M 124 438 Q 140 430 156 438', 'none', 2.4, WHITE), '', ' class="poke" data-poke="cup"')
+    + g(ellipse(232, 162, 13, 10, '#A9744F', 2.2) + circle(242, 150, 7, '#A9744F', 2.2) + circle(244, 148, 1.6, INK, 0) + path('M 248 150 l 6 2 l -6 2 Z', SUN, 1.2), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
 
 // Pudding's face in the hamster counter (D-216, look C2: a fifth bigger, on a caramel ring), copied by script from
 // tools/tests/games/mock_hamster_counter_looks.js 0.1 unchanged; game.js's renderCount() draws every head with

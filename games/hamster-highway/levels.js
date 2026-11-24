@@ -1,4 +1,24 @@
-// Hamster Highway's levels. Version 1.11. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.12. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.12 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch up, as Rob agreed them on step
+// 17c's two sketch pages: each level's def copied whole by script (tools/tests/games/copy_hamster_step17c_levels.py 0.1)
+// from its master, DESIGNS in mock_hamster_step17c_levels.py 0.2.1 (L11b, L12b, L13, L14) or mock_hamster_step17c_more.py
+// 0.1 (L13b, L14b); ids, names, places, backdrops, new things, twins, Pudding's places and the trap kept, so saved
+// progress stays valid. 22, 25, 26, 27 and 28 are 24 wide, 24 20 wide; every road and wrong road is in the core test's
+// ROADS and WRONG (test_hamster_highway_core.py 1.19):
+//   L11b Two ways round, `roads`: 3: over the ditch and the spoon over the pond; up the willow for the seed and float
+//       down to the island; or bridges all the way; all three over the channel and up the jetty.
+//   L12b Zig, zag, home, `roads`: 3: the zig-zag with the seed; round the steps and back along the top bar; or up the
+//       middle and through the hole in tubes, turned back by a signpost.
+//   L13 Lunchbox drawbridge: the button on the cake stand drops the lid over the pond on every road; across to the
+//       sandwich box by a bridge or the spoon, up the steps to home by three ramps or a ramp and the spoon; the spare
+//       ramp on the far bank takes the seed.
+//   L13b Lunch is served, `roads`: 3: home on the hamper under the cake stand, reached from the far end: the jam pond by
+//       the spoon or a bridge, the gap to the teapot (its button) by the spoon or three straws (tubes).
+//   L14 Pudding comes to play: Pudding third; after the monkey bars down and along, or up onto the walkway; the spare
+//       bouncer takes the Nibbles over the top for the seed while Pudding plods over the bridge.
+//   L14b Big and small, `roads`: 2: Pudding second; up the frame, or round the sandpit and up the far tower; the trap (two
+//       worn sticks) and two bouncer short cuts leave only Pudding out.
 //
 // Changes at v1.11 (step 17b (ii), D-210, D-212, D-214, D-215): levels 25 to 28 redesigned to D-212's floor, as Rob
 // agreed them on step 17b (i)'s sketch page: their trays, parts and rows copied by script
@@ -418,18 +438,18 @@ export const LEVELS = [
     ],
   },
   {
-    id: 'L11b', name: 'Two ways round', room: 'park', spot: 'pond2', back: 'pond', new: null, twin: 'L11', roads: 2,
-    tray: { bridge: 1, catapult: 1, bouncer: 1, floater: 1 },
+    id: 'L11b', name: 'Two ways round', room: 'park', spot: 'pond2', back: 'pond', new: null, twin: 'L11', roads: 3,
+    tray: { bridge: 4, catapult: 1, bouncer: 1, floater: 1, ramp: 1 },
     rows: [
-      '....................',
-      '........*...........',
-      '....########........',
-      '....................',
-      'S...................',
-      '#####..............G',
-      '#####.###...########',
-      '#####.###...########',
-      '#####.###...########',
+      '.......*................',
+      '...########.............',
+      '........................',
+      'S.......................',
+      '####...................G',
+      '####.............#######',
+      '####.####..###.#########',
+      '####.####..###.#########',
+      '####.####..###.#########',
     ],
   },
   {
@@ -448,79 +468,79 @@ export const LEVELS = [
     ],
   },
   {
-    id: 'L12b', name: 'Zig, zag, home', room: 'park', spot: 'frame2', back: 'frame', new: null, twin: 'L12', roads: 2,
-    tray: { bouncer: 2, signpost: 2 },
+    id: 'L12b', name: 'Zig, zag, home', room: 'park', spot: 'frame2', back: 'frame', new: null, twin: 'L12', roads: 3,
+    tray: { signpost: 2, bouncer: 2, ramp: 2, bridge: 2, tube: 3 },
     rows: [
       '....................',
       '....................',
-      '.....*..............',
-      '...##########.......',
-      '...................G',
-      '###...S...##########',
-      '......#.............',
+      '......*....G........',
+      '...#.#######.####.##',
       '....................',
-      '################....',
+      '###...S...##........',
+      '......#..........#..',
+      '...............###..',
+      '####################',
     ],
   },
   {
     id: 'L13', name: 'Lunchbox drawbridge', room: 'park', spot: 'picnic', back: 'picnic', new: 'button',
-    tray: { ramp: 2, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',
-    parts: [{ kind: 'button', c: 9, r: 3, lid: [[12, 8], [13, 8], [14, 8]] }],
+    tray: { ramp: 5, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',
+    parts: [{ kind: 'button', c: 6, r: 3, lid: [[13, 8], [14, 8], [15, 8]] }],
     rows: [
-      '....................',
-      '....................',
-      '....................',
-      '....................',
-      '#####.######........',
-      '....................',
-      '................*...',
-      'S..######..........G',
-      '############...##.##',
+      '........................',
+      '.............###........',
+      '........................',
+      '........................',
+      '.....###.####..........G',
+      '............#.........##',
+      '............#....*...###',
+      'S.#########.#.......####',
+      '#############...########',
     ],
   },
   {
-    id: 'L13b', name: 'Lunch is served', room: 'park', spot: 'picnic2', back: 'picnic', new: null, twin: 'L13', roads: 2,
-    tray: { ramp: 1, bouncer: 1, bridge: 2, catapult: 1, signpost: 1, tube: 3 },
-    parts: [{ kind: 'button', c: 22, r: 5, lid: [[17, 6], [18, 6], [19, 6]] }],
+    id: 'L13b', name: 'Lunch is served', room: 'park', spot: 'picnic2', back: 'picnic', new: null, twin: 'L13', roads: 3,
+    tray: { ramp: 2, bouncer: 1, bridge: 2, catapult: 1, tube: 3, floater: 1, signpost: 1 },
+    parts: [{ kind: 'button', c: 19, r: 2, lid: [[15, 7], [16, 7], [17, 7]] }],
     rows: [
       '........................',
       '........................',
-      '..........####..........',
       '........................',
-      '......#####..#..........',
-      '.........*.....G........',
-      '.............####....###',
-      'S..###..................',
-      '########...#############',
+      '..................####..',
+      '........########........',
+      '...*....#...............',
+      '........#G..............',
+      'S......########...######',
+      '##.############...######',
     ],
   },
   {
     id: 'L14', name: 'Pudding comes to play', room: 'park', spot: 'playground', back: 'playground', new: 'pudding', pudding: 2,
-    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1, bouncer: 1 }, spare: 'bouncer',
+    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1, bouncer: 1 }, spare: 'bouncer',
     rows: [
-      '....................',
-      '....................',
-      'S......*............',
-      '###..####...........',
-      '................##..',
-      '...####.###...##....',
-      '....................',
-      '...................G',
-      '#######.......######',
+      '........................',
+      '........................',
+      'S.......*...##..........',
+      '#####..##............###',
+      '.............###.###....',
+      '.....##.####...........G',
+      '.......................#',
+      '....................####',
+      '######...#####..##..####',
     ],
   },
   {
     id: 'L14b', name: 'Big and small', room: 'park', spot: 'playground2', back: 'playground', new: null, twin: 'L14', roads: 2, pudding: 1, trap: 'stick',
-    tray: { ramp: 3, tube: 3, bridge: 2, catapult: 1, signpost: 1, rampL: 1, stick: 2 },
+    tray: { ramp: 3, tube: 4, bridge: 2, catapult: 1, signpost: 1, stick: 2, bouncer: 1 },
     rows: [
       '........................',
       '........................',
       '........................',
-      '................G.......',
-      '..........###...#.......',
-      '........#####.######.###',
-      '..............*.........',
-      'S..###............######',
+      '............##.G......##',
+      '..........##...######.##',
+      '........##............##',
+      '..............*.....####',
+      'S..###...........#######',
       '############...#########',
     ],
   },
