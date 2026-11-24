@@ -1,6 +1,10 @@
 """Hamster Highway step 17c (i), the sketch page (D-223): levels 22, 24, 25 and 27 redesigned (feedback items 10 to 12
 and 14: D-218, D-220, D-221) and the picnic's and playground's backdrops faded to 40% (item 13, D-219), drawn by the
-real game for Rob's yes or no before building. Version 0.2 (23 to 24 Nov). The shape of mock_hamster_step17b_levels.py 0.1.
+real game for Rob's yes or no before building. Version 0.2.1 (24 Nov). The shape of mock_hamster_step17b_levels.py 0.1.
+
+Changes at v0.2.1: planted fault 2 re-aimed (0.2's, the willow branch as long as v0.1's, turned out equivalent:
+all checks passed with it, as the jetty now stops the spoon off the branch's end); now level 22 without its channel.
+Planted faults 1 to 7 each fail at least one check (7 of 7 caught, 24 Nov). The designs and checks are unchanged.
 
 Changes at v0.2 (Rob, 23 Nov 22:19: "still not happy with the complexity ... very linear and simple to solve ...
 complexity means more gadgets, more elevations, more right and wrong routes ... increase the complexity one notch
@@ -45,8 +49,8 @@ real game shows 16 across and slides.
 
 Checks (exit 1 if one fails): those above; every road drawn and its run started; the screenshots all there, none
 blank; the game logged no errors; the page names no web address. --fault N plants a fault the checks must catch:
-1 a web address in the page; 2 level 22's willow branch as long as v0.1's (the spoon off its end makes a 3-gadget
-road); 3 level 25 without the thermos; 4 level 27 without the roof over home (the spoon off the walkway lands home);
+1 a web address in the page; 2 level 22 without its channel (the willow road with the seed needs no bridge: 3
+gadgets; a branch as long as v0.1's was tried first and is equivalent, as the jetty now stops the spoon off its end); 3 level 25 without the thermos; 4 level 27 without the roof over home (the spoon off the walkway lands home);
 5 the backdrops faded at full strength; 6 a screenshot left out; 7 level 24's top bar with v0.1's first gap at col 8
 (a bounce up through it makes a 3-gadget road).
 
@@ -179,7 +183,7 @@ DESIGNS = [
                 'words': 'along the walkway and a big bump down onto the bench'}]},
 ]
 if FAULT == 2:
-    DESIGNS[0]['def']['rows'] = board(24, 9, B22[:-1] + [(3, 12, 1, 1)], {'S': (0, 3), 'G': (23, 4), '*': (7, 0)})
+    DESIGNS[0]['def']['rows'] = board(24, 9, B22 + [(14, 14, 6, 8)], {'S': (0, 3), 'G': (23, 4), '*': (7, 0)})
 if FAULT == 3:
     DESIGNS[2]['def']['rows'] = board(24, 9, [b for b in B25 if b != (12, 12, 5, 7)], {'S': (0, 7), 'G': (23, 4), '*': (17, 6)})
 if FAULT == 4:
