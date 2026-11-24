@@ -1,4 +1,11 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.15 (22 Nov, step 17b (ii)).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.16 (24 Nov, step 17c (ii)).
+
+Changes at v1.16 (step 17c (ii), D-226, D-229): levels 22 and 24 to 28 played by their new seed roads, as the core
+test's SOL holds them (22 the willow road; 24 the zig-zag and its bridge; 25 road 1 and the spare ramp; 26 road A, the
+spoon and the straws; 27 road 1, first without its first bridge and with the spare bouncer, the wrong road that leaves
+Pudding in the paddling pool, then with it; 28 road 2 round the sandpit and up the far tower). The counter's checks as
+before (25 five Nibble heads; 27 Pudding's face third, lit by who; 28 second). Level 25's clink is caught as the lid
+moves: on its longer road it is gone from the state's last 40 sounds by the party.
 
 Changes at v1.15 (step 17b (ii), D-215, D-216): levels 25 to 28 played by their new roads (25 its road and spare ramp; 26
 road B round the back over its one lid; 27 its road and the spare bouncer; 28 road 2 round the sandpit); the hamster
@@ -664,12 +671,13 @@ with sync_playwright() as pw:
     pg.screenshot(path=os.path.join(OUT, 'pc-22-level21-party.png'))
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L11b'))
-    for kind, c, r in (('bouncer', 3, 4), ('floater', 5, 1)):
+    for kind, c, r in (('bouncer', 2, 3), ('floater', 4, 0), ('bridge', 14, 6), ('ramp', 16, 5)):
         place(pg, kind, c, r)
     go_and_wait(pg, 'party')
     s = state(pg)
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 22, its twin: no card; the high road (the bouncer onto the willow branch, the floater down): home with the seed; Next goes on in the park ({cards[-1]})')
+          f'PC: level 22, its twin (D-226): no card; the willow road (bounce up onto the branch, the dandelion down to the island, a bridge over the channel, a ramp up the jetty): '
+          f'home with the seed; Next goes on in the park ({cards[-1]})')
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L12'))
     check(cards[-1] == 'signpost' and pg.locator('#bg [data-back="frame"]').count() == 1 and float(pg.evaluate('document.querySelector("#window rect").getAttribute("height")')) == 540
@@ -689,33 +697,36 @@ with sync_playwright() as pw:
     pg.screenshot(path=os.path.join(OUT, 'pc-23-level23-party.png'))
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L12b'))
-    for kind, c, r in (('signpost', 8, 7), ('bouncer', 3, 7), ('bouncer', 2, 4), ('signpost', 0, 4)):
+    for kind, c, r in (('signpost', 8, 7), ('bouncer', 3, 7), ('bouncer', 2, 4), ('signpost', 0, 4), ('bridge', 4, 3)):
         place(pg, kind, c, r)
     go_and_wait(pg, 'party')
     s = state(pg)
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 24, its twin: no card; the zig-zag road (two signposts, two bouncers) home with the seed on the tower\'s top bar ({cards[-1]})')
+          f'PC: level 24, its twin (D-226): no card; the zig-zag road (two signposts, two bouncers) and a bridge over the top bar\'s gap: home with the seed ({cards[-1]})')
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L13'))
     lid0 = pg.evaluate('getComputedStyle(document.querySelector("[data-lid=\\"0\\"]")).transform')
     check(cards[-1] == 'button' and pg.locator('#bg [data-back="picnic"]').count() == 1 and pg.locator('[data-cap="0"]').count() == 1 and lid0 not in ('none', 'matrix(1, 0, 0, 1, 0, 0)'),
           f'PC: level 25 opens on the picnic, the bottle top drawn and its lid standing up ({lid0}), and the button\'s card pops up (D-194) ({cards[-1]})')
-    for kind, c, r in (('ramp', 2, 7), ('bouncer', 5, 6), ('floater', 10, 3), ('bridge', 17, 8), ('ramp', 15, 7)):
+    for kind, c, r in (('ramp', 1, 7), ('bouncer', 4, 6), ('bridge', 8, 4), ('floater', 12, 3), ('ramp', 19, 7), ('ramp', 20, 6), ('ramp', 21, 5), ('ramp', 16, 7)):
         place(pg, kind, c, r)
     # the counter's heads, each time it is drawn: [Pudding's head here?, lit?] for each of the five (D-216)
     pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
       new MutationObserver(() => { const h = box.querySelector('[data-hud="count"]'); if (!h) return;
         const heads = [...h.children].filter((e) => e.tagName === 'g' && e.id !== 'hud-seed');
         window.__heads.push(heads.map((e) => [e.dataset.pudhead || null, e.getAttribute('opacity') === null])); }).observe(box, { childList: true, subtree: true }); }''')
-    pg.evaluate('''() => { window.__lid = []; const el = document.querySelector('[data-lid="0"]');
-      new MutationObserver(() => window.__lid.push(el.style.transform)).observe(el, { attributes: true, attributeFilter: ['style'] }); }''')
+    # the lid's moves, and whether the clink was asked for by then (the state's sounds are the last 40 only: on this long
+    # level the clink is gone from them by the party)
+    pg.evaluate('''() => { window.__lid = []; window.__clink = false; const el = document.querySelector('[data-lid="0"]');
+      new MutationObserver(() => { window.__lid.push(el.style.transform); window.__clink = window.__clink || __test.state().heard.includes('clink'); })
+        .observe(el, { attributes: true, attributeFilter: ['style'] }); }''')
     go_and_wait(pg, 'party')
     s = state(pg)
     lid = pg.evaluate('window.__lid')
     heads = pg.evaluate('window.__heads')
-    check(s['home'] == 5 and s['seedTaken'] and 'rotate(0deg)' in lid and 'clink' in s['heard'],
-          f'PC: level 25 (D-215): up the ramp onto the hamper, bounced onto the cake stand, the bottle top clicked and the lid swung down ({lid[:2]}), the dandelion down onto it, '
-          f'the bridge and the spare ramp: all five home with the seed')
+    check(s['home'] == 5 and s['seedTaken'] and 'rotate(0deg)' in lid and pg.evaluate('window.__clink'),
+          f'PC: level 25 (D-226): up the ramp onto the hamper, bounced onto the cake stand, the bottle top clicked and the lid swung down ({lid[:2]}), a bridge to the sandwich box, '
+          f'the dandelion down onto the lid, the spare ramp for the seed and three ramps up the steps: all five home with the seed ({s["home"]}, {s["seedTaken"]}, {s["heard"][-10:]})')
     check(heads and all(len(x) == 5 and not any(p for p, _ in x) for x in heads) and all([l for _, l in x] == sorted([l for _, l in x], reverse=True) for x in heads) and all(l for _, l in heads[-1]),
           f'PC: level 25 has no Pudding: the counter shows five Nibble heads, lit in order by count as before (D-216) ({len(heads)} drawings, last {heads[-1] if heads else None})')
     pg.screenshot(path=os.path.join(OUT, 'pc-25-level25-party.png'))
@@ -723,19 +734,19 @@ with sync_playwright() as pw:
     cards.append(opened(pg, 'L13b'))
     lids = pg.evaluate('[...document.querySelectorAll("[data-lid]")].map((e) => e.style.transform)')
     check(lids == ['rotate(-90deg)'], f'PC: level 26 opens with its lid standing up ({lids})')
-    for kind, c, r in (('ramp', 2, 7), ('catapult', 7, 7), ('tube', 20, 7), ('tube', 20, 6), ('tube', 20, 5), ('signpost', 23, 5)):
+    for kind, c, r in (('catapult', 1, 7), ('ramp', 6, 7), ('bouncer', 7, 6), ('tube', 16, 3), ('tube', 17, 3), ('tube', 17, 2), ('floater', 21, 2), ('signpost', 23, 6)):
         place(pg, kind, c, r)
     go_and_wait(pg, 'party')
     s = state(pg)
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('[data-cap]').count() == 1 and pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 26, its twin (D-215): no card, one bottle top; road B round the back (the spoon over the jam pond, up the straw, the button, the signpost back over the lid) '
-          f'home with the seed ({cards[-1]})')
+          f'PC: level 26, its twin (D-229): no card, one bottle top; road A (the spoon over the jam pond with the seed, up onto the cake stand, three straws onto the teapot, the button, '
+          f'the dandelion down, a signpost back under the cake stand over the lid) home with the seed ({cards[-1]})')
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L14'))
     check(cards[-1] == 'pudding' and pg.locator('#bg [data-back="playground"]').count() == 1, f'PC: level 27 opens on the playground and Pudding\'s card pops up ({cards[-1]})')
     # first the wrong road, the bouncer in place of the bridge: the Nibbles go over the bars, Pudding squashes the bouncer
     # and falls into the pond; the counter's heads watched as they are drawn (D-216: lit by who)
-    for kind, c, r in (('bouncer', 4, 4), ('catapult', 10, 4), ('ramp', 15, 4), ('floater', 16, 3)):
+    for kind, c, r in (('bouncer', 6, 4), ('floater', 11, 4), ('bridge', 14, 8), ('bridge', 15, 8), ('catapult', 17, 7), ('ramp', 22, 6)):
         place(pg, kind, c, r)
     pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
       new MutationObserver(() => { const h = box.querySelector('[data-hud="count"]'); if (!h) return;
@@ -747,7 +758,7 @@ with sync_playwright() as pw:
     check(heads and all([p for p, _ in x] == [None, None, 'C2', None, None] for x in heads) and [l for _, l in heads[-1]] == [True, True, False, True, True] and out_of_order,
           f'PC: level 27\'s counter (D-216): Pudding\'s own face in its place (third); with the bouncer in place of the bridge the four Nibbles get home and their faces light, '
           f'Pudding\'s stays faded (lit by who, not by count) ({len(heads)} drawings, last {heads[-1] if heads else None})')
-    # then the bridge too: the road with the spare bouncer
+    # then the bridge over the bars' gap too: road 1 with the spare bouncer
     place(pg, 'bridge', 7, 5)
     pg.evaluate('''() => { window.__pud = false; const t = setInterval(() => { const w = document.querySelector('#walkers [data-walker="2"]');
       if (w && w.innerHTML.includes('#FFF4DE')) window.__pud = true; if (__test.state().screen !== 'level' || document.querySelector('#party:not([hidden])')) clearInterval(t); }, 40); }''')
@@ -755,12 +766,12 @@ with sync_playwright() as pw:
     s = state(pg)
     pud = pg.evaluate('window.__pud')
     check(s['home'] == 5 and s['seedTaken'] and pud and 'flump' in s['heard'],
-          f'PC: level 27 (D-215): the third hamster drawn as Pudding squashes the marshmallow (a flump) and plods on over the bridge; the Nibbles bounce up onto the monkey bars; '
+          f'PC: level 27 (D-226): the third hamster drawn as Pudding squashes the marshmallow (a flump) and plods on over the bridge; the Nibbles bounce over the top for the seed; '
           f'all five home with the seed ({pud})')
     pg.screenshot(path=os.path.join(OUT, 'pc-27-level27-party.png'))
     tap(pg, '#party [data-act="next"]')
     cards.append(opened(pg, 'L14b'))
-    for kind, c, r in (('ramp', 2, 7), ('catapult', 11, 7), ('ramp', 17, 7), ('tube', 20, 6), ('tube', 20, 5), ('tube', 20, 4), ('signpost', 23, 4), ('rampL', 17, 4)):
+    for kind, c, r in (('ramp', 2, 7), ('catapult', 11, 7), ('ramp', 16, 7), ('ramp', 19, 6), ('tube', 21, 5), ('tube', 21, 4), ('tube', 21, 3), ('tube', 21, 2), ('signpost', 23, 2)):
         place(pg, kind, c, r)
     # the counter's heads, each time it is drawn: [Pudding's head here?, lit?] for each of the five (D-216)
     pg.evaluate('''() => { window.__heads = []; const box = document.getElementById('count');
@@ -771,7 +782,7 @@ with sync_playwright() as pw:
     s = state(pg)
     heads = pg.evaluate('window.__heads')
     check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and not pg.locator('#party [data-act="next"]').is_visible(),
-          f'PC: level 28, its twin (D-215): no card; road 2 round the sandpit (the spoon, up the tube tunnel, the signpost, back along the slide\'s top, the left ramp up the podium): '
+          f'PC: level 28, its twin (D-229): no card; road 2 round the sandpit (the spoon, two ramps up the steps, four straws up the far tower, the signpost, back along the slide\'s top): '
           f'home with the seed; no Next after the last level ({cards[-1]})')
     check(heads and all([p for p, _ in x] == [None, 'C2', None, None, None] for x in heads) and all(l for _, l in heads[-1]),
           f'PC: level 28\'s counter: Pudding\'s face second, as Pudding is (D-216) ({heads[-1] if heads else None})')

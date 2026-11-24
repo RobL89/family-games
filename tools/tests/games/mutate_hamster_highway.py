@@ -1,5 +1,12 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.17 (22 Nov, step 17b (ii)).
+tests catch (project rules: test the tests). Version 1.18 (24 Nov, step 17c (ii)).
+Changes at v1.18 (step 17c (ii), D-226 to D-230): twelve faults named "17c": nine by the core test (level 22 without its
+channel; 22 naming 2 roads; level 24's top bar with v0.1's first gap; level 25 without the thermos; level 26's button on
+the cake stand; level 27 without the roof over home; level 28's home a row higher, and with three straws; the picnic at
+full strength) and three by the solver (levels 22 and 24 as above; level 26 without the hamper's end, a 2-ramp road under
+the floor, the sketch page's fault 2). The faded playground at full strength is caught by the core test's copied-unchanged
+check. Nine older faults' text follows levels.js 1.12 (level 22's branch; 24's start and roads; 25's spare, lid and pond;
+26's button; 27's spare); "17b solver: level 26 without the hamper's handle" goes (the handle is gone; m above takes its place).
 Changes at v1.17 (step 17b (ii), D-211, D-212, D-214 to D-216): ten faults named "17b": five by the core test (level
 25's last gap filled; level 28's trap not named; Pudding third on level 28; the frame at full strength; Pudding's counter
 face a Nibble's size), two by the browser test (the counter lit by count on Pudding's levels; Pudding's face never
@@ -223,7 +230,7 @@ FAULTS = [
     ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'signpost', 'button', 'pudding'];", CORE),
     ('catapult: level 21 without its spare ramp', G + 'levels.js', '    tray: { catapult: 1, ramp: 1 }, spare: \'ramp\',', '    tray: { catapult: 1 }, spare: \'ramp\',', CORE),
     ('catapult: level 21\'s pond 2 wide', G + 'levels.js', "      '#####..........G',\n      '#####...########',\n", "      '#####..........G',\n      '#####..#########',\n", CORE),
-    ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '....########........',\n", "      '....#######.........',\n", CORE),
+    ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '...########.............',\n", "      '...#######..............',\n", CORE),
     ('park: two stops overlap', G + 'park.js', "  { name: 'picnic2', at: [1620, 640] },", "  { name: 'picnic2', at: [1500, 650] },", CORE),
     ('park: the ride\'s stop on the treehouse\'s', G + 'house.js', 'export const RIDE = [2380, 180];', 'export const RIDE = [2352, 302];', CORE),
     ('park: the ride\'s stop always open', G + 'house.js', '  if (!ride.open) {', '  if (false) {', CORE),
@@ -239,7 +246,7 @@ FAULTS = [
     ('pudding: any place in the line', G + 'core.js', "def.pudding >= 0 && def.pudding < WALKERS)", "def.pudding >= 0 && def.pudding < 99)", CORE),
     ('pudding: one dandelion', G + 'art.js', "s = g(dandelion(), 'rotate(-16 8 -72)') + g(dandelion(), 'rotate(16 8 -72)') + s;", "s = '' + s;", CORE),
     ('pudding: the card\'s Pudding leaves the floor', G + 'cards.js', "50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", "50% { ${T(210, 300)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", CORE),
-    ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 1, catapult: 1, ramp: 1, floater: 1 }, spare: 'bouncer',", CORE),
+    ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1 }, spare: 'bouncer',", CORE),
     ('playground: Pudding first on level 27', G + 'levels.js', "new: 'pudding', pudding: 2,", "new: 'pudding', pudding: 0,", CORE),
     ('playground: the backdrop drawn 420 tall', G + 'art.js', "name === 'picnic' || name === 'playground' ? 540 : H", "name === 'picnic' ? 540 : H", CORE),
     ('pudding: not drawn as Pudding', G + 'game.js', "? pudding : hamster)(pose);   // Pudding (D-189 A)", "? hamster : hamster)(pose);   // Pudding (D-189 A)", E2E),
@@ -250,9 +257,9 @@ FAULTS = [
     ('button: pressed again each time', G + 'core.js', "        if (!p || pressed.has(p)) return;", "        if (!p) return;", CORE),
     ('button: a gadget on a lid', G + 'core.js', " && !(level.lids && level.lids.has(key(c, r)));", ";", CORE),
     ('button: the card\'s lid drops after the gap', G + 'cards.js', "37%, 100% { transform: rotate(0deg) }", "50%, 100% { transform: rotate(0deg) }", CORE),
-    ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { ramp: 2, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',", "    tray: { ramp: 1, bouncer: 1, floater: 1, bridge: 1 }, spare: 'ramp',", CORE),
-    ('picnic: level 25\'s lid a square shorter', G + 'levels.js', "lid: [[12, 8], [13, 8], [14, 8]] }]", "lid: [[12, 8], [13, 8]] }]", CORE),
-    ('picnic: level 26\'s button gone', G + 'levels.js', "    parts: [{ kind: 'button', c: 22, r: 5, lid: [[17, 6], [18, 6], [19, 6]] }],\n", "", CORE),
+    ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { ramp: 5, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',", "    tray: { ramp: 4, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',", CORE),
+    ('picnic: level 25\'s lid a square shorter', G + 'levels.js', "lid: [[13, 8], [14, 8], [15, 8]] }]", "lid: [[13, 8], [14, 8]] }]", CORE),
+    ('picnic: level 26\'s button gone', G + 'levels.js', "    parts: [{ kind: 'button', c: 19, r: 2, lid: [[15, 7], [16, 7], [17, 7]] }],\n", "", CORE),
     ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H", "name === 'frame' || name === 'playground' ? 540 : H", CORE),
     ('button: the lid never swings down', G + 'game.js', "    if (lid) lid.style.transform = 'rotate(0deg)';\n", "", E2E),
     ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'catapult', 'button', 'pudding'];", CORE),
@@ -263,9 +270,9 @@ FAULTS = [
     ('signpost: the card\'s hamster off the walk', G + 'cards.js', "19%, 40% { ${T(270, 360)} }", "19%, 40% { ${T(240, 360)} }", CORE),
     ('frame: level 23 without its spare left ramp', G + 'levels.js', "    tray: { bouncer: 2, signpost: 1, rampL: 1 }, spare: 'rampL',", "    tray: { bouncer: 2, signpost: 1 }, spare: 'rampL',", CORE),
     ('frame: level 23\'s bar a square shorter', G + 'levels.js', "      '....#########...',\n", "      '....########....',\n", CORE),
-    ('frame: level 24\'s start on the ground', G + 'levels.js', "      '###...S...##########',\n      '......#.............',\n      '....................',\n",
-     "      '###.......##########',\n      '......#.............',\n      '......S.............',\n", CORE),
-    ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 2,", "twin: 'L12',", CORE),
+    ('frame: level 24\'s start on the ground', G + 'levels.js', "      '###...S...##........',\n      '......#..........#..',\n      '...............###..',\n",
+     "      '###.......##........',\n      '......#..........#..',\n      '......S........###..',\n", CORE),
+    ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 3,", "twin: 'L12',", CORE),
     ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H)", "(name === 'pond' || name === 'picnic' || name === 'playground' ? 540 : H)", CORE),
     ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameQ1(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
     ('frame: level 24\'s stop off the park', G + 'levels.js', "room: 'park', spot: 'frame2', back: 'frame'", "room: 'park', spot: 'picnic', back: 'frame'", CORE),
@@ -277,16 +284,34 @@ FAULTS = [
     ('spike: the panel counts a tap on the ring as wrong', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (cell[0] === t.c && cell[1] === t.r) T.gadgetHits += 1;', '      if (false) T.gadgetHits += 1;', SPIKE_E2E),
     ('spike: the panel misses a line let go of', 'tools/tests/games/preview_debug_hamster_highway.js', '      if (before.zipFrom && !after.zipFrom && lines(after.placed) === lines(before.placed)) T.zipCancelled += 1;', '', SPIKE_E2E),
     # step 17b (ii) (D-211, D-212, D-214 to D-216)
-    ('17b: level 25\'s last gap filled', G + 'levels.js', "      '############...##.##',", "      '############...#####',", CORE),
+    ('17b: level 25\'s pond filled', G + 'levels.js', "      '#############...########',", "      '########################',", CORE),
     ('17b: level 28 without its trap named', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 1,", CORE),
     ('17b: Pudding third on level 28', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 2, trap: 'stick',", CORE),
     ('17b: the frame at full strength again', G + 'art.js', "  if (name === 'frame') return g(frameQ1(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(frameArt(w), '', ' data-back=\"frame\"');", CORE),
     ('17b: Pudding\'s counter face the size of a Nibble\'s', G + 'art.js', "    kk = k * 1.2;\n", "    kk = k;\n", CORE),
     ('17b: the counter lit by count on Pudding\'s levels', G + 'game.js', "    const lit = pud !== null ? got.has(who) : i < home;", "    const lit = i < home;", E2E),
     ('17b: Pudding\'s counter face never drawn', G + 'game.js', "    s += countHead('C2', who === pud, lit,", "    s += countHead('C2', false, lit,", E2E),
-    ('17b solver: level 26 without the hamper\'s handle', G + 'levels.js', "      '......#####..#..........',", "      '......#####.............',", SOLVE + ' L13b'),
     ('17b solver: level 28\'s sticks not named a trap', G + 'levels.js', "roads: 2, pudding: 1, trap: 'stick',", "roads: 2, pudding: 1,", SOLVE + ' L14b'),
     ('17b solver: a worn stick holds Pudding', G + 'core.js', "const snap = by.size >= SNAP || level.pudding === who;", "const snap = by.size >= SNAP;", SOLVE + ' L14b'),
+    # step 17c (ii) (D-226 to D-230): the sketch pages' planted faults where they are in the game, and a few more
+    ('17c: level 22 without its channel', G + 'levels.js', "      '####.####..###.#########',\n      '####.####..###.#########',\n      '####.####..###.#########',\n",
+     "      '####.####..#############',\n      '####.####..#############',\n      '####.####..#############',\n", CORE),
+    ('17c: level 22 names 2 roads', G + 'levels.js', "twin: 'L11', roads: 3,", "twin: 'L11', roads: 2,", CORE),
+    ('17c: level 24\'s top bar with v0.1\'s first gap', G + 'levels.js', "      '...#.#######.####.##',", "      '...#####.###.####.##',", CORE),
+    ('17c: level 25 without the thermos', G + 'levels.js', "      '............#.........##',\n      '............#....*...###',\n      'S.#########.#.......####',",
+     "      '......................##',\n      '.................*...###',\n      'S.#########.........####',", CORE),
+    ('17c: level 26\'s button on the cake stand', G + 'levels.js', "parts: [{ kind: 'button', c: 19, r: 2,", "parts: [{ kind: 'button', c: 14, r: 3,", CORE),
+    ('17c: level 27 without the roof over home', G + 'levels.js', "      '#####..##............###',", "      '#####..##...............',", CORE),
+    ('17c: level 28\'s home a row higher', G + 'levels.js', "      '........................',\n      '............##.G......##',",
+     "      '...............G........',\n      '............##.#......##',", CORE),
+    ('17c: level 28 with three straws', G + 'levels.js', "    tray: { ramp: 3, tube: 4, bridge: 2,", "    tray: { ramp: 3, tube: 3, bridge: 2,", CORE),
+    ('17c: the picnic at full strength', G + 'art.js', "  if (name === 'picnic') return g(picnicQ1(w), '', ' data-back=\"picnic\"');", "  if (name === 'picnic') return g(picnicArt(w), '', ' data-back=\"picnic\"');", CORE),
+    ('17c: the playground\'s busy things at full strength', G + 'art.js', "const PARK_QUIET = 0.4;", "const PARK_QUIET = 1;", CORE),
+    ('17c solver: level 22 without its channel', G + 'levels.js', "      '####.####..###.#########',\n      '####.####..###.#########',\n      '####.####..###.#########',\n",
+     "      '####.####..#############',\n      '####.####..#############',\n      '####.####..#############',\n", SOLVE + ' L11b'),
+    ('17c solver: level 24\'s top bar with v0.1\'s first gap', G + 'levels.js', "      '...#.#######.####.##',", "      '...#####.###.####.##',", SOLVE + ' L12b'),
+    ('17c solver: level 26 without the hamper\'s end', G + 'levels.js', "      '...*....#...............',\n      '........#G..............',\n      'S......########...######',",
+     "      '...*....................',\n      '.........G..............',\n      'S.......#######...######',", SOLVE + ' L13b'),
 ]
 
 

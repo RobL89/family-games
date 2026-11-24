@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.25 · 22 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.26 · 24 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.26 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch harder, as agreed on two sketch pages: more gadgets, more heights and more roads, right and wrong. Every road walks 3 to 5 floor heights with 4 to 9 gadgets. 22 *Two ways round* and 24 *Zig, zag, home* have three roads each; 25 *Lunchbox drawbridge* has three, all through the button; 26 *Lunch is served* has three, home on the hamper reached from the far end; 27 *Pudding comes to play* has two after the monkey bars; 28 *Big and small* has two, with the worn-stick trap and two bouncer short cuts that leave Pudding behind. 22 and 25 to 28 are now 24 wide. The picnic's and the playground's backdrops are faded as the frame's is. Not yet released.
 
 Changes at v1.25 (step 17b (ii), D-211, D-212, D-214 to D-216): levels 25 to 28 redesigned as agreed on a sketch page, each road walking 3 or 4 floor heights with 4 to 8 gadgets: 25 *Lunchbox drawbridge*, 26 *Lunch is served* (two roads to the hamper), 27 *Pudding comes to play*, 28 *Big and small* (two roads to a podium, and two worn sticks in the tray that carry the Nibbles but snap under Pudding). The climbing frame's backdrop is faded to 40%. In the hamster counter Pudding has its own face, a fifth bigger on a caramel ring; on Pudding's levels each face lights when that hamster gets home.
 
@@ -119,6 +121,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.26 | 2026-11-24 | Levels 22 and 24 to 28 one notch up (D-226, D-229), copied by script from the sketch pages' masters; the picnic and playground faded (D-226) |
 | 1.25 | 2026-11-22 | Levels 25 to 28 redesigned to the floor (D-212, D-215), the trap stick on 28 (D-214), the frame faded (D-211), Pudding's counter face (D-216); 1.22 to 1.24's rows were not added here: their notes are at the top |
 | 1.21 | 2026-11-20 | The spoon's throw (step 14b, D-206) |
 | 1.20 | 2026-11-18 | The park, reached by the zip-line ride; levels 21 and 22 at the duck pond; the spoon catapult and its card (step 14) |

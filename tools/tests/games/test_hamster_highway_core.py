@@ -7,7 +7,7 @@ right road listed, a first level's too (25 and 27 have two or more now, D-227). 
 on 22 and 24 too: 22 3 heights and 4 gadgets, 3 roads; 24 4 and 5, 3; 25 4 and 6, 2; 26 4 and 5, 3; 27 5 and 6, 2, with
 27's spread (the first hamster's third most-walked height at least 20%, D-220); 28 5 and 8, 2, its search capped at 5
 (D-230, the solver's). "Every gadget needed" as the sketch pages count it: take one away and put the rest down again, and
-another no longer fits, or not all five home. A level with a button: every road's first hamster presses it, and without
+another no longer fits, or not all five home; the tray holds every road's gadgets. A level with a button: every road's first hamster presses it, and without
 it not all home. The wrong roads: at least 2 a level, each with what happens written from the master's words (the first
 outcome that isn't home and how many home, or where Pudding changes it each hamster's outcome and all five home with
 Pudding a Nibble); 28's trap snaps twice under Pudding. The by-hand lists of step 17b's levels 25 to 28 and of 22 and
@@ -446,6 +446,8 @@ for (const d of LEVELS) {
     return { rows: [...rows].sort((x, y) => x - y), gadgets: list.length, homes: r.hamsters.filter((h) => h.outcome === 'home').length, need,
              kinds: [...new Set(list.map((x) => x[0]))].sort(), seed: r.hamsters.some((h) => h.seed), per: Object.values(per).sort((x, y) => y - x),
              press: r.events.filter((e) => e.kind === 'press').map((e) => e.who),
+             // the tray holds every gadget of the road: the kinds it is short of
+             short: [...new Set(list.map((x) => x[0]))].filter((k) => list.filter((x) => x[0] === k).length > (d.tray[k] || 0)),
              noButton: (d.parts || []).some((p) => p.kind === 'button') ? five(core.parseLevel({ ...d, parts: [] }), a.placed).homes : null };
   });
   out.floor[d.id] = { want: f, listed: !!ROADS[d.id], twin: d.twin || null, roadsWanted: d.roads || null, roads };
@@ -657,6 +659,7 @@ for lid, F in FL.items():
         check(R['homes'] == 5 and len(R['rows']) >= w['h'] and R['gadgets'] >= w['g'],
               f'{tag}: the floor: all five home ({R["homes"]}), {len(R["rows"])} heights walked {R["rows"]} (at least {w["h"]}) and {R["gadgets"]} gadgets placed (at least {w["g"]})')
         check(all(x < 5 for x in R['need']), f'{tag}: every gadget needed: take any one away and another no longer fits (0) or not all five get home ({R["need"]})')
+        check(not R['short'], f'{tag}: the tray holds every gadget of the road' + (f' (short of {R["short"]})' if R['short'] else ''))
         if w.get('spread'):
             third = R['per'][2] / sum(R['per']) if len(R['per']) >= 3 else 0
             check(third >= w['spread'], f'{tag}: D-220\'s spread: the first hamster\'s third most-walked height has {third:.0%} of its walking squares (at least {w["spread"]:.0%}) ({R["per"]})')
