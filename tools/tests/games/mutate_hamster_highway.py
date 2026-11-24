@@ -1,10 +1,11 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
 tests catch (project rules: test the tests). Version 1.18 (24 Nov, step 17c (ii)).
-Changes at v1.18 (step 17c (ii), D-226 to D-230): twelve faults named "17c": nine by the core test (level 22 without its
+Changes at v1.18 (step 17c (ii), D-226 to D-230): thirteen faults named "17c": nine by the core test (level 22 without its
 channel; 22 naming 2 roads; level 24's top bar with v0.1's first gap; level 25 without the thermos; level 26's button on
-the cake stand; level 27 without the roof over home; level 28's home a row higher, and with three straws; the picnic at
-full strength) and three by the solver (levels 22 and 24 as above; level 26 without the hamper's end, a 2-ramp road under
-the floor, the sketch page's fault 2). The faded playground at full strength is caught by the core test's copied-unchanged
+the cake stand; level 28's home a row higher, and with three straws; the picnic and the playground at full strength) and
+four by the solver (levels 22 and 24 as above; level 26 without the hamper's end, a 2-ramp road under the floor, the
+sketch page's fault 2; level 27 without the roof over home, first aimed at the core test, which missed it: no road or
+wrong road changes, only a short cut opens, which the search under the floor finds, as the sketch page's fault 4 did). The faded playground at full strength is caught by the core test's copied-unchanged
 check. Nine older faults' text follows levels.js 1.12 (level 22's branch; 24's start and roads; 25's spare, lid and pond;
 26's button; 27's spare); "17b solver: level 26 without the hamper's handle" goes (the handle is gone; m above takes its place).
 Changes at v1.17 (step 17b (ii), D-211, D-212, D-214 to D-216): ten faults named "17b": five by the core test (level
@@ -301,7 +302,7 @@ FAULTS = [
     ('17c: level 25 without the thermos', G + 'levels.js', "      '............#.........##',\n      '............#....*...###',\n      'S.#########.#.......####',",
      "      '......................##',\n      '.................*...###',\n      'S.#########.........####',", CORE),
     ('17c: level 26\'s button on the cake stand', G + 'levels.js', "parts: [{ kind: 'button', c: 19, r: 2,", "parts: [{ kind: 'button', c: 14, r: 3,", CORE),
-    ('17c: level 27 without the roof over home', G + 'levels.js', "      '#####..##............###',", "      '#####..##...............',", CORE),
+    ('17c solver: level 27 without the roof over home', G + 'levels.js', "      '#####..##............###',", "      '#####..##...............',", SOLVE + ' L14'),
     ('17c: level 28\'s home a row higher', G + 'levels.js', "      '........................',\n      '............##.G......##',",
      "      '...............G........',\n      '............##.#......##',", CORE),
     ('17c: level 28 with three straws', G + 'levels.js', "    tray: { ramp: 3, tube: 4, bridge: 2,", "    tray: { ramp: 3, tube: 3, bridge: 2,", CORE),
