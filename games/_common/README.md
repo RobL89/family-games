@@ -14,7 +14,7 @@ claude.ai's Export now gives a ZIP (no HTML). Unzip it in a new folder. Her `ind
 
 | Finding | In the adapter |
 |---|---|
-| **Storage** (keeps progress) | `keep-progress/` (P77): `read()` and `write()` this child's progress only. Pass the whole progress, never just an id (an id means something only on the device that made it). A fully played save must be under 20,000 characters: measure one. |
+| **Storage** (keeps progress) | `keep-progress/` (P77): `read()` and `write()` this child's progress only. Pass the whole progress, never just an id (an id means something only on the device that made it). Measure a fully played save: over 20,000 characters it goes compressed (lz-string, about a quarter of the size), and it must stay under 450,000 compressed (P89; script 0.6.0). |
 | **Saves on leaving** (blur, hiding, unload) | Expected. Before any reload the adapter makes, call `freezeStorage()`, or the game's copy in memory undoes the change (P82). |
 | **Own players** ("Who's playing?") | Show only this child's (P70, P82): note on the device which is theirs; swap to it **as the page opens**, not after `fg:start`, which waits up to 3 s for the Sheet; never adopt one another child has; hide its switch button. |
 | **Sound** or speech | `sound-off/` when sound is off (P67). |

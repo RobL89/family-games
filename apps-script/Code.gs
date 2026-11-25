@@ -21,9 +21,15 @@
  *        in the device outbox with `sync`, like results. A "Plays summary" tab holds pivot tables
  *        (games by child, by day and by device) and a Name filter. The unused Scores and Achievements
  *        tabs are hidden, not deleted (P48, P52).
+ * 0.6.0: Bigger saved states (P89): up to 450,000 characters, where 0.5.0 took 20,000. A Sheet
+ *        cell holds at most 50,000 characters, so a state over 45,000 is kept in parts: the
+ *        "state" row holds the first part and rows "state#2", "state#3"... the rest, every part
+ *        starting with "~" (so the Sheet never takes it for a number or a formula) and all with
+ *        the same updated_at. Smaller states are kept in one row, exactly as before. No new tabs
+ *        or columns.
  */
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 const TABS = {
   Profiles: ['profile_id', 'nickname', 'avatar', 'colour', 'created_at', 'active', 'skin'],
@@ -70,7 +76,9 @@ const MAX_WORDS = 30;      // per list (Kriss Kross fits up to 30)
 const MAX_WORD_LENGTH = 20;
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
 const COLOUR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-const MAX_STATE = 20000;   // characters of JSON per game per player (game contract, section 5)
+const MAX_STATE = 450000;  // characters of JSON per game per player (game contract, section 5; P89)
+const STATE_PART = 45000;  // characters per Settings cell for a state kept in parts (a cell holds 50,000)
+const PART_MARK = '~';     // starts every part of a state kept in parts
 
 // Switched off (P49, P63): every skin is free. true brings back the old rule that a skin
 // needs the player's star total to reach its stars_needed in the Skins tab.
@@ -410,11 +418,30 @@ function saveLists(body) {
  */
 function statesFor(profileId) {
   if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Settings')) return {};
+  const mine = rows('Settings').filter(function (r) {
+    return r.profile_id === profileId && ID_PATTERN.test(String(r.game_id || ''));
+  });
+  // A state kept in parts (P89): its "state#2", "state#3"... rows, by game and key.
+  const parts = {};
+  mine.forEach(function (r) { parts[r.game_id + '|' + r.key] = r; });
   const out = {};
-  rows('Settings').forEach(function (r) {
-    if (r.profile_id !== profileId || r.key !== 'state' || !ID_PATTERN.test(String(r.game_id || ''))) return;
+  mine.forEach(function (r) {
+    if (r.key !== 'state') return;
     // String() first: the Sheet turns JSON like 42 or true into a number or TRUE.
-    try { out[r.game_id] = { state: JSON.parse(String(r.value)), at: toIso(r.updated_at) }; } catch (err) { /* not JSON: skipped */ }
+    let text = String(r.value);
+    if (text.charAt(0) === PART_MARK) {
+      // Join the parts in order. They were all written together, so each has the same updated_at;
+      // one missing or from another save means the state can't be read, and it is skipped.
+      text = text.slice(1);
+      for (let n = 2; text !== null; n++) {
+        const p = parts[r.game_id + '|state#' + n];
+        if (!p || String(p.value) === '') break;
+        if (toTime(p.updated_at) !== toTime(r.updated_at) || String(p.value).charAt(0) !== PART_MARK) { text = null; break; }
+        text += String(p.value).slice(1);
+      }
+      if (text === null) return;
+    }
+    try { out[r.game_id] = { state: JSON.parse(text), at: toIso(r.updated_at) }; } catch (err) { /* not JSON: skipped */ }
   });
   return out;
 }
@@ -437,15 +464,23 @@ function saveState(body) {
   if (!rows('Profiles').some(function (p) { return p.profile_id === profileId; })) return { ok: false, error: 'no_such_profile' };
   const now = new Date();
   const at = toDate(body.at, now) > now ? now : toDate(body.at, now);
-  const kept = setSetting(profileId, gameId, 'state', value, at);
+  const kept = setState(profileId, gameId, value, at);
   return { ok: true, saved: kept.saved, at: toIso(kept.at) };
 }
 
 /**
- * Writes one Settings row (player, game, key) made at `at`: changes it if it's there and not
- * newer, adds it if not. Returns { saved, at } with the time of what the row now holds.
+ * Writes one game's state for one player (P89): one Settings row for a state up to STATE_PART
+ * characters, as before; a bigger one in parts, the "state" row then "state#2", "state#3"...,
+ * each part starting with PART_MARK, all with the same updated_at. Part rows left over from an
+ * earlier, bigger state are emptied (not deleted). The newest save wins (P78), judged by the
+ * "state" row. Returns { saved, at } with the time of what the Sheet now holds.
  */
-function setSetting(profileId, gameId, key, value, at) {
+function setState(profileId, gameId, value, at) {
+  const pieces = [];
+  if (value.length <= STATE_PART) pieces.push(value);
+  else for (let i = 0; i < value.length; i += STATE_PART - 1) pieces.push(PART_MARK + value.slice(i, i + STATE_PART - 1));
+  const keyOf = function (n) { return n === 0 ? 'state' : 'state#' + (n + 1); };
+
   const s = sheet('Settings');
   const values = s.getDataRange().getValues();
   const headers = values[0].map(String);
@@ -455,15 +490,32 @@ function setSetting(profileId, gameId, key, value, at) {
     return i;
   };
   const p = col('profile_id'), g = col('game_id'), k = col('key'), v = col('value'), u = col('updated_at');
+  const rowOf = {}; // key -> sheet row number, for this player and game
   for (let i = 1; i < values.length; i++) {
-    if (values[i][p] === profileId && values[i][g] === gameId && values[i][k] === key) {
-      if (toTime(values[i][u]) > at.getTime()) return { saved: false, at: values[i][u] };
-      s.getRange(i + 1, v + 1).setValue(value);
-      s.getRange(i + 1, u + 1).setValue(at);
-      return { saved: true, at: at };
+    if (values[i][p] === profileId && values[i][g] === gameId && /^state(#\d+)?$/.test(String(values[i][k]))) {
+      rowOf[String(values[i][k])] = { row: i + 1, at: values[i][u] };
     }
   }
-  appendObjects('Settings', [{ profile_id: profileId, game_id: gameId, key: key, value: value, updated_at: at }]);
+  if (rowOf.state && toTime(rowOf.state.at) > at.getTime()) return { saved: false, at: rowOf.state.at };
+
+  const added = [];
+  pieces.forEach(function (piece, n) {
+    const r = rowOf[keyOf(n)];
+    if (r) {
+      s.getRange(r.row, v + 1).setValue(piece);
+      s.getRange(r.row, u + 1).setValue(at);
+    } else {
+      added.push({ profile_id: profileId, game_id: gameId, key: keyOf(n), value: piece, updated_at: at });
+    }
+  });
+  Object.keys(rowOf).forEach(function (key) {
+    const n = key === 'state' ? 0 : Number(key.slice(6)) - 1;
+    if (n >= pieces.length) {
+      s.getRange(rowOf[key].row, v + 1).setValue('');
+      s.getRange(rowOf[key].row, u + 1).setValue(at);
+    }
+  });
+  appendObjects('Settings', added);
   return { saved: true, at: at };
 }
 

@@ -1,0 +1,7 @@
+{
+  "title": "Word Garden",
+  "colour": "#3E8E4A",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}

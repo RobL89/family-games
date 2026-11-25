@@ -28,8 +28,9 @@ THREE_URL = re.compile(r'https://cdnjs\.cloudflare\.com/ajax/libs/three\.js/r128
 
 class Check:
     """Stand-in Sheet with made-up players, pages, and the tally for one game's check.
-    script='0.4.0' answers like apps-script/Code.gs 0.4.0: one set of lists per child and each game's
-    state with its time, the newest save winning (P78). The default answers like 0.3.0."""
+    script='0.4.0' answers like apps-script/Code.gs 0.4.0 and 0.5.0: one set of lists per child and each
+    game's state with its time, the newest save winning (P78), and a state over 20,000 characters
+    refused. script='0.6.0' takes states up to 450,000 characters (P89). The default answers like 0.3.0."""
 
     def __init__(self, game_id, out, lists=None, script='0.3.0'):
         self.game_id = game_id
@@ -52,7 +53,7 @@ class Check:
         if body.get('code') != CODE:
             return {'ok': False, 'error': 'wrong_code'}
         a = body.get('action')
-        v4 = self.script == '0.4.0'
+        v4 = self.script in ('0.4.0', '0.6.0')
         if a == 'ping':
             return {'ok': True, 'version': self.script}
         if a == 'profiles':
@@ -72,6 +73,9 @@ class Check:
             now = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
             at = min(body.get('at') or now, now)  # ISO times in UTC sort as text
             key = (body['profile_id'], body['game_id'])
+            limit = 450000 if self.script == '0.6.0' else 20000
+            if len(json.dumps(body.get('state'), separators=(',', ':'))) > limit:
+                return {'ok': False, 'error': 'state_too_big'}
             if key in self.states and self.states[key]['at'] > at:
                 return {'ok': True, 'saved': False, 'at': self.states[key]['at']}
             self.states[key] = {'state': body.get('state'), 'at': at}

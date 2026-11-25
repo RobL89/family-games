@@ -22,6 +22,11 @@ game, please:
    - Fairy village: its save key fairy-village-v1 as { explorers, current, sound }, each
      explorer with an id and a look; s-who, who-list and its .who-card and .who-new cards,
      f-name, m-who and make-remove.
+   - Word Garden: its keys wordGarden.players.v1 as { players: [{ id, name, year, look }], last }
+     and wordGarden.player.<id>, each save with its id and name; the who screen's #who with its
+     .card[data-act="pick"][data-id] and .card.new cards; #modal, #nameInput, #map and
+     #switchPlayer; and window.WordGarden (addSchoolList, recordSchoolTest, schoolLists,
+     schoolTests), which the launcher will use for school lists.
 3. Keep sound and speech going through the browser's normal audio, so the launcher's sound-off
    switch still works.
 4. Don't use real family names in the game's text (the launcher's copy is public).

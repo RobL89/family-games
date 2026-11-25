@@ -73,6 +73,7 @@ Each new script version is pasted and deployed the same way. The handoff and the
 | 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
 | 0.3.0 | GameLists tab, header row only |
 | 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |
+| 0.6.0 (on `work`, not pasted yet) | Nothing added. Saved states up to 450,000 characters; over 45,000 kept in parts across Settings rows (P89, see below) |
 | 0.5.0 (live, pasted 2026-11-18) | Plays tab (header row only) and Plays summary tab (four pivot tables and a Name filter); Scores and Achievements hidden, not deleted (P88). No existing cell changes (dry run on a copy of the live Sheet, 2026-11-17 and 18; live Sheet compared before and after 2026-11-18: only Plays and Plays summary added, Scores and Achievements hidden, backup "family-games backup 2026-11-18 2139"). Tried first on a copy, where Rob checked the summary's look. Either the script or the launcher can go first: the old launcher sends no plays, and the new one keeps them on the device until 0.5.0 is in. Try it on a copy first (below) |
 
 ### Trying 0.5.0 on a copy first
@@ -86,6 +87,10 @@ The pivot tables and the Name filter only exist in Google, so they're tried on a
 5. Tell Claude what you see, then bin the copy (and the backup of it that `setup` made first), or keep it to play with.
 
 Then the live Sheet, as in "Updating the script" above: `backup`, paste, `setup`, a new deployment version, Check connection says 0.5.0. To rebuild the summary later (after changing it by hand), run `summary`.
+
+### 0.6.0: big saves in parts (P89)
+
+No new tabs or columns, and `setup` changes nothing. What changes is how a game's saved state is written to the Settings tab: one up to 45,000 characters stays in one `state` row exactly as before; a bigger one (Word Garden's gardens) is written as `state`, `state#2`, `state#3`... rows, each part starting with `~`, all with the same `updated_at`. If a state shrinks again, its spare part rows are emptied, not deleted. Don't edit these rows by hand: a part changed or missing means that save can't be read, and the launcher keeps its own copy on the device. Either the script or the launcher can go first: the old script refuses a state over 20,000 characters and the launcher keeps it on the device until 0.6.0 is in.
 
 ## Checking a change to the Sheet
 

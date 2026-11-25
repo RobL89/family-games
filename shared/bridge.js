@@ -24,7 +24,7 @@
 const VERSION = 1;
 const WAIT_MS = 5000; // how long to wait for the wrapper before running on its own (P81: more than
                       // the wrapper's WAIT_FOR_SHEET of 3 s, plus time for the page to load)
-const MAX_STATE = 20000; // characters of JSON (contract section 5)
+const MAX_STATE = 450000; // characters of JSON (contract section 5, P89)
 
 export function connect({ wait = WAIT_MS } = {}) {
   const framed = window.parent && window.parent !== window;
@@ -78,7 +78,8 @@ export function connect({ wait = WAIT_MS } = {}) {
     },
     get inShell() { return inShell; },
 
-    // Save the game's own state for this child (P51). One small object, under 20,000 characters.
+    // Save the game's own state for this child (P51). One object, under 450,000 characters as JSON
+    // (P89); keep it small, and compress a big one (games/_common/keep-progress/ does that for its games).
     saveState(state) {
       if (!inShell) return false;
       const json = JSON.stringify(state ?? null);

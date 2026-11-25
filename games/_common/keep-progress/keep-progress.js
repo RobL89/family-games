@@ -27,15 +27,56 @@
 //      taken and sent as a message the page leaves before it arrives. The wrapper ignores a state
 //      it already has.
 //
-// The state it passes on: { progress, at }, at being when it was taken (ISO time). On this device
-// it notes what it last passed on or put back, per child: fg.keep.<game>.<child>.
+// The state it passes on: { progress, at }, at being when it was taken (ISO time). Progress over
+// 20,000 characters as JSON goes compressed instead (P89): { packed: 'lz64:<text>', at }, made by
+// lz-string, about a quarter of the size (a new Word Garden in Year 2: 89,814 characters, packed
+// 26,224). Either shape is read back. On this device it notes a fingerprint of what it last passed
+// on or put back, per child (fg.keep.<game>.<child>: { hash, at }), not a second copy of it.
+
+import LZString from '../pack/lz-string.js';
 
 const RELOADED = 'fg.keep.reloaded'; // sessionStorage: when this last reloaded the page, so it never loops
+const PACK_OVER = 20000;             // progress bigger than this (characters of JSON) goes compressed (P89)
+const PACKED = 'lz64:';              // starts a compressed progress: lz-string's base64 text follows
 
 const load = (key) => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } };
 const store = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } };
 const text = (value) => (value === null || value === undefined ? null : JSON.stringify(value));
 const time = (iso) => Date.parse(iso || '') || 0;
+
+// A fingerprint of some text (53 bits): two saves with the same fingerprint are taken to be the same.
+// cyrb53, by bryc (public domain).
+function hash(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+// The fingerprint a note holds; a note from before P89 held the whole JSON instead.
+const noted = (n) => (!n ? null : n.hash || (typeof n.json === 'string' ? hash(n.json) : null));
+
+// The state passed on for some progress: compressed when it's big (P89).
+const stateFor = (progress, json, at) => (json.length > PACK_OVER
+  ? { packed: PACKED + LZString.compressToBase64(json), at }
+  : { progress, at });
+
+// The progress in a state the wrapper hands over, either shape; undefined if there's none to read.
+function progressIn(kept) {
+  if (!kept || typeof kept !== 'object' || !(time(kept.at) > 0)) return undefined;
+  if ('progress' in kept) return kept.progress;
+  if (typeof kept.packed === 'string' && kept.packed.startsWith(PACKED)) {
+    try {
+      const json = LZString.decompressFromBase64(kept.packed.slice(PACKED.length));
+      return json ? JSON.parse(json) : undefined;
+    } catch { return undefined; }
+  }
+  return undefined;
+}
 
 // Ignores every write to this page's storage from now on. Used only just before a reload: many games
 // save their copy in memory as the page unloads, which would undo what was just written (P82).
@@ -50,21 +91,21 @@ export function freezeStorage() {
 export function keepProgress(fg, { game, read, write, every = 2000 }) {
   const child = new URLSearchParams(location.search).get('player') || '';
   const NOTE = `fg.keep.${game}.${child}`;
-  let note = load(NOTE); // { json, at }: what this device last passed on or put back
+  let note = load(NOTE); // { hash, at }: what this device last passed on or put back
   let started = false;
   let latest; // the last state taken while this page has been open
 
   const readNow = () => { try { return read(); } catch { return null; } };
-  const remember = (json, at) => { note = { json, at }; store(NOTE, note); };
+  const remember = (json, at) => { note = { hash: hash(json), at }; store(NOTE, note); };
 
   // The game's progress as a state, if it changed since it was last passed on; otherwise undefined.
   function take() {
     if (!started) return undefined;
     const progress = readNow();
     const json = text(progress);
-    if (json === null || (note && note.json === json)) return undefined;
+    if (json === null || noted(note) === hash(json)) return undefined;
     remember(json, new Date().toISOString());
-    latest = { progress, at: note.at };
+    latest = stateFor(progress, json, note.at);
     return latest;
   }
   const pass = () => {
@@ -73,8 +114,9 @@ export function keepProgress(fg, { game, read, write, every = 2000 }) {
   };
 
   function begin(kept) {
-    const valid = !!kept && typeof kept === 'object' && 'progress' in kept && time(kept.at) > 0;
-    const keptJson = valid ? text(kept.progress) : null;
+    const keptProgress = progressIn(kept);
+    const valid = keptProgress !== undefined;
+    const keptJson = valid ? text(keptProgress) : null;
     const localJson = text(readNow());
 
     if (valid && keptJson !== null && keptJson !== localJson && time(kept.at) > time(note && note.at)) {
@@ -85,7 +127,7 @@ export function keepProgress(fg, { game, read, write, every = 2000 }) {
       const justReloaded = last && last.want === want && Date.now() - last.at < 10000;
       if (!justReloaded) {
         try {
-          write(kept.progress);
+          write(keptProgress);
           remember(keptJson, kept.at);
           sessionStorage.setItem(RELOADED, JSON.stringify({ want, at: Date.now() }));
           freezeStorage();
@@ -93,7 +135,7 @@ export function keepProgress(fg, { game, read, write, every = 2000 }) {
           return false;
         } catch { /* couldn't write or reload: carry on with what this device has */ }
       }
-    } else if (valid && keptJson === localJson && localJson !== null && !(note && note.json === localJson)) {
+    } else if (valid && keptJson === localJson && localJson !== null && noted(note) !== hash(localJson)) {
       remember(localJson, kept.at); // already the same here: just note it
     }
 

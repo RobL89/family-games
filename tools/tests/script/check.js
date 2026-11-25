@@ -1,4 +1,4 @@
-// Pass-or-fail checks of what scripts 0.4.0 and 0.5.0 change (P75, P88), run against the real Code.gs.
+// Pass-or-fail checks of what scripts 0.4.0, 0.5.0 and 0.6.0 change (P75, P88, P89), run against the real Code.gs.
 //
 //   node tools/tests/script/check.js                    the repo's apps-script/Code.gs
 //   node tools/tests/script/check.js --script <file>    another copy (for example an older version)
@@ -59,8 +59,8 @@ check('the stand-ins cover every Google service and method Code.gs uses', () => 
 
 // ---- Version ----------------------------------------------------------------------------
 
-check('ping answers version 0.5.0', () => {
-  eq(bed().post('ping').version, '0.5.0', 'version');
+check('ping answers version 0.6.0', () => {
+  eq(bed().post('ping').version, '0.6.0', 'version');
 });
 
 // ---- setup only adds (P75) ------------------------------------------------------------------
@@ -188,13 +188,88 @@ check("one child's state is not shown to another child", () => {
   eq(b.post('profile', { profile_id: 'p_alex' }).states, {}, "Alex's states");
 });
 
-check('a state over 20,000 characters is refused and nothing is written', () => {
+check('a state over 450,000 characters is refused and nothing is written', () => {
   const b = bed();
   b.run('setup');
   const before = b.ss.dump();
-  const r = b.post('saveState', { profile_id: 'p_sam', game_id: 'kriss-kross', state: { big: 'x'.repeat(20000) } });
+  const r = b.post('saveState', { profile_id: 'p_sam', game_id: 'kriss-kross', state: { big: 'x'.repeat(450000) } });
   eq([r.ok, r.error], [false, 'state_too_big'], 'reply');
   eq(b.ss.dump(), before, 'Sheet');
+});
+
+// ---- Big states kept in parts (0.6.0, P89) -----------------------------------------------
+
+const settingsOf = (b, game) => rowsOf(b, 'Settings').filter((r) => r.game_id === game);
+// A state like a compressed save: long text with digits, "-" and "=" that the Sheet must keep as text.
+const bigState = (n) => ({ packed: Array.from({ length: n }, (_, i) => `-${i}=`).join('').slice(0, n), at: '2026-11-25T19:00:00.000Z' });
+
+check('a state of 45,000 characters or fewer stays in one row, as before', () => {
+  const b = bed();
+  b.run('setup');
+  const state = { packed: 'y'.repeat(45000 - 13) };
+  eq(JSON.stringify(state).length, 45000, 'size of the test state');
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state }), 'saveState');
+  eq(settingsOf(b, 'word-garden').map((r) => r.key), ['state'], 'keys');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'word-garden': state }, 'states');
+});
+
+check('a 200,000-character state is kept in parts under the cell limit and comes back unchanged', () => {
+  const b = bed();
+  b.run('setup');
+  const state = bigState(200000);
+  const at = iso(Date.now() - 60000);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state, at }), 'saveState');
+  const rows = settingsOf(b, 'word-garden');
+  eq(rows.map((r) => r.key), ['state', 'state#2', 'state#3', 'state#4', 'state#5'], 'keys');
+  ok(rows.every((r) => typeof r.value === 'string' && r.value[0] === '~' && r.value.length <= 45000), 'every part is text, starts with ~ and fits a cell');
+  ok(rows.every((r) => r.updated_at.getTime() === Date.parse(at)), 'every part has the same updated_at');
+  eq(b.post('profile', { profile_id: 'p_sam' }).states, { 'word-garden': { state, at } }, 'states');
+});
+
+check('a state kept in parts that shrinks goes back to one row; the spare parts are emptied, not deleted', () => {
+  const b = bed();
+  b.run('setup');
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: bigState(100000) }), 'big save');
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: { small: 1 } }), 'small save');
+  const rows = settingsOf(b, 'word-garden');
+  eq(rows.map((r) => [r.key, r.value]), [['state', '{"small":1}'], ['state#2', ''], ['state#3', '']], 'rows');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'word-garden': { small: 1 } }, 'states');
+  const again = bigState(140000);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: again }), 'big again');
+  eq(settingsOf(b, 'word-garden').map((r) => r.key), ['state', 'state#2', 'state#3', 'state#4'], 'rows reused, one added');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'word-garden': again }, 'states');
+});
+
+check('the newest save wins for a state kept in parts too', () => {
+  const b = bed();
+  b.run('setup');
+  const t = Date.now() - 3600000;
+  const newer = bigState(120000);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: newer, at: iso(t + 60000) }), 'newer save');
+  const late = b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: bigState(90000), at: iso(t) });
+  eq([late.ok, late.saved], [true, false], 'reply to the older save');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'word-garden': newer }, 'state kept');
+});
+
+check("a state with a part missing is skipped, and the child's other states still come back", () => {
+  const b = bed();
+  b.run('setup');
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: bigState(100000) }), 'big save');
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'number-town', state: { v: 1 } }), 'small save');
+  const s = b.ss.getSheetByName('Settings');
+  const rowNo = s.dump().findIndex((l) => l[1] === 'word-garden' && l[2] === 'state#2') + 1;
+  s.getRange(rowNo, 4).setValue('');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'number-town': { v: 1 } }, 'states');
+});
+
+check("one child's big state is kept apart from another child's", () => {
+  const b = bed();
+  b.run('setup');
+  const sam = bigState(95000), alex = bigState(60000);
+  okReply(b.post('saveState', { profile_id: 'p_sam', game_id: 'word-garden', state: sam }), 'Sam');
+  okReply(b.post('saveState', { profile_id: 'p_alex', game_id: 'word-garden', state: alex }), 'Alex');
+  eq(stateOnly(b.post('profile', { profile_id: 'p_sam' }).states), { 'word-garden': sam }, "Sam's states");
+  eq(stateOnly(b.post('profile', { profile_id: 'p_alex' }).states), { 'word-garden': alex }, "Alex's states");
 });
 
 check('saveState refuses an unknown child or a bad game id', () => {

@@ -16,7 +16,9 @@ The last line is `PASS n of n` or `FAIL k of n`, with a line above it for each f
 
 ## What is checked
 
-What scripts 0.4.0 and 0.5.0 change (P75, P88). For 0.5.0:
+What scripts 0.4.0, 0.5.0 and 0.6.0 change (P75, P88, P89). For 0.6.0: a state up to 45,000 characters in one row as before; a bigger one in parts under the cell limit, coming back unchanged (with digits, `-` and `=` the Sheet must keep as text); spare parts emptied when it shrinks; the newest save winning; a missing part skipping only that state; over 450,000 refused.
+
+For 0.5.0:
 - the Plays tab: a row per play with the child's name, minutes updated when more time comes, the London date as `day`, refusals, a full tab growing
 - the Plays summary's four tables and Name filter, and `summary` rebuilding them; `previewPlays` only on a copy
 - `setup` hiding Scores and Achievements and changing no data

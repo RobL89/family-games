@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-25 (Word Garden as testing, P90; big saves compressed and kept in parts, script 0.6.0, P89; not yet published). Before that 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -31,7 +31,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 
 1. **The launcher opens.** It shows players from the device's cache straight away, sends anything waiting, then refreshes from the Sheet.
 2. **Everything saves on the device first,** then goes to the Sheet. Each item has a unique ID, so a retry never counts twice.
-3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`, with when it was made) and sends it to the Sheet's Settings tab (P51): within 30 seconds of a change, at once on ⌂ Home or when the page is hidden (P78). The newest save wins. As a game opens, the child's profile is re-read so progress from another device is there. There's no Save button (P79). An artifact game that saves in its own storage passes its progress on through `games/_common/keep-progress/` (P77). With script 0.3.0, progress just stays on the device.
+3. **A game's own progress** goes to the wrapper with `fg:state`. The wrapper keeps it per child on the device (`fg.state.<child>.<game>`, with when it was made) and sends it to the Sheet's Settings tab (P51): within 30 seconds of a change, at once on ⌂ Home or when the page is hidden (P78). The newest save wins. As a game opens, the child's profile is re-read so progress from another device is there. There's no Save button (P79). An artifact game that saves in its own storage passes its progress on through `games/_common/keep-progress/` (P77), compressed when it's over 20,000 characters (P89). A state can be up to 450,000 characters; script 0.6.0 keeps one over 45,000 in several Settings cells. With script 0.3.0, progress just stays on the device, and with 0.4.0 or 0.5.0 so does a state over 20,000.
 4. **Word lists** reach a game in `fg:start`: one set per child for every word game (P56). With script 0.3.0, which keeps them per game, it's this game's lists or else the first set the child has (P61).
 5. **Plays (P88):** a tap on a game tile queues a play in the outbox (when, which child, which game, phone or PC) and passes its id to the wrapper (`&play=`). The wrapper adds the time the game is on screen and being played (no touch, click or key for 3 minutes is a break) and sends it on ⌂ Home or when the page is hidden; the launcher's `sync` sends anything still waiting. With script 0.4.0 plays wait on the device.
 6. **Device storage** uses keys starting `fg.` (family code, outbox, caches, skin choice, mute, skin preview, Testing switch, game states). Games use their own keys, never clear-all (contract section 6).
@@ -45,7 +45,7 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 | GameLists | list_id, profile_id, game_id, position, title, words, updated_at | In use. From 0.4.0 one set per child, `game_id` blank; a child's old per-game rows are read until their lists are next saved, which moves them (P56) |
 | Scores | event_id, profile_id, game_id, score, level, stars, seconds, played_at, received_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
 | Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
-| Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12) |
+| Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12). From 0.6.0 a state over 45,000 characters is kept in parts: `state`, then `state#2`, `state#3`..., each starting with `~`, all with the same `updated_at` (P89) |
 | Plays (script 0.5.0) | played_at, day, name, game, minutes, device, play_id, profile_id, game_id, received_at | One row per tap on a game tile; minutes grow as it's played. The last four columns are hidden (P88) |
 | Plays summary (script 0.5.0) | (pivot tables) | Plays and minutes: games by child first (each child's columns coloured apart), then by day and by device, with a Name filter. Rebuilt by running `summary`, also if many players are added and the first table runs into the next (P88) |
 
@@ -91,7 +91,7 @@ Live: five artifact games (the first three from stage 3, P68), each with its own
 - **Number Crossing** (published 2026-11-13): sums to cross a river, lava or the sky. Each child has their own setup, which follows them between devices (P84).
 - **Fairy village** (published 2026-11-15): a fairy puzzle adventure, several files. Each child's explorer follows them between devices (P87).
 
-Testing: Wrapper check, a launcher tool for trying the wrapper.
+Testing: **Word Garden** (taken 2026-11-25, P90): a spelling and phonics garden from Reception to Year 6, with its recorded phonics sounds. Each child's garden follows them between devices, compressed (P89). And Wrapper check, a launcher tool for trying the wrapper.
 
 Soon (P85): **Target number challenge**, Rob's wife's game in progress. A "Soon" tile says "Coming soon!" when tapped; its `source` in `games.json` is her link. Bubble pop and the four placeholders are hidden (status `hidden`, P65).
 

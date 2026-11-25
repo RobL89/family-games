@@ -23,7 +23,7 @@ const KEYS = {
   profilePrefix: 'fg.cache.profile.',
   statePrefix: 'fg.state.', // + <child>.<game>: { state, at, sent } (P51)
 };
-const MAX_STATE = 20000; // characters of JSON (game contract, section 5)
+const MAX_STATE = 450000; // characters of JSON (game contract, section 5, P89)
 
 // ---- Device storage (wrapped: storage can be blocked or full) ----------------
 
