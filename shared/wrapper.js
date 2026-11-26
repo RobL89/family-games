@@ -6,7 +6,9 @@
 //   2. Finds the game's page: "page" in games/<id>/game.json, or index.html if there's no game.json.
 //   3. Starts listening, then opens the game in the frame (listening first, so fg:ready is never missed).
 //   4. On fg:ready, sends fg:start: who's playing, sound on or off, word lists (if the game asks
-//      for "word-lists"), the game's saved state for this child, and level null (GC3).
+//      for "word-lists"), the child's school lists and tests in settings.school (if it asks for
+//      "school-lists", P91), the game's saved state for this child, and level null (GC3).
+//      On fg:school, keeps what the game holds of them and sends it to the Sheet with the saves.
 //   5. On fg:state, keeps the game's state for this child on this device, then sends it to the
 //      Sheet's Settings tab (P51, script 0.4.0), so it follows the child to another device. When
 //      it's sent (P78): within 30 seconds of a change, never more often; and at once on ⌂ Home or
@@ -93,6 +95,13 @@ function addAdapter(frame, file) {
 function wantsLists(entry, manifest) {
   const s = [].concat((manifest && manifest.settings) || [], (entry && entry.settings) || []);
   return s.includes('word-lists');
+}
+
+// A game that asks for "school-lists" (Word Garden, P91) gets the child's rows from the School
+// lists and School tests tabs in fg:start's settings, and reports back what it holds with fg:school.
+function wantsSchool(entry, manifest) {
+  const s = [].concat((manifest && manifest.settings) || [], (entry && entry.settings) || []);
+  return s.includes('school-lists');
 }
 
 // The child's lists, default first, as [{ title, words }]: one set per child (P56; api.js says
@@ -183,7 +192,8 @@ async function start() {
 
   let sendTimer = null;
   let lastSend = 0; // when something last went to the Sheet
-  const send = (opts) => api.sendStates(opts).then((n) => { if (n) lastSend = Date.now(); });
+  const send = (opts) => Promise.all([api.sendStates(opts), api.sendSchool(opts)])
+    .then(([n, m]) => { if (n || m) lastSend = Date.now(); });
   const sendSoon = () => {
     if (sendTimer) return;
     const wait = Math.max(SEND_FIRST, lastSend + SEND_EVERY - Date.now());
@@ -217,6 +227,9 @@ async function start() {
     } else if (m.type === 'fg:state') {
       // Kept at once; sent soon, or now if the page is being hidden (the game saved on its way out).
       if (api.keepState(pid, gameId, m.state)) (document.hidden ? sendNow : sendSoon)();
+    } else if (m.type === 'fg:school' && wantsSchool(entry, manifest)) {
+      // What the game holds for this child's school lists and tests (P91): kept, then sent soon.
+      if (api.keepSchool(pid, gameId, m.school)) (document.hidden ? sendNow : sendSoon)();
     } else if (m.type === 'fg:round' && on('stars')) {
       // Stars switched back on: the round goes into the outbox like the old game kit's.
       const stars = Math.max(1, Math.min(3, Math.round(Number(m.stars) || 1)));
@@ -233,7 +246,7 @@ async function start() {
       player: { name: player.nickname || '', animal: player.avatar || '', colour: player.colour || '' },
       sound: !sound.isMuted(),
       lists: wantsLists(entry, manifest) ? listsFor(pid, gameId) : [],
-      settings: {},
+      settings: wantsSchool(entry, manifest) ? { school: api.getSchool(pid) } : {},
       state: api.getState(pid, gameId),
       level: null,
     }, location.origin);

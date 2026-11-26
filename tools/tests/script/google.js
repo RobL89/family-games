@@ -57,6 +57,12 @@ class Range {
     return this;
   }
 
+  // Recorded per column, like formats: { <column>: [rule, from row, to row] }.
+  setDataValidation(rule) {
+    for (let c = 0; c < this.nCols; c++) this.sheet.validations[this.col + c] = [rule, this.row, this.getLastRow()];
+    return this;
+  }
+
   createPivotTable(source) {
     const t = new PivotTable(this.sheet, this, source);
     this.sheet.pivots.push(t);
@@ -116,6 +122,7 @@ class Sheet {
     this.maxRows = Math.max(1000, this.cells.length);
     this.hidden = false;
     this.formats = {};
+    this.validations = {};
     this.pivots = [];
     this.slicers = [];
     this.looks = {};
@@ -313,6 +320,16 @@ function services({ spreadsheet = new Spreadsheet(), familyCode = 'test-code' } 
         getActiveSpreadsheet: () => spreadsheet,
         newFilterCriteria,
         newConditionalFormatRule,
+        newDataValidation: () => {
+          const rule = { range: null, allowInvalid: true, help: '' };
+          const b = {
+            requireValueInRange(range, showDropdown) { rule.range = range; rule.dropdown = showDropdown !== false; return b; },
+            setAllowInvalid(v) { rule.allowInvalid = !!v; return b; },
+            setHelpText(t) { rule.help = String(t); return b; },
+            build: () => rule,
+          };
+          return b;
+        },
         PivotTableSummarizeFunction: { COUNTA: 'COUNTA', SUM: 'SUM' },
       },
       PropertiesService: {

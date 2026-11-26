@@ -22,6 +22,15 @@
 //      so keep-progress sends it compressed, and script 0.6.0 keeps it in the Sheet in parts.
 //      The game saves after every answer and planting; changes are passed on within 2 seconds.
 //   3. Sound off (P67): its recorded sounds, speech and garden noises are silent, whatever else.
+//   4. School lists and tests from the Sheet (P91; game.json asks for "school-lists"): the child's
+//      rows from the School lists and School tests tabs come in fg:start's settings.school. Each one
+//      the garden doesn't have yet goes in through the game's own way in (window.WordGarden), as if
+//      typed in its grown-ups' corner: a list arrives as a seed packet; a test (its missed words, the
+//      rest right) is matched to the list set on that day. Then, and every few seconds while the
+//      game is open, what the garden holds (including lists and tests entered in the game itself)
+//      is reported back with fg:school, for the Sheet's status and result columns and new rows.
+//      A row the game can't take (a Reception garden, a missed word not on the list) is reported
+//      with the reason. Nothing reaches a child with no garden yet: their rows wait.
 // Its own Full screen button is left as it is: the wrapper's frame allows full screen, and the
 // button leaves it again (as Fairy village, P87).
 
@@ -135,6 +144,67 @@ const progress = keepProgress(fg, {
 // previous child's list (P82). A child new to this device is handled in onStart.
 if (child && window.parent !== window && hasExplorer(read(MINE))) useOnlyMine(read(MINE));
 
+// ---- School lists and tests (P91) ----
+const WG = () => window.WordGarden;
+const lower = (w) => String(w).toLowerCase();
+const niceDay = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : d; };
+let school = null;         // the child's rows from the Sheet, from fg:start
+let delivered = null;      // the garden they were delivered to
+const problems = new Map(); // Sheet id -> why the game couldn't take it
+const sheetTest = new Map(); // "<list id>|<taken>" -> the Sheet's id for that test
+let lastReport = null;
+
+// Puts the Sheet's lists and tests the garden doesn't have yet into it.
+function deliverSchool(id) {
+  const api = WG();
+  if (!school || !api || delivered === id) return;
+  delivered = id;
+  problems.clear();
+  const have = new Set((api.schoolLists(id) || []).map((L) => L.id));
+  school.lists.forEach((L) => {
+    if (have.has(L.id)) return;
+    const r = api.addSchoolList(id, { id: L.id, set: L.set, words: L.words });
+    if (!r || !r.ok) problems.set(L.id, { kind: 'list', why: (r && r.error) || 'the game did not take it' });
+  });
+  const lists = api.schoolLists(id) || [];
+  school.tests.forEach((T) => {
+    const on = lists.filter((L) => L.set === T.list_set);
+    if (on.length !== 1) {
+      problems.set(T.id, { kind: 'test', why: on.length ? `more than one list set on ${niceDay(T.list_set)}` : `no list set on ${niceDay(T.list_set)} in the garden` });
+      return;
+    }
+    const L = on[0];
+    const missed = new Set(T.missed.map(lower));
+    const unknown = T.missed.filter((w) => !L.words.some((e) => lower(e.w) === lower(w)));
+    if (unknown.length) { problems.set(T.id, { kind: 'test', why: `not on that list: ${unknown.join(', ')}` }); return; }
+    sheetTest.set(`${L.id}|${T.taken}`, T.id);
+    const results = L.words.map((e) => !missed.has(lower(e.w)));
+    const same = (api.schoolTests(id) || []).find((x) => x.list === L.id && x.taken === T.taken);
+    if (same && same.results.length === results.length && same.results.every((x, i) => x.ok === results[i])) return;
+    const r = api.recordSchoolTest(id, { id: T.id, list: L.id, taken: T.taken, results });
+    if (!r || !r.ok) problems.set(T.id, { kind: 'test', why: (r && r.error) || 'the game did not take it' });
+  });
+}
+
+// Reports what the garden holds now, with the Sheet's rows it couldn't take; only when it changed.
+function reportSchool() {
+  const api = WG();
+  const id = myExplorer();
+  if (!api || !playing) return;
+  if (id) deliverSchool(id);
+  const lists = id ? (api.schoolLists(id) || []).map((L) => ({ id: L.id, set: L.set, words: L.words.map((e) => e.w), planted: L.planted || null })) : [];
+  const tests = id ? (api.schoolTests(id) || []).map((t) => ({
+    id: sheetTest.get(`${t.list}|${t.taken}`) || t.id, list: t.list, taken: t.taken,
+    missed: t.results.filter((x) => x.ok === false).map((x) => x.w),
+    right: t.results.filter((x) => x.ok === true).length, total: t.results.length,
+  })) : [];
+  problems.forEach((p, pid) => (p.kind === 'list' ? lists : tests).push({ id: pid, problem: p.why }));
+  const report = { lists, tests };
+  const json = JSON.stringify(report);
+  if (json === lastReport || (!lists.length && !tests.length)) return;
+  if (fg.saveSchool(report)) lastReport = json;
+}
+
 fg.onStart((start) => {
   if (start.standalone) return; // not in the wrapper: the page runs as its maker made it
   if (start.sound === false) soundOff();
@@ -144,5 +214,9 @@ fg.onStart((start) => {
   playing = true;
   if (myExplorer()) setMine(mine);
   else fillName(start.player && start.player.name);
+  const s = start.settings && start.settings.school;
+  school = s && Array.isArray(s.lists) && Array.isArray(s.tests) ? s : null;
+  reportSchool(); // delivers the Sheet's rows first, before the game shows the garden
   goIn();
+  setInterval(reportSchool, 3000);
 });

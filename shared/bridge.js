@@ -88,6 +88,16 @@ export function connect({ wait = WAIT_MS } = {}) {
       return true;
     },
 
+    // For a game that asks for "school-lists" (P91): report the child's school lists and tests as
+    // the game now holds them, { lists, tests }, for the wrapper to send to the Sheet.
+    saveSchool(school) {
+      if (!inShell) return false;
+      const json = JSON.stringify(school ?? null);
+      if (json.length > MAX_STATE) return false;
+      send({ type: 'fg:school', school: JSON.parse(json) });
+      return true;
+    },
+
     // Optional: report a finished round. The game always shows its own end of round (P50),
     // so this returns false. The wrapper ignores it while stars are switched off (P48).
     roundOver({ stars, score, seconds, detail } = {}) {

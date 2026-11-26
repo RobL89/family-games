@@ -12,6 +12,9 @@
 //   - a game's saved state: kept on the device first, then sent to the Sheet's Settings tab
 //     (P51, `saveState`), so it follows the child; the newest save wins (P78). With 0.3.0 it
 //     just stays on the device until the new script is in.
+//   - school lists and tests (P91, script 0.7.0): a child's rows from the School lists and School
+//     tests tabs come with their profile; a game that asks for them reports back what it holds,
+//     kept on the device and sent like a state. With an older script the report waits.
 
 import { CONFIG } from './config.js';
 
@@ -22,6 +25,7 @@ const KEYS = {
   skins: 'fg.cache.skins',
   profilePrefix: 'fg.cache.profile.',
   statePrefix: 'fg.state.', // + <child>.<game>: { state, at, sent } (P51)
+  schoolPrefix: 'fg.school.', // + <child>.<game>: { school, at, sent } (P91)
 };
 const MAX_STATE = 450000; // characters of JSON (game contract, section 5, P89)
 
@@ -226,6 +230,63 @@ export function sendStates({ keepalive = false } = {}) {
     sendingStates = null;
   });
   return sendingStates;
+}
+
+// ---- School lists and tests, per child (P91) --------------------------------------------
+
+const schoolKey = (profileId, gameId) => `${KEYS.schoolPrefix}${profileId}.${gameId}`;
+
+// The child's rows from the School lists and School tests tabs, as the Sheet last gave them:
+// { lists: [{ id, set, words }], tests: [{ id, list_set, taken, missed }] }.
+export function getSchool(profileId) {
+  const s = (getCachedProfile(profileId) || {}).school;
+  return {
+    lists: Array.isArray(s && s.lists) ? s.lists : [],
+    tests: Array.isArray(s && s.tests) ? s.tests : [],
+  };
+}
+
+// Keeps what a game holds for this child (its lists and tests, with any problems) to send to the
+// Sheet. The same report as the one already kept changes nothing.
+export function keepSchool(profileId, gameId, school) {
+  const json = JSON.stringify(school ?? null);
+  if (json.length > MAX_STATE) return false;
+  const kept = load(schoolKey(profileId, gameId), null);
+  if (kept && JSON.stringify(kept.school) === json) return true;
+  return save(schoolKey(profileId, gameId), { school: JSON.parse(json), at: new Date().toISOString(), sent: false });
+}
+
+let sendingSchool = null;
+
+// Sends every school report the Sheet hasn't got. Never throws: with a script before 0.7.0,
+// offline, or a refusal, reports stay on the device and go next time. Returns how many were sent.
+export function sendSchool({ keepalive = false } = {}) {
+  if (sendingSchool) return sendingSchool;
+  sendingSchool = (async () => {
+    if (!isConfigured()) return 0;
+    let keys = [];
+    try { keys = Object.keys(localStorage).filter((k) => k.startsWith(KEYS.schoolPrefix)); } catch { return 0; }
+    let sent = 0;
+    for (const key of keys) {
+      const local = load(key, null);
+      if (!local || local.sent !== false || !local.school) continue;
+      const [profileId, ...rest] = key.slice(KEYS.schoolPrefix.length).split('.');
+      const gameId = rest.join('.');
+      try {
+        await call('saveSchool', { profile_id: profileId, game_id: gameId, lists: local.school.lists || [], tests: local.school.tests || [] }, { keepalive });
+      } catch (err) {
+        if (/unknown_action|missing_tab_School|not_configured/.test(String(err && err.message))) return sent; // script before 0.7.0
+        continue; // offline or refused: try again next time
+      }
+      const now = load(key, null);
+      if (now && now.at === local.at) save(key, { ...now, sent: true }); // unless it changed meanwhile
+      sent++;
+    }
+    return sent;
+  })().finally(() => {
+    sendingSchool = null;
+  });
+  return sendingSchool;
 }
 
 // ---- Outbox --------------------------------------------------------------------

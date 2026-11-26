@@ -30,7 +30,9 @@ class Check:
     """Stand-in Sheet with made-up players, pages, and the tally for one game's check.
     script='0.4.0' answers like apps-script/Code.gs 0.4.0 and 0.5.0: one set of lists per child and each
     game's state with its time, the newest save winning (P78), and a state over 20,000 characters
-    refused. script='0.6.0' takes states up to 450,000 characters (P89). The default answers like 0.3.0."""
+    refused. script='0.6.0' takes states up to 450,000 characters (P89). script='0.7.0' also gives each
+    child's school rows (self.school[profile_id] = {'lists', 'tests'}, as schoolFor gives them) and
+    keeps the last saveSchool report per child (self.school_reports, P91). The default answers like 0.3.0."""
 
     def __init__(self, game_id, out, lists=None, script='0.3.0'):
         self.game_id = game_id
@@ -47,13 +49,15 @@ class Check:
         self.script = script
         self.held = []
         self.states = {}  # (profile_id, game_id) -> {'state', 'at'}, script 0.4.0 only
+        self.school = {}  # profile_id -> {'lists': [...], 'tests': [...]}, script 0.7.0 only
+        self.school_reports = {}  # profile_id -> the last saveSchool body
         self.three = open(THREE_JS, encoding='utf-8').read() if THREE_JS else None
 
     def handle(self, body):
         if body.get('code') != CODE:
             return {'ok': False, 'error': 'wrong_code'}
         a = body.get('action')
-        v4 = self.script in ('0.4.0', '0.6.0')
+        v4 = self.script in ('0.4.0', '0.6.0', '0.7.0')
         if a == 'ping':
             return {'ok': True, 'version': self.script}
         if a == 'profiles':
@@ -66,6 +70,8 @@ class Check:
                 per_game = self.lists.get(p['profile_id'], {})
                 out['word_lists'] = per_game[sorted(per_game)[0]] if per_game else []
                 out['states'] = {g: dict(v) for (pid, g), v in self.states.items() if pid == p['profile_id']}
+                if self.script == '0.7.0':
+                    out['school'] = self.school.get(p['profile_id'], {'lists': [], 'tests': []})
             else:
                 out['lists'] = self.lists.get(p['profile_id'], {})
             return out
@@ -73,13 +79,16 @@ class Check:
             now = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
             at = min(body.get('at') or now, now)  # ISO times in UTC sort as text
             key = (body['profile_id'], body['game_id'])
-            limit = 450000 if self.script == '0.6.0' else 20000
+            limit = 450000 if self.script in ('0.6.0', '0.7.0') else 20000
             if len(json.dumps(body.get('state'), separators=(',', ':'))) > limit:
                 return {'ok': False, 'error': 'state_too_big'}
             if key in self.states and self.states[key]['at'] > at:
                 return {'ok': True, 'saved': False, 'at': self.states[key]['at']}
             self.states[key] = {'state': body.get('state'), 'at': at}
             return {'ok': True, 'saved': True, 'at': at}
+        if a == 'saveSchool' and self.script == '0.7.0':
+            self.school_reports[body['profile_id']] = {'lists': body.get('lists', []), 'tests': body.get('tests', [])}
+            return {'ok': True, 'added': 0, 'updated': 0}
         if a == 'sync':
             self.scores += body.get('results', [])
             return {'ok': True, 'accepted': [r['event_id'] for r in body.get('results', [])], 'duplicates': [], 'rejected': [],

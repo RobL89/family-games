@@ -3,7 +3,8 @@ See ../harness.py for how to run it. Ends "PASS n of n". It checks making a gard
 sizes; one explorer per child (P90), also with a slow Sheet and the game saving as it reloads
 (P82); the garden following the child between two devices, compressed, through a stand-in Sheet
 like script 0.6.0 (P77, P78, P89), and staying on the device with the older script; sound off;
-its recorded sounds being there; and the page running on its own."""
+its recorded sounds being there; school lists and tests coming from the Sheet and going back (P91);
+and the page running on its own."""
 import json
 import os
 import sys
@@ -186,6 +187,54 @@ with sync_playwright() as pw:
     c.check('older script: the big garden is refused by the Sheet and kept on the device',
             ('p_sam', 'word-garden') not in c.states and kept(pg, 'p_sam') is not None)
     ctx.close()
+    c.script = '0.3.0'
+
+    # 3c. School lists and tests from the Sheet (P91), with a stand-in Sheet like script 0.7.0.
+    c.script = '0.7.0'
+    c.school['p_sam'] = {'lists': [{'id': 'S1a2b3c4d5e', 'set': '2026-12-01', 'words': ['rain', 'train', 'snail', 'paint']}],
+                         'tests': [{'id': 'T1a2b3c4d5e', 'list_set': '2026-12-01', 'taken': '2026-12-05', 'missed': ['Train']},
+                                   {'id': 'T9z8y7x6w5v', 'list_set': '2026-12-01', 'taken': '2026-12-06', 'missed': ['house']},
+                                   {'id': 'T0q0q0q0q0q', 'list_set': '2026-11-02', 'taken': '2026-11-06', 'missed': []}]}
+    c.school['p_alex'] = {'lists': [{'id': 'S9f8e7d6c5b', 'set': '2026-12-01', 'words': ['cat', 'dog']}], 'tests': []}
+    ctx, pg = c.page(browser, 1366, 768)
+    fr, f = c.open_game(pg, wait=3500)
+    make_garden(pg, fr, 'Sam', 'y2'); pg.wait_for_timeout(4000)
+    f = pg.frames[1]
+    sam_id = json.loads(f.evaluate("localStorage.getItem('fg.wordGarden.mine.p_sam')"))
+    lists = f.evaluate(f"WordGarden.schoolLists({json.dumps(sam_id)})")
+    tests = f.evaluate(f"WordGarden.schoolTests({json.dumps(sam_id)})")
+    c.check("a list from the Sheet goes into the child's new garden, waiting to be planted",
+            any(L['id'] == 'S1a2b3c4d5e' and [e['w'] for e in L['words']] == ['rain', 'train', 'snail', 'paint'] and not L.get('planted') for L in lists), lists)
+    pending = json.loads(f.evaluate(f"localStorage.getItem('wordGarden.player.{sam_id}')"))['pending']
+    c.check('it arrives as a seed packet to plant', any(pe.get('id') == 'S1a2b3c4d5e' for pe in pending))
+    t = [x for x in tests if x['list'] == 'S1a2b3c4d5e']
+    c.check('a test from the Sheet is recorded: its missed word wrong (any letter case), the rest right',
+            len(t) == 1 and t[0]['taken'] == '2026-12-05' and [(x['w'], x['ok']) for x in t[0]['results']] == [('rain', True), ('train', False), ('snail', True), ('paint', True)], t)
+    added = f.evaluate(f"WordGarden.addSchoolList({json.dumps(sam_id)}, {{ id: 'Lgame1', set: '2026-11-28', words: ['blue', 'glue'] }})")
+    pg.wait_for_timeout(3500)
+    pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(2000)
+    rep = c.school_reports.get('p_sam') or {'lists': [], 'tests': []}
+    by_id = {x['id']: x for x in rep['lists'] + rep['tests']}
+    c.check('the report to the Sheet has the list, waiting to be planted', by_id.get('S1a2b3c4d5e', {}).get('planted', 'x') is None and by_id['S1a2b3c4d5e']['words'] == ['rain', 'train', 'snail', 'paint'], rep['lists'])
+    c.check("…the test under the Sheet's own id, 3 of 4 right", by_id.get('T1a2b3c4d5e', {}).get('right') == 3 and by_id['T1a2b3c4d5e']['total'] == 4 and by_id['T1a2b3c4d5e']['missed'] == ['train'], rep['tests'])
+    c.check('…a list entered in the game itself', added and added.get('ok') and by_id.get('Lgame1', {}).get('words') == ['blue', 'glue'])
+    c.check('…and why the game could not take two tests', 'house' in by_id.get('T9z8y7x6w5v', {}).get('problem', '')
+            and 'no list set on 02/11/2026' in by_id.get('T0q0q0q0q0q', {}).get('problem', ''), [by_id.get('T9z8y7x6w5v'), by_id.get('T0q0q0q0q0q')])
+    # Opened again: nothing is added twice and the test isn't recorded again (no second boost).
+    pg.click('[data-g="word-garden"]'); pg.wait_for_selector('.wframe iframe'); pg.wait_for_timeout(6000)
+    f = pg.frames[1]
+    lists2 = f.evaluate(f"WordGarden.schoolLists({json.dumps(sam_id)})")
+    tests2 = f.evaluate(f"WordGarden.schoolTests({json.dumps(sam_id)})")
+    c.check('opened again: no list or test added twice', len(lists2) == len(f.evaluate(f"WordGarden.schoolLists({json.dumps(sam_id)})")) and
+            [L['id'] for L in lists2].count('S1a2b3c4d5e') == 1 and tests2 == tests, (len(tests2), len(tests)))
+    fr = switch(pg, 'p_alex')
+    make_garden(pg, fr, 'Alex', 'rec'); pg.wait_for_timeout(4000)
+    pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(2000)
+    rep = c.school_reports.get('p_alex') or {'lists': []}
+    c.check('a Reception garden: the list is reported as not taken, with the reason',
+            any(x.get('id') == 'S9f8e7d6c5b' and 'Reception' in x.get('problem', '') for x in rep['lists']), rep)
+    ctx.close()
+    c.states.clear()
     c.script = '0.3.0'
 
     # 4. Sound off (P67): recorded sounds, speech and garden noises are silenced.

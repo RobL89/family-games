@@ -27,9 +27,16 @@
  *        starting with "~" (so the Sheet never takes it for a number or a formula) and all with
  *        the same updated_at. Smaller states are kept in one row, exactly as before. No new tabs
  *        or columns.
+ * 0.7.0: School lists and School tests tabs (P91), for Word Garden. A grown-up adds a row: a list
+ *        (child, set on, words) or a test (child, list set on, taken on, missed words; blank means
+ *        every word right). `profile` gives a child's rows to the launcher, which hands them to the
+ *        game the next time the child plays it; the first time a row is read it gets its ids.
+ *        `saveSchool` writes back what the game holds: lists and tests entered in the game's own
+ *        grown-ups' corner are added as rows, and every row's status or result is filled in.
+ *        Rows are never deleted, and what a grown-up typed is never changed.
  */
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 
 const TABS = {
   Profiles: ['profile_id', 'nickname', 'avatar', 'colour', 'created_at', 'active', 'skin'],
@@ -43,7 +50,13 @@ const TABS = {
   // One row per tap on a game tile (P88). played_at is when the tile was tapped; day is the same
   // date without the time, for the summary's "by day" table; minutes grows as the game is played.
   Plays: ['played_at', 'day', 'name', 'game', 'minutes', 'device', 'play_id', 'profile_id', 'game_id', 'received_at'],
+  // School spelling lists and test results for Word Garden (P91). A grown-up types the first
+  // columns; status and result are filled in by the launcher; the rest are for the script, hidden.
+  'School lists': ['child', 'set_on', 'words', 'status', 'list_id', 'profile_id', 'updated_at'],
+  'School tests': ['child', 'list_set_on', 'taken_on', 'missed_words', 'result', 'test_id', 'list_id', 'profile_id', 'updated_at'],
 };
+const SCHOOL_GAME = 'word-garden';  // the game school lists go to
+const MAX_SCHOOL = 400;             // lists, and tests, in one saveSchool call
 
 // The summary of the Plays tab (P88): built by setup, rebuilt by running `summary` by hand.
 const SUMMARY_TAB = 'Plays summary';
@@ -129,6 +142,7 @@ function planSetup(ss) {
           writeHeaders(s, wanted);
           if (name === 'Skins') s.getRange(2, 1, DEFAULT_SKINS.length, wanted.length).setValues(DEFAULT_SKINS);
           if (name === 'Plays') formatPlays(s);
+          if (name === 'School lists' || name === 'School tests') formatSchool(s);
         },
       });
       return;
@@ -262,6 +276,7 @@ function doPost(e) {
       case 'saveLists': return json(withLock(function () { return saveLists(body); }));
       case 'saveState': return json(withLock(function () { return saveState(body); }));
       case 'sync': return json(withLock(function () { return sync(body); }));
+      case 'saveSchool': return json(withLock(function () { return saveSchool(body); }));
       default: return json({ ok: false, error: 'unknown_action' });
     }
   } catch (err) {
@@ -334,6 +349,7 @@ function getProfile(profileId) {
     achievements: achievements,
     word_lists: wordListsFor(profileId),
     states: statesFor(profileId),
+    school: schoolFor(profile),
   };
 }
 
@@ -751,6 +767,215 @@ function makeRoom(ss, s, adding) {
     || summaryTab.getSlicers().some(function (x) { return x.getRange().getLastRow() < end; });
   if (short) buildSummary(ss);
 }
+
+// ---- School lists and tests (P91) ------------------------------------------------------------
+
+/**
+ * One child's school lists and tests from the School lists and School tests tabs, for the launcher
+ * to hand to Word Garden:
+ *   { lists: [{ id, set, words }], tests: [{ id, list_set, taken, missed }] }
+ * Dates are 'yyyy-MM-dd'. A row is the child's if its profile_id is theirs or, for a row a grown-up
+ * has just typed, its child matches their name (any letter case). The first time such a row is
+ * read it gets its ids (and the profile_id), so it is the same list or test from then on. A row
+ * with a problem (no date, no words) isn't given out: its status or result says why.
+ */
+function schoolFor(profile) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName('School lists') || !ss.getSheetByName('School tests')) return { lists: [], tests: [] };
+  return withLock(function () {
+    const tz = ss.getSpreadsheetTimeZone();
+    const name = normName(profile.nickname);
+    const mine = function (r) {
+      return r.profile_id === profile.profile_id || (!r.profile_id && name && normName(r.child) === name);
+    };
+    const lists = [];
+    eachRow('School lists', function (r, set) {
+      if (!mine(r)) return;
+      const day = dateKey(r.set_on, tz);
+      const words = splitWords(r.words);
+      if (!r.list_id) {
+        set('list_id', 'S' + Utilities.getUuid().replace(/-/g, '').slice(0, 10));
+        set('profile_id', profile.profile_id);
+        set('updated_at', new Date());
+      }
+      if (!day || !words.length) {
+        set('status', !day ? 'Problem: set_on must be a date, like 01/12/2026' : 'Problem: no words');
+        return;
+      }
+      if (!r.status) set('status', 'Waiting: goes into Word Garden the next time ' + profile.nickname + ' plays it');
+      lists.push({ id: r.list_id, set: day, words: words });
+    });
+    const tests = [];
+    eachRow('School tests', function (r, set) {
+      if (!mine(r)) return;
+      const listDay = dateKey(r.list_set_on, tz);
+      const taken = dateKey(r.taken_on, tz);
+      if (!r.test_id) {
+        set('test_id', 'T' + Utilities.getUuid().replace(/-/g, '').slice(0, 10));
+        set('profile_id', profile.profile_id);
+        set('updated_at', new Date());
+      }
+      if (!listDay || !taken) {
+        set('result', 'Problem: ' + (!listDay ? 'list_set_on' : 'taken_on') + ' must be a date, like 01/12/2026');
+        return;
+      }
+      if (!r.result) set('result', 'Waiting: goes into Word Garden the next time ' + profile.nickname + ' plays it');
+      tests.push({ id: r.test_id, list_set: listDay, taken: taken, missed: splitWords(r.missed_words) });
+    });
+    return { lists: lists, tests: tests };
+  });
+}
+
+/**
+ * What Word Garden holds for one child, sent by the launcher (P91):
+ *   { profile_id, game_id, lists: [{ id, set, words, planted, problem }],
+ *     tests: [{ id, list, taken, missed, right, total, problem }] }
+ * A list or test already in a tab (by its id) gets its status or result; one entered in the game's
+ * own grown-ups' corner is added as a row. `problem` (for a row the game couldn't take) is shown in
+ * its status or result. What a grown-up typed (child, dates, words, missed words) is never changed.
+ */
+function saveSchool(body) {
+  if (!ID_PATTERN.test(String(body.profile_id || ''))) throw new Error('bad_profile_id');
+  if (String(body.game_id) !== SCHOOL_GAME) throw new Error('bad_game_id');
+  const profile = rows('Profiles').filter(function (p) { return p.profile_id === body.profile_id; })[0];
+  if (!profile) throw new Error('no_such_profile');
+  const lists = Array.isArray(body.lists) ? body.lists.slice(0, MAX_SCHOOL) : [];
+  const tests = Array.isArray(body.tests) ? body.tests.slice(0, MAX_SCHOOL) : [];
+  const now = new Date();
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const nice = function (day) { const d = parseDay(day); return d ? Utilities.formatDate(d, tz, 'dd/MM/yyyy') : ''; };
+
+  const listStatus = function (l) {
+    if (l.problem) return 'Not added: ' + cleanText(l.problem, 200);
+    return l.planted ? 'Planted ' + nice(l.planted) : 'In the garden: seeds waiting to be planted';
+  };
+  const testResult = function (t) {
+    if (t.problem) return 'Not added: ' + cleanText(t.problem, 200);
+    return num(t.right) + ' of ' + num(t.total) + ' right';
+  };
+
+  let added = 0;
+  let updated = 0;
+  const seenLists = {};
+  eachRow('School lists', function (r, set) {
+    const l = lists.filter(function (x) { return x && String(x.id) === String(r.list_id) && r.list_id !== ''; })[0];
+    if (!l) return;
+    seenLists[l.id] = true;
+    if (String(r.status) !== listStatus(l)) { set('status', listStatus(l)); set('updated_at', now); updated++; }
+  });
+  const newLists = lists.filter(function (l) {
+    return l && ID_PATTERN.test(String(l.id || '')) && !seenLists[l.id] && !l.problem && parseDay(l.set)
+      && Array.isArray(l.words) && l.words.length;
+  }).map(function (l) {
+    added++;
+    return {
+      child: profile.nickname, set_on: parseDay(l.set),
+      words: l.words.slice(0, MAX_WORDS).map(function (w) { return cleanText(w, MAX_WORD_LENGTH); }).filter(Boolean).join(', '),
+      status: listStatus(l), list_id: l.id, profile_id: body.profile_id, updated_at: now,
+    };
+  });
+  appendObjects('School lists', newLists);
+
+  const seenTests = {};
+  eachRow('School tests', function (r, set) {
+    const t = tests.filter(function (x) { return x && String(x.id) === String(r.test_id) && r.test_id !== ''; })[0];
+    if (!t) return;
+    seenTests[t.id] = true;
+    if (String(r.result) !== testResult(t)) { set('result', testResult(t)); set('updated_at', now); updated++; }
+    if (!r.list_id && t.list) set('list_id', String(t.list));
+  });
+  const listDay = {};
+  lists.forEach(function (l) { if (l) listDay[l.id] = l.set; });
+  const newTests = tests.filter(function (t) {
+    return t && ID_PATTERN.test(String(t.id || '')) && !seenTests[t.id] && !t.problem && parseDay(t.taken) && parseDay(listDay[t.list]);
+  }).map(function (t) {
+    added++;
+    return {
+      child: profile.nickname, list_set_on: parseDay(listDay[t.list]), taken_on: parseDay(t.taken),
+      missed_words: (Array.isArray(t.missed) ? t.missed : []).map(function (w) { return cleanText(w, MAX_WORD_LENGTH); }).filter(Boolean).join(', '),
+      result: testResult(t), test_id: t.id, list_id: String(t.list), profile_id: body.profile_id, updated_at: now,
+    };
+  });
+  appendObjects('School tests', newTests);
+  return { ok: true, added: added, updated: updated };
+}
+
+/** Calls fn(row, set) for each row of a tab; set(header, value) writes that cell of the row. */
+function eachRow(name, fn) {
+  const s = sheet(name);
+  const values = s.getDataRange().getValues();
+  const headers = (values.shift() || []).map(String);
+  values.forEach(function (line, i) {
+    const r = {};
+    headers.forEach(function (h, j) { r[h] = line[j]; });
+    if (headers.every(function (h, j) { return line[j] === '' || line[j] === null; })) return; // an empty row
+    fn(r, function (h, value) {
+      const col = headers.indexOf(h);
+      if (col === -1) throw new Error('missing_column_' + h + ' (run setup)');
+      s.getRange(i + 2, col + 1).setValue(value);
+      r[h] = value;
+    });
+  });
+}
+
+/** A date cell (or text like 01/12/2026) as 'yyyy-MM-dd' in the Sheet's time zone; '' if it isn't one. */
+function dateKey(value, tz) {
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime())) return Utilities.formatDate(value, tz, 'yyyy-MM-dd');
+  const m = String(value || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+  return y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2);
+}
+
+/** 'yyyy-MM-dd' as a Date at midday (so no time zone moves it to another day); null if it isn't one. */
+function parseDay(day) {
+  const m = String(day || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+  return d.getMonth() === Number(m[2]) - 1 ? d : null;
+}
+
+function normName(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
+/**
+ * The School lists and School tests tabs (P91): dates shown as dd/mm/yyyy, the child picked from
+ * the Profiles names (a warning, not a block, for any other name), the columns for the script
+ * hidden (P52).
+ */
+function formatSchool(s) {
+  const headers = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].map(String);
+  const rowsDown = Math.max(1, s.getMaxRows() - 1);
+  ['set_on', 'list_set_on', 'taken_on'].forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0) s.getRange(2, col + 1, rowsDown, 1).setNumberFormat('dd/mm/yyyy');
+  });
+  const profiles = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Profiles');
+  const child = headers.indexOf('child');
+  if (profiles && child >= 0) {
+    const nick = profiles.getRange(1, 1, 1, profiles.getLastColumn()).getValues()[0].map(String).indexOf('nickname');
+    if (nick >= 0) {
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInRange(profiles.getRange(2, nick + 1, Math.max(1, profiles.getMaxRows() - 1), 1), true)
+        .setAllowInvalid(true)
+        .setHelpText('Pick the child, as their name is in the launcher')
+        .build();
+      s.getRange(2, child + 1, rowsDown, 1).setDataValidation(rule);
+    }
+  }
+  const widths = { child: 110, set_on: 100, list_set_on: 110, taken_on: 100, words: 420, missed_words: 260, status: 300, result: 260 };
+  Object.keys(widths).forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0) s.setColumnWidth(col + 1, widths[h]);
+  });
+  ['list_id', 'test_id', 'profile_id', 'updated_at'].forEach(function (h) {
+    const col = headers.indexOf(h);
+    if (col >= 0) s.hideColumns(col + 1);
+  });
+}
+
 
 /** Date and number formats for the Plays tab's columns, down to its last row. */
 function formatPlays(s) {

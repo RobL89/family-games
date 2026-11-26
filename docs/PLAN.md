@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-25 (Word Garden as testing, P90; big saves compressed and kept in parts, script 0.6.0, P89; not yet published). Before that 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-26 (school lists and tests in the Sheet for Word Garden, script 0.7.0, P91; not yet published). Before that 2026-11-25 (Word Garden as testing, P90; big saves compressed and kept in parts, script 0.6.0, P89). Before that 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -47,6 +47,8 @@ A simple window to the family's games, on an Android phone (Chrome) or a Windows
 | Achievements | profile_id, achievement_id, earned_at | Kept, no longer written (P48); hidden from 0.5.0 (P88) |
 | Settings (script 0.4.0) | profile_id, game_id, key, value, updated_at | Each game's saved state, key `state`, value JSON, `updated_at` when the game made it (P51, P78, Q12). From 0.6.0 a state over 45,000 characters is kept in parts: `state`, then `state#2`, `state#3`..., each starting with `~`, all with the same `updated_at` (P89) |
 | Plays (script 0.5.0) | played_at, day, name, game, minutes, device, play_id, profile_id, game_id, received_at | One row per tap on a game tile; minutes grow as it's played. The last four columns are hidden (P88) |
+| School lists (script 0.7.0) | child, set_on, words, status, list_id, profile_id, updated_at | Word Garden's school spelling lists (P91). A grown-up types the first three; the launcher fills in status (waiting, in the garden, planted, or why not); lists entered in the game are added as rows. The last three columns are hidden |
+| School tests (script 0.7.0) | child, list_set_on, taken_on, missed_words, result, test_id, list_id, profile_id, updated_at | School test results (P91): the missed words only, blank for all right. The launcher fills in result ("8 of 10 right", or why not); tests entered in the game are added as rows. The last four columns are hidden |
 | Plays summary (script 0.5.0) | (pivot tables) | Plays and minutes: games by child first (each child's columns coloured apart), then by day and by device, with a Name filter. Rebuilt by running `summary`, also if many players are added and the first table runs into the next (P88) |
 
 The family code is kept in the script's settings, not the Sheet.

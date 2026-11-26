@@ -73,6 +73,7 @@ Each new script version is pasted and deployed the same way. The handoff and the
 | 0.2.0 | Skins tab (four skins) and a `skin` column at the end of Profiles |
 | 0.3.0 | GameLists tab, header row only |
 | 0.4.0 (live, pasted 2026-11-13) | Settings tab, header row only. `setup` made a backup and added only Settings; every other cell was compared before and after and is unchanged. The launcher had to be published first: the old launcher would lose its word lists with 0.4.0 |
+| 0.7.0 (on `work`, not pasted yet) | School lists and School tests tabs, header rows only, formatted (P91, see below). No existing cell changes (dry run on a copy of the live Sheet, 2026-11-26) |
 | 0.6.0 (live, pasted 2026-11-26) | Nothing added. Saved states up to 450,000 characters; over 45,000 kept in parts across Settings rows (P89, see below). Dry run on a copy of the live Sheet first (setup had nothing to do; every saved game came back as 0.5.0 gives it); live Sheet compared before and after: the same, cell by cell. Backups "family-games backup 2026-11-26 1425" and "1426" |
 | 0.5.0 (live, pasted 2026-11-18) | Plays tab (header row only) and Plays summary tab (four pivot tables and a Name filter); Scores and Achievements hidden, not deleted (P88). No existing cell changes (dry run on a copy of the live Sheet, 2026-11-17 and 18; live Sheet compared before and after 2026-11-18: only Plays and Plays summary added, Scores and Achievements hidden, backup "family-games backup 2026-11-18 2139"). Tried first on a copy, where Rob checked the summary's look. Either the script or the launcher can go first: the old launcher sends no plays, and the new one keeps them on the device until 0.5.0 is in. Try it on a copy first (below) |
 
@@ -91,6 +92,16 @@ Then the live Sheet, as in "Updating the script" above: `backup`, paste, `setup`
 ### 0.6.0: big saves in parts (P89)
 
 No new tabs or columns, and `setup` changes nothing. What changes is how a game's saved state is written to the Settings tab: one up to 45,000 characters stays in one `state` row exactly as before; a bigger one (Word Garden's gardens) is written as `state`, `state#2`, `state#3`... rows, each part starting with `~`, all with the same `updated_at`. If a state shrinks again, its spare part rows are emptied, not deleted. Don't edit these rows by hand: a part changed or missing means that save can't be read, and the launcher keeps its own copy on the device. Either the script or the launcher can go first: the old script refuses a state over 20,000 characters and the launcher keeps it on the device until 0.6.0 is in.
+
+### School lists and tests (0.7.0, P91): for grown-ups
+
+Word Garden's school spelling lists and test results can be added here or in the game's own grown-ups' corner (code 1234); either way both end up with everything, for each child.
+
+- **A new list:** in **School lists**, add a row: **child** (pick from the list), **set_on** (the date the list was set, like 01/12/2026) and **words** (the words, with commas or spaces between). The next time that child plays Word Garden it arrives in their garden as a seed packet to plant. **status** then says where it is: waiting, in the garden, or planted (with the date).
+- **A test result:** in **School tests**, add a row: **child**, **list_set_on** (the date of the list the test was on), **taken_on** (the test's date) and **missed_words** (only the words they got wrong; leave it blank if every word was right). The next time they play, the right words get a boost and the missed ones come back sooner. **result** then says, for example, "8 of 10 right".
+- **Lists and tests entered in the game** appear here as new rows.
+- **A mistake:** if status or result starts with "Problem" or "Not added", it says why (no date, a missed word that isn't on the list, a Reception garden). Fix the row before the child next plays; once a list is in the garden, changing its row changes nothing. To correct a test, add a new row with the same dates: the game replaces the old result.
+- Don't delete rows or edit the hidden columns (the ids the script added).
 
 ## Checking a change to the Sheet
 

@@ -1,4 +1,4 @@
-// Pass-or-fail checks of what scripts 0.4.0, 0.5.0 and 0.6.0 change (P75, P88, P89), run against the real Code.gs.
+// Pass-or-fail checks of what scripts 0.4.0 to 0.7.0 change (P75, P88, P89, P91), run against the real Code.gs.
 //
 //   node tools/tests/script/check.js                    the repo's apps-script/Code.gs
 //   node tools/tests/script/check.js --script <file>    another copy (for example an older version)
@@ -59,20 +59,20 @@ check('the stand-ins cover every Google service and method Code.gs uses', () => 
 
 // ---- Version ----------------------------------------------------------------------------
 
-check('ping answers version 0.6.0', () => {
-  eq(bed().post('ping').version, '0.6.0', 'version');
+check('ping answers version 0.7.0', () => {
+  eq(bed().post('ping').version, '0.7.0', 'version');
 });
 
 // ---- setup only adds (P75) ------------------------------------------------------------------
 
-check('setup on a 0.3.0 Sheet makes a backup first, then adds only the Settings, Plays and summary tabs', () => {
+check('setup on a 0.3.0 Sheet makes a backup first, then adds only the Settings, Plays, school and summary tabs', () => {
   const b = bed();
   const before = b.ss.dump();
   b.run('setup');
   eq(b.ss.copies.length, 1, 'backups made');
   eq(b.ss.copies[0].dump(), before, 'the backup holds the Sheet as it was');
   const after = b.ss.dump();
-  eq(Object.keys(after), [...Object.keys(before), 'Settings', 'Plays', 'Plays summary'], 'tabs after setup');
+  eq(Object.keys(after), [...Object.keys(before), 'Settings', 'Plays', 'School lists', 'School tests', 'Plays summary'], 'tabs after setup');
   Object.keys(before).forEach((tab) => eq(after[tab], before[tab], `tab ${tab}`));
   eq(after.Settings, [SETTINGS], 'Settings tab');
   eq(b.ss.getSheetByName('Settings').frozenRows, 1, 'Settings header row frozen');
@@ -101,7 +101,7 @@ check('setup on an empty spreadsheet adds every tab and the four skins, with no 
   const b = bed({ tabs: {} });
   b.run('setup');
   const after = b.ss.dump();
-  eq(Object.keys(after).sort(), ['Achievements', 'GameLists', 'Plays', 'Plays summary', 'Profiles', 'Scores', 'Settings', 'Skins'], 'tabs');
+  eq(Object.keys(after).sort(), ['Achievements', 'GameLists', 'Plays', 'Plays summary', 'Profiles', 'School lists', 'School tests', 'Scores', 'Settings', 'Skins'], 'tabs');
   eq(after.Skins.length, 5, 'Skins rows with header');
   eq(after.Settings, [SETTINGS], 'Settings tab');
   eq(b.ss.copies.length, 0, 'backups');
@@ -356,13 +356,13 @@ const play = (o = {}) => ({ play_id: 'pl1', profile_id: 'p_sam', game_id: 'numbe
   device: 'Phone', played_at: '2026-11-17T18:05:00.000Z', seconds: 0, ...o });
 const sync = (b, plays) => b.post('sync', { results: [], achievements: [], plays });
 
-check('setup on the live shape (0.4.0) backs up, adds Plays and its summary, hides Scores and Achievements, changes no data', () => {
+check('setup on the 0.4.0 shape backs up, adds Plays and its summary and the school tabs, hides Scores and Achievements, changes no data', () => {
   const b = bed({ tabs: sheet040() });
   const before = b.ss.dump();
   const log = b.run('setup');
   eq(b.ss.copies.length, 1, 'backups made');
   const after = b.ss.dump();
-  eq(Object.keys(after), [...Object.keys(before), 'Plays', 'Plays summary'], 'tabs after setup');
+  eq(Object.keys(after), [...Object.keys(before), 'Plays', 'School lists', 'School tests', 'Plays summary'], 'tabs after setup');
   Object.keys(before).forEach((tab) => eq(after[tab], before[tab], `tab ${tab}`));
   eq(after.Plays, [PLAYS], 'Plays tab');
   eq(b.ss.getSheetByName('Plays').frozenRows, 1, 'Plays header frozen');
@@ -556,6 +556,124 @@ check('the new and changed write calls take the lock and let it go', () => {
 // ---- Run ----------------------------------------------------------------------------------
 
 let failed = 0;
+// ---- School lists and tests (0.7.0, P91) ---------------------------------------------------
+
+const LISTS = ['child', 'set_on', 'words', 'status', 'list_id', 'profile_id', 'updated_at'];
+const TESTS = ['child', 'list_set_on', 'taken_on', 'missed_words', 'result', 'test_id', 'list_id', 'profile_id', 'updated_at'];
+const day = (s) => new Date(`${s}T12:00:00Z`);
+// A Sheet as 0.6.0 left it, set up by 0.7.0, with rows typed in by a grown-up.
+function school(typedLists = [], typedTests = []) {
+  const b = bed();
+  b.run('setup');
+  const type = (tab, heads, rows) => {
+    const s = b.ss.getSheetByName(tab);
+    rows.forEach((o, i) => s.getRange(2 + i, 1, 1, heads.length).setValues([heads.map((h) => (o[h] === undefined ? '' : o[h]))]));
+  };
+  type('School lists', LISTS, typedLists);
+  type('School tests', TESTS, typedTests);
+  return b;
+}
+const schoolOf = (b, pid) => b.post('profile', { profile_id: pid }).school;
+
+check('setup on the 0.6.0 shape adds only School lists and School tests, formatted, and changes no data', () => {
+  const b = bed();
+  b.run('setup');
+  const fresh = bed({ tabs: Object.fromEntries(Object.entries(b.ss.dump()).filter(([n]) => !/^School/.test(n))) });
+  const before = fresh.ss.dump();
+  const log = fresh.run('setup');
+  const after = fresh.ss.dump();
+  eq(Object.keys(after).filter((n) => !(n in before)), ['School lists', 'School tests'], 'tabs added');
+  Object.keys(before).forEach((tab) => eq(after[tab], before[tab], `tab ${tab}`));
+  eq([after['School lists'], after['School tests']], [[LISTS], [TESTS]], 'header rows only');
+  ok(fresh.ss.copies.length === 1, 'a backup first');
+  const s = fresh.ss.getSheetByName('School tests');
+  eq(Object.keys(s.formats).map(Number).sort(), [2, 3], 'date columns formatted');
+  ok(s.validations[1] && s.validations[1][0].range && s.validations[1][0].allowInvalid, 'child picked from the Profiles names, any other name only warned');
+  eq([...s.hiddenColumns].sort((a, c) => a - c), [6, 7, 8, 9], 'id columns hidden');
+  ok(log.some((l) => /School lists/.test(l)), 'setup says what it added');
+});
+
+check('a list typed for a child (by name, any letter case) goes to that child only, with ids given once', () => {
+  const b = school([{ child: ' sam ', set_on: day('2026-12-01'), words: 'rain, train snail;paint' }]);
+  const first = schoolOf(b, 'p_sam');
+  eq(first.lists.map((l) => [l.set, l.words]), [['2026-12-01', ['rain', 'train', 'snail', 'paint']]], "Sam's lists");
+  ok(/^S[0-9a-f]{10}$/.test(first.lists[0].id), 'an id');
+  eq(schoolOf(b, 'p_sam').lists[0].id, first.lists[0].id, 'the same id next time');
+  eq(schoolOf(b, 'p_alex').lists, [], "Alex's lists");
+  const row = rowsOf(b, 'School lists')[0];
+  eq([row.child, row.words, row.list_id, row.profile_id], [' sam ', 'rain, train snail;paint', first.lists[0].id, 'p_sam'], 'what was typed is kept; ids added');
+  ok(/^Waiting: goes into Word Garden the next time Sam plays it$/.test(row.status), row.status);
+});
+
+check('a list without a date or words is not given out, and says why', () => {
+  const b = school([{ child: 'Sam', set_on: 'next week', words: 'rain' }, { child: 'Sam', set_on: day('2026-12-01'), words: '' }]);
+  eq(schoolOf(b, 'p_sam').lists, [], 'lists');
+  eq(rowsOf(b, 'School lists').map((r) => r.status), ['Problem: set_on must be a date, like 01/12/2026', 'Problem: no words'], 'status');
+});
+
+check('a test typed for a child: dates as days, missed words split, blank meaning all right; 01/12/2026 as text works', () => {
+  const b = school([], [
+    { child: 'Sam', list_set_on: day('2026-12-01'), taken_on: day('2026-12-05'), missed_words: 'train, paint' },
+    { child: 'Sam', list_set_on: '01/12/2026', taken_on: '08/12/2026', missed_words: '' },
+  ]);
+  eq(schoolOf(b, 'p_sam').tests.map((t) => [t.list_set, t.taken, t.missed]),
+    [['2026-12-01', '2026-12-05', ['train', 'paint']], ['2026-12-01', '2026-12-08', []]], 'tests');
+  ok(rowsOf(b, 'School tests').every((r) => /^T[0-9a-f]{10}$/.test(r.test_id) && r.profile_id === 'p_sam'), 'ids added');
+});
+
+check('saveSchool: statuses and results filled in; lists and tests from the game added; nothing typed changed', () => {
+  const b = school([{ child: 'Sam', set_on: day('2026-12-01'), words: 'rain train snail paint' }],
+    [{ child: 'Sam', list_set_on: day('2026-12-01'), taken_on: day('2026-12-05'), missed_words: 'train' }]);
+  const got = schoolOf(b, 'p_sam');
+  const L = got.lists[0], T = got.tests[0];
+  const typed = rowsOf(b, 'School lists').map((r) => [r.child, r.set_on.getTime(), r.words]);
+  const r = b.post('saveSchool', { profile_id: 'p_sam', game_id: 'word-garden',
+    lists: [
+      { id: L.id, set: L.set, words: ['rain', 'train', 'snail', 'paint'], planted: '2026-12-02' },
+      { id: 'L9k2', set: '2026-11-20', words: ['cat', 'dog'], planted: null },
+      { id: 'Sbad', problem: 'School lists are for Year 1 and up' },
+    ],
+    tests: [
+      { id: T.id, list: L.id, taken: '2026-12-05', missed: ['train'], right: 3, total: 4 },
+      { id: 'Tgame1', list: 'L9k2', taken: '2026-11-27', missed: ['dog'], right: 1, total: 2 },
+    ] });
+  okReply(r, 'saveSchool');
+  const lists = rowsOf(b, 'School lists'), tests = rowsOf(b, 'School tests');
+  eq(lists.map((x) => [x.child, x.words, x.status, x.list_id]), [
+    [typed[0][0], typed[0][2], 'Planted 02/12/2026', L.id],
+    ['Sam', 'cat, dog', 'In the garden: seeds waiting to be planted', 'L9k2'],
+  ], 'School lists');
+  eq(lists[0].set_on.getTime(), typed[0][1], 'the typed date is kept');
+  eq(tests.map((x) => [x.child, x.missed_words, x.result, x.test_id, x.list_id]), [
+    ['Sam', 'train', '3 of 4 right', T.id, L.id],
+    ['Sam', 'dog', '1 of 2 right', 'Tgame1', 'L9k2'],
+  ], 'School tests');
+  eq(b.ss.formatDate ? 0 : tests[1].list_set_on.getDate(), 20, 'a test from the game gets its list’s date');
+  okReply(b.post('saveSchool', { profile_id: 'p_sam', game_id: 'word-garden', lists: [{ id: L.id, set: L.set, words: [], planted: '2026-12-02' }], tests: [] }), 'again');
+  eq(rowsOf(b, 'School lists').length, 2, 'sending again adds nothing');
+});
+
+check('a row the game could not take shows why', () => {
+  const b = school([{ child: 'Sam', set_on: day('2026-12-01'), words: 'rain' }]);
+  const L = schoolOf(b, 'p_sam').lists[0];
+  okReply(b.post('saveSchool', { profile_id: 'p_sam', game_id: 'word-garden', lists: [{ id: L.id, problem: 'School lists are for Year 1 and up; this garden is Reception.' }], tests: [] }), 'saveSchool');
+  eq(rowsOf(b, 'School lists')[0].status, 'Not added: School lists are for Year 1 and up; this garden is Reception.', 'status');
+});
+
+check('saveSchool refuses an unknown child or another game, and changes nothing', () => {
+  const b = school();
+  const before = b.ss.dump();
+  const r1 = b.post('saveSchool', { profile_id: 'p_nobody', game_id: 'word-garden', lists: [{ id: 'L1', set: '2026-12-01', words: ['a'] }] });
+  const r2 = b.post('saveSchool', { profile_id: 'p_sam', game_id: 'kriss-kross', lists: [{ id: 'L1', set: '2026-12-01', words: ['a'] }] });
+  eq([r1.ok, r1.error, r2.ok, r2.error], [false, 'no_such_profile', false, 'bad_game_id'], 'replies');
+  eq(b.ss.dump(), before, 'Sheet');
+});
+
+check('before setup adds the school tabs, profile still answers, with no school rows', () => {
+  const b = bed({ tabs: sheet040() });
+  eq(b.post('profile', { profile_id: 'p_sam' }).school, { lists: [], tests: [] }, 'school');
+});
+
 for (const { name, fn } of checks) {
   try {
     fn();

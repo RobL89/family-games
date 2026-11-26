@@ -3,5 +3,8 @@
   "colour": "#3E8E4A",
   "icon": "icon.svg",
   "page": "original.html",
-  "adapter": "adapter.js"
+  "adapter": "adapter.js",
+  "settings": [
+    "school-lists"
+  ]
 }
