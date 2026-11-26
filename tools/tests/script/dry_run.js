@@ -1,11 +1,13 @@
-// Dry run of apps-script/Code.gs on a local copy of the live Sheet (stage 5, P75; script 0.5.0, P88):
-// what `setup` and the first calls would change, before Rob pastes the script.
+// Dry run of apps-script/Code.gs on a local copy of the live Sheet (stage 5, P75; script 0.5.0, P88;
+// script 0.6.0, P89): what `setup` and the first calls would change, before Rob pastes the script.
+// A copy without a Plays tab is checked as 0.5.0's first install; one with it (0.5.0 live), for 0.6.0.
 //
 //   node tools/tests/script/dry_run.js <copy.json>
 //
 // <copy.json> is { "<tab>": [[header...], [row...], ...], ... } in the Sheet's tab order, read from
 // the live Sheet through the Google Drive connector. It holds the children's names, so it is kept
-// outside the repo and never committed. Cells written as dd/mm/yyyy become dates. Nothing here
+// outside the repo and never committed. Cells written as dd/mm/yyyy become dates; an optional
+// "_hidden": [tab names] lists the tabs hidden in the live Sheet. Nothing here
 // reaches Google: it runs the real script against the stand-ins in google.js.
 // Prints only ids and counts, never names.
 
@@ -18,6 +20,8 @@ const file = process.argv[2];
 if (!file) { console.error('Usage: node tools/tests/script/dry_run.js <copy.json>'); process.exit(2); }
 const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
 const tabs = {};
+const hiddenTabs = raw._hidden || [];
+delete raw._hidden;
 for (const [name, cells] of Object.entries(raw)) {
   tabs[name] = cells.map((line) => line.map((v) => {
     const m = typeof v === 'string' && v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -32,8 +36,40 @@ let problems = 0;
 const expect = (ok, what) => { say(`${ok ? 'ok  ' : 'NOT '} ${what}`); if (!ok) problems++; };
 
 const b = open({ tabs });
+hiddenTabs.forEach((t) => { const s = b.ss.getSheetByName(t); if (s) s.hideSheet(); });
 const before = b.ss.dump();
 say(`Before: tabs ${Object.keys(before).map((t) => `${t} (${Math.max(0, before[t].length - 1)} rows)`).join(', ')}`);
+
+if ('Plays' in tabs) {
+  // ---- Script 0.6.0 on a Sheet with 0.5.0 live (P89) ----
+  const old = open({ tabs: JSON.parse(JSON.stringify(tabs), (k, v) => (typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v) ? new Date(v) : v)), script: process.argv[3] });
+  const log = b.run('setup');
+  say('setup log: ' + log.join(' | '));
+  expect(same(b.ss.dump(), before) && b.ss.copies.length === 0, 'setup has nothing to do: no tab, header or cell changes, no backup needed');
+  expect(b.post('ping').version === '0.6.0', 'ping answers 0.6.0');
+  const profiles = b.post('profiles');
+  expect(profiles.ok && profiles.profiles.length > 0, `profiles: ${profiles.profiles.length} players, ${profiles.skins.length} skins`);
+  for (const p of profiles.profiles) {
+    const r = b.post('profile', { profile_id: p.profile_id });
+    const o = process.argv[3] ? old.post('profile', { profile_id: p.profile_id }) : null;
+    expect(r.ok && (!o || same(r.states, o.states)), `profile ${p.profile_id}: ${Object.keys(r.states || {}).length} saved game(s)${o ? ', the same as 0.5.0 gives' : ''}`);
+  }
+  // A big state, like a Word Garden garden, on this copy only.
+  const someone = profiles.profiles[0].profile_id;
+  const big = { packed: 'lz64:' + 'Ab+/='.repeat(24000), at: new Date().toISOString() };
+  const r = b.post('saveState', { profile_id: someone, game_id: 'word-garden', state: big });
+  const rows = b.ss.getSheetByName('Settings').dump().filter((l) => l[1] === 'word-garden');
+  expect(r.ok && r.saved && same(rows.map((l) => l[2]), ['state', 'state#2', 'state#3']) && rows.every((l) => l[3].length <= 45000),
+    `a ${JSON.stringify(big).length}-character state for ${someone} goes into 3 Settings rows (state, state#2, state#3), each under the cell limit`);
+  expect(same(b.post('profile', { profile_id: someone }).states['word-garden'].state, big), 'and comes back unchanged');
+  const now = b.ss.dump();
+  const kept = before.Settings.every((l, i) => same(l, now.Settings[i]));
+  const others = Object.keys(before).filter((t) => t !== 'Settings' && !same(before[t], now[t]));
+  expect(kept && others.length === 0, `existing Settings rows and every other tab unchanged: ${others.join(', ') || 'none changed'}`);
+  say(problems ? `DRY RUN: ${problems} problem(s)` : 'DRY RUN: as expected');
+  console.log(lines.join('\n'));
+  process.exit(problems ? 1 : 0);
+}
 
 // 1. setup, as Rob will run it after pasting (script 0.5.0, P88).
 const log = b.run('setup');
