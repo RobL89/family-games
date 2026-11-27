@@ -1,24 +1,29 @@
 """Hamster Highway step 18b (i) (D-224): level 30, Confetti party (L15b), the finale at the fair, designed to its floor on a
 sketch page drawn by the real game for Rob's yes or no before anything is built; with mock-ups of the lantern gate and the
-confetti poppers. Version 0.1 (27 Nov). The shape of mock_hamster_level29.py 0.1.
+confetti poppers. Version 0.2 (27 Nov). The shape of mock_hamster_level29.py 0.1.
+
+Changes at v0.2: a new design. Rob on v0.1 (27 Nov): "You have a large mass of blocks on the right side making it a linear
+climb up. Very little puzzle solving needed." No staircase: open, separate fair things; a loop out and back (right along the
+bottom, up the teacup ride, right along the top to the button, back left by the zip-line); one spoon wanted in two places;
+the right hook only reached after the button, a wrong hook before it; Pudding's own wrong road at the coconut shy; checks
+that every road rides the teacups. Faults 2 to 7 re-aimed at the new design.
 
 The floor (D-238): every road at least 6 heights and 8 gadgets, 3 roads home or more, at least 4 tempting wrong roads; all
 five new things (D-239): the zip-line on every road, the spoon, the signpost, the button as the lantern gate (D-240) and
-Pudding in the line; the tray at most 7 kinds. The design below (DESIGN) is Claude's, proposed: the fair, second stop. The
-start bank and the boating lake on the left, the helter-skelter's steps up to its top on the right, two blocks hanging over
-the top to hook the zip-line under, the button at the far end of the top, and the zip-line back left, high over the fair, to the jetty;
-over the lantern drawbridge to the confetti stage, home. 24 x 9 (D-236).
+Pudding in the line; the tray at most 7 kinds. The design below (DESIGN) is Claude's, proposed: the fair, second stop, with
+the teacup ride (a lift, a level part since step 4) as the way up; the layout is drawn in the comment above DESIGN. 24 x 9
+(D-236).
 
 Checked with core.js's own run() (the repo's HEAD), each road its gadgets in order (a zip-line as ['zip', hc, hr, lc, lr]):
   - every gadget fits where it goes, in that order, and the tray holds them all; all five hamsters get home, Pudding too;
     each gadget is needed (take any one away: not all five home, or another no longer fits); the zip-line, the signpost
-    and the button on every road (the button pressed before anyone reaches the drawbridge);
+    and the button on every road (the button pressed before anyone reaches the drawbridge); the teacups ridden;
   - the floor: rows of 'walk' steps of all five hamsters (D-212's count) at least 6, gadgets at least 8;
   - right roads: at least 3, each its own gadget kinds as the first hamster uses them (solver 1.10's used()); one takes
     the golden seed; the spoon on one road or more; at least 4 wrong roads, none getting all five home, one of them
     Pudding's alone (four home, Pudding not);
-  - no way home with SEARCH gadgets or fewer, by solver 1.10's pathSearch() with zip-lines (as level 29's script); D-238
-    asked for 6: see the page (6 needs ~50 million placements, over node's Set's ~16.7 million).
+  - no way home with SEARCH gadgets or fewer (--search, default 5), by solver 1.10's pathSearch() with zip-lines (as level
+    29's script); D-238 asked for 6: Q-096.
 Then a scratch worktree of HEAD (the fair's look A is in the game since 18a (ii)), with mock_hamster_finale.js 0.1 appended
 to art.js and mock_hamster_finale.css 0.1 to style.css, is drawn by the real game (built with build_preview.py, headless
 Chromium standing in for a PC window, 1366 x 650): every road put down by taps through the test hook __test.openBoard(def)
@@ -30,9 +35,9 @@ the whole board at once (VIEW 24 across): the real game shows 16 across and slid
 Checks (exit 1 if one fails): those above; every road drawn and its run started; the button pressed and the lanterns lit in
 each gate look; the poppers drawn in each popper look; the screenshots all there, none blank; the game logged no errors;
 the page names no web address. --fault N plants a fault the checks must catch: 1 a web address in the page; 2 the lid one
-square short (the drawbridge doesn't reach); 3 one straw fewer in the tray; 4 home moved onto the steps (a short cut);
-5 a screenshot left out; 6 the 'one block too far' wrong road hooked under the right block (it gets home); 7 the golden seed
-moved off every road.
+square short (the drawbridge doesn't reach); 3 one straw fewer in the tray; 4 home moved onto the coconut shy (a short
+cut); 5 a screenshot left out; 6 the 'hooked under the lantern' wrong road hooked in the right place (it gets home); 7 the
+golden seed moved off every road.
 
 Usage, from the repo root:
     python3 -B tools/tests/games/mock_hamster_level30.py OUT.html [--fault N] [--search N]
@@ -74,62 +79,68 @@ def board(w, h, blocks, marks):
     return [''.join(x) for x in g]
 
 
-# ---------------------------------------------------------------- the design (Claude's, proposed, 27 Nov)
+# ---------------------------------------------------------------- the design (Claude's, proposed, 27 Nov; v0.2 after Rob's "needs more work")
 CORAL, BLUE, GREEN, PURPLE = '#E8594A', '#2F7DD3', '#2E9E5B', '#8A5CD0'
-# the start bank (0 to 4, top row 7); the boating lake (5 and 6); the fairground (7 on); the confetti stage (0 to 2, row 3),
-# home on it; the lantern drawbridge's gap (3 and 4, row 3: the lid); the jetty (5 to 8, row 3); the helter-skelter's steps
-# (10 to 12 top row 6, 13 and 14 top row 5, 15 to 17 top row 3) and its top (18 to 23, top row 2), the button at its far
-# end; two blocks hanging over the top to hook under (16 and 17, row 0)
-BLOCKS = [(0, 4, 7, 8), (7, 23, 8, 8), (0, 2, 3, 3), (5, 8, 3, 3),
-          (10, 12, 6, 8), (13, 14, 5, 8), (15, 17, 3, 8), (18, 23, 2, 8), (16, 16, 0, 0), (17, 17, 0, 0)]
-MARKS = {'S': (0, 6), 'G': (1, 2), '*': (6, 4)}   # the seed high over the lake, on the spoon's arc
-LID = [[3, 3], [4, 3]]
-TRAY = {'zip': 1, 'catapult': 1, 'signpost': 1, 'ramp': 2, 'tube': 6, 'bridge': 2, 'bouncer': 1}
+# The boating lake (0 to 5, open to the bottom), with the confetti stage (0 and 1, row 5, home on it) and the jetty (4 to 7,
+# row 5) floating over it and the lantern drawbridge's gap between them (2 and 3, row 5: the lid); the stage's canopy (0, 1,
+# rows 2 and 3) and the lantern arch over the drawbridge (2 to 5, row 2): it stops the spoon flinging them over the
+# drawbridge from the jetty (a short cut past the button, found by the search on a first try). The start's patch (6), a ditch (7), the midway (8, 9); the coconut shy (10, 11, top row 6);
+# the teacup ride (a lift, 12, from the shy's top up to the top walk); the top walk (13, 14 and 17, 18, row 2; a gap at 15,
+# 16) with a lantern hanging over its start (14, row 0); under its far part the lower walk (17 to 19, row 4; a gap at 20;
+# 21), and the button's stand (22, 23, top row 3). Every hook for the zip-line is a block's underside: the right one is the
+# top walk over the lower walk, reached only after the button.
+BLOCKS = [(6, 6, 8, 8), (8, 9, 8, 8), (13, 23, 8, 8), (10, 11, 6, 8), (12, 12, 7, 8),
+          (0, 1, 5, 5), (4, 7, 5, 5), (0, 1, 2, 3), (2, 5, 2, 2),
+          (13, 14, 2, 2), (17, 18, 2, 2), (14, 14, 0, 0),
+          (17, 19, 4, 4), (21, 21, 4, 4), (22, 23, 3, 4)]
+MARKS = {'S': (6, 7), 'G': (0, 4), '*': (17, 0)}   # the seed over the top walk's gap, on the spoon's arc
+LID = [[2, 5], [3, 5]]
+TRAY = {'zip': 1, 'catapult': 1, 'signpost': 1, 'ramp': 1, 'bridge': 2, 'tube': 5, 'bouncer': 1}
 PUDDING = 2   # third in the line
 if FAULT == 2:
-    LID = [[4, 3]]
+    LID = [[3, 5]]
 if FAULT == 3:
-    TRAY = {**TRAY, 'tube': 5}
+    TRAY = {**TRAY, 'tube': 4}
 if FAULT == 4:
-    MARKS = {**MARKS, 'G': (13, 4)}
+    MARKS = {**MARKS, 'G': (11, 5)}
 if FAULT == 7:
     MARKS = {**MARKS, '*': (20, 0)}
-LAKE_BRIDGES = [['bridge', 5, 7], ['bridge', 6, 7]]                    # over the boating lake on two bridges
-LAKE_SPOON = [['catapult', 4, 6]]                                       # or flung over it by the spoon (through the seed)
-FOOT_STRAWS = [['tube', 9, 7], ['tube', 9, 6], ['tube', 9, 5]]          # up the helter-skelter's first step by three straws
-FOOT_SPOON = [['catapult', 8, 7]]                                       # or the spoon: they bump its edge and plop on top
-STEP_RAMP = [['ramp', 12, 5]]                                           # a ramp up the second step
-MID_STRAWS = [['tube', 14, 4], ['tube', 14, 3], ['tube', 14, 2]]        # three straws up the third
-TOP = [['ramp', 17, 2], ['signpost', 23, 1], ['zip', 16, 1, 8, 2]]      # a ramp to the top; past the button, a signpost turns them; the zip-line under the near block
+DITCH = [['tube', 7, 8]]                                                # a straw lying in the ditch
+SHY_SPOON = [['catapult', 8, 7]]                                        # the spoon bumps them up onto the coconut shy
+SHY_STRAWS = [['tube', 9, 7], ['tube', 9, 6], ['tube', 9, 5]]           # or three straws
+GAP_BRIDGES = [['bridge', 15, 2], ['bridge', 16, 2]]                    # over the top walk's gap on two bridges
+GAP_SPOON = [['catapult', 14, 1]]                                       # or flung over it by the spoon, through the seed
+FAR = [['tube', 20, 4]]                                                 # a straw across the lower walk's gap
+END = [['ramp', 21, 3], ['signpost', 23, 2], ['zip', 17, 3, 7, 4]]      # a ramp onto the stand, past the button a signpost; the zip-line back left
 DESIGN = {
     'def': {'id': 'L15b', 'name': 'Confetti party', 'room': 'park', 'spot': 'fair2', 'back': 'fairA', 'new': None, 'twin': 'L15', 'roads': 3, 'pudding': PUDDING,
-            'tray': TRAY, 'parts': [{'kind': 'button', 'c': 22, 'r': 1, 'lid': LID}], 'rows': board(24, 9, BLOCKS, MARKS)},
+            'tray': TRAY, 'parts': [{'kind': 'lift', 'c': 12, 'top': 2, 'bottom': 6, 'cups': 2}, {'kind': 'button', 'c': 22, 'r': 2, 'lid': LID}],
+            'rows': board(24, 9, BLOCKS, MARKS)},
     'level': 30, 'floor': (6, 8), 'roadsMin': 3, 'wrongMin': 4, 'search': SEARCH,
-    'idea': 'The fair, at the end of the day\'s fun. Over the boating lake, up the helter-skelter\'s steps to its top, along to the far end to press the '
-            'lantern gate\'s button, then a signpost turns them back, they grab the zip-line hooked under the near hanging block and zip back left, high over the '
-            'fair, to the jetty; over the lantern drawbridge onto the confetti stage, home. Pudding is third in the line: a bouncer squashes under it. '
-            'Three roads, each by the zip-line, the signpost and the button: bridges and straws all the way; the spoon over the lake (through the golden seed); '
-            'or bridges and the spoon up the first step.',
-    'roads': [{'name': 'Road A, straws all the way', 'colour': CORAL, 'placed': LAKE_BRIDGES + FOOT_STRAWS + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'two bridges over the boating lake, three straws up the helter-skelter\'s first step, a ramp up the second, three straws up the third, '
-                        'a ramp onto the top; along to the far end to press the button, the signpost turns them back, and they zip back over the fair from the near hanging block; '
-                        'over the drawbridge, home'},
-              {'name': 'Road B, the spoon over the lake', 'colour': BLUE, 'seed': True, 'placed': LAKE_SPOON + FOOT_STRAWS + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'the spoon on the bank flings them high over the boating lake, through the golden seed; then up the helter-skelter as road A'},
-              {'name': 'Road C, the spoon up the steps', 'colour': GREEN, 'placed': LAKE_BRIDGES + FOOT_SPOON + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'over the lake on the bridges; the spoon at the helter-skelter\'s foot flings them at the first step: they bump its edge and plop on top; '
-                        'then up as road A'}],
-    'wrong': [{'name': 'A bouncer at the foot', 'show': True, 'pudding': True, 'placed': LAKE_BRIDGES + [['bouncer', 9, 7]] + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'one marshmallow in place of three straws: the Nibbles boing up the step, but Pudding squashes it flat and sits at the bottom, giggling'},
-              {'name': 'Hooked one block too far', 'show': True,
-               'placed': LAKE_BRIDGES + FOOT_STRAWS + STEP_RAMP + MID_STRAWS + [['ramp', 17, 2], ['signpost', 23, 1], ['zip', 16 if FAULT == 6 else 17, 1, 8, 2]],
-               'words': 'they grab the reel as they climb onto the top, before anyone has pressed the button: the drawbridge is still up, and they tumble down onto the bank'},
-              {'name': 'No signpost', 'show': True, 'placed': LAKE_BRIDGES + FOOT_STRAWS + STEP_RAMP + MID_STRAWS + [['ramp', 17, 2], ['zip', 16, 1, 8, 2]],
-               'words': 'they press the button and walk on to the very end of the top, and stop there, looking down'},
-              {'name': 'The spoon too far back', 'show': True, 'placed': [['catapult', 2, 6]] + FOOT_STRAWS + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'flung short: splash, into the boating lake'},
-              {'name': 'Two straws at the foot', 'placed': LAKE_BRIDGES + FOOT_STRAWS[:2] + STEP_RAMP + MID_STRAWS + TOP,
-               'words': 'one straw short: they come out under the step\'s edge and can\'t get on'}]}
+    'idea': 'The fair, at the end of the day. Home is the confetti stage, just over the boating lake from the start, but its lantern drawbridge is up: its '
+            'button is at the far side of the fair, at the top. So: over the ditch, up onto the coconut shy, ride the teacups up to the top walk, over its gap, '
+            'drop onto the lower walk, over its gap and up the ramp onto the button\'s stand; a signpost past the button turns them back, and from under the top '
+            'walk they zip-line back left over the whole fair to the jetty; the drawbridge is down now, home. Pudding is third in the line: a marshmallow squashes '
+            'under it. One spoon, wanted in two places (up the shy, or over the gap), so the child has to choose.',
+    'roads': [{'name': 'Road A, the spoon up the shy', 'colour': CORAL, 'placed': DITCH + SHY_SPOON + GAP_BRIDGES + FAR + END,
+               'words': 'a straw in the ditch; the spoon bumps them up onto the coconut shy; the teacups take them up; two bridges over the gap in the top walk; '
+                        'drop to the lower walk, a straw over its gap, the ramp onto the stand, press the button, the signpost turns them; back along under the '
+                        'top walk, grab the zip-line, zip over the fair to the jetty, over the drawbridge, home'},
+              {'name': 'Road B, the spoon over the gap', 'colour': BLUE, 'seed': True, 'placed': DITCH + SHY_STRAWS + GAP_SPOON + FAR + END,
+               'words': 'three straws up onto the coconut shy, so the spoon is free for the top walk: it flings them over the gap, through the golden seed; then as road A'},
+              {'name': 'Road C, straws and bridges', 'colour': GREEN, 'placed': DITCH + SHY_STRAWS + GAP_BRIDGES + FAR + END,
+               'words': 'no spoon at all: three straws up the shy and two bridges over the gap; then as road A'}],
+    'wrong': [{'name': 'A marshmallow up the shy', 'show': True, 'pudding': True, 'placed': DITCH + [['bouncer', 9, 7]] + GAP_BRIDGES + FAR + END,
+               'words': 'one marshmallow in place of three straws: the Nibbles boing up onto the shy, but Pudding squashes it flat and sits at the bottom'},
+              {'name': 'Hooked under the lantern', 'show': True,
+               'placed': DITCH + SHY_STRAWS + GAP_BRIDGES + FAR + [['ramp', 21, 3], ['signpost', 23, 2], ['zip', 17, 3, 7, 4] if FAULT == 6 else ['zip', 14, 1, 4, 4]],
+               'words': 'they grab the reel as soon as they step off the teacups, before anyone has pressed the button: the drawbridge is still up, splash'},
+              {'name': 'The signpost too soon', 'show': True, 'placed': DITCH + SHY_STRAWS + GAP_SPOON + FAR + [['ramp', 21, 3], ['signpost', 19, 3], ['zip', 17, 3, 7, 4]],
+               'words': 'it turns them before they reach the button: they zip back with the drawbridge still up, splash'},
+              {'name': 'The spoon over the far gap', 'show': True, 'placed': DITCH + SHY_STRAWS + GAP_BRIDGES + [['catapult', 19, 3]] + END,
+               'words': 'it flings them over on the way out, but a spoon only throws one way: coming back they fall in'},
+              {'name': 'One bridge over the gap', 'placed': DITCH + SHY_STRAWS + GAP_BRIDGES[:1] + FAR + END,
+               'words': 'one bridge short: they fall through the top walk'}]}
 
 # ---------------------------------------------------------------- the scratch worktree: checks with run(), then the game
 WT = '/tmp/hh-level30-wt' + (str(FAULT) if FAULT else '')
@@ -162,7 +173,8 @@ const go = (list) => {
   let over = null;   // the first tick anyone stands over the drawbridge
   for (const h of res.hamsters) for (const st of h.steps) if (lid.has(core.key(st.c, Math.round(st.r))) && (over === null || st.t0 < over)) over = st.t0;
   return { bad, placed, res, rows: [...rows].sort((a, b) => a - b), outs: res.hamsters.map((h) => h.outcome), home: res.hamsters.filter((h) => h.outcome === 'home').length,
-    seed: res.hamsters.some((h) => h.seed), press: press ? press.t : null, over, pudding: level.pudding === null ? null : res.hamsters[level.pudding].outcome };
+    seed: res.hamsters.some((h) => h.seed), press: press ? press.t : null, over, pudding: level.pudding === null ? null : res.hamsters[level.pudding].outcome,
+    rode: res.hamsters.every((h) => h.steps.some((st) => st.act === 'ride')) };
 };
 // solver 1.10's used(): the gadget kinds the first hamster uses
 function used(placed) {
@@ -215,7 +227,7 @@ const o = { roads: [], wrong: [] };
 for (const road of D.roads) {
   const r = go(road.placed);
   const need = road.placed.map((gd, i) => { const x = go(road.placed.filter((_, j) => j !== i)); return x.home < 5 || x.bad.length > 0; });
-  o.roads.push({ name: road.name, bad: r.bad, home: r.home, outs: r.outs, rows: r.rows, gadgets: road.placed.length, seed: r.seed, need, press: r.press, over: r.over,
+  o.roads.push({ name: road.name, bad: r.bad, home: r.home, outs: r.outs, rows: r.rows, gadgets: road.placed.length, seed: r.seed, need, press: r.press, over: r.over, rode: r.rode,
     kinds: used(r.placed), path: steps(r.res.hamsters[0]), ticks: r.res.ticks });
 }
 for (const w of D.wrong) {
@@ -269,6 +281,7 @@ for rd, R in zip(D['roads'], o['roads']):
     ks = R['kinds'].split('+')
     check('zip' in ks and 'signpost' in ks, f"{tag}: the zip-line and the signpost used ({R['kinds']})")
     check(R['press'] is not None and R['over'] is not None and R['press'] < R['over'], f"{tag}: the button pressed (tick {R['press']}) before anyone reaches the drawbridge (tick {R['over']})")
+    check(R['rode'], f'{tag}: all five ride the teacups')
     if rd.get('seed'):
         check(R['seed'], f'{tag}: takes the golden seed')
 ks = {R['kinds'] for R in o['roads']}
@@ -414,7 +427,7 @@ with sync_playwright() as pw:
     pg.on('pageerror', lambda e: errors.append(str(e)))
     pg.goto(URL)
     pg.wait_for_function('window.__test !== undefined && __test.state().ready', timeout=10000)
-    p0 = D['def']['parts'][0]
+    p0 = next(p for p in D['def']['parts'] if p['kind'] == 'button')
     hinge = sorted(p0['lid'])[0]
     at = {'bx': p0['c'] * 60, 'by': (p0['r'] + 1) * 60, 'hx': hinge[0] * 60, 'hy': hinge[1] * 60, 'n': len(p0['lid'])}
     road = D['roads'][1]
@@ -487,7 +500,7 @@ def gadlist(placed):
 
 d = D['def']
 h = f'<p class="meta">{len(d["rows"][0])} × {len(d["rows"])} · tray: {tray(d["tray"])} ({sum(d["tray"].values())}, {len(d["tray"])} kinds) · Pudding third in the line · the fair\'s second stop, level 29\'s twin, and the last level.</p>'
-h += f'<p>{D["idea"]}</p><figure>{img(SHOTS.get("empty"), "the empty board")}<figcaption>the board as the child first sees it (here the whole of it; in the game 16 squares across, sliding); the button is the red cap at the top right, the drawbridge stands up at the stage\'s edge (drawn as today\'s lid until a gate look is picked)</figcaption></figure>'
+h += f'<p>{D["idea"]}</p><figure>{img(SHOTS.get("empty"), "the empty board")}<figcaption>the board as the child first sees it (here the whole of it; in the game 16 squares across, sliding); the button is the red cap on the stand at the top right; the teacup ride is the lift beside the coconut shy; the drawbridge stands up at the stage\'s edge, under the arch (drawn as today\'s lid until a gate look is picked)</figcaption></figure>'
 h += '<table><tr><th>Road</th><th>Heights walked</th><th>Gadgets</th><th>Seed</th></tr>'
 for rd, R in zip(D['roads'], o['roads']):
     h += f'<tr><td><span class="dot" style="background:{rd["colour"]}"></span>{rd["name"]}</td><td>{len(R["rows"])} (at least {fl[0]})</td><td>{R["gadgets"]} (at least {fl[1]})</td><td>{"yes" if R["seed"] else ""}</td></tr>'
@@ -525,12 +538,13 @@ table{{border-collapse:collapse;margin:8px 0;background:#fff}} td,th{{border:1px
 @media (prefers-color-scheme: dark){{body{{background:#17132E;color:#F3EEFF}} figure,table{{background:#231D45;border-color:#ffffff22}} .chk{{color:#8FD49C}} .stamp{{color:#BBB}}}}
 </style></head><body>
 <h1>Hamster Highway: level 30, Confetti party</h1>
-<p class="stamp">mock_hamster_level30.py 0.1 · 27 Nov · step 18b (i) · drawn by the real game (the fair's look A) with each road put down by taps; the gate and popper looks laid over it from mock_hamster_finale.js 0.1; nothing is built yet. The whole board is shown at once here; in the game the window shows 16 squares across and slides. Headless Chromium stands in for a PC window.</p>
+<p class="stamp">mock_hamster_level30.py 0.2 · 27 Nov · step 18b (i) · drawn by the real game (the fair's look A) with each road put down by taps; the gate and popper looks laid over it from mock_hamster_finale.js 0.1; nothing is built yet. The whole board is shown at once here; in the game the window shows 16 squares across and slides. Headless Chromium stands in for a PC window.</p>
 <p><b>What you picked:</b> every road at least 6 heights and 8 gadgets, 3 roads or more, at least 4 tempting wrong roads (D-238); the zip-line on every road, with the spoon, the signpost, the button as the lantern gate and Pudding in the line (D-239, D-240); the merry-go-round with confetti poppers (D-241). 24 squares wide (D-236).</p>
+<p><b>What changed since the first version:</b> you said it was a big block of steps on the right, a straight climb with little to work out. This one has no staircase: separate fair things with sky between them, and a loop. Out along the bottom, up the teacup ride, along the top to the button at the far side, then back by the zip-line over the whole fair to the stage, which is just over the lake from where they started. The thinking is in the choices. There's one spoon for two places. The right hook can only be reached after the button, and there's a tempting one before it. The signpost has to go past the button, and the spoon only throws one way. A marshmallow works for everyone but Pudding. <b>New on this level: the teacup ride</b> (the lift from levels 1 to 20, as a fair ride) is the way up. It's a level part, not a gadget; say if you'd rather not have it.</p>
 <h2>Level 30: {d["name"]}</h2>{h}
 <h2>The lantern gate: two looks</h2>{g_}
 <h2>The confetti poppers: two looks</h2>{p_}
-<section><h2>What I'd like from you</h2><p>A yes or no for level 30 (or what to change), and a pick of gate look (G1 or G2) and popper look (C1 or C2). With a yes, 18b (ii) builds it.</p></section>
+<section><h2>What I'd like from you</h2><p>A yes or no for level 30 (or what to change), the teacup ride included, and a pick of gate look (G1 or G2) and popper look (C1 or C2). With a yes, 18b (ii) builds it.</p></section>
 </body></html>'''
 if FAULT == 1:
     page = page.replace('</body>', '<img src="http://example.com/x.png"></body>')
