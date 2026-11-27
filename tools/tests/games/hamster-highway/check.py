@@ -321,8 +321,7 @@ with sync_playwright() as pw:
     c.check('level 30 played by its seed road: all five home with the seed, the lanterns lit, the two poppers at the party (D-243)',
             s['home'] == 5 and s['seedTaken'] and f.evaluate('window.__lit') and pops == 2, (s['home'], s['seedTaken'], f.evaluate('window.__lit'), pops))
     pg.screenshot(path=f'{OUT}/5-last-level.png')
-    tap(pg, f, '#party [data-act="house"]')
-    f.wait_for_timeout(1500)
+    pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)   # the wrapper's Home, as check 6 does
     sheet = c.states.get(('p_sam', GAME))
     c.check('level 30 done in the progress sent to the Sheet', bool(sheet and sheet['state']['done'].get('L15b') and sheet['state']['seeds'].get('L15b')), sheet and sheet['state']['done'].get('L15b'))
     ctx.close()
