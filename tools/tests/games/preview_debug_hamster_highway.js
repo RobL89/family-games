@@ -1,4 +1,7 @@
-// Hamster Highway's test panel for previews: step 13's spike (D-185, D-190, D-196). Version 1.4 (21 Nov).
+// Hamster Highway's test panel for previews: step 13's spike (D-185, D-190, D-196). Version 1.5 (27 Nov).
+//
+// Changes at 1.5 (step 18a (ii)): a "Playground done" button under "Picnic done": levels 1 to 28 done, 21 to 28 tried,
+// twelve cards seen (not the zip-line's), so Rob can try level 29 at the fair at once, its card popping up.
 //
 // Changes at 1.4 (step 17): a "Picnic done" button under "Frame done": levels 1 to 26 done, 21 to 26 tried, eleven
 // cards seen, so Rob can try levels 27 and 28 at once.
@@ -63,7 +66,7 @@
   const onSpike = () => { const s = window.__test.state(); return s.screen === 'level' && s.level === 'spike' && s.mode === 'build'; };
 
   const css = document.createElement('style');
-  css.textContent = '#spike-open,#park-skip,#pond-skip,#frame-skip,#picnic-skip{position:absolute;left:max(12px,env(safe-area-inset-left));top:12px;z-index:6;font:700 16px system-ui,sans-serif;'
+  css.textContent = '#spike-open,#park-skip,#pond-skip,#frame-skip,#picnic-skip,#playground-skip{position:absolute;left:max(12px,env(safe-area-inset-left));top:12px;z-index:6;font:700 16px system-ui,sans-serif;'
     + 'padding:10px 16px;border-radius:14px;border:3px solid #1B1446;background:#FFC93C;color:#1B1446}'
     + '#spike-banner,#spike-results{position:fixed;z-index:7;pointer-events:none;font:600 12px/1.3 system-ui,sans-serif;box-sizing:border-box;'
     + 'color:#1B1446;background:rgba(255,255,255,0.92);border:2px solid #1B1446;border-radius:10px;padding:3px 8px;margin:0}'
@@ -129,6 +132,20 @@
     const done = Object.fromEntries(ids.map((i) => [i, true]));
     const cards = Object.fromEntries(['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button'].map((k) => [k, true]));
     try { localStorage.setItem('family-games:hamster-highway:progress', JSON.stringify({ v: 2, done, seeds: {}, tries: { L11: 1, L11b: 1, L12: 1, L12b: 1, L13: 1, L13b: 1 }, cards })); } catch { /* storage blocked */ }
+    location.reload();
+  });
+  const play = document.createElement('button');
+  play.id = 'playground-skip';
+  play.type = 'button';
+  play.textContent = 'Playground done';
+  play.style.top = '272px';
+  document.getElementById('title').appendChild(play);
+  play.addEventListener('click', () => {
+    const ids = ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b', 'L14', 'L14b'];
+    for (let n = 1; n <= 10; n++) ids.push(`L${n}`, `L${n}b`);
+    const done = Object.fromEntries(ids.map((i) => [i, true]));
+    const cards = Object.fromEntries(['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'].map((k) => [k, true]));
+    try { localStorage.setItem('family-games:hamster-highway:progress', JSON.stringify({ v: 2, done, seeds: {}, tries: { L11: 1, L11b: 1, L12: 1, L12b: 1, L13: 1, L13b: 1, L14: 1, L14b: 1 }, cards })); } catch { /* storage blocked */ }
     location.reload();
   });
   const banner = document.createElement('p');
