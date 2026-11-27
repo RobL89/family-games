@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.27 · 27 Nov 2026 · P-034 (Kids Games Development) · 29 levels (levels 1 to 10, each with its twin, the park's first four pairs and level 29 at the fair), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.28 · 27 Nov 2026 · P-034 (Kids Games Development) · 30 levels (levels 1 to 10, each with its twin, and the park's five pairs, 21 to 30), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.28 (step 18b (ii) and the release, D-238 to D-249): level 30 *Confetti party*, the finale at the fair: a loop over the coconut shy, up the teacup ride, along the top walk to the button at the far side, and back by the zip-line over the whole fair; the button lowers the lantern drawbridge to home, its string of lanterns lighting gold as it is pressed (G2), and the party has two big confetti poppers (C1). Built to contract 0.4.4 (D-248). Released to P-020 with levels 21 to 30.
 
 Changes at v1.27 (step 18a (ii), D-232 to D-236): the fair. Level 29 *Zip over the lake* brings in the zip-line: up the helter-skelter, hook the zip-line under its balcony and zip over the boating lake, then four roads onto the big wheel's stage (straws, a bounce and bridges, or the spoon), two of them past the golden seed. The fair's backdrop (the big wheel, the helter-skelter, bunting and a balloon stall) moves gently while building and brighter and faster once GO is pressed. On the zip-line a hamster swings and kicks, the line sags under it, sparkles are left behind, and it lets go with a puff and a hop. Its party is a merry-go-round with the five riding. The zip-line's help card: "Hook it high, peg it low!". Not yet released.
 
@@ -53,7 +55,7 @@ throws them up high, a dandelion floater lets them drift down, a tube carries th
 has a nap and fades. All five home: a party, and the next level opens. Original art and sounds,
 all made in code (D-010).
 
-- **Runs on its own:** yes, as a plain page (contract 0.4.2 GC5), saving to the device.
+- **Runs on its own:** yes, as a plain page (contract 0.4.4 GC5), saving to the device.
 - **Needs from the launcher:** sound on or off, and saving its progress (`fg:state`, contract
   section 4), through `games/_common/rocket/link.js` and `shared/bridge.js`. Who's playing isn't used.
 - **Folder:** `games/hamster-highway/`, the game's id (D-146; it was `bridge-builder` until 15 Nov).
@@ -123,6 +125,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.28 | 2026-11-27 | Level 30 at the fair (D-243), the lantern gate G2 and the poppers C1, copied by script from step 18b's masters; contract 0.4.4 (D-248); released with levels 21 to 30 |
 | 1.27 | 2026-11-27 | Level 29 at the fair (D-236), the fair's look A and its two speeds, the zip ride R2, the zip-line's card B and the party P1 (D-234, D-235), copied by script from step 18a's masters |
 | 1.26 | 2026-11-24 | Levels 22 and 24 to 28 one notch up (D-226, D-229), copied by script from the sketch pages' masters; the picnic and playground faded (D-226) |
 | 1.25 | 2026-11-22 | Levels 25 to 28 redesigned to the floor (D-212, D-215), the trap stick on 28 (D-214), the frame faded (D-211), Pudding's counter face (D-216); 1.22 to 1.24's rows were not added here: their notes are at the top |
