@@ -8,6 +8,10 @@ line never sags; no kicks; no sparkles; the usual party at the fair) and one by 
 from the screen). "fix: the carrying poses never drawn" follows game.js 1.18's pose test (startsWith('zip')); five older faults' text
 follows the new lines (cards.js's CARDS ends with 'zip'; art.js's backHeight names fairA): "catapult: no card", "signpost: no
 card" and the frame's, picnic's and playground's "backdrop drawn 420 tall".
+Also at v1.19: the copy for a fault under the main or the cards' browser test now holds P-020's shared/ too, as the spike's
+did: without it the game's page can't load (link.js imports shared/bridge.js), so every such fault "failed" on loading,
+not on the check it aims at, and was counted caught (ER-017, found 27 Nov by a spot check). Browser faults counted
+before 1.19 are unproven until run again.
 Changes at v1.18 (step 17c (ii), D-226 to D-230): thirteen faults named "17c": nine by the core test (level 22 without its
 channel; 22 naming 2 roads; level 24's top bar with v0.1's first gap; level 25 without the thermos; level 26's button on
 the cake stand; level 28's home a row higher, and with three straws; the picnic and the playground at full strength) and
@@ -344,7 +348,7 @@ def run(fault):
     name, rel, old, new, test = fault
     tmp = tempfile.mkdtemp(prefix='hh-mut-')
     try:
-        for d in ('games', 'tools/tests/games') + (('shared',) if test == SPIKE_E2E else ()):   # the preview also bundles P-020's shared/bridge.js
+        for d in ('games', 'tools/tests/games') + (('shared',) if test in (E2E, CARDS_E2E, SPIKE_E2E) else ()):   # the game loads P-020's shared/bridge.js (link.js); without it every browser test fails to load (ER-017)
             shutil.copytree(os.path.join(REPO, d), os.path.join(tmp, d))
         path = os.path.join(tmp, rel)
         text = open(path, encoding='utf-8').read()
