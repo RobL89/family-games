@@ -1,4 +1,13 @@
-// Hamster Highway's levels. Version 1.13. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.14. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.14 (step 18b (ii), D-238 to D-244): level 30, L15b Confetti party, the finale at the fair (look A):
+// copied whole by script (tools/tests/games/copy_hamster_step18b_level.py 0.1) from its master, DESIGN in
+// mock_hamster_level30.py 0.2, as Rob agreed it on its sketch page v0.2 (D-243). 24 x 9, Pudding third, `roads`: 3, a
+// loop: over the ditch, up onto the coconut shy (the spoon or three straws), the teacup ride (a lift) up to the top walk,
+// over its gap (two bridges or the spoon, through the seed), down to the lower walk, a straw over its gap, a ramp onto the
+// button's stand (the button lowers the lantern drawbridge, its lid, over the lake), a signpost past it, and back by the
+// zip-line from under the top walk to the jetty, over the drawbridge home. No spare: road B takes the seed. Every road and
+// wrong road is in the core test's ROADS and WRONG (test_hamster_highway_core.py 1.21).
 //
 // Changes at v1.13 (step 18a (ii), D-232, D-236): level 29, L15 Zip over the lake, at the fair (look A), bringing in the
 // zip-line: copied whole by script (tools/tests/games/copy_hamster_step18a_level.py 0.1) from its master, DESIGN in
@@ -565,6 +574,22 @@ export const LEVELS = [
       '...######.....##.##.####',
       'S..######.....##.##.####',
       '#########.....##.##.####',
+    ],
+  },
+  {
+    id: 'L15b', name: 'Confetti party', room: 'park', spot: 'fair2', back: 'fairA', new: null, twin: 'L15', roads: 3, pudding: 2,
+    tray: { zip: 1, catapult: 1, signpost: 1, ramp: 1, bridge: 2, tube: 5, bouncer: 1 },
+    parts: [{ kind: 'lift', c: 12, top: 2, bottom: 6, cups: 2 }, { kind: 'button', c: 22, r: 2, lid: [[2, 5], [3, 5]] }],
+    rows: [
+      '..............#..*......',
+      '........................',
+      '######.......##..##.....',
+      '##....................##',
+      'G................###.###',
+      '##..####................',
+      '..........##............',
+      '......S...###...........',
+      '......#.################',
     ],
   },
 ];
