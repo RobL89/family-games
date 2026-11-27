@@ -1,15 +1,15 @@
 {
-  "about": "Pins for P-034 (Kids Games Development)'s close checks. Version 1.2. Changes at v1.2 (D-122): the contract pin moves to v0.4.2 (0.4.1: GC5's wait is about 5 s; 0.4.2: the wrapper's cover; no game changes), and the games pack's reason no longer names the draft bridge (D-120 supersedes D-117). Changes at v1.1 (D-114): the contract pin moves to v0.4, and the frozen pin on Kriss Kross goes, as its files are P-020's now (P54, D-115). Change a pin only by a logged decision in P-034. 'frozen': files that must stay byte for byte (sha256). 'drift': what we rely on from P-020 (Family Games Launcher), pinned by git object id on its branch.",
+  "about": "Pins for P-034 (Kids Games Development)'s close checks. Version 1.3. Changes at v1.3 (D-248): the contract pin moves to v0.4.4 (0.4.3: a state may be up to 450,000 characters, compressed over 20,000; 0.4.4: school lists and tests for games that ask for them; both no game changes, checked against Hamster Highway and Rocket Lander). Changes at v1.2 (D-122): the contract pin moves to v0.4.2 (0.4.1: GC5's wait is about 5 s; 0.4.2: the wrapper's cover; no game changes), and the games pack's reason no longer names the draft bridge (D-120 supersedes D-117). Changes at v1.1 (D-114): the contract pin moves to v0.4, and the frozen pin on Kriss Kross goes, as its files are P-020's now (P54, D-115). Change a pin only by a logged decision in P-034. 'frozen': files that must stay byte for byte (sha256). 'drift': what we rely on from P-020 (Family Games Launcher), pinned by git object id on its branch.",
   "format": 1,
   "frozen": [],
   "drift": [
     {
-      "name": "Game contract v0.4.2",
+      "name": "Game contract v0.4.4",
       "branch": "work",
       "path": "docs/game-contract.md",
-      "object": "0824839b00c9dfa8400f35df268adf930149546a",
-      "pinned_at": "17908a0",
-      "why": "We build to it (D-114, D-122)"
+      "object": "082f46ba98d83ec91c5d13706279a672f8c6f6e3",
+      "pinned_at": "ff545e4",
+      "why": "We build to it (D-114, D-122, D-248)"
     },
     {
       "name": "P-020's games pack",

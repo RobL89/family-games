@@ -2,9 +2,11 @@
 
 | | |
 |---|---|
-| **Version** | 1.43 · 2026-11-17 |
+| **Version** | 1.44 · 2026-11-27 |
 | **Owner** | P-034 (Kids Games Development) |
 | **Kind** | Reference: changed only by a decision in P-034 |
+
+**Changes at v1.44:** the game contract pin moves to v0.4.4 (D-248, `pins.json` 1.3): its two changes since 0.4.2 (states up to 450,000 characters; school lists for games that ask) need no change to Hamster Highway or Rocket Lander.
 
 **Changes at v1.43:** Hamster Highway step 13, the spike (D-185, D-190, D-196): 9-row boards, hamsters walking both ways and the zip-line in `core.js` 1.7 and `game.js` 1.10, tried on a test board that opens from the preview's new test panel, `preview_debug_hamster_highway.js` 1.0 (it counts wrong taps); levels 1 to 20 pinned before the change by `pin_hamster_runs.py` 1.0 (`fixture_hamster_runs_1_20.json`) and unchanged; the core test at 1.12; a new browser test `test_hamster_highway_spike_e2e.py` 1.0; the solver at 1.5 (`--board`); the bench at 1.10 (31 spike faults).
 
@@ -168,7 +170,7 @@ python3 -B tools/tests/games/close.py
 
 ## For other projects
 
-**What's here:** P-034's workshop for the games it develops. They are built to the game contract (v0.4.2, on `work`: [docs/game-contract.md](https://github.com/RobL89/family-games/blob/work/docs/game-contract.md); D-114, D-122) and released to P-020 by a board note naming the commit (section 7).
+**What's here:** P-034's workshop for the games it develops. They are built to the game contract (v0.4.4, on `work`: [docs/game-contract.md](https://github.com/RobL89/family-games/blob/work/docs/game-contract.md); D-114, D-122, D-248) and released to P-020 by a board note naming the commit (section 7).
 
 **What's ready:**
 
