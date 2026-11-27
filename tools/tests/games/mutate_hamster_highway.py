@@ -1,5 +1,13 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.18 (24 Nov, step 17c (ii)).
+tests catch (project rules: test the tests). Version 1.19 (27 Nov, step 18a (ii)).
+Changes at v1.19 (step 18a (ii), D-233 to D-236): thirteen faults named "18a": five by the core test (level 29 without the
+balcony's end, so no hook; five straws; no zip-line card; the zip card's peg in before its hook; the fast wheel never
+paused while building), one by the solver (level 29's home on the coconut shy, a short cut under the floor, the sketch
+page's fault 4), six by the main browser test (the board's mode never set; the fair at full strength while building; the
+line never sags; no kicks; no sparkles; the usual party at the fair) and one by the cards' (the zip card's caption gone
+from the screen). "fix: the carrying poses never drawn" follows game.js 1.18's pose test (startsWith('zip')); five older faults' text
+follows the new lines (cards.js's CARDS ends with 'zip'; art.js's backHeight names fairA): "catapult: no card", "signpost: no
+card" and the frame's, picnic's and playground's "backdrop drawn 420 tall".
 Changes at v1.18 (step 17c (ii), D-226 to D-230): thirteen faults named "17c": nine by the core test (level 22 without its
 channel; 22 naming 2 roads; level 24's top bar with v0.1's first gap; level 25 without the thermos; level 26's button on
 the cake stand; level 28's home a row higher, and with three straws; the picnic and the playground at full strength) and
@@ -190,7 +198,7 @@ FAULTS = [
     ('fix: still carries it after landing', G + 'core.js', 'const mark = (st) => { if (floater) st.carry = true; if (d < 0) st.dir = -1; return st; };',
      'let held = false; const mark = (st) => { if (floater) held = true; if (held) st.carry = true; if (d < 0) st.dir = -1; return st; };', CORE),
     ('fix: the carrying poses without the dandelion', G + 'art.js', "else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {", "else if (pose === 'float') {", CORE),
-    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk')", E2E),
+    ('fix: the carrying poses never drawn', G + 'game.js', "    if (s.carry && pose !== 'float' && pose !== 'boing' && !pose.startsWith('zip') && pose !== 'bonk')", "    if (false && s.carry && pose !== 'float' && pose !== 'boing' && !pose.startsWith('zip') && pose !== 'bonk')", E2E),
     ('twin: levels open by the old rule', G + 'game.js', '  return opens(IDS, S.progress, i);', '  return i === 0 || !!S.progress.done[LEVELS[i - 1].id];', CARDS_E2E),
     # step 13, the spike (core.js 1.7, game.js 1.10, preview_debug_hamster_highway.js 1.0): by the core test, then the spike's browser test
     ('spike: 9-row boards refused', G + 'core.js', 'export const MAX_ROWS = 9;', 'export const MAX_ROWS = 7;', CORE),
@@ -228,7 +236,7 @@ FAULTS = [
     ('catapult: the seed on the arc missed', G + 'core.js', "        yield mark(touch({ c, r, act: 'fling' }, c, r));", "        yield mark({ c, r, act: 'fling' });", CORE),
     ('catapult: two ticks a square', G + 'core.js', 'zip: 1, fling: 1, hit: 1 };', 'zip: 1, fling: 2, hit: 1 };', CORE),
     ('catapult: not a gadget', G + 'core.js', "'rampL', 'signpost', 'zip', 'catapult'];", "'rampL', 'signpost', 'zip'];", CORE),
-    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'signpost', 'button', 'pudding'];", CORE),
+    ('catapult: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip'];", "'seesaw', 'lift', 'signpost', 'button', 'pudding', 'zip'];", CORE),
     ('catapult: level 21 without its spare ramp', G + 'levels.js', '    tray: { catapult: 1, ramp: 1 }, spare: \'ramp\',', '    tray: { catapult: 1 }, spare: \'ramp\',', CORE),
     ('catapult: level 21\'s pond 2 wide', G + 'levels.js', "      '#####..........G',\n      '#####...########',\n", "      '#####..........G',\n      '#####..#########',\n", CORE),
     ('park: level 22\'s branch a square shorter', G + 'levels.js', "      '...########.............',\n", "      '...#######..............',\n", CORE),
@@ -249,7 +257,7 @@ FAULTS = [
     ('pudding: the card\'s Pudding leaves the floor', G + 'cards.js', "50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", "50% { ${T(210, 300)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud'", CORE),
     ('playground: level 27 without its spare bouncer', G + 'levels.js', "    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1, bouncer: 1 }, spare: 'bouncer',", "    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1 }, spare: 'bouncer',", CORE),
     ('playground: Pudding first on level 27', G + 'levels.js', "new: 'pudding', pudding: 2,", "new: 'pudding', pudding: 0,", CORE),
-    ('playground: the backdrop drawn 420 tall', G + 'art.js', "name === 'picnic' || name === 'playground' ? 540 : H", "name === 'picnic' ? 540 : H", CORE),
+    ('playground: the backdrop drawn 420 tall', G + 'art.js', "name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H", "name === 'picnic' || name === 'fairA' ? 540 : H", CORE),
     ('pudding: not drawn as Pudding', G + 'game.js', "? pudding : hamster)(pose);   // Pudding (D-189 A)", "? hamster : hamster)(pose);   // Pudding (D-189 A)", E2E),
     ('pudding: the marshmallow doesn\'t squish', G + 'game.js', "  if (e.kind === 'squash') { squishMallow(`${e.c},${e.r}`); play('flump'); return; }", "  if (e.kind === 'squash') return;", E2E),
     ('button: never pressed', G + 'core.js', "    if (ctx.press) ctx.press(c, r);   // a bottle-top button", "    // a bottle-top button", CORE),
@@ -261,9 +269,9 @@ FAULTS = [
     ('picnic: level 25 without its spare ramp', G + 'levels.js', "    tray: { ramp: 5, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',", "    tray: { ramp: 4, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',", CORE),
     ('picnic: level 25\'s lid a square shorter', G + 'levels.js', "lid: [[13, 8], [14, 8], [15, 8]] }]", "lid: [[13, 8], [14, 8]] }]", CORE),
     ('picnic: level 26\'s button gone', G + 'levels.js', "    parts: [{ kind: 'button', c: 19, r: 2, lid: [[15, 7], [16, 7], [17, 7]] }],\n", "", CORE),
-    ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H", "name === 'frame' || name === 'playground' ? 540 : H", CORE),
+    ('picnic: the backdrop drawn 420 tall', G + 'art.js', "name === 'frame' || name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H", "name === 'frame' || name === 'playground' || name === 'fairA' ? 540 : H", CORE),
     ('button: the lid never swings down', G + 'game.js', "    if (lid) lid.style.transform = 'rotate(0deg)';\n", "", E2E),
-    ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];", "'seesaw', 'lift', 'catapult', 'button', 'pudding'];", CORE),
+    ('signpost: no card', G + 'cards.js', "'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip'];", "'seesaw', 'lift', 'catapult', 'button', 'pudding', 'zip'];", CORE),
     ('signpost: the card\'s caption changed', G + 'cards.js', "  signpost: 'Signposts turn them round!',", "  signpost: 'Signs turn them!',", CORE),
     ('signpost: the card\'s hamster never faces left', G + 'cards.js', "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 1 }", "kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 0 }", CORE),
     ('signpost: the card\'s hamster walks back unmirrored', G + 'cards.js', "const left = (body) => g(body, 'scale(-1 1)');", "const left = (body) => g(body, 'scale(1 1)');", CORE),
@@ -274,7 +282,7 @@ FAULTS = [
     ('frame: level 24\'s start on the ground', G + 'levels.js', "      '###...S...##........',\n      '......#..........#..',\n      '...............###..',\n",
      "      '###.......##........',\n      '......#..........#..',\n      '......S........###..',\n", CORE),
     ('frame: level 24 one road', G + 'levels.js', "twin: 'L12', roads: 3,", "twin: 'L12',", CORE),
-    ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H)", "(name === 'pond' || name === 'picnic' || name === 'playground' ? 540 : H)", CORE),
+    ('frame: the backdrop drawn 420 tall', G + 'art.js', "(name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H)", "(name === 'pond' || name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H)", CORE),
     ('frame: the pond\'s backdrop on the frame', G + 'art.js', "  if (name === 'frame') return g(frameQ1(w), '', ' data-back=\"frame\"');", "  if (name === 'frame') return g(pondArt(w), '', ' data-back=\"frame\"');", CORE),
     ('frame: level 24\'s stop off the park', G + 'levels.js', "room: 'park', spot: 'frame2', back: 'frame'", "room: 'park', spot: 'picnic', back: 'frame'", CORE),
     ('spike: the low ends never glow', G + 'game.js', '      + zipLows(S.level, S.placed, hc, hr).map(', '      + [].map(', SPIKE_E2E),
@@ -313,6 +321,22 @@ FAULTS = [
     ('17c solver: level 24\'s top bar with v0.1\'s first gap', G + 'levels.js', "      '...#.#######.####.##',", "      '...#####.###.####.##',", SOLVE + ' L12b'),
     ('17c solver: level 26 without the hamper\'s end', G + 'levels.js', "      '...*....#...............',\n      '........#G..............',\n      'S......########...######',",
      "      '...*....................',\n      '.........G..............',\n      'S.......#######...######',", SOLVE + ' L13b'),
+    # step 18a (ii): level 29, the fair, the zip ride R2, the zip-line's card and the party P1
+    ('18a: level 29 without the balcony\'s end (no hook)', G + 'levels.js', "      '......####...........###',", "      '......###............###',", CORE),
+    ('18a: level 29 with five straws', G + 'levels.js', "    tray: { zip: 1, bouncer: 2, ramp: 4, tube: 6,", "    tray: { zip: 1, bouncer: 2, ramp: 4, tube: 5,", CORE),
+    ('18a: no zip-line card', G + 'cards.js', "'button', 'pudding', 'zip'];", "'button', 'pudding'];", CORE),
+    ('18a: the zip card\'s peg in before its hook', G + 'cards.js', "kf('hc-zip-peg', '0%, 43.9% { opacity: 0; transform: translateY(-60px) } 44% { opacity: 1;",
+     "kf('hc-zip-peg', '0%, 23.9% { opacity: 0; transform: translateY(-60px) } 24% { opacity: 1;", CORE),
+    ('18a: the fast wheel never paused', G + 'style.css', ".fx-spin-run { animation: fx-spin 9s linear infinite paused; }", ".fx-spin-run { animation: fx-spin 9s linear infinite; }", CORE),
+    ('18a solver: level 29\'s home on the coconut shy', G + 'levels.js', "      '.....................G..',\n      '......####...........###',\n      '....................####',",
+     "      '........................',\n      '......####...........###',\n      '..................G.####',", SOLVE + ' L15'),
+    ('18a: the board\'s mode never set', G + 'game.js', "  board.dataset.mode = S.mode;   // build, run or party: style.css moves the fair by it (D-234)\n", '', E2E),
+    ('18a: the fair at full strength while building', G + 'style.css', ".fair-busy { opacity: .4; transition: opacity .8s; }", ".fair-busy { opacity: .75; transition: opacity .8s; }", E2E),
+    ('18a: the line never sags', G + 'game.js', "const ry = s.l0.y + (s.l1.y - s.l0.y) * u + ZIP_SAG * 4 * u * (1 - u);", "const ry = s.l0.y + (s.l1.y - s.l0.y) * u;", E2E),
+    ('18a: no kicks on the line', G + 'game.js', "pose: Math.floor(local / 0.18) % 2 ? 'zipk1' : 'zipk2' };", "pose: 'zip' };", E2E),
+    ('18a: no sparkles', G + 'game.js', "      if (u >= i / cols && !w.sparks[k]) {", "      if (false) {", E2E),
+    ('18a: the usual party at the fair', G + 'game.js', "  const fair = S.def.back === 'fairA';", "  const fair = false;", E2E),
+    ('18a: the zip card\'s caption gone', G + 'cards.js', "  zip: 'Hook it high, peg it low!',", "  zip: '',", CARDS_E2E),
 ]
 
 

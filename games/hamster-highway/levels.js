@@ -1,4 +1,12 @@
-// Hamster Highway's levels. Version 1.12. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.13. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.13 (step 18a (ii), D-232, D-236): level 29, L15 Zip over the lake, at the fair (look A), bringing in the
+// zip-line: copied whole by script (tools/tests/games/copy_hamster_step18a_level.py 0.1) from its master, DESIGN in
+// mock_hamster_level29.py 0.1, as Rob agreed it on its sketch page. 24 x 9, `roads`: 4, every one by the zip-line hooked
+// under the helter-skelter's balcony over the boating lake to the swan island; then out of the channel by four straws
+// or a bounce onto a bridge (past the seed), and onto the big wheel's stage by two straws and a ramp, a bridge and two
+// ramps, or the spoon onto a ramp. No spare: roads B and C take the seed. Every road and wrong road is in the core test's
+// ROADS and WRONG (test_hamster_highway_core.py 1.20).
 //
 // Changes at v1.12 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch up, as Rob agreed them on step
 // 17c's two sketch pages: each level's def copied whole by script (tools/tests/games/copy_hamster_step17c_levels.py 0.1)
@@ -542,6 +550,21 @@ export const LEVELS = [
       '..............*.....####',
       'S..###...........#######',
       '############...#########',
+    ],
+  },
+  {
+    id: 'L15', name: 'Zip over the lake', room: 'park', spot: 'fair', back: 'fairA', new: 'zip', roads: 4,
+    tray: { zip: 1, bouncer: 2, ramp: 4, tube: 6, bridge: 2, catapult: 1 },
+    rows: [
+      '.....................G..',
+      '......####...........###',
+      '....................####',
+      '........#......*.##.####',
+      '......###........##.####',
+      '...######........##.####',
+      '...######.....##.##.####',
+      'S..######.....##.##.####',
+      '#########.....##.##.####',
     ],
   },
 ];

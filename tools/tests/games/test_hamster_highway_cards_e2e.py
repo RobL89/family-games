@@ -1,4 +1,8 @@
-"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.5 (21 Nov, step 17).
+"""Hamster Highway's help cards in a browser (D-167, D-168, D-170). Version 1.6 (27 Nov, step 18a (ii)).
+
+Changes at v1.6 (step 18a (ii), D-235): with levels 21 to 28 done, level 29 pops up the zip-line's card (card B),
+moving, with its caption, in the middle of the 9-row window; seen, it is kept with the other twelve; opened again, it
+doesn't pop up (once per child).
 
 Changes at v1.5 (step 17, D-194): with levels 21 to 26 done, level 27 pops up Pudding's card, moving, with its caption,
 in the middle of the 9-row window; seen, it is kept with the other eleven.
@@ -354,6 +358,30 @@ with sync_playwright() as pw:
     close_card(pg)
     k = kept(pg)
     check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult', 'signpost', 'button', 'pudding']}, f'PC: Pudding\'s card is kept as seen with the other eleven ({k and k.get("cards")})')
+    # ---- the fair (step 18a (ii)): levels 21 to 28 done; level 29's card, the zip-line's (card B, D-235)
+    park_done = HOUSE_IDS + ['L11', 'L11b', 'L12', 'L12b', 'L13', 'L13b', 'L14', 'L14b']
+    pg.evaluate(f"localStorage.setItem('{ENTRY}', JSON.stringify({{v: 2, done: {json.dumps({i: True for i in park_done})}, seeds: {{}}, tries: {json.dumps({'L11': 1})}, cards: {json.dumps({c: True for c in EIGHT + ['catapult', 'signpost', 'button', 'pudding']})}}}))")
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    to_house(pg)
+    open_level(pg, 'L15')
+    s = state(pg)
+    pg.wait_for_timeout(3700)   # past the peg dropping in (47% of 7 s)
+    pg.screenshot(path=os.path.join(OUT, 'pc-card-zip.png'))
+    cb = pg.locator('#card [data-card]').bounding_box()
+    wb = pg.locator('#window rect').bounding_box()
+    mid = abs((cb['x'] + cb['width'] / 2) - (wb['x'] + wb['width'] / 2)) < 12 and abs((cb['y'] + cb['height'] / 2) - (wb['y'] + wb['height'] / 2)) < 12
+    check(s['card'] == 'zip' and s['caption'] == 'Hook it high, peg it low!' and card_moving(pg) > 0 and pg.locator('#card text', has_text=s['caption']).count() == 1 and mid,
+          f'PC: level 29 pops up the zip-line\'s card (D-235, card B), moving, with its caption "{s["caption"]}", in the middle of the 9-row window ({s["card"]})')
+    close_card(pg)
+    k = kept(pg)
+    check(k and k.get('cards') == {c: True for c in EIGHT + ['catapult', 'signpost', 'button', 'pudding', 'zip']}, f'PC: the zip-line\'s card is kept as seen with the other twelve ({k and k.get("cards")})')
+    pg.reload()
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    to_house(pg)
+    open_level(pg, 'L15')
+    pg.wait_for_timeout(300)
+    check(state(pg)['card'] is None, f'PC: level 29 opened again: the zip-line\'s card doesn\'t pop up (once per child, D-170) ({state(pg)["card"]})')
     ctx.close()
 
     # ---- in the stand-in wrapper

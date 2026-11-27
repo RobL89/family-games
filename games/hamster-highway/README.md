@@ -1,6 +1,8 @@
 # Hamster Highway
 
-Version 1.26 · 24 Nov 2026 · P-034 (Kids Games Development) · 28 levels (levels 1 to 10, each with its twin, and the park's first four pairs), the house and park pickers, help cards, saving and the wrapper link.
+Version 1.27 · 27 Nov 2026 · P-034 (Kids Games Development) · 29 levels (levels 1 to 10, each with its twin, the park's first four pairs and level 29 at the fair), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.27 (step 18a (ii), D-232 to D-236): the fair. Level 29 *Zip over the lake* brings in the zip-line: up the helter-skelter, hook the zip-line under its balcony and zip over the boating lake, then four roads onto the big wheel's stage (straws, a bounce and bridges, or the spoon), two of them past the golden seed. The fair's backdrop (the big wheel, the helter-skelter, bunting and a balloon stall) moves gently while building and brighter and faster once GO is pressed. On the zip-line a hamster swings and kicks, the line sags under it, sparkles are left behind, and it lets go with a puff and a hop. Its party is a merry-go-round with the five riding. The zip-line's help card: "Hook it high, peg it low!". Not yet released.
 
 Changes at v1.26 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch harder, as agreed on two sketch pages: more gadgets, more heights and more roads, right and wrong. Every road walks 3 to 5 floor heights with 4 to 9 gadgets. 22 *Two ways round* and 24 *Zig, zag, home* have three roads each; 25 *Lunchbox drawbridge* has three, all through the button; 26 *Lunch is served* has three, home on the hamper reached from the far end; 27 *Pudding comes to play* has two after the monkey bars; 28 *Big and small* has two, with the worn-stick trap and two bouncer short cuts that leave Pudding behind. 22 and 25 to 28 are now 24 wide. The picnic's and the playground's backdrops are faded as the frame's is. Not yet released.
 
@@ -98,7 +100,7 @@ all made in code (D-010).
 | `park.js` | The park picker (levels 21 on), its stops and the ride's hamster, as SVG text. Pure; imports only `art.js` and `house.js` |
 | `sound.js` | Sounds made in the browser (helpers copied from Rocket Lander's) |
 | `progress.js` | What is saved: levels done, seeds found, GO presses until each level is first done, help cards seen. Pure |
-| `cards.js` | The 9 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
+| `cards.js` | The 13 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
 | `game.js` | The screens, taps and animation (the window the level's own size); saving and the wrapper link |
 | `index.html`, `style.css` | The page |
 
@@ -121,6 +123,7 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.27 | 2026-11-27 | Level 29 at the fair (D-236), the fair's look A and its two speeds, the zip ride R2, the zip-line's card B and the party P1 (D-234, D-235), copied by script from step 18a's masters |
 | 1.26 | 2026-11-24 | Levels 22 and 24 to 28 one notch up (D-226, D-229), copied by script from the sketch pages' masters; the picnic and playground faded (D-226) |
 | 1.25 | 2026-11-22 | Levels 25 to 28 redesigned to the floor (D-212, D-215), the trap stick on 28 (D-214), the frame faded (D-211), Pudding's counter face (D-216); 1.22 to 1.24's rows were not added here: their notes are at the top |
 | 1.21 | 2026-11-20 | The spoon's throw (step 14b, D-206) |

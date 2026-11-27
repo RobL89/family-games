@@ -1,4 +1,12 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.17 (22 Nov, step 17b (ii)).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.18 (27 Nov, step 18a (ii)).
+//
+// Changes at v1.18 (step 18a (ii), D-233 to D-236): the fair. The board carries data-mode (build, run or party), so
+// style.css moves the fair's look A gently while building and brighter and faster in a run and at the party (D-234).
+// The zip ride R2 (D-235), drawn frame by frame: the hamster swings about its reel (13 degrees each way, 0.9 s a swing)
+// and kicks its feet (art.js kickFeet), the line sags under the reel (art.js ZIP_SAG at the middle), a sparkle is left
+// at each column the reel passes, and over the last fifth of the ride it lets go with a puff of dust and a little hop
+// down onto the bank. On the fair's levels the party is P1 (D-235): the merry-go-round at home (art.js partyCarousel),
+// in the middle of the window, its own confetti and music notes, in place of the dancing five and the bunting.
 //
 // Changes at v1.17 (step 17b (ii), D-216): the hamster counter draws each head with art.js's countHead('C2', ...):
 // Pudding's own face, a fifth bigger on a caramel ring, in Pudding's place in the line; on a level with Pudding each
@@ -98,7 +106,7 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
+import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text, ZIP_SAG, kickFeet, partyCarousel } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
 import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
@@ -419,6 +427,7 @@ function renderSeed() {
 }
 
 function renderAll() {
+  board.dataset.mode = S.mode;   // build, run or party: style.css moves the fair by it (D-234)
   renderGadgets();
   renderFits();
   renderGhost();
@@ -433,7 +442,7 @@ function renderGadgets() {
     if (!v.startsWith('zip:')) continue;
     const [c, r] = k.split(',').map(Number);
     const [lc, lr] = v.slice(4).split(',').map(Number);
-    lines += zipLine((c + 0.5) * CELL, (r + 0.5) * CELL, (lc + 0.5) * CELL, (lr + 0.5) * CELL);
+    lines += g(zipLine((c + 0.5) * CELL, (r + 0.5) * CELL, (lc + 0.5) * CELL, (lr + 0.5) * CELL), '', ` data-zipline="${k}"`);   // sags under a rider (R2)
   }
   layer('gads').innerHTML = g(lines, '', ' pointer-events="none"') + Object.entries(S.placed).map(([k, v]) => {
     const [c, r] = k.split(',').map(Number);
@@ -854,7 +863,7 @@ function segmentsOf(st, offs = []) {
       const last = st[j];
       let seed = false;
       for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
-      add({ kind: 'zip', p0, l0: { x: (a.c + 0.5) * CELL, y: (a.r + 0.5) * CELL }, l1: { x: (last.c + 0.5) * CELL, y: (last.r + 0.5) * CELL },
+      add({ kind: 'zip', p0, hook: key(a.c, a.r), l0: { x: (a.c + 0.5) * CELL, y: (a.r + 0.5) * CELL }, l1: { x: (last.c + 0.5) * CELL, y: (last.r + 0.5) * CELL },
         p1: feet(last.c, last.r), end: last.t1, seed, sound: 'wheee', dir: last.dir || 1 });
       i = j;
       continue;
@@ -1031,7 +1040,8 @@ function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
   if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
-  w.el.firstElementChild.innerHTML = (S.level && w.i !== undefined && w.i === S.level.pudding ? pudding : hamster)(pose);   // Pudding (D-189 A)
+  const pud = S.level && w.i !== undefined && w.i === S.level.pudding;
+  w.el.firstElementChild.innerHTML = pose.startsWith('zipk') ? (pud ? pudding('zip') : kickFeet(Number(pose[4]))) : (pud ? pudding : hamster)(pose);   // Pudding (D-189 A); the ride's kicks (D-235)
 }
 function setAt(w, x, y, rot = 0, sc = SC, op = 1, dir = 1) {
   if (S.level && w.i !== undefined && w.i === S.level.pudding) sc *= 1.2;   // Pudding, a fifth bigger
@@ -1102,10 +1112,8 @@ function moveWalker(R, w) {
       x = s.p0.x + 4 * Math.sin(f * Math.PI * 3);
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       pose = 'float';
-    } else if (s.kind === 'zip') {   // hanging under the line from a reel: feet 52 below it
-      x = s.l0.x + (s.l1.x - s.l0.x) * f;
-      y = s.l0.y + (s.l1.y - s.l0.y) * f + 52;
-      pose = 'zip';
+    } else if (s.kind === 'zip') {   // the ride R2 (D-235): hanging 52 below its reel, swinging and kicking; then a hop down
+      ({ x, y, rot, pose } = zipRide(R, w, s, f, local));
     } else if (s.kind === 'ride' && s.lift) {
       ({ x, y } = cupXY(s.lift, s.cup || 0, local / TICK));   // inside its cup, wherever the cup is
       x += s.dx;
@@ -1115,7 +1123,7 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
-    if (s.carry && pose !== 'float' && pose !== 'boing' && pose !== 'zip' && pose !== 'bonk') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
+    if (s.carry && pose !== 'float' && pose !== 'boing' && !pose.startsWith('zip') && pose !== 'bonk') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
     setAt(w, x, y, rot, SC, 1, s.dir);
     return;
@@ -1124,7 +1132,46 @@ function moveWalker(R, w) {
   endWalker(R, w, local - H.total);
 }
 
+// The zip ride R2 (D-235): on the line for its first ZIP_ON of the piece, the reel along the line as it sags under it
+// (ZIP_SAG at the middle), the hamster swinging about the reel and kicking, a sparkle left at each column passed; then it
+// lets go with a puff of dust and hops down onto the bank. Returns where and how to draw the hamster.
+const ZIP_ON = 0.8;
+function zipRide(R, w, s, f, local) {
+  const line = board.querySelector(`[data-zipline="${s.hook}"]`);
+  if (f < ZIP_ON) {
+    const u = f / ZIP_ON;
+    const rx = s.l0.x + (s.l1.x - s.l0.x) * u;
+    const ry = s.l0.y + (s.l1.y - s.l0.y) * u + ZIP_SAG * 4 * u * (1 - u);
+    if (line) line.innerHTML = path(`M ${s.l0.x} ${s.l0.y} L ${rx.toFixed(1)} ${ry.toFixed(1)} L ${s.l1.x} ${s.l1.y}`, 'none', 6.5, INK)
+      + path(`M ${s.l0.x} ${s.l0.y} L ${rx.toFixed(1)} ${ry.toFixed(1)} L ${s.l1.x} ${s.l1.y}`, 'none', 3, '#F3D9A4');
+    const cols = Math.max(1, Math.round(Math.abs(s.l1.x - s.l0.x) / CELL));
+    w.sparks = w.sparks || {};
+    for (let i = 1; i < cols; i++) {   // a sparkle at each column the reel passes
+      const k = `${w.seg}:${i}`;
+      if (u >= i / cols && !w.sparks[k]) {
+        w.sparks[k] = true;
+        const sx = s.l0.x + ((s.l1.x - s.l0.x) * i) / cols;
+        const sy = s.l0.y + ((s.l1.y - s.l0.y) * i) / cols + ZIP_SAG * 4 * (i / cols) * (1 - i / cols) + 30;
+        fx(place(g(star(0, 0, 7, ['#E8505B', SUN, '#62C46F', '#4FA3E0', '#FF9BB3', '#C9B8FF'][i % 6], 1.6), '', ' class="zr-spark" data-spark="1"'), sx, sy), 700);
+      }
+    }
+    const hang = 52 * (w.i === S.level.pudding ? 1.2 : 1);
+    const sw = 13 * Math.sin((local / 0.45) * Math.PI);   // degrees: a swing each way every 0.9 s
+    const a = (sw * Math.PI) / 180;
+    return { x: rx - hang * Math.sin(a), y: ry + hang * Math.cos(a), rot: sw, pose: Math.floor(local / 0.18) % 2 ? 'zipk1' : 'zipk2' };
+  }
+  if (line && !w.letGo) {   // lets go: the line springs straight, a puff of dust
+    w.letGo = true;
+    line.innerHTML = zipLine(s.l0.x, s.l0.y, s.l1.x, s.l1.y);
+    puff(s.p1.x, s.p1.y - 6, 1.2);
+  }
+  const v = (f - ZIP_ON) / (1 - ZIP_ON);
+  const y0 = s.l1.y + 52;
+  return { x: s.l1.x + (s.p1.x - s.l1.x) * v, y: y0 + (s.p1.y - y0) * v - 18 * Math.sin(Math.PI * v), rot: 0, pose: 'walk1' };
+}
+
 function onSegEnd(R, w, s) {
+  w.letGo = false;
   if (s.seed && !S.seedTaken) takeSeed();
   if ((s.kind === 'fall' || s.kind === 'float') && s.rows < 3 && !(s === R.hs[w.i].segs[R.hs[w.i].segs.length - 1] && R.hs[w.i].outcome === 'splash')) play('patter');
 }
@@ -1193,19 +1240,22 @@ function finishRun() {
 
 function party() {
   play('party');
+  board.dataset.mode = 'party';
   let s = '';
+  const fair = S.def.back === 'fairA';   // the fair's party, P1: the merry-go-round (D-235)
   let seed = 7;
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < (fair ? 0 : 30); i++) {
     const x = 20 + rnd() * (BW - 40);
     const kind = i % 3;
     const art = kind === 0 ? seedArt() : kind === 1 ? heart(0, 0, 9, ['#FF8FB1', CORAL, '#C9B8FF'][i % 3]) : star(0, 0, 7, [SUN, '#5FE3BD', '#8CF5FF'][i % 3]);
     s += place(g(art, '', ` class="confetti" style="--dx:${Math.round(rnd() * 80 - 40)}px;--rot:${Math.round(rnd() * 720 - 360)}deg;--t:${(2.2 + rnd() * 1.6).toFixed(2)}s;--d:${(rnd() * 1.2).toFixed(2)}s"`), x, -20, 0.9);
   }
-  for (let i = 0; i < WALKERS; i++) {
+  for (let i = 0; i < (fair ? 0 : WALKERS); i++) {
     s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + (BW - 720) / 2 + i * 60, 150, 0.6, 0, ' data-walker="party"');
   }
-  s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+  if (fair) s += g(partyCarousel(), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);
+  else s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
     const x = 196 + i * 46;
     const y = 40 + 36 * (1 - ((x - 360) / 180) ** 2) * 0.55;
     return path(`M ${x - 9} ${y - 2} L ${x} ${y + 16} L ${x + 9} ${y - 2} Z`, [CORAL, SUN, '#5FE3BD', '#C9B8FF'][i % 4], 1.8);

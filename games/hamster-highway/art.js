@@ -1,4 +1,10 @@
-// Hamster Highway's drawings, as SVG text. Version 1.13.
+// Hamster Highway's drawings, as SVG text. Version 1.14.
+//
+// Changes at v1.14 (step 18a (ii), D-234, D-235): the fair's look A (fairA: the big wheel turning, the helter-skelter,
+// bunting that flaps, the balloon stall and balloons let go in a run; its busy shapes in one group, fair-busy, that
+// style.css fades while building and brightens in a run and at the party), the zip ride R2's kicked feet (kickFeet,
+// ZIP_SAG) and the fair party P1 (partyCarousel, the merry-go-round), copied by tools/tests/games/
+// copy_hamster_step18a_parts.py 0.1 from mock_hamster_fair.js 0.1 unchanged; backdrop('fairA') draws it, 540 tall.
 //
 // Changes at v1.13 (step 17c (ii), D-219, D-226): the picnic's and the playground's backdrops faded as the frame's look
 // Q1: picnicQ1 and playgroundQ1 (the tree, bunting, blankets, teapots and cups, and the swings and slides, in a group
@@ -370,13 +376,14 @@ function jar(x, h, col, lid = '#E8505B') {
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
 // The height a backdrop is drawn at: the park's are 540 (9 rows, D-185: the pond, the frame), the house's 420.
-export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' ? 540 : H);
+export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H);
 
 export function backdrop(name, w = W) {
   if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
   if (name === 'frame') return g(frameQ1(w), '', ' data-back="frame"');   // look Q1, faded (D-211)
   if (name === 'picnic') return g(picnicQ1(w), '', ' data-back="picnic"');   // faded (D-226)
   if (name === 'playground') return g(playgroundQ1(w), '', ' data-back="playground"');   // faded (D-226)
+  if (name === 'fairA') return g(fairA(w), '', ' data-back="fairA"');   // the fair's look A (D-235), its busy shapes faded while building
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -897,4 +904,162 @@ export function countHead(look, isPudding, lit, x, y, k) {
     body = circle(0, -40, 40, '#FBE3C4', 3, CARAMEL) + body;
   }
   return place(g(body, '', lit ? ' class="tiny-hop"' : ''), x, y, kk, 0, (lit ? '' : ' opacity="0.3"') + (pud ? ` data-pudhead="${look}"` : ''));
+}
+
+// ---------------------------------------------------------------- the fair (step 18a (ii), D-234, D-235)
+// Copied by tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_fair.js 0.1 (07eea02), unchanged
+// (kickFeet exported): the fair's look A, gentle while building and brighter and faster in a run and at the party
+// (style.css moves it, on the board's data-mode); the zip ride R2's kicked feet; the fair party P1, the merry-go-round.
+const FBLUE = '#4FA3E0';
+
+const FLILAC = '#C9B8FF';
+
+const FMINT = '#5FE3BD';
+
+const FCOLS = ['#E8505B', SUN, LEAF, FBLUE, PINK, FLILAC];
+
+const fx = (name, body, extra = '') => `<g class="fx-${name}"${extra}><g class="fx-${name}-run">${body}</g></g>`;
+
+function fairCar(i) {
+  const col = FCOLS[i % FCOLS.length];
+  let s = line(0, 0, 0, 12, INK, 2.4) + path('M -17 12 L 17 12 L 14 32 Q 0 40 -14 32 Z', col, 2.6) + rect(-19, 8, 38, 7, WHITE, 3, 2.2);
+  if (i === 2) s = s + place(hamsterHead('open'), 0, 18, 0.32);   // a Nibble already riding, for fun
+  return s;
+}
+
+function fairWheel(x, y, R) {
+  let wheel = circle(0, 0, R + 44, 'none', 0, 'none') + circle(0, 0, R, 'none', 7, '#E8505B') + circle(0, 0, R - 16, 'none', 3, FBLUE);
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    wheel += line(0, 0, R * Math.cos(a), R * Math.sin(a), FBLUE, 3.5);
+  }
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6 + 0.26;
+    wheel += circle((R + 3) * Math.cos(a), (R + 3) * Math.sin(a), 4, SUN, 1.6);   // the lights round the rim
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    wheel += g(fx('unspin', fairCar(i)), `translate(${(R * Math.cos(a)).toFixed(1)} ${(R * Math.sin(a)).toFixed(1)})`);
+  }
+  wheel += circle(0, 0, 13, SUN, 3) + circle(0, 0, 4, INK, 0);
+  const legs = path(`M ${x - R * 0.62} 452 L ${x} ${y} L ${x + R * 0.62} 452`, 'none', 9, FBLUE) + path(`M ${x - R * 0.62} 452 L ${x} ${y} L ${x + R * 0.62} 452`, 'none', 3, '#8CC8F0')
+    + rect(x - R * 0.7, 446, R * 1.4, 10, '#B9D6E6', 4, 2.4);
+  return legs + g(fx('spin', wheel), `translate(${x} ${y})`, ' data-fx="wheel"');
+}
+
+function fairFlag(x, y, col, k = 1) {
+  return line(x, y, x, y - 34 * k, INK, 3) + g(fx('flag', path(`M 0 0 L ${30 * k} ${8 * k} L 0 ${16 * k} Z`, col, 2.2)), `translate(${x} ${y - 34 * k})`);
+}
+
+function fairHelter(x) {
+  const top = 150;
+  let s = path(`M ${x - 40} 452 L ${x - 28} ${top + 40} L ${x + 28} ${top + 40} L ${x + 40} 452 Z`, WHITE, 3);
+  for (let i = 0; i < 6; i++) {   // the red stripes
+    const y0 = top + 40 + i * 44;
+    s += path(`M ${x - 28 - i * 2} ${y0 + 22} L ${x + 28 + i * 2} ${y0 + 4} L ${x + 30 + i * 2} ${y0 + 20} L ${x - 30 - i * 2} ${y0 + 38} Z`, '#E8505B', 0, 'none');
+  }
+  for (let i = 0; i < 6; i++) {   // the slide winding round
+    const y0 = top + 60 + i * 44;
+    s += path(`M ${x - 52 - i * 2} ${y0 + 20} Q ${x} ${y0 - 6} ${x + 52 + i * 2} ${y0}`, 'none', 9, INK) + path(`M ${x - 52 - i * 2} ${y0 + 20} Q ${x} ${y0 - 6} ${x + 52 + i * 2} ${y0}`, 'none', 5, SUN);
+  }
+  s += rect(x - 36, top + 30, 72, 14, FBLUE, 5, 2.6);   // the balcony
+  s += path(`M ${x - 34} ${top + 32} L ${x} ${top - 12} L ${x + 34} ${top + 32} Z`, '#E8505B', 3) + fairFlag(x, top - 12, SUN);
+  return s;
+}
+
+function fairBunting(x0, x1, y, sag = 34) {
+  let s = path(`M ${x0} ${y} Q ${(x0 + x1) / 2} ${y + 2 * sag} ${x1} ${y}`, 'none', 2.4);
+  const n = Math.max(5, Math.round((x1 - x0) / 46));
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const x = x0 + (x1 - x0) * t;
+    const yy = y + 2 * sag * 2 * t * (1 - t);
+    s += g(fx('flap', path('M -11 0 L 0 22 L 11 0 Z', FCOLS[i % FCOLS.length], 2), ` style="animation-delay:-${(i * 0.37).toFixed(2)}s"`), `translate(${x.toFixed(1)} ${yy.toFixed(1)})`);
+  }
+  return s;
+}
+
+function fairBalloon(x, y, col, i) {   // swaying about the string's end, tied at (x, 360); the balloon at height y
+  const h = 360 - y;
+  const b = path(`M 0 0 q -2 ${-h * 0.5} -6 ${-h + 18}`, 'none', 1.6) + ellipse(-6, -h, 15, 19, col, 2.4) + path(`M -10 ${-h + 18} l 4 -6 l 4 6 Z`, col, 1.6)
+    + ellipse(-11, -h - 6, 4, 6, WHITE, 0, INK, -20, ' opacity="0.6"');
+  return g(fx('sway', b, ` style="animation-delay:-${(i * 0.6).toFixed(1)}s"`), `translate(${x} 360)`);
+}
+
+function fairStall(x) {   // a balloon stall: a striped awning, a counter and a bunch of balloons swaying
+  let s = rect(x - 50, 392, 100, 60, '#F3D9A4', 6, 3) + rect(x - 56, 360, 112, 22, WHITE, 6, 3);
+  for (let i = 0; i < 4; i++) s += rect(x - 56 + i * 28, 360, 14, 22, FBLUE, 0, 0);
+  s += rect(x - 56, 360, 112, 22, 'none', 6, 3);
+  [[-30, 300], [-8, 286], [14, 296], [34, 310], [2, 312]].forEach(([dx, y], i) => { s += fairBalloon(x + dx, y, FCOLS[(i + 1) % FCOLS.length], i); });
+  return s;
+}
+
+function fairLetGo(x) {
+  return [0, 1, 2].map((i) => g(g(ellipse(0, -16, 13, 16, FCOLS[(i + 3) % FCOLS.length], 2.2) + path('M 0 0 q 4 18 -2 34', 'none', 1.4), '',
+    ` class="fx-up" style="animation-delay:${(i * 1.7).toFixed(1)}s"`), `translate(${x - 20 + i * 22} 300)`)).join('');
+}
+
+function fairHorse(col) {
+  return path('M -22 0 q 4 -14 18 -14 l 14 0 q 6 -12 14 -12 q 8 2 6 10 l -6 4 q 0 10 -6 12 l -2 16 m -26 -16 l -4 16', col, 2.4)
+    + circle(20, -20, 2, INK, 0) + path('M 14 -26 q -6 -6 -14 -2', 'none', 3, '#E8505B');
+}
+
+function fairA(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 520) d += frameBush(x, 448);
+  let busy = '';
+  for (let x = 0; x < w; x += 960) {
+    busy += fairWheel(x + 300, 290, 136) + fairHelter(x + 640) + fairBunting(x + 440, x + 610, 210) + fairBunting(x + 680, x + 900, 232) + fairStall(x + 820);
+  }
+  d += g(busy, '', ' class="fair-busy" data-quiet="fair"');
+  for (let x = 0; x < w; x += 960) d += fairLetGo(x + 820);
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+export const ZIP_SAG = 20;
+
+const ZIP_FEET = () => [ellipse(-8, 4, 8, 5, PINK, 2.4), ellipse(14, 6, 8, 5, PINK, 2.4)];   // the zip pose's feet, as hamster() draws them
+
+export const kickFeet = (k) => {   // the zip pose with its feet kicked out (k 1: left forward, 2: right forward)
+  const base = hamster('zip');
+  const [f1, f2] = ZIP_FEET();
+  const [a, b] = k === 1 ? [ellipse(-18, -2, 8, 5, PINK, 2.4, INK, -30), ellipse(10, 10, 8, 5, PINK, 2.4)] : [ellipse(-6, 10, 8, 5, PINK, 2.4), ellipse(26, -1, 8, 5, PINK, 2.4, INK, 30)];
+  return base.replace(f1, a).replace(f2, b);
+};
+
+export const kickOk = () => ZIP_FEET().every((f) => hamster('zip').split(f).length === 2);   // each foot found once, so both kick
+
+function partyConfetti(n = 26) {
+  let s = '';
+  let seed = 7;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 0; i < n; i++) {
+    const x = 20 + rnd() * 680;
+    const k = i % 3;
+    const art = k === 0 ? seedArt() : k === 1 ? heart(0, 0, 9, ['#FF8FB1', CORAL, FLILAC][i % 3]) : star(0, 0, 7, [SUN, FMINT, '#8CF5FF'][i % 3]);
+    s += place(g(art, '', ` class="confetti" style="--dx:${Math.round(rnd() * 80 - 40)}px;--rot:${Math.round(rnd() * 720 - 360)}deg;--t:${(2.2 + rnd() * 1.6).toFixed(2)}s;--d:${(rnd() * 1.2).toFixed(2)}s;animation-iteration-count:infinite"`), x, -20, 0.9);
+  }
+  return s;
+}
+
+const note = (x, i) => g(g(path('M 0 0 L 0 -26 L 14 -30 L 14 -6', 'none', 3) + ellipse(-4, 0, 6, 4.5, INK, 0, INK, -20) + ellipse(10, -4, 6, 4.5, INK, 0, INK, -20), '',
+  ` class="fp-note" style="animation-delay:${(i * 0.8).toFixed(1)}s"`), `translate(${x} 200)`);
+
+const zcls = (c, body) => `<g class="${c}">${body}</g>`;
+
+export function partyCarousel() {
+  let s = rect(220, 330, 280, 18, FBLUE, 7, 3);   // the floor of the merry-go-round
+  s += line(360, 150, 360, 330, '#F0C860', 7);
+  for (let i = 0; i < 5; i++) {   // riders pass along the front, one after another (each pole moves with its rider)
+    const rider = line(0, -150, 0, 20, '#F0C860', 4) + zcls('fp-bob', fairHorse([WHITE, FLILAC, PINK, FMINT, SUN][i]) + place(hamster('home'), 2, -22, 0.4));
+    s += g(`<g class="fp-ride" style="animation-delay:-${(i * 0.9).toFixed(1)}s">${rider}</g>`, 'translate(360 312)', ` data-rider="${i}"`);
+  }
+  s += path('M 200 160 L 360 76 L 520 160 Z', WHITE, 3);
+  for (let i = 0; i < 8; i++) s += path(`M ${200 + i * 40} 160 L ${220 + i * 40} 160 L 360 76 Z`, '#E8505B', 0, 'none');
+  s += path('M 200 160 L 360 76 L 520 160', 'none', 3);
+  for (let i = 0; i < 8; i++) s += path(`M ${200 + i * 40} 160 q 20 18 40 0`, i % 2 ? SUN : '#E8505B', 2.4) + g(zcls('fx-blink', circle(0, 0, 4.5, '#FFF3B0', 1.6)), `translate(${220 + i * 40} 172)`);
+  s += line(360, 76, 360, 44, INK, 3) + g(zcls('fx-flag', path('M 0 0 L 30 8 L 0 16 Z', LEAF, 2.2)), 'translate(360 44)');
+  s += note(170, 0) + note(560, 1) + note(120, 2) + note(610, 3);
+  return `<g data-party="carousel">${s + partyConfetti()}</g>`;
 }

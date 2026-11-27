@@ -1,4 +1,4 @@
-/* Hamster Highway. Version 1.1 (step 3: a worn stick's snap, at the end). The colours are the mock-ups' (tools/tests/games/sketch_bridge_builder.py, theme A). */
+/* Hamster Highway. Version 1.2 (step 18a (ii): the fair's look A, its two speeds and the party P1, copied from mock_hamster_fair.css 0.1, and the zip ride's sparkles, at the end; step 14b's spoon throw came unnumbered, ER-016). 1.1: step 3, a worn stick's snap. The colours are the mock-ups' (tools/tests/games/sketch_bridge_builder.py, theme A). */
 :root { --ink: #1B1446; --cream: #FFF8EE; --wall: #FFE2BC; --go: #3CC864; --amber: #F0A51C; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--wall); color: var(--ink);
   font-family: Fredoka, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
@@ -115,3 +115,65 @@ svg .poke, svg [data-level], svg .slot, svg .btn, svg [data-placed], svg [data-w
 @keyframes snapR { to { transform: translate(14px, 150px) rotate(55deg); opacity: 0; } }
 .snapL, .snapR { transform-box: fill-box; transform-origin: center; animation: snapL 1.1s ease-in forwards; }
 .snapR { animation-name: snapR; }
+
+/* The fair (step 18a (ii), D-234, D-235): copied by tools/tests/games/copy_hamster_step18a_parts.py 0.1 from
+   mock_hamster_fair.css 0.1 (07eea02), unchanged. game.js sets data-mode (build, run, party) on the board. */
+.fx-spin, .fx-spin-run, .fx-unspin, .fx-unspin-run, .fx-flap, .fx-flap-run, .fx-flag, .fx-flag-run, .fx-sway, .fx-sway-run,
+.fx-bob, .fx-bob-run, .fx-blink, .fx-blink-run, .fx-wave, .fx-wave-run, .fx-up,
+.fp-ride, .fp-bob, .fp-spin, .fp-unspin, .fp-up, .fp-note { transform-box: view-box; transform-origin: 0 0; }
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+@keyframes fx-unspin { to { transform: rotate(-360deg); } }
+@keyframes fx-flap { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes fx-flag { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(.7, 1.08); } }
+@keyframes fx-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes fx-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes fx-blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes fx-wave { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-10px); } }
+@keyframes fx-up { 0% { transform: translate(0, 0); opacity: 0; } 8% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translate(46px, -320px); opacity: 0; } }
+
+/* gentle, all the time */
+.fx-spin { animation: fx-spin 60s linear infinite; }
+.fx-unspin { animation: fx-unspin 60s linear infinite; }
+.fx-flap { animation: fx-flap 3.2s ease-in-out infinite; }
+.fx-flag { animation: fx-flag 2.6s ease-in-out infinite; }
+.fx-sway { animation: fx-sway 4s ease-in-out infinite; }
+.fx-bob { animation: fx-bob 3s ease-in-out infinite; }
+.fx-blink { animation: fx-blink 2.4s ease-in-out infinite; }
+.fx-wave { animation: fx-wave 3.6s ease-in-out infinite; }
+.fair-busy { opacity: .4; transition: opacity .8s; }
+
+/* more in a run and at the party: the inner groups wait, paused, while building */
+.fx-spin-run { animation: fx-spin 9s linear infinite paused; }
+.fx-unspin-run { animation: fx-unspin 9s linear infinite paused; }
+.fx-flap-run { animation: fx-flap .7s ease-in-out infinite paused; }
+.fx-flag-run { animation: fx-flag .5s ease-in-out infinite paused; }
+.fx-sway-run { animation: fx-sway 1.2s ease-in-out infinite paused; }
+.fx-bob-run { animation: fx-bob .9s ease-in-out infinite paused; }
+.fx-blink-run { animation: fx-blink .5s steps(2) infinite paused; }
+.fx-wave-run { animation: fx-wave 1.1s ease-in-out infinite paused; }
+.fx-up { opacity: 0; }
+[data-mode="run"] .fair-busy, [data-mode="party"] .fair-busy { opacity: .75; }
+[data-mode="run"] :is(.fx-spin-run, .fx-unspin-run, .fx-flap-run, .fx-flag-run, .fx-sway-run, .fx-bob-run, .fx-blink-run, .fx-wave-run),
+[data-mode="party"] :is(.fx-spin-run, .fx-unspin-run, .fx-flap-run, .fx-flag-run, .fx-sway-run, .fx-bob-run, .fx-blink-run, .fx-wave-run) { animation-play-state: running; }
+[data-mode="run"] .fx-up, [data-mode="party"] .fx-up { animation: fx-up 5s ease-in infinite; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.fx-spin, .fx-unspin, .fx-flap, .fx-flag, .fx-sway, .fx-bob, .fx-blink, .fx-wave, .fx-up),
+  :is(.fx-spin-run, .fx-unspin-run, .fx-flap-run, .fx-flag-run, .fx-sway-run, .fx-bob-run, .fx-blink-run, .fx-wave-run) { animation: none !important; }
+}
+
+/* the fair party at home (P1 the merry-go-round, P2 the big wheel) */
+@keyframes fp-ride { 0% { transform: translateX(-150px); opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(150px); opacity: 0; } }
+@keyframes fp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes fp-up { 0% { transform: translate(0, 0); opacity: 0; } 6% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(30px, -520px); opacity: 0; } }
+@keyframes fp-note { 0% { transform: translate(0, 0) rotate(-8deg); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(14px, -90px) rotate(8deg); opacity: 0; } }
+.fp-ride { animation: fp-ride 4.5s linear infinite; }
+.fp-bob { animation: fp-bob .9s ease-in-out infinite; }
+.fp-spin { animation: fx-spin 8s linear infinite; }
+.fp-unspin { animation: fx-unspin 8s linear infinite; }
+.fp-up { animation: fp-up 6s ease-in infinite; }
+.fp-note { animation: fp-note 3.2s ease-out infinite; }
+
+/* The zip ride R2 (step 18a (ii), D-235): a sparkle left at each column the reel passes (game.js draws them) */
+@keyframes zr-spark { 0% { opacity: 1; transform: translateY(0) scale(1.2); } 100% { opacity: 0; transform: translateY(16px) scale(.6); } }
+.zr-spark { transform-box: fill-box; transform-origin: 50% 50%; animation: zr-spark .65s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) { .zr-spark { animation: none; opacity: 0; } }

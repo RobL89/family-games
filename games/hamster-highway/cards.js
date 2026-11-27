@@ -1,4 +1,10 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.5 (21 Nov, step 17).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.6 (27 Nov, step 18a (ii)).
+//
+// Changes at v1.6 (step 18a (ii), D-235): the zip-line's card, the thirteenth, card B of the step 18a mock-ups: the
+// hook's square lights up and the hook drops in under the block, then the low end's, a dashed line stretches out and
+// the peg drops in, the line turns solid; the hamster grabs its reel and zips down over the water, swinging and
+// kicking, hops onto the bank and walks home. Caption "Hook it high, peg it low!"; 7 s. Copied by
+// tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_zipcards.js 0.1 (zipB made zip).
 //
 // Changes at v1.5 (step 17, D-194): Pudding's card, the twelfth (a hamster, so no drop-in): a Nibble walks onto the
 // marshmallow and is thrown up onto a ledge; Pudding, bigger and in vanilla with caramel (D-189 A), comes behind,
@@ -35,9 +41,9 @@
 // Pure (project rules): it only builds text, and imports only art.js.
 
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
-import { CELL, INK, SUN, hamster, pudding, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+import { CELL, INK, SUN, hamster, pudding, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text, line, zipLine, zipHook, zipPeg, kickFeet } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -53,10 +59,11 @@ export const CAPTION = {
   signpost: 'Signposts turn them round!',
   button: 'Press it to drop the lid!',
   pudding: 'Pudding is too heavy to bounce!',
+  zip: 'Hook it high, peg it low!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5, pudding: 6 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5, pudding: 6, zip: 7 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -238,6 +245,51 @@ function dropIn(k, L, at) {
 }
 const on = (name, L, from, to) => kf(name, `0%, ${from - 0.1}% { opacity: 0 } ${from}%, ${to - 0.1}% { opacity: 1 } ${to}%, 100% { opacity: 0 }`) + rule(name, `${name} ${L}s linear infinite`);
 
+// ---------------------------------------------------------------- the zip-line (step 18a (ii), D-235, card B)
+// Copied by tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_zipcards.js 0.1 (07eea02), with the
+// name zipB made zip and kick art.js's kickFeet: the hook's square lights up and the hook drops in under the block,
+// then the low end's, a dashed line stretches out to it and the peg drops in, and the line turns solid; then the
+// ride, swinging about the reel and kicking, a hop down onto the bank and home. 7 s.
+const ZROWS = ['........', '........', '.##.....', '........', '###.....', '###.....', '###..###'];
+const kick = kickFeet;   // the zip pose, feet kicked (art.js, D-235's ride)
+const onLine = (k) => cls(`hc-${k}-swing`, g(cls('hc-zk1', place(kick(1), 0, 0, SC)) + cls('hc-zk2', place(kick(2), 0, 0, SC)), 'translate(0 52)'));
+const rider = (k) => cls(`hc-${k}-ham`, cls(`hc-${k}-move`, legs()) + cls(`hc-${k}-wait`, ham(0, 0) + huh(10, -62)) + cls(`hc-${k}-on`, onLine(k)) + cls(`hc-${k}-home`, ham(0, -4, 'home')));
+const zline = () => zipLine(150, 210, 390, 330);
+VIEW.zip = '0 96 480 324';
+SCENE.zip = () => board(ZROWS, [[3, 6], [4, 6]]) + place(homeArt(), 420, 300, GS)
+  + cls('hc-zip-hfit', rect(123, 181, 54, 54, SUN, 8, 3, SUN, ' fill-opacity="0.3" stroke-dasharray="6 5"'))
+  + cls('hc-zip-lfit', rect(363, 301, 54, 54, '#A0ECBE', 8, 3, '#2BB673', ' fill-opacity="0.4" stroke-dasharray="6 5"'))
+  + g(cls('hc-zip-ghost', line(0, 0, 240, 120, '#2BB673', 5, ' stroke-dasharray="10 7" stroke-linecap="round"')), 'translate(150 210)')
+  + cls('hc-zip-line', zline())
+  + cls('hc-zip-hook', zipHook(150, 180)) + cls('hc-zip-peg', zipPeg(390, 360, 0.85)) + sparks('zip', 172, 220)
+  + rider('zip');
+
+function zipCss() {
+  let s = '.hc-zip-swing { transform-box: view-box; transform-origin: 0 0; animation: hc-zswing .9s ease-in-out infinite alternate; }\n'
+    + kf('hc-zswing', '0% { transform: rotate(-12deg) } 100% { transform: rotate(12deg) }')
+    + '.hc-zk1 { animation: hc-legs .3s steps(1) infinite; } .hc-zk2 { animation: hc-legs .3s steps(1) infinite reverse; }\n';
+  const ride = (a, b) => `${a}% { ${T(150, 240)} } ${a + 0.1}% { ${T(150, 210)} } ${b}% { ${T(390, 330)} } ${b + 0.1}% { ${T(392, 344)} } ${b + 4}% { ${T(404, 360)} }`;
+  // B: walk 0-17, wait 17-52: the hook's square lit 20-28, the hook drops in at 28; the low end's lit 34-44, the dashed
+  // line 38-46, the peg drops in at 44 and the line turns solid at 46; on the line 52-70, hop 70-74, walk 74-86, home
+  s += kf('hc-zip-ham', `0% { ${T(30, 240)} } 17% { ${T(150, 240)} } ${ride(52, 70)} 86%, 100% { ${T(440, 360)} }`) + rule('hc-zip-ham', 'hc-zip-ham 7s linear infinite')
+    + kf('hc-zip-move', '0%, 16.9% { opacity: 1 } 17%, 70% { opacity: 0 } 70.1%, 85.9% { opacity: 1 } 86%, 100% { opacity: 0 }') + rule('hc-zip-move', 'hc-zip-move 7s linear infinite')
+    + kf('hc-zip-wait', '0%, 16.9% { opacity: 0 } 17%, 51.9% { opacity: 1 } 52%, 100% { opacity: 0 }') + rule('hc-zip-wait', 'hc-zip-wait 7s linear infinite')
+    + kf('hc-zip-on', '0%, 51.9% { opacity: 0 } 52%, 70% { opacity: 1 } 70.1%, 100% { opacity: 0 }') + rule('hc-zip-on', 'hc-zip-on 7s linear infinite')
+    + kf('hc-zip-home', '0%, 85.9% { opacity: 0; transform: translateY(0) } 86% { opacity: 1; transform: translateY(0) } 90% { transform: translateY(-14px) } 94%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-home', 'hc-zip-home 7s ease-in-out infinite')
+    + kf('hc-zip-hfit', '0%, 19.9% { opacity: 0 } 20%, 28% { opacity: 1 } 30%, 100% { opacity: 0 }') + rule('hc-zip-hfit', 'hc-zip-hfit 7s linear infinite')
+    + kf('hc-zip-hook', '0%, 27.9% { opacity: 0; transform: translateY(-60px) } 28% { opacity: 1; transform: translateY(-60px) } 32% { transform: translateY(0) } 34% { transform: translateY(-6px) } 36%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-hook', 'hc-zip-hook 7s ease-in infinite')
+    + kf('hc-zip-lfit', '0%, 33.9% { opacity: 0 } 34%, 44% { opacity: 1 } 46%, 100% { opacity: 0 }') + rule('hc-zip-lfit', 'hc-zip-lfit 7s linear infinite')
+    + kf('hc-zip-ghost', '0%, 37.9% { opacity: 0; transform: scale(0) } 38% { opacity: 1; transform: scale(0.05) } 44% { transform: scale(1) } 46% { opacity: 1; transform: scale(1) } 46.1%, 100% { opacity: 0; transform: scale(1) }')
+    + rule('hc-zip-ghost', 'hc-zip-ghost 7s ease-out infinite', 'transform-box: view-box; transform-origin: 0 0; ')
+    + kf('hc-zip-peg', '0%, 43.9% { opacity: 0; transform: translateY(-60px) } 44% { opacity: 1; transform: translateY(-60px) } 47% { transform: translateY(0) } 49% { transform: translateY(-6px) } 51%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-peg', 'hc-zip-peg 7s ease-in infinite')
+    + kf('hc-zip-line', '0%, 45.9% { opacity: 0 } 46%, 100% { opacity: 1 }') + rule('hc-zip-line', 'hc-zip-line 7s linear infinite')
+    + kf('hc-zip-spark', '0%, 46% { opacity: 0 } 48%, 56% { opacity: 1 } 60%, 100% { opacity: 0 }') + rule('hc-zip-spark', 'hc-zip-spark 7s linear infinite');
+  return s;
+}
+
 function css() {
   let s = kf('hc-legs', '0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 }')
     + '.hc-legs1 { animation: hc-legs .36s steps(1) infinite; } .hc-legs2 { animation: hc-legs .36s steps(1) infinite reverse; }\n'
@@ -407,6 +459,7 @@ function css() {
     + rule('hc-lift-ham', 'hc-lift-ham 6s ease-in-out infinite') + rule('hc-lift-move', 'hc-lift-move 6s linear infinite')
     + rule('hc-lift-ride', 'hc-lift-ride 6s linear infinite') + rule('hc-lift-home', 'hc-lift-home 6s ease-in-out infinite')
     + rule('hc-lift-string', 'hc-lift-string 6s ease-in-out infinite') + rule('hc-lift-friend', 'hc-lift-friend .8s ease-in-out infinite');
+  s += zipCss();   // the zip-line's (step 18a (ii))
   return s;
 }
 export const CARD_CSS = css();

@@ -1,5 +1,7 @@
 """Hamster Highway's step 13 spike in a browser: the 9-row test board, hamsters both ways and placing zip-lines, and
-the preview's tap counter. Version 1.2 (18 Nov, step 13; D-185, D-190, D-196, D-197, D-200; assessment-tall-boards-signpost.md 0.2).
+the preview's tap counter. Version 1.3 (27 Nov, step 18a (ii); first 18 Nov, step 13; D-185, D-190, D-196, D-197, D-200; assessment-tall-boards-signpost.md 0.2).
+Changes at v1.3 (step 18a (ii), D-235): on the zip-line a walker is drawn kicking its feet (the ride R2's poses zipk1
+and zipk2, art.js kickFeet) where it was drawn in the plain zip pose: "hangs from a reel" now reads either.
 Changes at v1.2 (D-200): once GO is pressed the hamster counter takes the tray's place (the slots go), in the tray
 column beside the board or the tray row under it, never over the board, on the phone held sideways and upright.
 Changes at v1.1: the hamster counter is hidden while building and shows once GO is pressed (D-197: on Rob's phone it
@@ -232,7 +234,8 @@ with sync_playwright() as pw:
     poses = s['poses'] or []
     check(s['mode'] == 'party' and s['home'] == 5, f'{tag}: GO: all five home on the test board ({s["mode"]}, {s["home"]})')
     check(left_seen, f'{tag}: walkers are drawn facing left (mirrored) after the signpost')
-    check(poses and all('zip' in p for p in poses), f'{tag}: every walker hangs from a reel on the zip-line ({[("zip" in p) for p in poses]})')
+    on_line = [any(x.startswith('zip') for x in p) for p in poses]
+    check(poses and all(on_line), f'{tag}: every walker hangs from a reel on the zip-line, kicking (D-235) ({on_line})')
     sp = spike(pg)
     res = pg.locator('#spike-results')
     text = res.inner_text() if res.count() else ''

@@ -1,4 +1,13 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.16 (24 Nov, step 17c (ii)).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.17 (27 Nov, step 18a (ii)).
+
+Changes at v1.17 (step 18a (ii), D-233 to D-236): after level 28, Next goes on to level 29 at the fair (look A): the
+zip-line's card pops up; while building the board's data-mode is build, the fair's busy shapes at 0.4 and the big
+wheel's fast (-run) group paused, its slow one turning; road B (the seed road, as the core test's SOL) put down, the
+zip-line by its two taps (high end, then low end); during the run, data-mode run, the busy shapes brighter (0.75) and the
+wheel's fast group running; the riders drawn kicking (both kicked poses), the line drawn sagging under a reel (a path
+through a point below the straight line), sparkles left along it; all five home with the seed; the party is the
+merry-go-round (P1: data-party="carousel", five riders, no dancing five), data-mode party; no Next after it, the last
+level. With reduced motion (a fresh page, level 29's board opened by the test hook), the fair stands still.
 
 Changes at v1.16 (step 17c (ii), D-226, D-229): levels 22 and 24 to 28 played by their new seed roads, as the core
 test's SOL holds them (22 the willow road; 24 the zig-zag and its bridge; 25 road 1 and the spare ramp; 26 road A, the
@@ -781,20 +790,56 @@ with sync_playwright() as pw:
     go_and_wait(pg, 'party')
     s = state(pg)
     heads = pg.evaluate('window.__heads')
-    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and not pg.locator('#party [data-act="next"]').is_visible(),
+    check(cards[-1] is None and s['home'] == 5 and s['seedTaken'] and pg.locator('#party [data-act="next"]').is_visible(),
           f'PC: level 28, its twin (D-229): no card; road 2 round the sandpit (the spoon, two ramps up the steps, four straws up the far tower, the signpost, back along the slide\'s top): '
-          f'home with the seed; no Next after the last level ({cards[-1]})')
+          f'home with the seed; Next on to the fair ({cards[-1]})')
     check(heads and all([p for p, _ in x] == [None, 'C2', None, None, None] for x in heads) and all(l for _, l in heads[-1]),
           f'PC: level 28\'s counter: Pudding\'s face second, as Pudding is (D-216) ({heads[-1] if heads else None})')
+    # level 29 at the fair (D-233 to D-236)
+    tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, 'L15'))
+    FAIR_JS = """() => { const b = document.getElementById('board'); const busy = document.querySelector('#bg .fair-busy');
+      const fast = document.querySelector('#bg [data-fx="wheel"] .fx-spin-run'); const slow = document.querySelector('#bg [data-fx="wheel"] .fx-spin');
+      return { mode: b.dataset.mode, busy: busy ? Number(getComputedStyle(busy).opacity) : null, fast: fast ? getComputedStyle(fast).animationPlayState : null,
+        slow: slow ? getComputedStyle(slow).animationPlayState + ' ' + getComputedStyle(slow).animationName : null }; }"""
+    f0 = pg.evaluate(FAIR_JS)
+    check(cards[-1] == 'zip' and pg.locator('#bg [data-back="fairA"]').count() == 1 and f0 == {'mode': 'build', 'busy': 0.4, 'fast': 'paused', 'slow': 'running fx-spin'},
+          f'PC: level 29 opens on the fair\'s look A and the zip-line\'s card pops up (D-235); while building the fair is gentle: busy shapes at 0.4, the wheel\'s fast group paused, its slow one turning (D-234) ({cards[-1]}, {f0})')
+    for kind, c, r in (('bouncer', 2, 7), ('ramp', 5, 4), ('ramp', 7, 3), ('zip', 9, 2), ('zip', 14, 5), ('bouncer', 15, 5), ('bridge', 16, 3), ('bridge', 19, 3), ('ramp', 19, 2), ('ramp', 20, 1)):
+        place(pg, kind, c, r)
+    s = state(pg)
+    check(s['placed'].get('9,2') == 'zip:14,5' and s['placed'].get('14,5') == 'peg:9,2' and s['left']['zip'] == 0, f'PC: level 29: the zip-line put down by its two taps, hook under the balcony, peg on the island ({s["left"]})')
+    # during the run: the fair at full speed, the line sagging under a reel, the sparkles, the kicks
+    pg.evaluate('''() => { window.__fair = { run: null, sag: 0, spark: 0 }; const t = setInterval(() => { const st = __test.state();
+      if (st.mode === 'run') { const b = document.getElementById('board'); const busy = document.querySelector('#bg .fair-busy'); const fast = document.querySelector('#bg [data-fx="wheel"] .fx-spin-run');
+        if (!window.__fair.run) window.__fair.run = { mode: b.dataset.mode, busy: 0, fast: getComputedStyle(fast).animationPlayState };
+        window.__fair.run.busy = Math.max(window.__fair.run.busy, Number(getComputedStyle(busy).opacity));   // it fades up over 0.8 s
+        const l = document.querySelector('[data-zipline="9,2"] path'); if (l) { const m = l.getAttribute('d').match(/L ([\\d.]+) ([\\d.]+) L/);
+          if (m) { const x = Number(m[1]), y = Number(m[2]); const straight = 150 + (330 - 150) * (x - 570) / (870 - 570); if (y > straight + 2) window.__fair.sag += 1; } }
+        window.__fair.spark = Math.max(window.__fair.spark, document.querySelectorAll('#fx [data-spark]').length); }
+      if (st.screen !== 'level' || st.mode === 'party' || st.mode === 'build' && window.__fair.run) clearInterval(t); }, 20); }''')
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    fr = pg.evaluate('window.__fair')
+    kicks = sorted({x for ps in (s.get('poses') or []) for x in ps if x.startswith('zip')})
+    check(fr['run'] == {'mode': 'run', 'busy': 0.75, 'fast': 'running'}, f'PC: level 29: in a run the fair is brighter and faster: busy shapes at 0.75, the wheel\'s fast group running (D-234) ({fr["run"]})')
+    check(kicks == ['zipk1', 'zipk2'] and fr['sag'] > 0 and fr['spark'] > 0,
+          f'PC: level 29: the ride R2 (D-235): the riders drawn kicking both ways, the line sagging under a reel ({fr["sag"]} frames), sparkles left along it (up to {fr["spark"]} at once) ({kicks})')
+    party = pg.evaluate("""() => { const p = document.querySelector('#pfx [data-party="carousel"]'); return { carousel: !!p, riders: p ? p.querySelectorAll('[data-rider]').length : 0,
+      dancers: document.querySelectorAll('#pfx [data-walker="party"]').length, mode: document.getElementById('board').dataset.mode }; }""")
+    check(s['home'] == 5 and s['seedTaken'] and party == {'carousel': True, 'riders': 5, 'dancers': 0, 'mode': 'party'} and not pg.locator('#party [data-act="next"]').is_visible(),
+          f'PC: level 29 (D-236): road B (up the helter-skelter, the zip-line over the lake, a bounce past the seed onto the bridge, a bridge and two ramps onto the stage): all five home with the seed; '
+          f'the party is the merry-go-round with the five riding (P1, D-235), data-mode party; no Next after the last level ({party})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-29-level29-party.png'))
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     check(state(pg)['scene'] == 'park', 'PC: the house button after a park level goes back to the park')
     sizes_ok(pg, 'PC 1366x712', errors, asked)
     ids = IDS
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
-            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 2, 'L14b': 1},
-            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding')}}
-    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None, 'button', None, 'pudding', None],
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 2, 'L14b': 1, 'L15': 1},
+            'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip')}}
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None, 'button', None, 'pudding', None, 'zip'],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
     check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()
@@ -900,6 +945,19 @@ with sync_playwright() as pw:
             pg.screenshot(path=os.path.join(OUT, f'{w}x{h}-level8.png'))
         sizes_ok(pg, tag, errors, asked)
         ctx.close()
+    # with reduced motion the fair stands still (D-234): level 29's board opened by the test hook (nothing saved)
+    L15 = json.loads(subprocess.run(['node', '--input-type=module', '-e', 'const { LEVELS } = await import(process.argv[1]); console.log(JSON.stringify(LEVELS.find((d) => d.id === "L15")))',
+                                     'file://' + os.path.join(REPO, 'games', 'hamster-highway', 'levels.js')], capture_output=True, text=True, check=True).stdout)
+    ctx = br.new_context(viewport={'width': 1366, 'height': 712}, reduced_motion='reduce')
+    pg = ctx.new_page()
+    pg.goto(URL)
+    pg.wait_for_function('window.__test !== undefined && __test.state().ready')
+    pg.evaluate(f'__test.openBoard({json.dumps(L15)})')
+    pg.wait_for_timeout(200)
+    still = pg.evaluate("""() => [...document.querySelectorAll('#bg [class^="fx-"]')].map((e) => getComputedStyle(e).animationName).filter((n) => n !== 'none').length""")
+    moving = pg.evaluate("""() => document.querySelectorAll('#bg [class^="fx-"]').length""")
+    check(moving > 0 and still == 0, f'PC with reduced motion: the fair\'s {moving} moving parts all stand still (D-234) ({still} still animated)')
+    ctx.close()
     br.close()
 
 print(f'Pictures: {OUT}')
