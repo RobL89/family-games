@@ -1,4 +1,10 @@
-"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.17 (27 Nov, step 18a (ii)).
+"""Hamster Highway in a browser: the house, placing gadgets, runs and parties. Version 1.18 (27 Nov, step 18b (ii)).
+
+Changes at v1.18 (step 18b (ii), D-240, D-241, D-243): after level 29, Next goes on to level 30 (its party has no
+poppers): no card; the teacup ride's two cups and the lantern gate G2 drawn (9 lanterns on the button's string, unlit,
+the drawbridge standing up); road B (the seed road) put down, the zip-line by its two taps; during the run the button's
+group gets data-lit, all 9 lanterns turn gold and the drawbridge swings down; all five home with the seed; the party is
+the merry-go-round with the two big poppers (C1); no Next after it, the last level. Level 25's button has no lanterns.
 
 Changes at v1.17 (step 18a (ii), D-233 to D-236): after level 28, Next goes on to level 29 at the fair (look A): the
 zip-line's card pops up; while building the board's data-mode is build, the fair's busy shapes at 0.4 and the big
@@ -717,6 +723,7 @@ with sync_playwright() as pw:
     lid0 = pg.evaluate('getComputedStyle(document.querySelector("[data-lid=\\"0\\"]")).transform')
     check(cards[-1] == 'button' and pg.locator('#bg [data-back="picnic"]').count() == 1 and pg.locator('[data-cap="0"]').count() == 1 and lid0 not in ('none', 'matrix(1, 0, 0, 1, 0, 0)'),
           f'PC: level 25 opens on the picnic, the bottle top drawn and its lid standing up ({lid0}), and the button\'s card pops up (D-194) ({cards[-1]})')
+    check(pg.locator('.gl-string, .gl-lamp').count() == 0, f'PC: level 25: the button as before, no lanterns: the lantern gate is the fair\'s only (D-243) ({pg.locator(".gl-lamp").count()} lanterns)')
     for kind, c, r in (('ramp', 1, 7), ('bouncer', 4, 6), ('bridge', 8, 4), ('floater', 12, 3), ('ramp', 19, 7), ('ramp', 20, 6), ('ramp', 21, 5), ('ramp', 16, 7)):
         place(pg, kind, c, r)
     # the counter's heads, each time it is drawn: [Pudding's head here?, lit?] for each of the five (D-216)
@@ -825,21 +832,53 @@ with sync_playwright() as pw:
     check(fr['run'] == {'mode': 'run', 'busy': 0.75, 'fast': 'running'}, f'PC: level 29: in a run the fair is brighter and faster: busy shapes at 0.75, the wheel\'s fast group running (D-234) ({fr["run"]})')
     check(kicks == ['zipk1', 'zipk2'] and fr['sag'] > 0 and fr['spark'] > 0,
           f'PC: level 29: the ride R2 (D-235): the riders drawn kicking both ways, the line sagging under a reel ({fr["sag"]} frames), sparkles left along it (up to {fr["spark"]} at once) ({kicks})')
-    party = pg.evaluate("""() => { const p = document.querySelector('#pfx [data-party="carousel"]'); return { carousel: !!p, riders: p ? p.querySelectorAll('[data-rider]').length : 0,
-      dancers: document.querySelectorAll('#pfx [data-walker="party"]').length, mode: document.getElementById('board').dataset.mode }; }""")
-    check(s['home'] == 5 and s['seedTaken'] and party == {'carousel': True, 'riders': 5, 'dancers': 0, 'mode': 'party'} and not pg.locator('#party [data-act="next"]').is_visible(),
+    PARTY_JS = """() => { const p = document.querySelector('#pfx [data-party="carousel"]'); const q = document.querySelector('#pfx [data-poppers]');
+      return { carousel: !!p, riders: p ? p.querySelectorAll('[data-rider]').length : 0, dancers: document.querySelectorAll('#pfx [data-walker="party"]').length,
+        mode: document.getElementById('board').dataset.mode, poppers: q ? q.dataset.poppers + ' ' + q.querySelectorAll('[data-popper]').length : null }; }"""
+    party = pg.evaluate(PARTY_JS)
+    check(s['home'] == 5 and s['seedTaken'] and party == {'carousel': True, 'riders': 5, 'dancers': 0, 'mode': 'party', 'poppers': None} and pg.locator('#party [data-act="next"]').is_visible(),
           f'PC: level 29 (D-236): road B (up the helter-skelter, the zip-line over the lake, a bounce past the seed onto the bridge, a bridge and two ramps onto the stage): all five home with the seed; '
-          f'the party is the merry-go-round with the five riding (P1, D-235), data-mode party; no Next after the last level ({party})')
+          f'the party is the merry-go-round with the five riding (P1, D-235), data-mode party, no poppers (level 30\'s only, D-241); Next on to level 30 ({party})')
     pg.screenshot(path=os.path.join(OUT, 'pc-29-level29-party.png'))
+    # level 30, the finale (D-243): the lantern gate G2 and the poppers C1
+    tap(pg, '#party [data-act="next"]')
+    cards.append(opened(pg, 'L15b'))
+    GATE_JS = """() => { const b = document.querySelector('[data-button="0"]'); const lid = document.querySelector('[data-lid="0"]');
+      return { lamps: b ? b.querySelectorAll('.gl-string .gl-lamp').length : 0, lit: b ? b.hasAttribute('data-lit') : null, lid: lid ? lid.style.transform : null,
+        wood: lid ? lid.querySelectorAll('rect').length > 0 : false, cups: document.querySelectorAll('[data-cup]').length }; }"""
+    g0 = pg.evaluate(GATE_JS)
+    check(cards[-1] is None and pg.locator('#bg [data-back="fairA"]').count() == 1 and g0 == {'lamps': 9, 'lit': False, 'lid': 'rotate(-90deg)', 'wood': True, 'cups': 2},
+          f'PC: level 30 opens at the fair with no card (a twin), the teacup ride\'s two cups, and the lantern gate G2: a string of 9 lanterns, unlit, the drawbridge standing up (D-243) ({cards[-1]}, {g0})')
+    for kind, c, r in (('tube', 7, 8), ('tube', 9, 7), ('tube', 9, 6), ('tube', 9, 5), ('catapult', 14, 1), ('tube', 20, 4), ('ramp', 21, 3), ('signpost', 23, 2), ('zip', 17, 3), ('zip', 7, 4)):
+        place(pg, kind, c, r)
+    s = state(pg)
+    check(s['placed'].get('17,3') == 'zip:7,4' and s['placed'].get('7,4') == 'peg:17,3' and {k: v for k, v in s['left'].items() if v} == {'bridge': 2, 'bouncer': 1},
+          f'PC: level 30: road B put down, the zip-line hooked under the top walk and pegged on the jetty; left in the tray the two bridges and the marshmallow of the other roads ({s["left"]})')
+    # during the run: the button's group lit when it is pressed, the lanterns' fill turning gold, the drawbridge down
+    pg.evaluate('''() => { window.__gate = { lit: false, gold: 0, lid: null, ride: 0 }; const t = setInterval(() => { const st = __test.state();
+      if (st.mode === 'run') { const b = document.querySelector('[data-button="0"]'); const lid = document.querySelector('[data-lid="0"]');
+        if (b && b.hasAttribute('data-lit')) { window.__gate.lit = true; window.__gate.lid = lid.style.transform;
+          window.__gate.gold = Math.max(window.__gate.gold, [...b.querySelectorAll('.gl-lamp')].filter((e) => getComputedStyle(e).fill === 'rgb(255, 211, 77)').length); } }
+      if (st.screen !== 'level' || st.mode === 'party') clearInterval(t); }, 20); }''')
+    go_and_wait(pg, 'party')
+    s = state(pg)
+    gt = pg.evaluate('window.__gate')
+    check(gt['lit'] and gt['gold'] == 9 and gt['lid'] == 'rotate(0deg)',
+          f'PC: level 30: the button pressed, its group lit (data-lit), all 9 lanterns gold in turn, the drawbridge down (D-240, D-243) ({gt})')
+    party = pg.evaluate(PARTY_JS)
+    check(s['home'] == 5 and s['seedTaken'] and party == {'carousel': True, 'riders': 5, 'dancers': 0, 'mode': 'party', 'poppers': 'C1 2'} and not pg.locator('#party [data-act="next"]').is_visible(),
+          f'PC: level 30 (D-243): road B (straws up the shy, the teacups, the spoon over the gap through the seed, the button, back by the zip-line over the drawbridge): all five home with the seed; '
+          f'the party is the merry-go-round with two big poppers (C1, D-241); no Next after the last level ({party})')
+    pg.screenshot(path=os.path.join(OUT, 'pc-30-level30-party.png'))
     tap(pg, '#party [data-act="house"]')
     pg.wait_for_function('__test.state().screen === "house"')
     check(state(pg)['scene'] == 'park', 'PC: the house button after a park level goes back to the park')
     sizes_ok(pg, 'PC 1366x712', errors, asked)
     ids = IDS
     want = {'v': 2, 'done': {i: True for i in ids}, 'seeds': {i: True for i in ids},
-            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 2, 'L14b': 1, 'L15': 1},
+            'tries': {'L1': 1, 'L2': 2, 'L3': 3, 'L4': 2, 'L5': 1, 'L6': 2, 'L7': 1, 'L8': 2, 'L9': 2, 'L10': 1, **{t: 1 for t in TWIN if t in IDS}, 'L11': 1, 'L11b': 1, 'L12': 1, 'L12b': 1, 'L13': 1, 'L13b': 1, 'L14': 2, 'L14b': 1, 'L15': 1, 'L15b': 1},
             'cards': {c: True for c in ('bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip')}}
-    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None, 'button', None, 'pudding', None, 'zip'],
+    check(cards == ['bridge', None, 'ramp', None, 'bouncer', None, 'floater', None, 'tube', None, 'stick', None, None, None, 'seesaw', None, 'lift', None, None, None, 'catapult', None, 'signpost', None, 'button', None, 'pudding', None, 'zip', None],
           f'PC: each level\'s new gadget\'s card popped up once on the way, and was closed; none on the twins ({cards})')
     check(kept(pg) == want, f'PC on its own: the entry holds every level done, their seeds, and the GO presses until each was first done (1, 2, 3, 2, 1, 2, 1, 2, 2, 1, and 1 on each twin; the replays for seeds not counted) ({kept(pg)})')
     pg.reload()

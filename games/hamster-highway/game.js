@@ -1,4 +1,10 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.18 (27 Nov, step 18a (ii)).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.19 (27 Nov, step 18b (ii)).
+//
+// Changes at v1.19 (step 18b (ii), D-240, D-241, D-243): level 30's looks. On the fair's levels a bottle-top button is
+// drawn as the lantern gate G2 (art.js gateLook): a string of lanterns from the button to a wooden drawbridge (its lid);
+// when run()'s 'press' event comes the button's group gets data-lit, and style.css lights the lanterns one after
+// another and sets them glowing. Other levels keep the lunchbox lid and plain string. Level 30's party is P1 with the two
+// big poppers C1 (art.js popperLook) either side of the merry-go-round (POPPERS).
 //
 // Changes at v1.18 (step 18a (ii), D-233 to D-236): the fair. The board carries data-mode (build, run or party), so
 // style.css moves the fair's look A gently while building and brighter and faster in a run and at the party (D-234).
@@ -106,7 +112,7 @@
 
 import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text, ZIP_SAG, kickFeet, partyCarousel } from './art.js';
+import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text, ZIP_SAG, kickFeet, partyCarousel, gateLook, popperLook } from './art.js';
 import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
 import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
@@ -380,9 +386,12 @@ function renderParts() {
   layer('parts').innerHTML += S.level.parts.filter((p) => p.kind === 'button').map((p, i) => {
     const [lc, lr] = p.lid.slice().sort((a, b) => a[0] - b[0])[0];
     const [hx, hy, bx, by] = [lc * CELL, lr * CELL, p.c * CELL, (p.r + 1) * CELL];
+    // on the fair's levels, the lantern gate G2 (D-240, D-243): lanterns on the string, a wooden drawbridge for the lid
+    const gate = S.def.back === 'fairA' ? gateLook('G2', { bx, by, hx, hy, n: p.lid.length }) : null;
     return `<g data-button="${i}" data-at="${p.c},${p.r}">${path(`M ${bx + 30} ${by - 14} Q ${(bx + hx) / 2} ${Math.min(by, hy) - 40} ${hx + 6} ${hy - 4}`, 'none', 2.4, '#8B5A3C')}`
       + `<g data-cap="${i}" transform="translate(${bx} ${by})"><g class="cap">${buttonCap()}</g></g>`
-      + `<g transform="translate(${hx} ${hy})"><g data-lid="${i}" style="transform: rotate(-90deg); transition: transform .45s ease-in">${lidArt(p.lid.length)}</g></g></g>`;
+      + `<g transform="translate(${hx} ${hy})"><g data-lid="${i}" style="transform: rotate(-90deg); transition: transform .45s ease-in">${gate ? gate.lid : lidArt(p.lid.length)}</g></g>`
+      + `${gate ? gate.fixed : ''}</g>`;
   }).join('');
   layer('cupfront').innerHTML = front;
   for (const el of layer('bg').querySelectorAll('.loop')) el.removeAttribute('stroke-dashoffset');
@@ -974,6 +983,7 @@ function stickEvent(e) {
     const lid = board.querySelector(`[data-lid="${i}"]`);
     if (cap) cap.style.cssText = 'transform: scale(1, 0.5); transform-box: fill-box; transform-origin: 50% 100%; transition: transform .15s';
     if (lid) lid.style.transform = 'rotate(0deg)';
+    board.querySelector(`[data-button="${i}"]`)?.setAttribute('data-lit', '');   // the lantern gate's lanterns light (style.css, D-243)
     play('clink');
     return;
   }
@@ -1238,6 +1248,9 @@ function finishRun() {
   }
 }
 
+// the levels whose party has confetti poppers, and their look: level 30's two big poppers (C1, D-241, D-243)
+const POPPERS = { L15b: 'C1' };
+
 function party() {
   play('party');
   board.dataset.mode = 'party';
@@ -1254,7 +1267,7 @@ function party() {
   for (let i = 0; i < (fair ? 0 : WALKERS); i++) {
     s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + (BW - 720) / 2 + i * 60, 150, 0.6, 0, ' data-walker="party"');
   }
-  if (fair) s += g(partyCarousel(), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);
+  if (fair) s += g(partyCarousel() + (POPPERS[S.def.id] ? popperLook(POPPERS[S.def.id]) : ''), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);
   else s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
     const x = 196 + i * 46;
     const y = 40 + 36 * (1 - ((x - 360) / 180) ** 2) * 0.55;
