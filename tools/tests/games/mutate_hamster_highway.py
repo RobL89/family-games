@@ -1,5 +1,9 @@
 """Bench, not part of the close: plants faults in Hamster Highway's first build and counts how many the
-tests catch (project rules: test the tests). Version 1.19 (27 Nov, step 18a (ii)).
+tests catch (project rules: test the tests). Version 1.20 (27 Nov, step 18b (ii)).
+Changes at v1.20 (step 18b (ii), D-240, D-241, D-243): nine faults named "18b": four by the core test (level 30's
+drawbridge one square short; one straw fewer; eight lanterns on the string; the poppers moving with reduced motion), one
+by the solver (level 30's home on the coconut shy, the sketch page's fault 4) and four by the main browser test (no
+lantern gate at the fair; the gate on every button; the lanterns never lit; no poppers at level 30).
 Changes at v1.19 (step 18a (ii), D-233 to D-236): thirteen faults named "18a": five by the core test (level 29 without the
 balcony's end, so no hook; five straws; no zip-line card; the zip card's peg in before its hook; the fast wheel never
 paused while building), one by the solver (level 29's home on the coconut shy, a short cut under the floor, the sketch
@@ -341,6 +345,17 @@ FAULTS = [
     ('18a: no sparkles', G + 'game.js', "      if (u >= i / cols && !w.sparks[k]) {", "      if (false) {", E2E),
     ('18a: the usual party at the fair', G + 'game.js', "  const fair = S.def.back === 'fairA';", "  const fair = false;", E2E),
     ('18a: the zip card\'s caption gone', G + 'cards.js', "  zip: 'Hook it high, peg it low!',", "  zip: '',", CARDS_E2E),
+    # step 18b (ii): level 30, the lantern gate G2 and the poppers C1
+    ('18b: level 30\'s drawbridge one square short', G + 'levels.js', "lid: [[2, 5], [3, 5]] }],", "lid: [[3, 5]] }],", CORE),
+    ('18b: level 30 with one straw fewer', G + 'levels.js', "    tray: { zip: 1, catapult: 1, signpost: 1, ramp: 1, bridge: 2, tube: 5, bouncer: 1 },", "    tray: { zip: 1, catapult: 1, signpost: 1, ramp: 1, bridge: 2, tube: 4, bouncer: 1 },", CORE),
+    ('18b: eight lanterns on the string', G + 'art.js', "  const N = 9;\n", "  const N = 8;\n", CORE),
+    ('18b: the poppers move with reduced motion', G + 'style.css', "@media (prefers-reduced-motion: reduce) { .pp-cone, .pp-flash, .pp-bit, [data-lit] .gl-halo { animation: none; } }\n", '', CORE),
+    ('18b solver: level 30\'s home on the coconut shy', G + 'levels.js', "      'G................###.###',\n      '##..####................',",
+     "      '.................###.###',\n      '##..####...G............',", SOLVE + ' L15b'),
+    ('18b: no lantern gate at the fair', G + 'game.js', "const gate = S.def.back === 'fairA' ? gateLook('G2'", "const gate = false ? gateLook('G2'", E2E),
+    ('18b: the lantern gate on every button', G + 'game.js', "const gate = S.def.back === 'fairA' ? gateLook('G2'", "const gate = true ? gateLook('G2'", E2E),
+    ('18b: the lanterns never light', G + 'game.js', "    board.querySelector(`[data-button=\"${i}\"]`)?.setAttribute('data-lit', '');", "", E2E),
+    ('18b: no poppers at level 30', G + 'game.js', "const POPPERS = { L15b: 'C1' };", "const POPPERS = {};", E2E),
 ]
 
 
