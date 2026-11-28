@@ -27,6 +27,10 @@ game, please:
      .card[data-act="pick"][data-id] and .card.new cards; #modal, #nameInput, #map and
      #switchPlayer; and window.WordGarden (addSchoolList, recordSchoolTest, schoolLists,
      schoolTests), which the launcher will use for school lists.
+   - Fossil Hunters: its keys fossilHunters.players.v1 as { v, list: [{ id, name, badge }], last }
+     and fossilHunters.player.<id>, each save with its name and badge; #who with its .on class,
+     #whoList and its .whoTile[data-id] tiles, #whoNew, #whoName, #whoGo, #whoEdit, #whoCancel
+     and #gWho.
 3. Keep sound and speech going through the browser's normal audio, so the launcher's sound-off
    switch still works.
 4. Don't use real family names in the game's text (the launcher's copy is public).

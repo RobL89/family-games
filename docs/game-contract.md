@@ -1,6 +1,6 @@
 # Game contract
 
-**Version 0.4.4, 2026-11-26.** What a game needs to run in the launcher, what the launcher can give it, and how a game gets in.
+**Version 0.4.5, 2026-11-28.** What a game needs to run in the launcher, what the launcher can give it, and how a game gets in.
 
 - **Owner:** P-020 (Family Games Launcher), the master host of every game (P53). Games are developed elsewhere, now in P-034 (Kids Games Development), and released to P-020 (section 7).
 - **Changes:** Rob agrees each change. P-020 tells every games project by board note before it changes this file.
@@ -74,7 +74,7 @@ Sent with `window.postMessage`, between pages on the same site only. Each one is
 | Direction | Message | Fields |
 |---|---|---|
 | Game → wrapper | `fg:ready` | none |
-| Wrapper → game | `fg:start`, after `fg:ready` | `player`, `sound`, `lists`, `settings`, `state` (or `null`), `level` (always `null` now: games run their own levels) |
+| Wrapper → game | `fg:start`, after `fg:ready` | `player`, `sound`, `lists`, `settings`, `state` (or `null`), `level` (always `null` now: games run their own levels). If the Sheet answers after the game has started and holds newer progress than `state`, the wrapper reloads the game's page once, under the cover, and the next `fg:start` carries that progress; saves sent in between are dropped (P92) |
 | Game → wrapper | `fg:state`, whenever its saved state changes | `state`: one object, under 450,000 characters as JSON (P89). Keep it small: the wrapper sends it to the Sheet after each change. Over 20,000 characters, compress it (`games/_common/keep-progress/` does this for artifact games; script 0.6.0 keeps a big state in several cells). With script 0.5.0 or older, a state over 20,000 stays on the device |
 | Game → wrapper | `fg:school` (only games with `"school-lists"`) | `school`: what the game holds of the child's school lists and tests (section 4) |
 | Game → wrapper | `fg:round` (optional) | As in version 0.3. Ignored while stars are switched off |
@@ -125,5 +125,6 @@ An update follows the same steps, and the new folders replace the old ones.
 | 0.4.2 | 2026-11-13 | Section 1: the wrapper covers a game while it opens, until it has had `fg:start` (P83). No game changes |
 | 0.4.3 | 2026-11-25 | Section 5: a game's state may be up to 450,000 characters (was 20,000), compressed when over 20,000; script 0.6.0 keeps it in parts (P89). No game changes |
 | 0.4.4 | 2026-11-26 | Sections 4 and 5: school lists and tests for games that ask for `"school-lists"` (`settings.school` in `fg:start`, `fg:school` back), script 0.7.0 (P91). No other game changes |
+| 0.4.5 | 2026-11-28 | Section 5: when the Sheet answers late with newer progress, the wrapper reloads the game once with it (P92). No change needed to any game |
 | 0.4.1 | 2026-11-13 | GC5: a framed game waits about 5 seconds for `fg:start`, not 1.5, because the wrapper may first wait up to 3 seconds for the Sheet (P81) |
 | 0.4 | 2026-11-12 | Rob's new direction (P48 to P54). The wrapper is a bar with Home and the child's face, with no panel, stars or levels. Games run their own levels (GC3) and show their own end of round. Services listed (section 4), with one set of word lists per child. Imports may include `games/_common/` (GC4). Each game has a one-page README. The release route to P-020 (section 7). GC7 updated |

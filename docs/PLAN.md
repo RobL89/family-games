@@ -1,6 +1,6 @@
 # How the launcher works
 
-Updated 2026-11-26 (school lists and tests in the Sheet for Word Garden, script 0.7.0, P91; not yet published). Before that 2026-11-25 (Word Garden as testing, P90; big saves compressed and kept in parts, script 0.6.0, P89). Before that 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
+Updated 2026-11-28 (Fossil Hunters live as ready, P93; a late Sheet never replaces a child's progress, P92). Before that 2026-11-26 (school lists and tests in the Sheet for Word Garden, script 0.7.0, P91; not yet published). Before that 2026-11-25 (Word Garden as testing, P90; big saves compressed and kept in parts, script 0.6.0, P89). Before that 2026-11-18 (the play log, P88: script 0.5.0 and the launcher live). Before that 2026-11-13 (stage 5: script 0.4.0 live; the cover, P83; Number Crossing and two Soon tiles, P84, P85). Decisions and their numbers are in [decisions.md](decisions.md). What a game must do, and how a game gets in, is in [game-contract.md](game-contract.md). Setting up or updating the Sheet is in [setup-sheet.md](setup-sheet.md).
 
 ## What it is
 
@@ -86,13 +86,14 @@ Sticker book (the default), Fairy, Blocks and Unicorn.
 
 ## Games
 
-Live: five artifact games (the first three from stage 3, P68), each with its own one-page README in `games/<id>/`:
+Live: seven artifact games (the first three from stage 3, P68), each with its own one-page README in `games/<id>/`:
 - **Kriss Kross:** word lists from Game setup, plus the child's own lists (P66).
 - **Space Explorer:** a guide to space.
 - **Number Town:** a maths town. Each child's explorer follows them between devices (P77).
 - **Number Crossing** (published 2026-11-13): sums to cross a river, lava or the sky. Each child has their own setup, which follows them between devices (P84).
 - **Fairy village** (published 2026-11-15): a fairy puzzle adventure, several files. Each child's explorer follows them between devices (P87).
 - **Word Garden** (taken 2026-11-25, P90; ready 2026-11-26): a spelling and phonics garden from Reception to Year 6, with its recorded phonics sounds. Each child's garden follows them between devices, compressed (P89); school lists and tests can be added in the Sheet or in the game (P91).
+- **Fossil Hunters** (2026-11-28, P93): dig up bones at real fossil sites, rebuild the skeletons, name the animals, collect them in a Field Guide. Several files (pictures and three.js). Each child's explorer follows them between devices.
 
 Testing: Wrapper check, a launcher tool for trying the wrapper.
 

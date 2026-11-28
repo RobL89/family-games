@@ -505,6 +505,10 @@ async function refresh() {
     if (pid && profileById(pid)) {
       const old = JSON.stringify(api.getCachedProfile(pid));
       await api.fetchProfile(pid);
+      // A game started before the Sheet answered and left before it did (P92): compare it now,
+      // then send what it kept, if the Sheet had nothing newer.
+      api.settleChecks(pid);
+      api.sendStates();
       changed = changed || old !== JSON.stringify(api.getCachedProfile(pid));
     }
     if (changed && state.screen !== 'setup') route();

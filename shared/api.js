@@ -165,15 +165,72 @@ export async function saveLists(profileId, lists, gameId) {
 
 const stateKey = (profileId, gameId) => `${KEYS.statePrefix}${profileId}.${gameId}`;
 
+// The Sheet's copy of a game's state for a child, as this device last read it: { state, at } or null.
+function sheetState(profileId, gameId) {
+  const sheet = ((getCachedProfile(profileId) || {}).states || {})[gameId];
+  return sheet && typeof sheet === 'object' && 'state' in sheet ? sheet : null;
+}
+
+// The newest of this device's copy and the Sheet's, as { state, at } (at may be missing).
+function newestState(profileId, gameId) {
+  const local = load(stateKey(profileId, gameId), null);
+  const mine = local && 'state' in local ? local : null;
+  const theirs = sheetState(profileId, gameId);
+  if (!mine || !theirs) return mine || theirs || { state: null };
+  return (Date.parse(theirs.at) || 0) > (Date.parse(mine.at) || 0) ? theirs : mine;
+}
+
 // The state to hand a game in fg:start: the newest of this device's copy and the Sheet's, which
 // may come from another device (P78). Each carries `at`, when the game made it.
 export function getState(profileId, gameId) {
-  const local = load(stateKey(profileId, gameId), null);
-  const mine = local && 'state' in local ? local : null;
-  const sheet = ((getCachedProfile(profileId) || {}).states || {})[gameId];
-  const theirs = sheet && typeof sheet === 'object' && 'state' in sheet ? sheet : null;
-  if (!mine || !theirs) return (mine || theirs || { state: null }).state;
-  return (Date.parse(theirs.at) || 0) > (Date.parse(mine.at) || 0) ? theirs.state : mine.state;
+  return newestState(profileId, gameId).state;
+}
+
+// ---- Unchecked starts (P92) ----------------------------------------------------------
+// A game may start before the Sheet has answered (the wrapper waits only WAIT_FOR_SHEET). If this
+// device didn't have the child's latest progress, the game starts from older progress (or from
+// nothing), and its next save, being newest, would replace the real progress in the Sheet. So such a
+// start is marked unchecked (fg.unchecked.<child>.<game>: { from }, when the progress the game was
+// given was made), and nothing of that game's for that child goes to the Sheet until the Sheet's
+// copy has been read and compared (settleChecks, after the child's profile is read). If the Sheet
+// then holds newer progress than the game started from, the Sheet's copy is put back on the device
+// and the game's play since is dropped; the wrapper restarts the game if it's still open.
+
+const UNCHECKED = 'fg.unchecked.';
+const uncheckedKey = (profileId, gameId) => `${UNCHECKED}${profileId}.${gameId}`;
+
+// Marks a start made before the Sheet answered. An earlier mark is kept: it holds what the game
+// started from before any unchecked play.
+export function markUnchecked(profileId, gameId) {
+  const key = uncheckedKey(profileId, gameId);
+  if (load(key, null)) return;
+  save(key, { from: newestState(profileId, gameId).at || null });
+}
+
+export function isUnchecked(profileId, gameId) {
+  return !!load(uncheckedKey(profileId, gameId), null);
+}
+
+// After the child's profile has been read from the Sheet: compares each unchecked game of theirs
+// with the Sheet's copy and clears the mark. Returns the ids of games whose progress was put back.
+export function settleChecks(profileId) {
+  const replaced = [];
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter((k) => k.startsWith(`${UNCHECKED}${profileId}.`)); } catch { return replaced; }
+  for (const key of keys) {
+    const gameId = key.slice(`${UNCHECKED}${profileId}.`.length);
+    const mark = load(key, null) || {};
+    const theirs = sheetState(profileId, gameId);
+    if (theirs && (Date.parse(theirs.at) || 0) > (Date.parse(mark.from) || 0)) {
+      save(stateKey(profileId, gameId), { state: theirs.state, at: theirs.at, sent: true });
+      // An artifact game's keep-progress note (P77) would hold the dropped play as newer: forget it,
+      // so the Sheet's copy is put back in the game's own storage when it next opens.
+      try { localStorage.removeItem(`fg.keep.${gameId}.${profileId}`); } catch { /* storage blocked */ }
+      replaced.push(gameId);
+    }
+    try { localStorage.removeItem(key); } catch { /* storage blocked */ }
+  }
+  return replaced;
 }
 
 // Keeps a game's state on this device, made now, and marks it to go to the Sheet. The same state
@@ -209,6 +266,7 @@ export function sendStates({ keepalive = false } = {}) {
       if (!local || local.sent !== false) continue;
       const [profileId, ...rest] = key.slice(KEYS.statePrefix.length).split('.');
       const gameId = rest.join('.');
+      if (isUnchecked(profileId, gameId)) continue; // waits until the Sheet's copy is compared (P92)
       let reply;
       try {
         reply = await call('saveState', { profile_id: profileId, game_id: gameId, state: local.state, at: local.at }, { keepalive });

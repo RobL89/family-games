@@ -27,6 +27,11 @@
 //   9. Time played (P88): with &play=<id> (added by the launcher when the tile was tapped), the time
 //      the game is on screen and being played is added to that play, and sent with the saves, to
 //      the Sheet's Plays tab (script 0.5.0). No touch, click or key for 3 minutes counts as a break.
+//  10. A late Sheet (P92): if the child's profile hasn't been re-read when fg:start goes, the start
+//      is marked unchecked and nothing of this game's goes to the Sheet until it has (shared/api.js).
+//      When it arrives, if the Sheet holds newer progress than the game was given, that progress is
+//      put back and the game restarts with it, under the cover. So a game that opened as new on a
+//      slow Sheet can never replace the child's real progress.
 
 import { CONFIG } from './config.js';
 import * as api from './api.js';
@@ -187,7 +192,16 @@ async function start() {
 
   // The game's saved state (P51, P78). Its progress may have been made on another device, so the
   // child's profile is re-read from the Sheet while the game opens.
-  const reread = api.fetchProfile(pid).catch(() => {});
+  // When it arrives, any unchecked start is compared with the Sheet's copy (P92).
+  let rereadDone = false;  // the child's profile has been re-read from the Sheet
+  let started = false;     // fg:start has gone to the game
+  let restarting = false;  // the game is being restarted with the Sheet's progress (P92)
+  const reread = api.fetchProfile(pid).then(() => {
+    rereadDone = true;
+    const putBack = api.settleChecks(pid).includes(gameId);
+    if (putBack && started) restartGame();
+    else sendSoon(); // anything kept while it waited goes now
+  }, () => {});
   api.markUnsent(pid, gameId); // a state kept before states went to the Sheet goes now
 
   let sendTimer = null;
@@ -203,11 +217,13 @@ async function start() {
   const sendNow = () => {
     clearTimeout(sendTimer);
     sendTimer = null;
-    try {
-      const latest = frame.contentWindow && typeof frame.contentWindow.fgSaveNow === 'function'
-        ? frame.contentWindow.fgSaveNow() : undefined;
-      if (latest !== undefined) api.keepState(pid, gameId, latest);
-    } catch { /* the game's page is gone or not ours: what was kept already goes */ }
+    if (!restarting) { // a page being restarted has nothing to keep (P92)
+      try {
+        const latest = frame.contentWindow && typeof frame.contentWindow.fgSaveNow === 'function'
+          ? frame.contentWindow.fgSaveNow() : undefined;
+        if (latest !== undefined) api.keepState(pid, gameId, latest);
+      } catch { /* the game's page is gone or not ours: what was kept already goes */ }
+    }
     send({ keepalive: true });
     api.sendPlays({ keepalive: true }); // the time played so far (P88)
   };
@@ -224,7 +240,7 @@ async function start() {
     if (m.type === 'fg:ready') {
       watchPage();
       startGame();
-    } else if (m.type === 'fg:state') {
+    } else if (m.type === 'fg:state' && !restarting) {
       // Kept at once; sent soon, or now if the page is being hidden (the game saved on its way out).
       if (api.keepState(pid, gameId, m.state)) (document.hidden ? sendNow : sendSoon)();
     } else if (m.type === 'fg:school' && wantsSchool(entry, manifest)) {
@@ -240,6 +256,9 @@ async function start() {
   // fg:start, once the child's profile has been re-read (or WAIT_FOR_SHEET has passed).
   async function startGame() {
     await Promise.race([reread, new Promise((r) => setTimeout(r, WAIT_FOR_SHEET))]);
+    if (!rereadDone) api.markUnchecked(pid, gameId); // starting before the Sheet answered (P92)
+    restarting = false;
+    started = true;
     frame.contentWindow.postMessage({
       type: 'fg:start',
       v: VERSION,
@@ -251,6 +270,23 @@ async function start() {
       level: null,
     }, location.origin);
     showSoon();
+  }
+
+  // The Sheet answered late with newer progress than the game was given (P92): the device's copy
+  // already holds the Sheet's, so reload the game under the cover. The old page's saves are ignored
+  // from now on: its storage writes (a game saving as it unloads) and its fg:state messages.
+  function restartGame() {
+    restarting = true;
+    coverGame();
+    try {
+      const w = frame.contentWindow;
+      w.fgLeaving = true;
+      const proto = Object.getPrototypeOf(w.localStorage);
+      for (const name of ['setItem', 'removeItem', 'clear']) proto[name] = function () {};
+      w.location.reload();
+    } catch {
+      frame.src = frame.src; // not ours to reach into: load it again
+    }
   }
 
   // Time played (P88), for the play the launcher started when the tile was tapped.

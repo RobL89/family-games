@@ -1,0 +1,7 @@
+{
+  "title": "Fossil Hunters",
+  "colour": "#B7792E",
+  "icon": "icon.svg",
+  "page": "original.html",
+  "adapter": "adapter.js"
+}
