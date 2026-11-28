@@ -1,6 +1,30 @@
 # Hamster Highway
 
-Version 1.16 · 17 Nov 2026 · P-034 (Kids Games Development) · 20 levels (levels 1 to 10, each with its twin), the house picker, help cards, saving and the wrapper link.
+Version 1.28 · 27 Nov 2026 · P-034 (Kids Games Development) · 30 levels (levels 1 to 10, each with its twin, and the park's five pairs, 21 to 30), the house and park pickers, help cards, saving and the wrapper link.
+
+Changes at v1.28 (step 18b (ii) and the release, D-238 to D-249): level 30 *Confetti party*, the finale at the fair: a loop over the coconut shy, up the teacup ride, along the top walk to the button at the far side, and back by the zip-line over the whole fair; the button lowers the lantern drawbridge to home, its string of lanterns lighting gold as it is pressed (G2), and the party has two big confetti poppers (C1). Built to contract 0.4.4 (D-248). Released to P-020 with levels 21 to 30.
+
+Changes at v1.27 (step 18a (ii), D-232 to D-236): the fair. Level 29 *Zip over the lake* brings in the zip-line: up the helter-skelter, hook the zip-line under its balcony and zip over the boating lake, then four roads onto the big wheel's stage (straws, a bounce and bridges, or the spoon), two of them past the golden seed. The fair's backdrop (the big wheel, the helter-skelter, bunting and a balloon stall) moves gently while building and brighter and faster once GO is pressed. On the zip-line a hamster swings and kicks, the line sags under it, sparkles are left behind, and it lets go with a puff and a hop. Its party is a merry-go-round with the five riding. The zip-line's help card: "Hook it high, peg it low!". Not yet released.
+
+Changes at v1.26 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch harder, as agreed on two sketch pages: more gadgets, more heights and more roads, right and wrong. Every road walks 3 to 5 floor heights with 4 to 9 gadgets. 22 *Two ways round* and 24 *Zig, zag, home* have three roads each; 25 *Lunchbox drawbridge* has three, all through the button; 26 *Lunch is served* has three, home on the hamper reached from the far end; 27 *Pudding comes to play* has two after the monkey bars; 28 *Big and small* has two, with the worn-stick trap and two bouncer short cuts that leave Pudding behind. 22 and 25 to 28 are now 24 wide. The picnic's and the playground's backdrops are faded as the frame's is. Not yet released.
+
+Changes at v1.25 (step 17b (ii), D-211, D-212, D-214 to D-216): levels 25 to 28 redesigned as agreed on a sketch page, each road walking 3 or 4 floor heights with 4 to 8 gadgets: 25 *Lunchbox drawbridge*, 26 *Lunch is served* (two roads to the hamper), 27 *Pudding comes to play*, 28 *Big and small* (two roads to a podium, and two worn sticks in the tray that carry the Nibbles but snap under Pudding). The climbing frame's backdrop is faded to 40%. In the hamster counter Pudding has its own face, a fifth bigger on a caramel ring; on Pudding's levels each face lights when that hamster gets home.
+
+Changes at v1.24 (step 17, D-194): the playground. Levels 27 and 28, 9 rows tall, on a swings-and-slide backdrop, with Pudding the heavy hamster in the line: drawn bigger in vanilla with caramel, Pudding squashes a marshmallow and walks on, snaps a worn stick at once and tips a see-saw on its own, with its help card ("Pudding is too heavy to bounce!"). Not yet released.
+
+Changes at v1.23 (step 16, D-194): the picnic. Levels 25 and 26, 9 rows tall, on a picnic backdrop (a gingham blanket under a tree with bunting): the bottle-top button, part of the level: the first hamster to step on it drops a lunchbox lid over a gap, for good, with its help card ("Press it to drop the lid!"); level 26 has two roads, each with its own button. Not yet released.
+
+Changes at v1.22 (step 15, D-208): the climbing frame. Levels 23 and 24, 9 rows tall, on a red and yellow climbing-frame backdrop: the twig signpost turns the hamsters round, with its help card ("Signposts turn them round!"); level 23 climbs the frame by two bouncers and a turn, its seed by a spare left ramp; level 24 has two roads, a zig-zag up the tower with two signposts or one bounce straight up. Not yet released.
+
+Changes at v1.21 (step 14b, D-206): the spoon throws: its arm dips, flips up and over and bounces back, the reel rolls a turn, and a puff of dust and whoosh lines fly from the bowl, in place of a wobble. Not yet released.
+
+Changes at v1.20 (step 14, D-187, D-194, D-202 to D-204): the park and the spoon catapult. Once level 20 is done, a stop by the treehouse glows; a tap plays the zip-line ride over the fence into the park (its own picker, the same size as the house's, with a house button back to the garden). Levels 21 and 22 at the duck pond, 9 rows tall, on a willow backdrop: the spoon catapult flings each hamster 4 squares on in an arc, the way it is walking (anything in the way: bonk and drop), with its help card; level 22 has two roads, low by the island or high along the willow branch. Not yet released.
+
+Changes at v1.19 (D-200): once GO is pressed, the hamster counter and the golden-seed badge sit in the tray, where the gadgets were, never over the board or the running hamsters; while building, neither shows.
+
+Changes at v1.18 (D-197): the hamster counter at the top left shows once GO is pressed, not while building, so the top row's squares can be seen while placing.
+
+Changes at v1.17 (step 13, the spike for levels 21 to 30: D-185, D-190, D-196): the rules and screens are ready for boards 7 to 9 rows tall (a 9-row board shows 16 squares across), for hamsters walking both ways (the twig signpost turns them round; a left ramp; dizzy at the third turn at one signpost; a nap back in the start tube) and for the zip-line (placed in two taps, high end then low end; a hamster slides down it hanging from a cotton reel). No level uses them yet: they are tried on a test board that opens only from a preview's test panel. Levels 1 to 20 play exactly as before. Not yet released.
 
 Changes at v1.16 (step 11, D-181, D-182): released to P-020 (Family Games Launcher): the 20 levels, the help cards and the three fixes of v1.13 to v1.15. Its release check is at 1.2. The game itself is unchanged.
 
@@ -31,7 +55,7 @@ throws them up high, a dandelion floater lets them drift down, a tube carries th
 has a nap and fades. All five home: a party, and the next level opens. Original art and sounds,
 all made in code (D-010).
 
-- **Runs on its own:** yes, as a plain page (contract 0.4.2 GC5), saving to the device.
+- **Runs on its own:** yes, as a plain page (contract 0.4.4 GC5), saving to the device.
 - **Needs from the launcher:** sound on or off, and saving its progress (`fg:state`, contract
   section 4), through `games/_common/rocket/link.js` and `shared/bridge.js`. Who's playing isn't used.
 - **Folder:** `games/hamster-highway/`, the game's id (D-146; it was `bridge-builder` until 15 Nov).
@@ -71,14 +95,15 @@ all made in code (D-010).
 
 | File | What |
 |---|---|
-| `core.js` | The rules: the board (12 to 24 wide), where gadgets fit, each hamster's trip, and all five together, tick by tick, with any teacup lift (one or two cups) or see-saw (`run()`). Pure |
+| `core.js` | The rules: the board (7 to 9 rows, 12 to 24 wide), where gadgets fit (the zip-line's two ends too), each hamster's trip, either way, and all five together, tick by tick, with any teacup lift (one or two cups) or see-saw (`run()`). Pure |
 | `levels.js` | The levels, as text boards with their trays. Data only |
 | `art.js` | The drawings, as SVG text. Pure |
-| `house.js` | The house-and-garden picker and the title card, as SVG text. Pure |
+| `house.js` | The house-and-garden picker (levels 1 to 20, and the zip-line's stop to the park) and the title card, as SVG text. Pure |
+| `park.js` | The park picker (levels 21 on), its stops and the ride's hamster, as SVG text. Pure; imports only `art.js` and `house.js` |
 | `sound.js` | Sounds made in the browser (helpers copied from Rocket Lander's) |
 | `progress.js` | What is saved: levels done, seeds found, GO presses until each level is first done, help cards seen. Pure |
-| `cards.js` | The 8 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
-| `game.js` | The screens, taps and animation; saving and the wrapper link |
+| `cards.js` | The 13 help cards: their scenes, captions and CSS keyframes (classes all `hc-`), as text. Pure; imports only `art.js` |
+| `game.js` | The screens, taps and animation (the window the level's own size); saving and the wrapper link |
 | `index.html`, `style.css` | The page |
 
 **Progress (D-147, D-171, P-034's data map 1.10):** format 2, `{ v: 2, done, seeds, tries, cards }`, no name or
@@ -100,6 +125,16 @@ devices, and on its own).
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.28 | 2026-11-27 | Level 30 at the fair (D-243), the lantern gate G2 and the poppers C1, copied by script from step 18b's masters; contract 0.4.4 (D-248); released with levels 21 to 30 |
+| 1.27 | 2026-11-27 | Level 29 at the fair (D-236), the fair's look A and its two speeds, the zip ride R2, the zip-line's card B and the party P1 (D-234, D-235), copied by script from step 18a's masters |
+| 1.26 | 2026-11-24 | Levels 22 and 24 to 28 one notch up (D-226, D-229), copied by script from the sketch pages' masters; the picnic and playground faded (D-226) |
+| 1.25 | 2026-11-22 | Levels 25 to 28 redesigned to the floor (D-212, D-215), the trap stick on 28 (D-214), the frame faded (D-211), Pudding's counter face (D-216); 1.22 to 1.24's rows were not added here: their notes are at the top |
+| 1.21 | 2026-11-20 | The spoon's throw (step 14b, D-206) |
+| 1.20 | 2026-11-18 | The park, reached by the zip-line ride; levels 21 and 22 at the duck pond; the spoon catapult and its card (step 14) |
+| 1.19 | 2026-11-18 | Once GO is pressed, the hamster counter and seed badge take the tray's place, never over the board (D-200) |
+| 1.18 | 2026-11-18 | The hamster counter shows once GO is pressed, not while building (D-197) |
+| 1.17 | 2026-11-17 | The spike: 9-row boards, walking both ways, the signpost, the left ramp and the zip-line in the rules and screens, on a test board only (D-185, D-190, D-196) |
+| 1.16 | 2026-11-17 | Released to P-020 (D-181, D-182) |
 | 1.15 | 2026-11-17 | Feedback items 1 to 3: sticks in either order, the see-saw card's ramp, the dandelion held (D-177 to D-179, ER-013) |
 | 1.14 | 2026-11-16 | The twins of levels 6 to 10: 20 levels (D-166, D-169, D-170) |
 | 1.13 | 2026-11-16 | The twins of levels 1 to 5 and their stops; opens() (D-166, D-169, D-170) |

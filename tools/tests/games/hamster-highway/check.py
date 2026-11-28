@@ -1,4 +1,12 @@
-"""Hamster Highway release check (contract 0.4.2, GC7), through P-020's wrapper. Version 1.2.
+"""Hamster Highway release check (contract 0.4.4, GC7), through P-020's wrapper. Version 1.3.
+
+Changes at v1.3 (the release of levels 21 to 30, D-249, D-250): the 30 levels. The house shows a stop for each of its
+20 levels (levels 21 to 30 are in the park, its own picker reached by the zip-line), all but the first locked; a child
+with every level but the last done waits in the park, its 10 stops all open, and the last level is level 30 (L15b), with
+no card; it is played through in the wrapper by its seed road (road B, the core test's SOL), the board slid by its
+arrows as a child would: all five home with the seed, the button's lanterns lit (data-lit, G2), the party's poppers
+(C1), and level 30 done in the progress sent to the Sheet. 1.2's two checks that named 20 stops and level 10's twin
+as the last were written for the 20-level release (they failed 4 of 60 on this one: the game was right).
 
 Changes at v1.2 (step 11, D-166, D-167, D-170, D-176): the 20 levels and the help cards, through the real wrapper:
 the house shows a stop for every level in levels.js (20), all but the first locked; level 1's card pops up for a new
@@ -117,6 +125,22 @@ def open_level(pg, f, i):
     return st(f)
 
 
+def place(pg, f, kind, col, row):
+    """A gadget put down as a child would: its tray slot (unless already picked), the board slid by its arrows until the
+    square shows (as the main browser test's place()), then the square."""
+    if st(f)['selected'] != kind:
+        tap(pg, f, f'[data-slot="{kind}"]')
+    bw = float(f.evaluate('document.querySelector("#window rect").getAttribute("width")'))
+    for _ in range(12):
+        v = f.evaluate('__test.view()')
+        x = (col + 0.5) * 60 - v['x']
+        if 40 < x < bw - 40 or (x <= 40 and v['x'] <= 0) or (x >= bw - 40 and v['x'] >= v['max']):
+            break
+        tap(pg, f, '[data-btn="panR"]' if x >= bw - 40 else '[data-btn="panL"]')
+        f.wait_for_timeout(450)
+    square(pg, f, col, row)
+
+
 def close_card(pg, f):
     tap(pg, f, '#card [data-btn="cardok"]')
     f.wait_for_function('__test.state().card === null', timeout=5000)
@@ -169,7 +193,7 @@ with sync_playwright() as pw:
         s = st(f)
         c.check(f'{name}: a new child\'s house opens at level 1', s['at'] == 0 and s['progress'] == {'done': {}, 'seeds': {}, 'tries': {}, 'cards': {}}, (s['at'], s['progress']))
         n, locked = stops(f)
-        c.check(f'{name}: the house shows a stop for each of the {len(IDS)} levels, all but the first locked', n == len(IDS) == 20 and locked == n - 1, (n, locked))
+        c.check(f'{name}: the house shows a stop for each of its 20 levels (21 to 30 are in the park), all but the first locked', n == 20 and len(IDS) == 30 and locked == n - 1, (n, len(IDS), locked))
         pg.screenshot(path=f'{OUT}/2-{name}-house.png')
         card = play_level1(pg, f)
         c.check(f'{name}: level 1\'s help card pops up for a new child, and its tick closes it (D-170)', card == 'bridge', card)
@@ -273,16 +297,33 @@ with sync_playwright() as pw:
     ctx.close()
     c.states.clear()
 
-    # 5c. A child with every level but the last done opens the last one, level 10's twin.
+    # 5c. A child with every level but the last done waits in the park and opens the last one, level 30, and plays it.
     c.states[('p_sam', GAME)] = {'state': ALL_BUT_LAST, 'at': '2026-01-01T00:00:00.000Z'}
     ctx, pg = device(browser)
     c.open_game(pg, wait=3500)
     f = game(pg)
     to_house(pg, f)
     c.check(f'all but the last done: waiting at the last stop ({len(IDS)})', st(f)['at'] == len(IDS) - 1, st(f)['at'])
+    n, locked = stops(f)
+    c.check('all but the last done: the park shows its 10 stops, all open', st(f)['scene'] == 'park' and (n, locked) == (10, 0), (st(f)['scene'], n, locked))
     s = open_level(pg, f, len(IDS) - 1)
-    c.check('the last level opens: level 10\'s twin, with no card', s['level'] == 'L10b' and s.get('card') is None, (s['level'], s.get('card')))
+    c.check('the last level opens: level 30 (L15b), with no card', s['level'] == 'L15b' and s.get('card') is None, (s['level'], s.get('card')))
+    for kind, col, row in (('tube', 7, 8), ('tube', 9, 7), ('tube', 9, 6), ('tube', 9, 5), ('catapult', 14, 1), ('tube', 20, 4), ('ramp', 21, 3), ('signpost', 23, 2), ('zip', 17, 3), ('zip', 7, 4)):
+        place(pg, f, kind, col, row)
+    f.evaluate('''() => { window.__lit = false; const t = setInterval(() => { const b = document.querySelector('[data-button="0"]');
+      if (b && b.hasAttribute('data-lit')) window.__lit = true; if (__test.state().mode === 'party') clearInterval(t); }, 20); }''')
+    f.evaluate('__test.speed(8)')
+    tap(pg, f, '[data-btn="go"]')
+    f.wait_for_function('__test.state().mode === "party"', timeout=60000)
+    f.wait_for_timeout(600)
+    s = st(f)
+    pops = f.locator('[data-poppers="C1"] [data-popper]').count()
+    c.check('level 30 played by its seed road: all five home with the seed, the lanterns lit, the two poppers at the party (D-243)',
+            s['home'] == 5 and s['seedTaken'] and f.evaluate('window.__lit') and pops == 2, (s['home'], s['seedTaken'], f.evaluate('window.__lit'), pops))
     pg.screenshot(path=f'{OUT}/5-last-level.png')
+    pg.click('#home'); pg.wait_for_selector('.home'); pg.wait_for_timeout(1500)   # the wrapper's Home, as check 6 does
+    sheet = c.states.get(('p_sam', GAME))
+    c.check('level 30 done in the progress sent to the Sheet', bool(sheet and sheet['state']['done'].get('L15b') and sheet['state']['seeds'].get('L15b')), sheet and sheet['state']['done'].get('L15b'))
     ctx.close()
     c.states.clear()
 

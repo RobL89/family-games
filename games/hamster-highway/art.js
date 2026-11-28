@@ -1,4 +1,56 @@
-// Hamster Highway's drawings, as SVG text. Version 1.5.
+// Hamster Highway's drawings, as SVG text. Version 1.15.
+//
+// Changes at v1.15 (step 18b (ii), D-240, D-241, D-243): level 30's looks, copied unchanged from
+// mock_hamster_finale.js 0.1 by tools/tests/games/copy_hamster_step18b_parts.py 0.1, at the end: the lantern gate
+// (gateLook: G2, a string of lanterns from the button to a wooden drawbridge, lit once the button is pressed) and
+// the confetti poppers (popperLook: C1, two big poppers either side of the merry-go-round). G1 and C2, not picked,
+// come with them unused.
+//
+// Changes at v1.14 (step 18a (ii), D-234, D-235): the fair's look A (fairA: the big wheel turning, the helter-skelter,
+// bunting that flaps, the balloon stall and balloons let go in a run; its busy shapes in one group, fair-busy, that
+// style.css fades while building and brightens in a run and at the party), the zip ride R2's kicked feet (kickFeet,
+// ZIP_SAG) and the fair party P1 (partyCarousel, the merry-go-round), copied by tools/tests/games/
+// copy_hamster_step18a_parts.py 0.1 from mock_hamster_fair.js 0.1 unchanged; backdrop('fairA') draws it, 540 tall.
+//
+// Changes at v1.13 (step 17c (ii), D-219, D-226): the picnic's and the playground's backdrops faded as the frame's look
+// Q1: picnicQ1 and playgroundQ1 (the tree, bunting, blankets, teapots and cups, and the swings and slides, in a group
+// at 40%; the rest as look A), copied by script from tools/tests/games/mock_hamster_park_quiet.js 0.1, as Rob agreed
+// them on step 17c (i)'s sketch page. picnicArt and playgroundArt (look A at full strength) are kept but no longer drawn.
+//
+// Changes at v1.12 (step 17b (ii), D-211, D-216): the climbing frame's backdrop is look Q1, the frame faded to 40%
+// (frameQ1, with frameQShapes and frameQuiet, copied by script from mock_hamster_frame_quiet.js 0.1; frameArt, look A
+// at full strength, is kept but no longer drawn). Pudding's face for the hamster counter, look C2 (puddingHead and
+// countHead, copied by script from mock_hamster_counter_looks.js 0.1).
+//
+// Changes at v1.11 (step 17, D-189 A, D-192): the playground's backdrop for levels 27 and 28 (playgroundArt, look A,
+// proposed while Rob couldn't test), 540 tall, copied by script from mock_hamster_playground_backdrops.js 0.1. Pudding, the heavy hamster: the hamster in vanilla with caramel on top
+// (pudding(pose)); holding a floater it has three dandelions over its head. The dandelion clock is now its own
+// function (dandelion()), drawn the same as before.
+//
+// Changes at v1.10 (step 16, D-189 A, D-194): the bottle-top button (buttonCap) and its lunchbox lid (lidArt); the
+// picnic's backdrop for levels 25 and 26 (picnicArt, look A, proposed while Rob was out), drawn 540 tall, copied by
+// script from tools/tests/games/mock_hamster_picnic_backdrops.js 0.1.
+//
+// Changes at v1.9 (step 15, D-208): the climbing frame's backdrop for levels 23 and 24 (frameArt, look A: the park's red
+// and yellow frame, monkey bars between two towers, a flag, a robin and a ladybird), drawn 540 tall as the pond's;
+// copied by script from tools/tests/games/mock_hamster_frame_backdrops.js 0.1, the mock-up Rob picked.
+//
+// Changes at v1.8 (step 14b, D-206): the spoon in parts for its throw: catapultReel() and catapultSpoon() (the arm),
+// together the same picture as catapultArt(); the placed gadget wraps them (class spoon-art: reel, spoon) with a puff
+// of dust and whoosh lines (spoon-puff, unseen until the throw; style.css animates them, option B of the step 14b
+// mock-ups, tools/tests/games/mock_hamster_spoon.py 0.1).
+//
+// Changes at v1.7 (step 14, D-189 A, D-202, D-203): the spoon catapult (catapultArt, look A: a wooden spoon resting on a
+// pink cotton reel, the step 12 sketch's cat_a), and the duck pond's backdrop for levels 21 and 22 (pondArt, look A: a
+// willow whose fronds sway, bulrushes, lily pads, a frog and a dragonfly), drawn 540 tall, as the park's backdrops are
+// (backHeight() says which height a backdrop is drawn at); copied by script from tools/tests/games/
+// mock_hamster_pond_backdrops.js 0.2, the mock-up Rob picked.
+//
+// Changes at v1.6 (step 13, the spike: D-189, D-190, D-196): the left ramp (the ramp turned round), the twig signpost
+// (look A: a round sun-yellow sign with a turn-round arrow on a twig), the zip-line in the tray (a hook, a line, a peg)
+// and on the board (zipHook under its block, zipPeg on its floor, zipLine between their middles), and a hanging pose,
+// 'zip': both arms up holding a cotton reel (the teacup lift's, as the treehouse ride's look, D-189 A), feet dangling.
+// A hamster facing left is this drawing mirrored (game.js), so no new art for walking left.
 //
 // Changes at v1.5 (step 10b, D-177 (3), D-178): two carrying poses, carry1 and carry2: walking feet (walk1's and
 // walk2's), both arms up and the float pose's dandelion clock held overhead, for a hamster walking along with one.
@@ -101,7 +153,7 @@ const motionBelow = () => [-12, 0, 12].map((x) => line(x, 8 + Math.abs(x) * 0.2,
 
 // ---------------------------------------------------------------- the Nibbles
 const FEET = {
-  walk1: [[-14, 0], [16, -5]], walk2: [[-8, -5], [20, 0]], float: [[-8, 8], [14, 10]], boing: [[-8, 6], [12, 6]],
+  walk1: [[-14, 0], [16, -5]], walk2: [[-8, -5], [20, 0]], float: [[-8, 8], [14, 10]], zip: [[-8, 8], [14, 10]], boing: [[-8, 6], [12, 6]],
   carry1: [[-14, 0], [16, -5]], carry2: [[-8, -5], [20, 0]],
   fall: [[-8, 6], [12, 6]], stuck: [[-4, 0], [24, 0]], bonk: [],
 };
@@ -111,7 +163,7 @@ export function hamster(pose) {
   const eyes = { stuck: 'closed', bonk: 'swirl', home: 'happy' }[pose] || 'open';
   const feet = FEET[pose] || [[-12, 0], [14, 0]];
   const [sx, sy] = SQUASH[pose] || [1, 1];
-  const armsUp = ['boing', 'fall', 'float', 'home', 'carry1', 'carry2'].includes(pose);
+  const armsUp = ['boing', 'fall', 'float', 'home', 'carry1', 'carry2', 'zip'].includes(pose);
   let b = circle(-34, -26, 5.5, FUR, 2.4);
   if (armsUp) b += ellipse(-12, -70, 6, 9, FUR, 2.4, INK, -25) + ellipse(28, -71, 6, 9, FUR, 2.4, INK, 25);
   b += circle(-15, -60, 10, FUR) + circle(-15, -60, 5, PINK, 0);
@@ -127,14 +179,9 @@ export function hamster(pose) {
   let s = feet.map(([x, y]) => ellipse(x, y - 4, 8, 5, PINK, 2.4)).join('') + g(b, `scale(${sx} ${sy})`);
   if (pose === 'boing') s += motionBelow();
   else if (pose === 'float' || pose === 'carry1' || pose === 'carry2') {   // the dandelion clock overhead (D-178)
-    let puff = '';
-    for (let i = 0; i < 14; i++) {
-      const a = (i * Math.PI) / 7;
-      puff += line(8 + 7 * Math.cos(a), -126 + 7 * Math.sin(a), 8 + 20 * Math.cos(a), -126 + 20 * Math.sin(a), '#C9C4E6', 1.4)
-        + circle(8 + 21 * Math.cos(a), -126 + 21 * Math.sin(a), 1.8, '#C9C4E6', 0);
-    }
-    s = line(8, -72, 8, -106, '#3E9B4F', 3.5) + circle(8, -126, 23, WHITE, 2, '#B9B4D6') + puff + circle(8, -126, 4, '#E9E4FF', 1.4, '#B9B4D6') + s;
-  } else if (pose === 'stuck') s = g(s + zzz(36, -62), '', ' opacity="0.7"');
+    s = dandelion() + s;
+  } else if (pose === 'zip') s = reel(8, -92) + s;   // hanging from a cotton reel on the zip-line (D-196)
+  else if (pose === 'stuck') s = g(s + zzz(36, -62), '', ' opacity="0.7"');
   else if (pose === 'bonk') {
     s += g(star(-26, -38, 6) + star(0, -46, 7) + star(26, -38, 6), '', ' class="dizzy"');
   } else if (pose === 'home') s = g(s, 'translate(0 -8)') + star(-36, -80, 6) + star(42, -84, 5) + heart(6, -98, 9);
@@ -142,6 +189,30 @@ export function hamster(pose) {
 }
 
 // Just the head: for the tray's walker count, the house picker's hamster and one peeking from the tube.
+// The dandelion clock a hamster holds overhead (D-178), its stalk from the paws.
+function dandelion() {
+  let puff = '';
+  for (let i = 0; i < 14; i++) {
+    const a = (i * Math.PI) / 7;
+    puff += line(8 + 7 * Math.cos(a), -126 + 7 * Math.sin(a), 8 + 20 * Math.cos(a), -126 + 20 * Math.sin(a), '#C9C4E6', 1.4)
+      + circle(8 + 21 * Math.cos(a), -126 + 21 * Math.sin(a), 1.8, '#C9C4E6', 0);
+  }
+  return line(8, -72, 8, -106, '#3E9B4F', 3.5) + circle(8, -126, 23, WHITE, 2, '#B9B4D6') + puff + circle(8, -126, 4, '#E9E4FF', 1.4, '#B9B4D6');
+}
+
+// Pudding, the heavy hamster (D-189 A): the hamster in vanilla with caramel on top (the step 12 sketch's look A),
+// drawn bigger by game.js; holding a floater, two more dandelions lean out beside the first (D-192).
+export const PUD_FUR = '#FFF4DE';
+export function pudding(pose) {
+  const [sx, sy] = SQUASH[pose] || [1, 1];
+  const up = pose === 'home' ? -8 : 0;
+  let s = hamster(pose).split(FUR).join(PUD_FUR).split(BELLY).join(WHITE);
+  s += g(path('M -28 -54 Q -10 -70 10 -66 Q 28 -64 32 -52 Q 26 -46 22 -54 Q 18 -44 12 -52 Q 4 -42 -2 -54 Q -10 -44 -16 -54 Q -22 -46 -28 -54 Z', '#D9944A', 2.2),
+    `translate(0 ${up}) scale(${sx} ${sy})`);
+  if (pose === 'float' || pose === 'carry1' || pose === 'carry2') s = g(dandelion(), 'rotate(-16 8 -72)') + g(dandelion(), 'rotate(16 8 -72)') + s;
+  return s;
+}
+
 export function hamsterHead(eyes = 'open') {
   return circle(-15, -60, 10, FUR) + circle(-15, -60, 5, PINK, 0) + circle(13, -63, 10, FUR) + circle(13, -63, 5, PINK, 0)
     + ellipse(0, -40, 30, 26, FUR) + ellipse(14, -36, 15, 12, BELLY, 0)
@@ -180,7 +251,53 @@ export function gadget(kind, count = 1) {
       + circle(50, 34, 26, WHITE, 2, '#B9B4D6') + puff + circle(50, 34, 4.5, '#E9E4FF', 1.4, '#B9B4D6');
   }
   if (kind === 'stick') return stickArt(0);
+  if (kind === 'rampL') return g(gadget('ramp'), 'translate(100 0) scale(-1 1)');   // the ramp turned round (D-190)
+  if (kind === 'signpost') return signpostArt();
+  if (kind === 'catapult') {   // game.js throws it: the arm flips up and over, the reel rolls, a puff (D-206)
+    return g(g(catapultReel(), '', ' class="reel"') + g(catapultSpoon(), '', ' class="spoon"') + g(circle(20, 70, 10, WHITE, 2) + circle(6, 60, 7, WHITE, 2)
+      + path('M 10 40 l 18 -18 M 30 44 l 20 -24 M 46 52 l 22 -22', 'none', 3, INK, ' stroke-linecap="round" opacity="0.6"'), '', ' class="spoon-puff" opacity="0"'), '', ' class="spoon-art"');
+  }
+  if (kind === 'zip') {   // in the tray: a hook top left, the line, a peg bottom right, a reel on the line
+    return path('M 18 8 L 18 18 q 0 6 -5 6 q -5 0 -5 -5', 'none', 3.5, '#7A8597') + line(14, 24, 84, 78, INK, 3) + zipPeg(84, 100, 0.8)
+      + g(reel(50, 46), 'rotate(38 50 46) translate(50 46) scale(0.7) translate(-50 -46)');
+  }
   return tube(TUBE_ICON, '#A8ECFF', '#6CCBE8');
+}
+
+// The spoon catapult (D-189 A, D-194): a wooden spoon resting on a pink cotton reel, its bowl at the left, where a
+// hamster steps in; the step 12 sketch's look A (tools/tests/games/sketch_hamster_park.py 0.2, cat_a), in a 100 square.
+export function catapultArt() {
+  return catapultReel() + catapultSpoon();
+}
+// the cotton reel the spoon rests on
+export function catapultReel() {
+  return rect(44, 92, 38, 8, '#E2A867', 2, 2.4) + rect(48, 70, 30, 24, PINK, 0, 2.4) + rect(44, 64, 38, 8, '#E2A867', 2, 2.4)
+    + [76, 82, 88].map((y) => line(50, y, 76, y, '#E77D98', 1.6)).join('');
+}
+// the spoon, its arm: the handle and the bowl, turning about the reel's top (63, 66) when it throws
+export function catapultSpoon() {
+  return line(30, 84, 98, 44, INK, 13) + line(30, 84, 98, 44, '#D9A066', 7)
+    + ellipse(18, 88, 20, 10, '#D9A066', 3, INK, -24) + ellipse(18, 87, 13, 5, '#E9BC86', 0, INK, -24);
+}
+
+// The twig signpost (D-189 A, D-190): a round sun-yellow sign with a turn-round arrow, on a twig with a leaf.
+const UTURN = 'M 62 48 L 62 30 A 12 12 0 0 0 38 30 L 38 42';
+export function signpostArt() {
+  return path('M 50 100 L 50 60', 'none', 7, '#8B5A3C') + path('M 50 74 L 62 64', 'none', 4, '#8B5A3C') + ellipse(66, 60, 7, 4, LEAF, 2, INK, -30)
+    + circle(50, 34, 28, SUN, 3) + path(UTURN, 'none', 5, INK) + path('M 30 40 L 38 52 L 46 40 Z', INK, 2, INK);
+}
+
+// The zip-line on the board (D-196), in board units: a hook under the block above its high end (x the square's middle,
+// y the block's underside), a peg on the floor at its low end (y the floor), and the line between the two middles.
+export function zipHook(x, y) {
+  const d = `M ${x} ${y + 4} L ${x} ${y + 20} q 0 10 -9 10 q -9 0 -9 -9`;
+  return rect(x - 11, y - 2, 22, 8, '#AEB6C6', 3, 2.6) + path(d, 'none', 8) + path(d, 'none', 4.5, '#AEB6C6');
+}
+export function zipPeg(x, y, k = 1) {
+  return g(rect(-5, -40, 10, 40, '#C98B5A', 3, 2.6) + circle(0, -40, 6, '#E2A867', 2.4), `translate(${x} ${y}) scale(${k})`);
+}
+export function zipLine(x1, y1, x2, y2) {
+  return line(x1, y1, x2, y2, INK, 6.5) + line(x1, y1, x2, y2, '#F3D9A4', 3);
 }
 
 // The worn lolly stick (D-143, D-153), in a 100-wide square: paler than the sturdy bridge, already a little
@@ -264,7 +381,15 @@ function jar(x, h, col, lid = '#E8505B') {
 
 // Each level's backdrop, in a group named for it (data-back), so the tests can see which is drawn; w is the board's
 // width (the backdrops for 12-square boards are drawn 720 wide).
+// The height a backdrop is drawn at: the park's are 540 (9 rows, D-185: the pond, the frame), the house's 420.
+export const backHeight = (name) => (name === 'pond' || name === 'frame' || name === 'picnic' || name === 'playground' || name === 'fairA' ? 540 : H);
+
 export function backdrop(name, w = W) {
+  if (name === 'pond') return g(pondArt(w), '', ' data-back="pond"');
+  if (name === 'frame') return g(frameQ1(w), '', ' data-back="frame"');   // look Q1, faded (D-211)
+  if (name === 'picnic') return g(picnicQ1(w), '', ' data-back="picnic"');   // faded (D-226)
+  if (name === 'playground') return g(playgroundQ1(w), '', ' data-back="playground"');   // faded (D-226)
+  if (name === 'fairA') return g(fairA(w), '', ' data-back="fairA"');   // the fair's look A (D-235), its busy shapes faded while building
   if (name === 'veg') return g(vegArt(w), '', ' data-back="veg"');
   if (name === 'shed') return g(shedArt(w), '', ' data-back="shed"');
   if (name === 'treehouse') return g(treehouseArt(w), '', ' data-back="treehouse"');
@@ -296,6 +421,59 @@ function vegArt(w) {
     + circle(sx, 140, 20, '#F6E7C8', 2.4) + circle(sx - 7, 136, 2.6, INK, 0) + circle(sx + 7, 136, 2.6, INK, 0) + path(`M ${sx - 7} 146 q 7 6 14 0`, 'none', 2)
     + path(`M ${sx - 18} 126 L ${sx + 18} 126 L ${sx + 12} 104 L ${sx - 12} 104 Z`, '#D9774B', 2.4)
     + rect(sx - 24, 176, 48, 60, '#9FD3F5', 8, 2.4) + rect(sx - 10, 190, 12, 12, '#FF9BB3', 2, 1.6), '', ' class="poke" data-poke="scarecrow"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+// The duck pond (levels 21 and 22, D-203), w wide and 540 tall: look A of the step 14 mock-ups, copied unchanged from
+// tools/tests/games/mock_hamster_pond_backdrops.js 0.2 (its pondA, renamed).
+const PH = 540;
+
+function pondSky(w, sunX) {
+  let s = ['#BFE6FA', '#CDEBFA', '#DBF1FB', '#E7F6FC'].map((c, i) => rect(0, i * 96, w, 98, c, 0, 0)).join('');
+  let d = g(circle(sunX, 74, 34, SUN, 3) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+    const a = (i * Math.PI) / 4;
+    return line(sunX + 42 * Math.cos(a), 74 + 42 * Math.sin(a), sunX + 54 * Math.cos(a), 74 + 54 * Math.sin(a), '#F0A51C', 4);
+  }).join('') + circle(sunX - 10, 68, 3.2, INK, 0) + circle(sunX + 10, 68, 3.2, INK, 0) + path(`M ${sunX - 10} 84 q 10 8 20 0`, 'none', 2.6), '', ' class="poke" data-poke="sun"');
+  for (let x = sunX + 260; x < w; x += 440) {
+    d += g(g(ellipse(x, 66, 48, 20, WHITE, 2.4, '#B9D6E6') + ellipse(x + 30, 56, 30, 18, WHITE, 0) + ellipse(x - 26, 58, 24, 14, WHITE, 0), '', ' class="cloud"'), '', ' class="poke" data-poke="cloud"');
+  }
+  return [s, d];
+}
+
+function bulrush(x, y, k = 1) {
+  return path(`M ${x} ${y} q ${-4 * k} -50 ${2 * k} -96`, 'none', 3, '#3E9B4F') + rect(x - 4 + 2 * k, y - 120, 9, 30, '#8B5A3C', 4, 2)
+    + path(`M ${x + 3} ${y} q 14 -30 20 -60`, 'none', 3, '#4FAE5A');
+}
+
+function lily(x, y, flower) {
+  return path(`M ${x} ${y} m -26 0 a 26 9 0 1 0 52 0 a 26 9 0 1 0 -52 0 M ${x} ${y} l 22 -5`, LEAF, 2.2)
+    + (flower ? g(ellipse(x - 6, y - 8, 6, 10, PINK, 1.6, INK, -30) + ellipse(x + 6, y - 8, 6, 10, PINK, 1.6, INK, 30) + ellipse(x, y - 10, 6, 11, '#FFC2D3', 1.6), '', ' class="poke" data-poke="lily"') : '');
+}
+
+// A: a willow and reeds. The far bank low across the back, a big willow on the right whose fronds sway, bulrushes,
+// lily pads with a frog, a dragonfly.
+function pondArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky;
+  d += path(`M 0 400 Q ${w * 0.3} 370 ${w * 0.55} 392 T ${w} 384 L ${w} ${PH} L 0 ${PH} Z`, '#CDEFB9', 0, 'none');
+  d += path(`M 0 400 Q ${w * 0.3} 370 ${w * 0.55} 392 T ${w} 384`, 'none', 3, '#8FC97A');
+  d += rect(0, 448, w, PH - 448, '#BFE8F8', 0, 0) + line(0, 448, w, 448, '#8FCBE3', 3);
+  for (let x = 40; x < w; x += 150) d += path(`M ${x} 480 q 15 -6 30 0 t 30 0`, 'none', 2, '#8FCBE3');
+  for (let x = 120; x < w - 300; x += 330) d += g(circle(x, 378, 40, '#9ED98A', 2.4, '#6FB35A') + circle(x + 44, 386, 30, '#A9DE94', 2.4, '#6FB35A'), '', '');
+  const tx = w - 200;
+  let willow = path(`M ${tx - 34} 452 Q ${tx - 20} 330 ${tx - 26} 200 L ${tx + 26} 200 Q ${tx + 20} 330 ${tx + 34} 452 Z`, '#8B5A3C', 3);
+  willow += [[-110, 170, 90], [0, 130, 110], [110, 170, 90]].map(([dx, y, r]) => circle(tx + dx, y, r, '#8FD46E', 3)).join('');
+  let fronds = '';
+  for (let x = tx - 190; x <= tx + 190; x += 18) fronds += path(`M ${x} ${190 + Math.abs(x - tx) * 0.2} q 8 90 -2 ${190 - Math.abs(x - tx) * 0.25}`, 'none', 3, '#62C46F');
+  willow += g(fronds, '', ' class="poke swing" data-poke="willow"');
+  d += willow;
+  d += [60, 74, 92].map((x, i) => bulrush(x, 452, i % 2 ? -1 : 1)).join('') + [w - 420, w - 404].map((x, i) => bulrush(x, 452, i ? 1 : -1)).join('');
+  d += lily(260, 470, true) + lily(w * 0.5, 492, false) + lily(w * 0.5 + 90, 476, true);
+  d += g(ellipse(w * 0.5, 480, 14, 10, '#7DC95E', 2.2) + circle(w * 0.5 - 6, 470, 5, WHITE, 1.8) + circle(w * 0.5 + 6, 470, 5, WHITE, 1.8)
+    + circle(w * 0.5 - 5, 470, 2, INK, 0) + circle(w * 0.5 + 7, 470, 2, INK, 0) + path(`M ${w * 0.5 - 7} 482 q 7 4 14 0`, 'none', 1.6), '', ' class="poke frog" data-poke="frog"');
+  const fx = Math.round(w * 0.38);
+  d += g(line(fx - 18, 300, fx + 18, 300, '#3A86C8', 4) + g(ellipse(fx - 4, 292, 12, 5, '#BFE6FF', 1.4, '#3A86C8') + ellipse(fx + 6, 292, 12, 5, '#BFE6FF', 1.4, '#3A86C8'), '', ' class="flutter"')
+    + circle(fx + 20, 300, 4, '#3A86C8', 0), '', ' class="poke" data-poke="dragonfly"');
   return s + g(d, '', ' opacity="0.92"');
 }
 
@@ -457,6 +635,123 @@ function loftArt() {
   return s + g(d, '', ' opacity="0.9"');
 }
 
+// The climbing frame (levels 23 and 24, D-208), w wide and 540 tall: look A of the step 15 mock-ups, the park's red and
+// yellow frame, copied unchanged from tools/tests/games/mock_hamster_frame_backdrops.js 0.1 (its frameA, renamed), with
+// the helpers it uses. It shares the pond's sky (pondSky).
+const FH = 540;
+const FRED = '#E8505B';
+
+function frameHill(w) {
+  return rect(0, 380, w, FH - 380, '#E7F6FC', 0, 0) + path(`M 0 432 Q ${w * 0.25} 404 ${w * 0.5} 424 T ${w} 418 L ${w} ${FH} L 0 ${FH} Z`, '#CDEFB9', 0, 'none')
+    + path(`M 0 432 Q ${w * 0.25} 404 ${w * 0.5} 424 T ${w} 418`, 'none', 3, '#8FC97A');
+}
+function frameBush(x, y) {
+  return circle(x, y, 34, '#9ED98A', 2.4, '#6FB35A') + circle(x + 38, y + 6, 26, '#A9DE94', 2.4, '#6FB35A');
+}
+function frameRobin(x, y) {
+  return g(ellipse(x, y - 12, 16, 13, '#A9744F', 2.2) + ellipse(x + 4, y - 9, 9, 8, CORAL, 0) + circle(x + 12, y - 24, 9, '#A9744F', 2.2)
+    + circle(x + 15, y - 26, 2, INK, 0) + path(`M ${x + 20} ${y - 24} l 7 2 l -7 2 Z`, SUN, 1.4) + path(`M ${x - 14} ${y - 14} l -12 -6 l 2 10 Z`, '#8B5A3C', 1.8)
+    + line(x - 3, y, x - 3, y + 5, INK, 2) + line(x + 4, y, x + 4, y + 5, INK, 2), '', ' class="poke" data-poke="bird"');
+}
+function frameLadybird(x, y) {
+  return g(ellipse(x, y, 10, 12, CORAL, 2) + line(x, y - 12, x, y + 12, INK, 1.6) + circle(x, y - 13, 5, INK, 0)
+    + circle(x - 4, y - 2, 2.2, INK, 0) + circle(x + 4, y + 4, 2.2, INK, 0) + circle(x + 4, y - 4, 1.8, INK, 0), '', ' class="poke" data-poke="spider"');
+}
+function frameArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 420) d += frameBush(x, 448);
+  let k = 0;
+  for (let x = 230; x + 420 <= w + 40; x += 600, k++) {
+    const post = (px, top) => rect(px - 8, top, 16, 452 - top, FRED, 4, 3) + ellipse(px, 452, 14, 5, '#8FC97A', 0);
+    d += post(x, 170) + post(x + 200, 170) + post(x + 420, 230) + post(x + 560, 230);
+    for (const y of [240, 320, 400]) d += rect(x - 10, y - 7, 220, 14, SUN, 7, 3);
+    for (const y of [300, 380]) d += rect(x + 410, y - 7, 160, 14, SUN, 7, 3);
+    d += rect(x + 192, 224, 236, 12, SUN, 6, 3) + rect(x + 192, 254, 236, 12, SUN, 6, 3)
+      + [0, 1, 2, 3, 4, 5, 6].map((i) => line(x + 222 + 30 * i, 236, x + 222 + 30 * i, 254, INK, 3)).join('');
+    d += g(line(x + 100, 170, x + 100, 110, INK, 3.5) + path(`M ${x + 100} 112 L ${x + 146} 126 L ${x + 100} 140 Z`, k % 2 ? LEAF : CORAL, 2.6), '', ' class="poke" data-poke="swing"');
+    d += line(x - 8, 172, x + 208, 172, FRED, 0) + rect(x - 12, 162, 224, 14, FRED, 6, 3);
+    if (k === 0) d += frameRobin(x + 150, 233) + frameLadybird(x + 420, 330);
+  }
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+// The picnic (levels 25 and 26), w wide and 540 tall: look A of the step 16 mock-ups (a gingham blanket under a tree with
+// bunting, a teapot and cups, a robin), proposed while Rob was out, copied unchanged from tools/tests/games/
+// mock_hamster_picnic_backdrops.js 0.1 (its picnicA, renamed), with the helpers it uses.
+const PRED = '#E8505B';
+function picBunting(x0, x1, y) {
+  let s = path(`M ${x0} ${y} Q ${(x0 + x1) / 2} ${y + 40} ${x1} ${y}`, 'none', 2.4);
+  const cols = [PRED, SUN, LEAF, '#4FA3E0', PINK];
+  for (let i = 1; i < 9; i++) {
+    const x = x0 + ((x1 - x0) * i) / 9;
+    const yy = y + 40 * (1 - ((2 * i) / 9 - 1) ** 2) * 0.9;
+    s += path(`M ${x - 12} ${yy - 2} L ${x} ${yy + 22} L ${x + 12} ${yy - 2} Z`, cols[i % 5], 2);
+  }
+  return g(s, '', ' class="poke" data-poke="swing"');
+}
+function picTree(x) {
+  return path(`M ${x - 26} 452 Q ${x - 16} 330 ${x - 22} 220 L ${x + 22} 220 Q ${x + 16} 330 ${x + 26} 452 Z`, '#8B5A3C', 3)
+    + [[-100, 190, 86], [0, 150, 104], [100, 190, 86]].map(([dx, y, r]) => circle(x + dx, y, r, '#8FD46E', 3)).join('');
+}
+function picTeacup(x, y) {
+  return g(path(`M ${x - 16} ${y - 18} L ${x + 16} ${y - 18} L ${x + 12} ${y} L ${x - 12} ${y} Z`, WHITE, 2.4)
+    + path(`M ${x + 15} ${y - 14} q 10 0 8 8 q -2 6 -10 4`, 'none', 2.4) + ellipse(x, y + 1, 20, 4, WHITE, 2.4)
+    + circle(x - 4, y - 9, 3, PINK, 0), '', ' class="poke" data-poke="cup"');
+}
+function picnicArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 460) d += frameBush(x, 448);
+  const tx = w - 170;
+  d += picTree(tx) + picBunting(tx - 520, tx - 60, 200);
+  for (let x = 160; x + 300 <= w + 40; x += 640) {
+    d += path(`M ${x} 452 L ${x + 300} 452 L ${x + 270} 420 L ${x + 30} 420 Z`, PRED, 3);
+    for (let i = 1; i < 6; i++) d += line(x + 30 + 48 * i - 6, 420, x + 48 * i - 6, 452, WHITE, 6, ' opacity="0.7"');
+    d += line(x + 15, 436, x + 285, 436, WHITE, 6, ' opacity="0.7"');
+    d += g(ellipse(x + 90, 410, 26, 20, '#9FD3F5', 2.6) + path(`M ${x + 114} 404 q 18 -6 16 -20`, 'none', 4) + rect(x + 82, 384, 16, 8, '#9FD3F5', 3, 2.4), '', ' class="poke" data-poke="cup"')
+      + picTeacup(x + 160, 418) + picTeacup(x + 210, 420);
+  }
+  d += g(ellipse(260, 440, 14, 11, '#A9744F', 2.2) + ellipse(263, 443, 8, 6, CORAL, 0) + circle(272, 428, 8, '#A9744F', 2.2) + circle(275, 426, 1.8, INK, 0)
+    + path('M 279 428 l 6 2 l -6 2 Z', SUN, 1.4), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+// The bottle-top button (D-189 A, D-194), in a square: a red bottle top with crimped teeth on the floor, x 6 to 54,
+// its foot at y 0 (the square's bottom); and the lunchbox lid it drops, n squares long, hinged at its left end (0, 0),
+// lying along the top of its row (a teal lid with a handle). game.js stands it up (rotated -90) until it is pressed.
+export function buttonCap() {
+  let teeth = '';
+  for (let i = 0; i < 8; i++) teeth += `L ${9 + i * 6} -16 L ${12 + i * 6} -12 `;
+  return path(`M 6 0 L 6 -12 ${teeth}L 54 -12 L 54 0 Z`, PRED, 2.6) + ellipse(30, -7, 14, 3, 'rgba(255,255,255,0.45)', 0);
+}
+export function lidArt(n) {
+  return rect(0, 0, n * 60, 14, '#7FD3C8', 5, 3) + rect(n * 30 - 12, -7, 24, 8, '#5BB8AC', 3, 2.4);
+}
+
+
+// The playground (levels 27 and 28), w wide and 540 tall: look A of the step 17 mock-ups (swings and a slide), proposed
+// while Rob couldn't test, copied unchanged from tools/tests/games/mock_hamster_playground_backdrops.js 0.1 (its
+// playgroundA, renamed), with the helpers it uses.
+const PLAY_BLUE = '#4FA3E0';
+function playSwing(x) {
+  return line(x - 70, 452, x - 40, 170, PLAY_BLUE, 9) + line(x + 70, 452, x + 40, 170, PLAY_BLUE, 9) + line(x - 46, 170, x + 46, 170, PLAY_BLUE, 9)
+    + g(line(x - 14, 172, x - 14, 340, INK, 2.4) + line(x + 14, 172, x + 14, 340, INK, 2.4) + rect(x - 22, 338, 44, 10, CORAL, 4, 2.6), '', ' class="poke" data-poke="swing"');
+}
+function playSlide(x) {
+  return rect(x - 8, 220, 12, 232, CORAL, 3, 2.6) + rect(x + 52, 220, 12, 232, CORAL, 3, 2.6) + rect(x - 14, 214, 84, 14, SUN, 5, 2.6)
+    + [260, 300, 340, 380, 420].map((y) => line(x - 2, y, x + 58, y, CORAL, 5)).join('')
+    + path(`M ${x + 64} 222 Q ${x + 150} 250 ${x + 210} 440 L ${x + 236} 440 Q ${x + 176} 236 ${x + 70} 204 Z`, SUN, 2.6);
+}
+function playgroundArt(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 480) d += frameBush(x, 448);
+  for (let x = 230; x + 160 <= w + 40; x += 620) d += playSwing(x) + playSlide(x + 180);
+  d += g(circle(140, 438, 16, CORAL, 2.6) + path('M 124 438 Q 140 430 156 438', 'none', 2.4, WHITE), '', ' class="poke" data-poke="cup"')
+    + g(ellipse(232, 162, 13, 10, '#A9744F', 2.2) + circle(242, 150, 7, '#A9744F', 2.2) + circle(244, 148, 1.6, INK, 0) + path('M 248 150 l 6 2 l -6 2 Z', SUN, 1.2), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
 function backdropArt(name) {
   if (name === 'bathroom') return bathroomArt();
   if (name === 'loft') return loftArt();
@@ -520,4 +815,343 @@ export function houseButton(x, y, r) {
   const s = circle(x, y, r, '#FFF8EE', 3) + path(`M ${x - 15} ${y + 2} L ${x} ${y - 13} L ${x + 15} ${y + 2}`, 'none', 3.5, INK)
     + rect(x - 11, y, 22, 15, '#E7B26F', 2, 2.6) + rect(x - 4, y + 5, 8, 10, '#5A3A22', 2, 0);
   return g(s, '', ' class="btn" data-btn="house"');
+}
+
+// The climbing frame's backdrop faded (D-211, look Q1: the frame as frameArt draws it at 40%), copied by script from
+// tools/tests/games/mock_hamster_frame_quiet.js 0.1 unchanged (its looks Q2 and Q3 not taken, their colours kept as
+// frameQuiet() names them).
+const FQ_SOFT = { post: '#F4B6BA', bar: '#FBE7A1', line: '#D9B3A2', sw: 1.4, flag1: '#F7B7BF', flag2: '#BFE3B4' };
+const FQ_FAR = { post: '#EFC6CB', bar: '#F6ECC8', line: '#EFC6CB', sw: 0, flag1: '#F2C9CF', flag2: '#CFE7C7' };
+const FQ_NOW = { post: FRED, bar: SUN, line: INK, sw: 3, flag1: CORAL, flag2: LEAF };
+
+function frameQShapes(x, k, o) {
+  const post = (px, top) => rect(px - 8, top, 16, 452 - top, o.post, 4, o.sw, o.line) + ellipse(px, 452, 14, 5, '#8FC97A', 0);
+  let d = post(x, 170) + post(x + 200, 170) + post(x + 420, 230) + post(x + 560, 230);
+  for (const y of [240, 320, 400]) d += rect(x - 10, y - 7, 220, 14, o.bar, 7, o.sw, o.line);
+  for (const y of [300, 380]) d += rect(x + 410, y - 7, 160, 14, o.bar, 7, o.sw, o.line);
+  d += rect(x + 192, 224, 236, 12, o.bar, 6, o.sw, o.line) + rect(x + 192, 254, 236, 12, o.bar, 6, o.sw, o.line)
+    + [0, 1, 2, 3, 4, 5, 6].map((i) => line(x + 222 + 30 * i, 236, x + 222 + 30 * i, 254, o.sw ? o.line : o.bar, o.sw ? o.sw + 0.6 : 3)).join('');
+  d += g(line(x + 100, 170, x + 100, 110, o.sw ? o.line : o.post, o.sw ? o.sw + 0.5 : 3) + path(`M ${x + 100} 112 L ${x + 146} 126 L ${x + 100} 140 Z`, k % 2 ? o.flag2 : o.flag1, o.sw, o.line), '', ' class="poke" data-poke="swing"');
+  d += rect(x - 12, 162, 224, 14, o.post, 6, o.sw, o.line);
+  return d;
+}
+
+function frameQuiet(w, look) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  let frames = '';
+  let k = 0;
+  for (let x = 230; x + 420 <= w + 40; x += 600, k++) {
+    if (look === 'Q1') frames += g(frameQShapes(x, k, FQ_NOW), '', ' opacity="0.4"');
+    else if (look === 'Q2') frames += g(frameQShapes(x, k, FQ_SOFT), '', ' opacity="0.75"');
+    else frames += g(frameQShapes(x, k, FQ_FAR), `translate(${x + 280} 428) scale(0.62) translate(${-(x + 280)} -452)`, ' opacity="0.7"');
+  }
+  let bushes = '';
+  for (let x = 40; x < w; x += 420) bushes += frameBush(x, 448);
+  d += look === 'Q3' ? frames + bushes : bushes + frames;   // as now, the bushes behind the frame; the far frame behind them
+  if (look === 'Q3') d += frameRobin(60, 418) + frameLadybird(478, 446);
+  else d += frameRobin(380, 233) + frameLadybird(650, 330);
+  return s + g(d, '', ' opacity="0.92"');
+}
+const frameQ1 = (w) => frameQuiet(w, 'Q1');
+
+// The picnic and the playground faded (D-219, agreed D-226), copied unchanged from
+// tools/tests/games/mock_hamster_park_quiet.js 0.1 (from its PARK_QUIET to its end).
+const PARK_QUIET = 0.4;
+
+function picnicQ1(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 460) d += frameBush(x, 448);
+  const tx = w - 170;
+  let busy = picTree(tx) + picBunting(tx - 520, tx - 60, 200);
+  for (let x = 160; x + 300 <= w + 40; x += 640) {
+    busy += path(`M ${x} 452 L ${x + 300} 452 L ${x + 270} 420 L ${x + 30} 420 Z`, PRED, 3);
+    for (let i = 1; i < 6; i++) busy += line(x + 30 + 48 * i - 6, 420, x + 48 * i - 6, 452, WHITE, 6, ' opacity="0.7"');
+    busy += line(x + 15, 436, x + 285, 436, WHITE, 6, ' opacity="0.7"');
+    busy += g(ellipse(x + 90, 410, 26, 20, '#9FD3F5', 2.6) + path(`M ${x + 114} 404 q 18 -6 16 -20`, 'none', 4) + rect(x + 82, 384, 16, 8, '#9FD3F5', 3, 2.4), '', ' class="poke" data-poke="cup"')
+      + picTeacup(x + 160, 418) + picTeacup(x + 210, 420);
+  }
+  d += g(busy, '', ` opacity="${PARK_QUIET}" data-quiet="picnic"`);
+  d += g(ellipse(260, 440, 14, 11, '#A9744F', 2.2) + ellipse(263, 443, 8, 6, CORAL, 0) + circle(272, 428, 8, '#A9744F', 2.2) + circle(275, 426, 1.8, INK, 0)
+    + path('M 279 428 l 6 2 l -6 2 Z', SUN, 1.4), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+function playgroundQ1(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 480) d += frameBush(x, 448);
+  let busy = '';
+  for (let x = 230; x + 160 <= w + 40; x += 620) busy += playSwing(x) + playSlide(x + 180);
+  d += g(busy, '', ` opacity="${PARK_QUIET}" data-quiet="playground"`);
+  d += g(circle(140, 438, 16, CORAL, 2.6) + path('M 124 438 Q 140 430 156 438', 'none', 2.4, WHITE), '', ' class="poke" data-poke="cup"')
+    + g(ellipse(232, 162, 13, 10, '#A9744F', 2.2) + circle(242, 150, 7, '#A9744F', 2.2) + circle(244, 148, 1.6, INK, 0) + path('M 248 150 l 6 2 l -6 2 Z', SUN, 1.2), '', ' class="poke" data-poke="bird"');
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+// Pudding's face in the hamster counter (D-216, look C2: a fifth bigger, on a caramel ring), copied by script from
+// tools/tests/games/mock_hamster_counter_looks.js 0.1 unchanged; game.js's renderCount() draws every head with
+// countHead('C2', ...), so a Nibble's head is drawn as before.
+const CARAMEL = '#D9944A';
+
+export function puddingHead(eyes = 'open') {
+  const head = hamsterHead(eyes).split(FUR).join(PUD_FUR).split(BELLY).join(WHITE);
+  const cap = path('M -28 -54 Q -10 -70 10 -66 Q 28 -64 32 -52 Q 26 -46 22 -54 Q 18 -44 12 -52 Q 4 -42 -2 -54 Q -10 -44 -16 -54 Q -22 -46 -28 -54 Z', CARAMEL, 2.2);
+  return head + g(cap, 'translate(0 -6) scale(0.86 0.9)');
+}
+
+export function countHead(look, isPudding, lit, x, y, k) {
+  const pud = isPudding && look !== 'now';
+  let body = pud ? puddingHead() : hamsterHead();
+  let kk = k;
+  if (pud && look === 'C2') {
+    kk = k * 1.2;
+    body = circle(0, -40, 40, '#FBE3C4', 3, CARAMEL) + body;
+  }
+  return place(g(body, '', lit ? ' class="tiny-hop"' : ''), x, y, kk, 0, (lit ? '' : ' opacity="0.3"') + (pud ? ` data-pudhead="${look}"` : ''));
+}
+
+// ---------------------------------------------------------------- the fair (step 18a (ii), D-234, D-235)
+// Copied by tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_fair.js 0.1 (07eea02), unchanged
+// (kickFeet exported): the fair's look A, gentle while building and brighter and faster in a run and at the party
+// (style.css moves it, on the board's data-mode); the zip ride R2's kicked feet; the fair party P1, the merry-go-round.
+const FBLUE = '#4FA3E0';
+
+const FLILAC = '#C9B8FF';
+
+const FMINT = '#5FE3BD';
+
+const FCOLS = ['#E8505B', SUN, LEAF, FBLUE, PINK, FLILAC];
+
+const fx = (name, body, extra = '') => `<g class="fx-${name}"${extra}><g class="fx-${name}-run">${body}</g></g>`;
+
+function fairCar(i) {
+  const col = FCOLS[i % FCOLS.length];
+  let s = line(0, 0, 0, 12, INK, 2.4) + path('M -17 12 L 17 12 L 14 32 Q 0 40 -14 32 Z', col, 2.6) + rect(-19, 8, 38, 7, WHITE, 3, 2.2);
+  if (i === 2) s = s + place(hamsterHead('open'), 0, 18, 0.32);   // a Nibble already riding, for fun
+  return s;
+}
+
+function fairWheel(x, y, R) {
+  let wheel = circle(0, 0, R + 44, 'none', 0, 'none') + circle(0, 0, R, 'none', 7, '#E8505B') + circle(0, 0, R - 16, 'none', 3, FBLUE);
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    wheel += line(0, 0, R * Math.cos(a), R * Math.sin(a), FBLUE, 3.5);
+  }
+  for (let i = 0; i < 12; i++) {
+    const a = (i * Math.PI) / 6 + 0.26;
+    wheel += circle((R + 3) * Math.cos(a), (R + 3) * Math.sin(a), 4, SUN, 1.6);   // the lights round the rim
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    wheel += g(fx('unspin', fairCar(i)), `translate(${(R * Math.cos(a)).toFixed(1)} ${(R * Math.sin(a)).toFixed(1)})`);
+  }
+  wheel += circle(0, 0, 13, SUN, 3) + circle(0, 0, 4, INK, 0);
+  const legs = path(`M ${x - R * 0.62} 452 L ${x} ${y} L ${x + R * 0.62} 452`, 'none', 9, FBLUE) + path(`M ${x - R * 0.62} 452 L ${x} ${y} L ${x + R * 0.62} 452`, 'none', 3, '#8CC8F0')
+    + rect(x - R * 0.7, 446, R * 1.4, 10, '#B9D6E6', 4, 2.4);
+  return legs + g(fx('spin', wheel), `translate(${x} ${y})`, ' data-fx="wheel"');
+}
+
+function fairFlag(x, y, col, k = 1) {
+  return line(x, y, x, y - 34 * k, INK, 3) + g(fx('flag', path(`M 0 0 L ${30 * k} ${8 * k} L 0 ${16 * k} Z`, col, 2.2)), `translate(${x} ${y - 34 * k})`);
+}
+
+function fairHelter(x) {
+  const top = 150;
+  let s = path(`M ${x - 40} 452 L ${x - 28} ${top + 40} L ${x + 28} ${top + 40} L ${x + 40} 452 Z`, WHITE, 3);
+  for (let i = 0; i < 6; i++) {   // the red stripes
+    const y0 = top + 40 + i * 44;
+    s += path(`M ${x - 28 - i * 2} ${y0 + 22} L ${x + 28 + i * 2} ${y0 + 4} L ${x + 30 + i * 2} ${y0 + 20} L ${x - 30 - i * 2} ${y0 + 38} Z`, '#E8505B', 0, 'none');
+  }
+  for (let i = 0; i < 6; i++) {   // the slide winding round
+    const y0 = top + 60 + i * 44;
+    s += path(`M ${x - 52 - i * 2} ${y0 + 20} Q ${x} ${y0 - 6} ${x + 52 + i * 2} ${y0}`, 'none', 9, INK) + path(`M ${x - 52 - i * 2} ${y0 + 20} Q ${x} ${y0 - 6} ${x + 52 + i * 2} ${y0}`, 'none', 5, SUN);
+  }
+  s += rect(x - 36, top + 30, 72, 14, FBLUE, 5, 2.6);   // the balcony
+  s += path(`M ${x - 34} ${top + 32} L ${x} ${top - 12} L ${x + 34} ${top + 32} Z`, '#E8505B', 3) + fairFlag(x, top - 12, SUN);
+  return s;
+}
+
+function fairBunting(x0, x1, y, sag = 34) {
+  let s = path(`M ${x0} ${y} Q ${(x0 + x1) / 2} ${y + 2 * sag} ${x1} ${y}`, 'none', 2.4);
+  const n = Math.max(5, Math.round((x1 - x0) / 46));
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const x = x0 + (x1 - x0) * t;
+    const yy = y + 2 * sag * 2 * t * (1 - t);
+    s += g(fx('flap', path('M -11 0 L 0 22 L 11 0 Z', FCOLS[i % FCOLS.length], 2), ` style="animation-delay:-${(i * 0.37).toFixed(2)}s"`), `translate(${x.toFixed(1)} ${yy.toFixed(1)})`);
+  }
+  return s;
+}
+
+function fairBalloon(x, y, col, i) {   // swaying about the string's end, tied at (x, 360); the balloon at height y
+  const h = 360 - y;
+  const b = path(`M 0 0 q -2 ${-h * 0.5} -6 ${-h + 18}`, 'none', 1.6) + ellipse(-6, -h, 15, 19, col, 2.4) + path(`M -10 ${-h + 18} l 4 -6 l 4 6 Z`, col, 1.6)
+    + ellipse(-11, -h - 6, 4, 6, WHITE, 0, INK, -20, ' opacity="0.6"');
+  return g(fx('sway', b, ` style="animation-delay:-${(i * 0.6).toFixed(1)}s"`), `translate(${x} 360)`);
+}
+
+function fairStall(x) {   // a balloon stall: a striped awning, a counter and a bunch of balloons swaying
+  let s = rect(x - 50, 392, 100, 60, '#F3D9A4', 6, 3) + rect(x - 56, 360, 112, 22, WHITE, 6, 3);
+  for (let i = 0; i < 4; i++) s += rect(x - 56 + i * 28, 360, 14, 22, FBLUE, 0, 0);
+  s += rect(x - 56, 360, 112, 22, 'none', 6, 3);
+  [[-30, 300], [-8, 286], [14, 296], [34, 310], [2, 312]].forEach(([dx, y], i) => { s += fairBalloon(x + dx, y, FCOLS[(i + 1) % FCOLS.length], i); });
+  return s;
+}
+
+function fairLetGo(x) {
+  return [0, 1, 2].map((i) => g(g(ellipse(0, -16, 13, 16, FCOLS[(i + 3) % FCOLS.length], 2.2) + path('M 0 0 q 4 18 -2 34', 'none', 1.4), '',
+    ` class="fx-up" style="animation-delay:${(i * 1.7).toFixed(1)}s"`), `translate(${x - 20 + i * 22} 300)`)).join('');
+}
+
+function fairHorse(col) {
+  return path('M -22 0 q 4 -14 18 -14 l 14 0 q 6 -12 14 -12 q 8 2 6 10 l -6 4 q 0 10 -6 12 l -2 16 m -26 -16 l -4 16', col, 2.4)
+    + circle(20, -20, 2, INK, 0) + path('M 14 -26 q -6 -6 -14 -2', 'none', 3, '#E8505B');
+}
+
+function fairA(w) {
+  const [s, sky] = pondSky(w, 90);
+  let d = sky + frameHill(w);
+  for (let x = 40; x < w; x += 520) d += frameBush(x, 448);
+  let busy = '';
+  for (let x = 0; x < w; x += 960) {
+    busy += fairWheel(x + 300, 290, 136) + fairHelter(x + 640) + fairBunting(x + 440, x + 610, 210) + fairBunting(x + 680, x + 900, 232) + fairStall(x + 820);
+  }
+  d += g(busy, '', ' class="fair-busy" data-quiet="fair"');
+  for (let x = 0; x < w; x += 960) d += fairLetGo(x + 820);
+  return s + g(d, '', ' opacity="0.92"');
+}
+
+export const ZIP_SAG = 20;
+
+const ZIP_FEET = () => [ellipse(-8, 4, 8, 5, PINK, 2.4), ellipse(14, 6, 8, 5, PINK, 2.4)];   // the zip pose's feet, as hamster() draws them
+
+export const kickFeet = (k) => {   // the zip pose with its feet kicked out (k 1: left forward, 2: right forward)
+  const base = hamster('zip');
+  const [f1, f2] = ZIP_FEET();
+  const [a, b] = k === 1 ? [ellipse(-18, -2, 8, 5, PINK, 2.4, INK, -30), ellipse(10, 10, 8, 5, PINK, 2.4)] : [ellipse(-6, 10, 8, 5, PINK, 2.4), ellipse(26, -1, 8, 5, PINK, 2.4, INK, 30)];
+  return base.replace(f1, a).replace(f2, b);
+};
+
+export const kickOk = () => ZIP_FEET().every((f) => hamster('zip').split(f).length === 2);   // each foot found once, so both kick
+
+function partyConfetti(n = 26) {
+  let s = '';
+  let seed = 7;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 0; i < n; i++) {
+    const x = 20 + rnd() * 680;
+    const k = i % 3;
+    const art = k === 0 ? seedArt() : k === 1 ? heart(0, 0, 9, ['#FF8FB1', CORAL, FLILAC][i % 3]) : star(0, 0, 7, [SUN, FMINT, '#8CF5FF'][i % 3]);
+    s += place(g(art, '', ` class="confetti" style="--dx:${Math.round(rnd() * 80 - 40)}px;--rot:${Math.round(rnd() * 720 - 360)}deg;--t:${(2.2 + rnd() * 1.6).toFixed(2)}s;--d:${(rnd() * 1.2).toFixed(2)}s;animation-iteration-count:infinite"`), x, -20, 0.9);
+  }
+  return s;
+}
+
+const note = (x, i) => g(g(path('M 0 0 L 0 -26 L 14 -30 L 14 -6', 'none', 3) + ellipse(-4, 0, 6, 4.5, INK, 0, INK, -20) + ellipse(10, -4, 6, 4.5, INK, 0, INK, -20), '',
+  ` class="fp-note" style="animation-delay:${(i * 0.8).toFixed(1)}s"`), `translate(${x} 200)`);
+
+const zcls = (c, body) => `<g class="${c}">${body}</g>`;
+
+export function partyCarousel() {
+  let s = rect(220, 330, 280, 18, FBLUE, 7, 3);   // the floor of the merry-go-round
+  s += line(360, 150, 360, 330, '#F0C860', 7);
+  for (let i = 0; i < 5; i++) {   // riders pass along the front, one after another (each pole moves with its rider)
+    const rider = line(0, -150, 0, 20, '#F0C860', 4) + zcls('fp-bob', fairHorse([WHITE, FLILAC, PINK, FMINT, SUN][i]) + place(hamster('home'), 2, -22, 0.4));
+    s += g(`<g class="fp-ride" style="animation-delay:-${(i * 0.9).toFixed(1)}s">${rider}</g>`, 'translate(360 312)', ` data-rider="${i}"`);
+  }
+  s += path('M 200 160 L 360 76 L 520 160 Z', WHITE, 3);
+  for (let i = 0; i < 8; i++) s += path(`M ${200 + i * 40} 160 L ${220 + i * 40} 160 L 360 76 Z`, '#E8505B', 0, 'none');
+  s += path('M 200 160 L 360 76 L 520 160', 'none', 3);
+  for (let i = 0; i < 8; i++) s += path(`M ${200 + i * 40} 160 q 20 18 40 0`, i % 2 ? SUN : '#E8505B', 2.4) + g(zcls('fx-blink', circle(0, 0, 4.5, '#FFF3B0', 1.6)), `translate(${220 + i * 40} 172)`);
+  s += line(360, 76, 360, 44, INK, 3) + g(zcls('fx-flag', path('M 0 0 L 30 8 L 0 16 Z', LEAF, 2.2)), 'translate(360 44)');
+  s += note(170, 0) + note(560, 1) + note(120, 2) + note(610, 3);
+  return `<g data-party="carousel">${s + partyConfetti()}</g>`;
+}
+
+// ---------------------------------------------------------------- the finale (step 18b (ii), D-240, D-241, D-243)
+// Copied by tools/tests/games/copy_hamster_step18b_parts.py 0.1 from mock_hamster_finale.js 0.1 (efb4607), unchanged:
+// the lantern gate's looks (G2 agreed) and the confetti poppers' looks (C1 agreed). game.js draws G2 on the fair's
+// levels and C1 at level 30's party.
+const GL_OFF = '#F3D9B8';   // a paper lantern, unlit
+const GL_ON = '#FFD34D';    // lit
+
+function glLantern(x, y, col, i, size = 1) {
+  // a paper lantern hanging at x, y (its top): ribs, a cap and a tassel; its glow behind it, shown once lit
+  const w = 13 * size;
+  const h = 18 * size;
+  return g(circle(0, h * 0.6, w * 1.9, 'rgba(255,211,77,0.55)', 0, 'none', ' class="gl-halo"')
+    + line(0, -6 * size, 0, 0, INK, 1.8)
+    + ellipse(0, h * 0.6, w, h * 0.6, GL_OFF, 2.4, INK, 0, ` class="gl-lamp" data-col="${col}"`)
+    + line(0, h * 0.1, 0, h * 1.1, INK, 1.2) + ellipse(0, h * 0.6, w * 0.5, h * 0.58, 'none', 1.2)
+    + rect(-w * 0.45, -2, w * 0.9, 5 * size, col, 1.5, 1.8) + rect(-w * 0.45, h * 1.12, w * 0.9, 4 * size, col, 1.5, 1.8)
+    + line(0, h * 1.25, 0, h * 1.6, col, 2.4), `translate(${x} ${y})`, ` style="--i:${i}"`);
+}
+
+export function gateLook(look, { bx, by, hx, hy, n }) {
+  const L = n * 60;
+  if (look === 'G1') {
+    // G1, lantern posts: a fair-striped drawbridge with a rope rail, and a lantern post at each end of the gap
+    let stripes = '';
+    for (let i = 0; i < n * 4; i++) stripes += rect(i * 15, 0, 15, 14, i % 2 ? WHITE : FRED, 0, 0, 'none');
+    const lid = rect(0, 0, L, 14, 'none', 5, 0, 'none') + stripes + rect(0, 0, L, 14, 'none', 5, 3)
+      + path(`M 4 -2 Q ${L / 2} -14 ${L - 4} -2`, 'none', 2.4, '#8B5A3C') + circle(L - 6, 7, 3.5, SUN, 1.6);
+    const post = (x, i) => rect(x - 4, -78, 8, 78, '#8B5A3C', 3, 2.4) + path(`M ${x} -78 L ${x + 18} -78`, 'none', 3) + glLantern(x + 18, -72, i ? FBLUE : FRED, i, 1.15);
+    const fixed = g(post(-14, 0) + post(L + 10, 1), `translate(${hx} ${hy})`);
+    return { lid, fixed };
+  }
+  // G2, a string of lanterns: the string from the button to the bridge hung with lanterns that light one after another,
+  // from the button to the bridge, as it is pressed; a wooden drawbridge
+  const lid = rect(0, 0, L, 14, '#C98B55', 5, 3) + [1, 2, 3].map((k) => line((L * k) / 4, 2, (L * k) / 4, 12, INK, 1.6)).join('');
+  const [x0, y0, x2, y2] = [bx + 30, by - 14, hx + 6, hy - 4];
+  const [cx, cy] = [(bx + hx) / 2, Math.min(by, hy) - 40];
+  let fixed = '';
+  const N = 9;
+  for (let k = 1; k <= N; k++) {
+    const t = k / (N + 1);
+    const x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t * t * x2;
+    const y = (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t * t * y2;
+    fixed += glLantern(x, y + 2, FCOLS[k % FCOLS.length], k, 0.9);
+  }
+  return { lid, fixed: g(fixed, '', ' class="gl-string"') };
+}
+
+function popper(col, flip) {
+  // a party popper: a striped cone, mouth up, a pull string; the burst comes out of its mouth (0, -46)
+  let s = path('M -14 -44 L 14 -44 L 3 0 L -3 0 Z', col, 2.6);
+  s += path('M -9 -30 L 9 -30', 'none', 3, WHITE) + path('M -6 -16 L 6 -16', 'none', 3, WHITE);
+  s += ellipse(0, -44, 14, 4, SUN, 2.2) + path('M 0 0 q 6 10 -2 18', 'none', 2, INK);
+  return flip ? g(s, 'scale(-1 1)') : s;
+}
+function burst(n, spread, seed0) {
+  // streamers and bits shot out of the mouth in a fan, each on its own path (--bx, --by) and spin
+  let seed = seed0;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  let s = g(star(0, 0, 20, WHITE, 2.4), '', ' class="pp-flash"');
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (i / (n - 1) - 0.5) * spread;
+    const d = 90 + rnd() * 70;
+    const col = FCOLS[i % FCOLS.length];
+    const bit = i % 3 === 0 ? path('M 0 0 q 6 -8 0 -16 q -6 -8 0 -16', 'none', 3.5, col) : i % 3 === 1 ? star(0, 0, 7, col, 1.6) : rect(-5, -3, 10, 6, col, 1.5, 1.4);
+    s += `<g class="pp-bit" style="--bx:${(Math.cos(a) * d).toFixed(0)}px;--by:${(Math.sin(a) * d).toFixed(0)}px;--rot:${Math.round(rnd() * 540 - 270)}deg">${bit}</g>`;
+  }
+  return s;
+}
+export function popperLook(look) {
+  // in the party's 720 x 420 frame; the merry-go-round's floor is at y 330, its middle x 360
+  if (look === 'C1') {
+    // C1, two big poppers either side, leaning in, popping in turn
+    const one = (x, rot, col, i, flip) => g(`<g class="pp-pop" style="--d:${i * 1.2}s"><g class="pp-cone">${popper(col, flip)}</g>`
+      + g(burst(14, 1.5, 11 + i * 5), 'translate(0 -48)') + '</g>', `translate(${x} 338) rotate(${rot}) scale(1.5)`, ` data-popper="${i}"`);
+    return `<g data-poppers="C1">${one(118, 24, FBLUE, 0, false) + one(602, -24, FRED, 1, true)}</g>`;
+  }
+  // C2, five small poppers along the front, popping one after another, left to right, like a wave
+  let s = '';
+  for (let i = 0; i < 5; i++) {
+    const x = 170 + i * 95;
+    s += g(`<g class="pp-pop pp-wave" style="--d:${(i * 0.3).toFixed(1)}s"><g class="pp-cone">${popper(FCOLS[(i + 1) % FCOLS.length], i > 2)}</g>`
+      + g(burst(8, 1.1, 3 + i * 7), 'translate(0 -48)') + '</g>', `translate(${x} 398) rotate(${(i - 2) * 9})`, ` data-popper="${i}"`);
+  }
+  return `<g data-poppers="C2">${s}</g>`;
 }

@@ -1,4 +1,64 @@
-// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.9 (17 Nov, step 10b).
+// Hamster Highway: the screens, the taps and the hamsters' trip. Version 1.19 (27 Nov, step 18b (ii)).
+//
+// Changes at v1.19 (step 18b (ii), D-240, D-241, D-243): level 30's looks. On the fair's levels a bottle-top button is
+// drawn as the lantern gate G2 (art.js gateLook): a string of lanterns from the button to a wooden drawbridge (its lid);
+// when run()'s 'press' event comes the button's group gets data-lit, and style.css lights the lanterns one after
+// another and sets them glowing. Other levels keep the lunchbox lid and plain string. Level 30's party is P1 with the two
+// big poppers C1 (art.js popperLook) either side of the merry-go-round (POPPERS).
+//
+// Changes at v1.18 (step 18a (ii), D-233 to D-236): the fair. The board carries data-mode (build, run or party), so
+// style.css moves the fair's look A gently while building and brighter and faster in a run and at the party (D-234).
+// The zip ride R2 (D-235), drawn frame by frame: the hamster swings about its reel (13 degrees each way, 0.9 s a swing)
+// and kicks its feet (art.js kickFeet), the line sags under the reel (art.js ZIP_SAG at the middle), a sparkle is left
+// at each column the reel passes, and over the last fifth of the ride it lets go with a puff of dust and a little hop
+// down onto the bank. On the fair's levels the party is P1 (D-235): the merry-go-round at home (art.js partyCarousel),
+// in the middle of the window, its own confetti and music notes, in place of the dancing five and the bunting.
+//
+// Changes at v1.17 (step 17b (ii), D-216): the hamster counter draws each head with art.js's countHead('C2', ...):
+// Pudding's own face, a fifth bigger on a caramel ring, in Pudding's place in the line; on a level with Pudding each
+// face lights when that hamster gets home (the run's `got`), so Pudding's lights only for Pudding; on other levels
+// they light in order by count, as before (D-200).
+//
+// Changes at v1.16 (step 17, D-189 A, D-194): Pudding, the heavy hamster: the walker at the level's Pudding place is
+// drawn with art.js's pudding() (vanilla with caramel; three dandelions at a floater) a fifth bigger; when run()'s
+// 'squash' event comes, the marshmallow squishes under it, with a flump.
+//
+// Changes at v1.15 (step 16, D-194): the bottle-top button, a level part: drawn on its square (data-cap), its lunchbox
+// lid standing up at the gap's left edge (data-lid, turned -90 degrees about its hinge), a string between them. When
+// run()'s 'press' event comes, the bottle top clicks down and the lid swings down over the gap (a CSS transition on
+// the lid's own style, 0.45 s), with a clink; renderParts() stands it up again when the run ends.
+//
+// Changes at v1.14 (step 14b, D-206): the spoon throws each hamster (class throw on the placed spoon's art, 1 s, mirrored
+// for a throw to the left; style.css draws it), in place of its wobble.
+//
+// Changes at v1.13 (step 14, D-187, D-194, D-202, D-203): the park. The picker shows one of two scenes, the house and
+// garden (levels 1 to 20) or the park (levels 21 on, park.js), the same size. The house shows the zip-line's stop by
+// the treehouse (house.js RIDE), soft until the park's first level is open; a tap on it plays the ride (the hamster
+// hangs from its reel down the park's zip-line, ≈2 s), then the park opens; in the park a house button (#back) goes
+// back to the garden. Play opens the scene of the next level, but the park only once a park level has been tried, so
+// the first way in is always the ride. The spoon catapult: a hamster in the spoon flies along run()'s fling steps as one
+// arc (the boing pose), the spoon flicks; a hit is the bonk pose with a flump, then the drop. A backdrop is drawn at its
+// own height (art.js backHeight: the pond's 540), scaled only if the window differs. A help card on a taller window
+// sits in its middle. Test hooks: scene; ride(); back().
+//
+// Changes at v1.12 (D-200): once GO is pressed, the hamster counter and the golden-seed badge take the tray's place,
+// where the gadget slots were (they can't be used during a run), in the tray column beside the board or the tray row
+// under it: never over the board, so they cover neither squares nor running hamsters. While building, neither shows.
+// They are drawn in their own layer, #count (index.html), over the tray.
+//
+// Changes at v1.11 (D-197): the hamster counter (top left) is hidden while building and shows once GO is pressed, on
+// every level, so the top row's squares can be seen while placing (on Rob's phone it covered the test board's).
+//
+// Changes at v1.10 (step 13: D-185, D-190, D-196; assessment-tall-boards-signpost.md 0.2): the window onto the board is
+// the level's own height and VIEW's width for it (7 rows: 12 squares, as levels 1 to 20; 9 rows: 16), the tray, GO, the
+// arrows and the card's dimming following it, and a backdrop drawn 420 tall scaled up to fill a taller window. A
+// hamster facing left (run()'s dir) is drawn mirrored; it turns at a signpost, sits down dizzy with the bonk's stars,
+// naps in the start tube as a stuck one does. The zip-line (D-196): picked from the tray, its high ends glow; a tap
+// on one holds it (pink) and the low ends it reaches glow green; on the PC a ghost line follows the mouse, green over a
+// good end, grey elsewhere; a tap on a green end places it, on any other square lets go of the first end; a tap on
+// either end of a placed one takes it back, both ends. It is drawn as a hook under its block, the line and a peg, and a
+// hamster hangs from a cotton reel down it (art.js 1.6's zip pose). Test hooks: zipFrom; openBoard(def) opens a board
+// that isn't one of the levels (the spike's test board, from the preview's test panel), saving nothing; where(x, y).
 //
 // Changes at v1.9 (step 10b, D-177 (3), D-178, D-179): a hamster that has picked up the dandelion clock holds it up
 // over its head (art.js's carry poses) from the step after the floater until it lands, as run() says (carry); the
@@ -50,18 +110,20 @@
 // they're all home. Golden seeds (D-138). Cute details answer a tap (D-141).
 // Runs on its own as a plain page (GC5), or in P-020's wrapper (contract 0.4.2).
 
-import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow } from './core.js';
+import { COLS, ROWS, GADGETS, TIP, LIFT_MOVE, LIFT_STOP, key, parseLevel, fits, fitCells, left, run, terrain, cupRow, fitsZip, zipLows, zipPair } from './core.js';
 import { LEVELS } from './levels.js';
-import { CELL, INK, SUN, CORAL, LOOP, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text } from './art.js';
-import { HOUSE_W, HOUSE_H, SPOTS, houseScene, tokenAt, titleArt } from './house.js';
+import { countHead, CELL, INK, SUN, CORAL, LOOP, pudding, buttonCap, lidArt, zipHook, zipPeg, zipLine, liftArt, teacupBack, teacupFront, stickArt, seesawArt, potArt, tubePiece, hamster, hamsterHead, gadget, block, water, duck, startArt, homeArt, seedArt, sparkle, backdrop, backHeight, slot, goButton, houseButton, place, g, rect, circle, path, star, heart, text, ZIP_SAG, kickFeet, partyCarousel, gateLook, popperLook } from './art.js';
+import { HOUSE_W, HOUSE_H, SPOTS, RIDE, houseScene, titleArt } from './house.js';
+import { SPOTS as PARK_SPOTS, ZIP_TOP, ZIP_FOOT, parkScene, rideArt } from './park.js';
 import { play, heard, isMuted, setMuted } from './sound.js';
 import { FORMAT, fresh, unpack, tried, finished, seen, pack, nextAt, opens } from './progress.js';
 import { CARDS, CAPTION, CARD_CSS, cardArt, cardFor } from './cards.js';
 import { linkUp } from '../_common/rocket/link.js';
 
-const BW = COLS * CELL;   // 720: the window onto the board, 12 squares
+let BW = COLS * CELL;     // 720: the window onto the board, 12 squares (16 on a 9-row board: setWindow)
 const SLANT = 45;         // degrees a see-saw's plank lies at (a row a square)
-const BH = ROWS * CELL;   // 420
+let BH = ROWS * CELL;     // 420 (540 on a 9-row board)
+const VIEW = { 7: 12, 8: 14, 9: 16 };   // squares across the window for a board this many rows tall (D-185)
 const WALKERS = 5;
 const TICK = 0.2;         // seconds a tick of the timed model lasts (walk 2 ticks, a hamster every 6)
 const SC = 0.56;          // a hamster's size on the board, as in the mock-ups
@@ -76,10 +138,11 @@ const S = {
   progress: fresh(),   // progress.js, format 1 (D-147)
   ready: false, linked: null, soundLocked: false, playAsked: false,
   at: 0,
-  li: 0, level: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
+  li: 0, level: null, def: null, test: false, zipFrom: null, placed: {}, selected: null, hover: null, drag: null, fresh: null,
   mode: 'build', run: null, layout: 'bottom', speed: 1, seedTaken: false, turnDismissed: false,
   vx: 0, pan: null, edge: 0,   // the window's place along a wide board (board units), a swipe, a drag at its edge
   card: null, help: false,     // the help card showing (its kind), and help's "?" marks on (D-170)
+  scene: 'house', riding: false,   // the picker's scene, house or park (D-202), and the ride to the park playing
 };
 
 // ---------------------------------------------------------------- saving (D-147)
@@ -104,14 +167,37 @@ function isOpen(i) {
   return opens(IDS, S.progress, i);
 }
 
+// The park's levels (D-187), and its first one's index; a level's scene.
+const inPark = (i) => LEVELS[i].room === 'park';
+const P0 = LEVELS.findIndex((d) => d.room === 'park');
+// The scene the picker opens on (D-202): the next level's, but the park only once one of its levels has been tried, so
+// the first way in is the ride from the treehouse.
+function sceneFor(i) {
+  return inPark(i) && LEVELS.some((d, j) => inPark(j) && (S.progress.tries[d.id] || S.progress.done[d.id])) ? 'park' : 'house';
+}
+// Where the hamster token sits in a scene: its level's stop, or the zip-line's stop on the house when its level is in the park.
+function tokenXY(scene) {
+  if (scene === 'park') return PARK_SPOTS[LEVELS[S.at].spot];
+  return inPark(S.at) ? RIDE : SPOTS[LEVELS[S.at].spot];
+}
+function tokenArt([x, y]) {
+  return place(g(hamster('walk1'), '', ' class="bob"'), x, y - 26, 0.42);
+}
+
 function renderHouse() {
-  const levels = LEVELS.map((d, i) => ({ spot: d.spot, open: isOpen(i), done: !!S.progress.done[d.id], seed: !!S.progress.seeds[d.id] }));
-  $('house-svg').innerHTML = houseScene({ levels, current: S.at }) + `<g id="token">${tokenAt(LEVELS[S.at].spot)}</g>`;
+  const all = LEVELS.map((d, i) => ({ spot: d.spot, i, open: isOpen(i), done: !!S.progress.done[d.id], seed: !!S.progress.seeds[d.id] }));
+  const park = S.scene === 'park';
+  const ride = P0 >= 0 ? { open: isOpen(P0), current: inPark(S.at), n: P0 } : null;
+  const scene = park ? parkScene({ levels: all.filter((l) => inPark(l.i)), current: S.at })
+    : houseScene({ levels: all.filter((l) => !inPark(l.i)), current: S.at, ride });
+  $('house-svg').innerHTML = scene + `<g id="token"${S.riding ? ' visibility="hidden"' : ''}>${tokenArt(tokenXY(S.scene))}</g><g id="ride"></g>`;
+  $('house-svg').setAttribute('aria-label', park ? 'The park: pick a level' : 'The house and garden: pick a level');
+  $('back').hidden = !park;
   $('seeds').innerHTML = LEVELS.map((d) => `<svg viewBox="-14 -18 28 36"${S.progress.seeds[d.id] ? '' : ' opacity="0.3"'}>${seedArt()}</svg>`).join('');
   $('sound').innerHTML = soundIcon();
   $('sound').hidden = S.soundLocked;
   sizeHouse();
-  const [x] = SPOTS[LEVELS[S.at].spot];
+  const [x] = S.riding ? ZIP_TOP : tokenXY(S.scene);
   const scroll = $('house-scroll');
   const k = scroll.clientHeight / HOUSE_H;
   scroll.scrollLeft = Math.max(0, x * k - scroll.clientWidth / 2);
@@ -133,7 +219,22 @@ function openLevel(i) {
   if (!isOpen(i)) return;
   S.li = i;
   S.at = i;
-  S.level = parseLevel(LEVELS[i]);
+  openDef(LEVELS[i], false);
+}
+// A board: one of the levels, or (test) the spike's test board from the preview's test panel, which saves nothing.
+function setWindow(lv) {
+  BH = lv.height * CELL;
+  BW = Math.min(lv.cols, VIEW[lv.height] || COLS) * CELL;
+  const clip = $('window').firstElementChild;
+  clip.setAttribute('width', BW);
+  clip.setAttribute('height', BH);
+}
+function openDef(def, test) {
+  S.def = def;
+  S.test = test;
+  S.level = parseLevel(def);
+  setWindow(S.level);
+  S.zipFrom = null;
   S.placed = {};
   S.selected = null;
   S.hover = null;
@@ -141,7 +242,7 @@ function openLevel(i) {
   S.mode = 'build';
   S.run = null;
   S.seedTaken = false;
-  S.fresh = LEVELS[i].new;
+  S.fresh = def.new;
   S.vx = 0;
   S.pan = null;
   S.card = null;
@@ -151,7 +252,7 @@ function openLevel(i) {
   show('level');
   renderLevel();
   setView(0);
-  const k = cardFor(LEVELS[i]);
+  const k = test ? null : cardFor(def);
   if (k && !S.progress.cards[k]) showCard(k, true);   // once per child (D-170)
 }
 
@@ -165,7 +266,8 @@ function showCard(kind, first) {
   S.drag = null;
   if (first) { S.progress = seen(CARDS, S.progress, kind); keep(); }
   renderAll();
-  layer('card').innerHTML = rect(-20, -20, 900, 580, 'rgba(27,20,70,0.5)', 0, 0, 'none') + cardArt(kind);
+  const mid = BW === 720 && BH === 420 ? cardArt(kind) : g(cardArt(kind), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);   // in the middle of a taller window
+  layer('card').innerHTML = rect(-20, -20, BW + 180, BH + 160, 'rgba(27,20,70,0.5)', 0, 0, 'none') + mid;
   play('pick');
 }
 function closeCard() {
@@ -217,8 +319,9 @@ function slideView(dx) {
 function renderArrows() {
   let s = '';
   if (S.level && maxView() > 0 && S.mode === 'build') {
-    const arrow = (x, dir) => g(rect(x, 150, 44, 120, 'rgba(255,255,255,0.8)', 20, 2.5)
-      + path(`M ${x + 22 + 8 * dir} 186 L ${x + 22 - 8 * dir} 210 L ${x + 22 + 8 * dir} 234`, 'none', 6, INK, ' stroke-linecap="round" stroke-linejoin="round"'),
+    const m = BH / 2;
+    const arrow = (x, dir) => g(rect(x, m - 60, 44, 120, 'rgba(255,255,255,0.8)', 20, 2.5)
+      + path(`M ${x + 22 + 8 * dir} ${m - 24} L ${x + 22 - 8 * dir} ${m} L ${x + 22 + 8 * dir} ${m + 24}`, 'none', 6, INK, ' stroke-linecap="round" stroke-linejoin="round"'),
     '', ` class="btn pan" data-btn="${dir > 0 ? 'panL' : 'panR'}"`);
     if (S.vx > 1) s += arrow(4, 1);
     if (S.vx < maxView() - 1) s += arrow(BW - 48, -1);
@@ -228,13 +331,15 @@ function renderArrows() {
 
 function renderLevel() {
   const lv = S.level;
-  const def = LEVELS[S.li];
-  let bg = backdrop(def.back, lv.cols * CELL);
+  const def = S.def;
+  // a backdrop is drawn 420 tall: on a taller board, drawn narrower and scaled up to fill it
+  const bh = backHeight(def.back);   // the pond's is drawn 540 tall (D-203), the house's 420
+  let bg = BH === bh ? backdrop(def.back, lv.cols * CELL) : g(backdrop(def.back, (lv.cols * CELL * bh) / BH), `scale(${BH / bh})`);
   let duckDone = false;
-  for (let r = 0; r < ROWS; r++) {
+  for (let r = 0; r < lv.height; r++) {
     for (let c = 0; c < lv.cols; c++) {
       if (lv.rows[r][c] === '#') bg += block(c, r, r === 0 || lv.rows[r - 1][c] !== '#');
-      else if (r === ROWS - 1) {
+      else if (r === lv.height - 1) {
         bg += water(c, r);
         if (!duckDone) {
           bg += place(g(g(duck(), '', ' class="bob"'), '', ' class="poke duck" data-poke="duck"'), c * CELL + 30, r * CELL + 44, 0.62);
@@ -250,7 +355,7 @@ function renderLevel() {
   bg += place(homeArt(), hc * CELL, hr * CELL, CELL / 100);
   for (const p of lv.parts.filter((q) => q.kind === 'seesaw')) {
     let ground = p.r + 1;
-    while (ground < ROWS && lv.rows[ground][p.c + 1] !== '#') ground += 1;
+    while (ground < lv.height && lv.rows[ground][p.c + 1] !== '#') ground += 1;
     bg += potArt((p.c + 1.5) * CELL, (p.r + 1) * CELL, ground * CELL);
   }
   for (const p of lv.parts.filter((q) => q.kind === 'lift')) bg += liftArt((p.c + 0.5) * CELL, (p.top - 1) * CELL - 20, (p.bottom + 0.6) * CELL);
@@ -277,6 +382,17 @@ function renderParts() {
     }
   });
   layer('parts').innerHTML += back;
+  // the bottle-top buttons (D-194): the cap, the string and the lid standing up at its hinge (the gap's left edge)
+  layer('parts').innerHTML += S.level.parts.filter((p) => p.kind === 'button').map((p, i) => {
+    const [lc, lr] = p.lid.slice().sort((a, b) => a[0] - b[0])[0];
+    const [hx, hy, bx, by] = [lc * CELL, lr * CELL, p.c * CELL, (p.r + 1) * CELL];
+    // on the fair's levels, the lantern gate G2 (D-240, D-243): lanterns on the string, a wooden drawbridge for the lid
+    const gate = S.def.back === 'fairA' ? gateLook('G2', { bx, by, hx, hy, n: p.lid.length }) : null;
+    return `<g data-button="${i}" data-at="${p.c},${p.r}">${path(`M ${bx + 30} ${by - 14} Q ${(bx + hx) / 2} ${Math.min(by, hy) - 40} ${hx + 6} ${hy - 4}`, 'none', 2.4, '#8B5A3C')}`
+      + `<g data-cap="${i}" transform="translate(${bx} ${by})"><g class="cap">${buttonCap()}</g></g>`
+      + `<g transform="translate(${hx} ${hy})"><g data-lid="${i}" style="transform: rotate(-90deg); transition: transform .45s ease-in">${gate ? gate.lid : lidArt(p.lid.length)}</g></g>`
+      + `${gate ? gate.fixed : ''}</g>`;
+  }).join('');
   layer('cupfront').innerHTML = front;
   for (const el of layer('bg').querySelectorAll('.loop')) el.removeAttribute('stroke-dashoffset');
 }
@@ -320,6 +436,7 @@ function renderSeed() {
 }
 
 function renderAll() {
+  board.dataset.mode = S.mode;   // build, run or party: style.css moves the fair by it (D-234)
   renderGadgets();
   renderFits();
   renderGhost();
@@ -328,8 +445,22 @@ function renderAll() {
 }
 
 function renderGadgets() {
-  layer('gads').innerHTML = Object.entries(S.placed).map(([k, kind]) => {
+  // zip-lines (D-196): the line behind, then a hook at the high end and a peg at the low end, each a whole square to tap
+  let lines = '';
+  for (const [k, v] of Object.entries(S.placed)) {
+    if (!v.startsWith('zip:')) continue;
     const [c, r] = k.split(',').map(Number);
+    const [lc, lr] = v.slice(4).split(',').map(Number);
+    lines += g(zipLine((c + 0.5) * CELL, (r + 0.5) * CELL, (lc + 0.5) * CELL, (lr + 0.5) * CELL), '', ` data-zipline="${k}"`);   // sags under a rider (R2)
+  }
+  layer('gads').innerHTML = g(lines, '', ' pointer-events="none"') + Object.entries(S.placed).map(([k, v]) => {
+    const [c, r] = k.split(',').map(Number);
+    if (v.startsWith('zip:') || v.startsWith('peg:')) {
+      const hit = rect(c * CELL, r * CELL, CELL, CELL, 'rgba(0,0,0,0)', 0, 0, 'none');
+      const art = v.startsWith('zip:') ? zipHook((c + 0.5) * CELL, r * CELL) : zipPeg((c + 0.5) * CELL, (r + 1) * CELL, 0.85);
+      return g(hit + art, '', ` data-placed="${k}"${k === S.justPlaced ? ' class="drop"' : ''}`);
+    }
+    const kind = v;
     const hit = rect(0, 0, 100, 100, 'rgba(0,0,0,0)', 0, 0, 'none');   // the whole square answers a click, not just the drawing
     const art = kind === 'tube' ? tubePiece(tubeSides(c, r)) : gadget(kind);
     return place(hit + g(art, '', k === S.justPlaced ? ' class="drop"' : ''), c * CELL, r * CELL, CELL / 100, 0, ` data-placed="${k}"`);
@@ -355,8 +486,15 @@ function tubeSides(c, r) {
 
 function renderFits() {
   if (S.mode !== 'build' || !S.selected) { layer('fits').innerHTML = ''; return; }
+  const box = (c, r, fill, edge, extra = '') => rect(c * CELL + 3, r * CELL + 3, CELL - 6, CELL - 6, fill, 8, 2, edge, extra);
+  if (S.selected === 'zip' && S.zipFrom) {   // a held high end (pink) and the low ends it reaches (green)
+    const [hc, hr] = S.zipFrom;
+    layer('fits').innerHTML = box(hc, hr, 'rgba(255,155,179,0.6)', '#E0527A', ' data-held="1"')
+      + zipLows(S.level, S.placed, hc, hr).map(([c, r]) => box(c, r, 'rgba(160,236,190,0.75)', '#2BB673', ' data-low="1"')).join('');
+    return;
+  }
   layer('fits').innerHTML = fitCells(S.level, S.placed, S.selected)
-    .map(([c, r]) => rect(c * CELL + 3, r * CELL + 3, CELL - 6, CELL - 6, 'rgba(255,246,199,0.75)', 8, 2, '#F0A51C')).join('');
+    .map(([c, r]) => box(c, r, 'rgba(255,246,199,0.75)', '#F0A51C', S.selected === 'zip' ? ' data-high="1"' : '')).join('');
 }
 
 function renderGhost() {
@@ -364,6 +502,16 @@ function renderGhost() {
   const kind = S.drag ? S.drag.kind : S.selected;
   layer('drag').innerHTML = '';
   if (S.mode !== 'build' || !kind || !h) { layer('ghost').innerHTML = ''; return; }
+  if (kind === 'zip' && S.zipFrom && h.cell) {   // the ghost line from the held high end (D-196): green over a good low end
+    const [hc, hr] = S.zipFrom;
+    const [c, r] = h.cell;
+    const ok = fitsZip(S.level, S.placed, hc, hr, c, r);
+    const col = ok ? '#2BB673' : '#9AA0B4';
+    layer('ghost').innerHTML = `<line data-zipghost="1" x1="${(hc + 0.5) * CELL}" y1="${(hr + 0.5) * CELL}" x2="${(c + 0.5) * CELL}" y2="${(r + 0.5) * CELL}" stroke="${col}" stroke-width="5" stroke-dasharray="10 7" stroke-linecap="round"/>`
+      + (ok ? g(zipPeg((c + 0.5) * CELL, (r + 1) * CELL, 0.85), '', ' opacity="0.6"') : '');
+    return;
+  }
+  if (kind === 'zip') { layer('ghost').innerHTML = ''; return; }
   if (h.cell) {
     const [c, r] = h.cell;
     const ok = fits(S.level, S.placed, kind, c, r);
@@ -379,18 +527,36 @@ function renderGhost() {
 }
 
 function renderHud() {
+  layer('hud').innerHTML = S.mode === 'build' ? helpButton() : '';
+  renderCount();
+}
+
+// The hamster counter and the golden-seed badge: once GO is pressed, in the tray where the slots were (D-200).
+function renderCount() {
+  if (S.mode === 'build') { layer('count').innerHTML = ''; return; }
   const home = S.run ? S.run.home : 0;
-  let s = rect(10, 10, 200, 44, 'rgba(255,255,255,0.88)', 22, 2.5);
-  for (let i = 0; i < WALKERS; i++) {
-    const lit = i < home;
-    s += place(g(hamsterHead(), '', lit ? ' class="tiny-hop"' : ''), 38 + 36 * i, 52, 0.36, 0, lit ? '' : ' opacity="0.3"');
+  const seed = !!S.level.seed;
+  const n = WALKERS + (seed ? 1 : 0);
+  const side = S.layout === 'side';
+  const box = side ? { x: BW + 17, y: 80, w: 96, h: BH - 182 } : { x: 100, y: BH + 17, w: BW - 260, h: 76 };
+  const step = (side ? box.h : box.w) / n;
+  const at = (i) => (side ? { x: box.x + box.w / 2, y: box.y + step * (i + 0.5) } : { x: box.x + step * (i + 0.5), y: box.y + box.h / 2 });
+  const k = Math.min(0.5, (Math.min(step, side ? box.w : box.h) - 8) / 80);   // a head is about 80 across
+  let s = rect(box.x, box.y, box.w, box.h, 'rgba(255,255,255,0.88)', 20, 2.5);
+  const pud = S.level.pudding;
+  const got = (S.run && S.run.got) || new Set();
+  for (let who = 0; who < WALKERS; who++) {
+    const i = who;
+    const lit = pud !== null ? got.has(who) : i < home;   // D-216: by who on Pudding's levels, by count on others
+    const p = at(i);
+    s += countHead('C2', who === pud, lit, p.x, p.y + 40 * k, k);
   }
-  if (S.level.seed) {
+  if (seed) {
     const got = S.seedTaken || S.progress.seeds[S.level.id];
-    s += rect(218, 10, 48, 44, 'rgba(255,255,255,0.88)', 22, 2.5) + place(seedArt(), 242, 32, 0.95, 0, got ? ' id="hud-seed"' : ' id="hud-seed" opacity="0.25"');
+    const p = at(WALKERS);
+    s += place(seedArt(), p.x, p.y, Math.min(0.95, 2.2 * k), 0, got ? ' id="hud-seed"' : ' id="hud-seed" opacity="0.25"');
   }
-  if (S.mode === 'build') s += helpButton();
-  layer('hud').innerHTML = s;
+  layer('count').innerHTML = g(s, '', ' data-hud="count"');
 }
 
 function trayKinds() {
@@ -401,7 +567,7 @@ function trayKinds() {
 function slotBoxes() {
   const kinds = trayKinds();
   if (S.layout === 'side') {
-    const step = Math.min(84, 246 / kinds.length);
+    const step = Math.min(84, (BH - 174) / kinds.length);   // from 80 down to GO (BH - 84), less a gap
     return kinds.map((kind, i) => ({ kind, x: BW + 17, y: 80 + i * step, w: 96, h: step - 8 }));
   }
   return kinds.map((kind, i) => ({ kind, x: 100 + 94 * i, y: BH + 11, w: 84, h: 78 }));
@@ -411,19 +577,21 @@ function renderTray() {
   const counts = left(S.level, S.placed);
   const run = S.mode !== 'build';
   let s = '';
-  const slots = slotBoxes().map(({ kind: k, x, y, w, h }) => slot(x, y, w, h, k, counts[k], S.selected === k && !run, S.fresh === k)).join('');
+  // during a run the slots give way to the hamster counter (renderCount, D-200)
+  const slots = run ? '' : slotBoxes().map(({ kind: k, x, y, w, h }) => slot(x, y, w, h, k, counts[k], S.selected === k && !run, S.fresh === k)).join('');
   if (S.layout === 'side') {
     s += rect(BW, 0, 130, BH, '#8B5A3C', 0, 0) + line0(BW, 0, BW, BH);
     s += houseButton(BW + 65, 40, 28);
     s += slots;
-    s += goButton(BW + 9, 336, 112, 72, run ? 'stop' : 'go');
+    s += goButton(BW + 9, BH - 84, 112, 72, run ? 'stop' : 'go');
   } else {
     s += rect(0, BH, BW, 110, '#8B5A3C', 0, 0) + line0(0, BH, BW, BH);
     s += houseButton(46, BH + 55, 30);
     s += slots;
-    s += goButton(578, BH + 17, 128, 76, run ? 'stop' : 'go');
+    s += goButton(BW - 142, BH + 17, 128, 76, run ? 'stop' : 'go');
   }
   layer('tray').innerHTML = s;
+  renderCount();
   const go = board.querySelector('.btn.go');
   if (go && !run && Object.keys(S.placed).length) go.classList.add('ready');   // a gentle wiggle once something is down
   if (S.mode === 'party') layer('tray').setAttribute('opacity', '0.5'); else layer('tray').removeAttribute('opacity');
@@ -435,10 +603,10 @@ function fitBoard() {
   const st = $('stage');
   const W = st.clientWidth;
   const H = st.clientHeight;
-  const bottom = Math.min(W / 720, H / 530);
-  const side = Math.min(W / 850, H / 420);
+  const bottom = Math.min(W / BW, H / (BH + 110));
+  const side = Math.min(W / (BW + 130), H / BH);
   const lay = side > bottom ? 'side' : 'bottom';
-  const [vw, vh] = lay === 'side' ? [850, 420] : [720, 530];
+  const [vw, vh] = lay === 'side' ? [BW + 130, BH] : [BW, BH + 110];
   const k = Math.min(W / vw, H / vh);
   board.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
   board.style.width = `${Math.floor(vw * k)}px`;
@@ -459,6 +627,28 @@ function cellAt(p) {
   if (p.x < 0 || p.y < 0 || p.x >= BW || p.y >= BH) return null;
   const c = Math.floor((p.x + S.vx) / CELL);
   return c < S.level.cols ? [c, Math.floor(p.y / CELL)] : null;
+}
+
+// The zip-line (D-196): a tap on a high end holds it; then a tap on a low end it reaches places it, any other lets go.
+function zipTap(c, r) {
+  if (!S.zipFrom) {
+    if (left(S.level, S.placed).zip > 0 && fits(S.level, S.placed, 'zip', c, r)) { S.zipFrom = [c, r]; play('pick'); return true; }
+    play('nope');
+    return false;
+  }
+  const [hc, hr] = S.zipFrom;
+  S.zipFrom = null;
+  if (fitsZip(S.level, S.placed, hc, hr, c, r)) {
+    Object.assign(S.placed, zipPair(hc, hr, c, r));
+    S.justPlaced = key(hc, hr);
+    if (S.fresh === 'zip') S.fresh = null;
+    play('place');
+    puff(c * CELL + 30, r * CELL + CELL - 4);
+    if (left(S.level, S.placed).zip <= 0) S.selected = null;
+    return true;
+  }
+  play('nope');
+  return false;
 }
 
 function tryPlace(kind, c, r) {
@@ -505,6 +695,7 @@ function onDown(e) {
     if (left(S.level, S.placed)[kind] <= 0) { play('nope'); bump(sl, 'shake'); return; }
     const again = S.selected === kind;
     S.selected = kind;
+    S.zipFrom = null;
     S.drag = { kind, from: null, x0: e.clientX, y0: e.clientY, moved: false, again };
     board.setPointerCapture(e.pointerId);
     play('pick');
@@ -513,6 +704,17 @@ function onDown(e) {
     return;
   }
   const pl = t.closest('[data-placed]');
+  if (pl && /^(zip|peg):/.test(S.placed[pl.dataset.placed] || '')) {   // either end takes a zip-line back, both ends
+    const k = pl.dataset.placed;
+    const [oc, or] = S.placed[k].slice(4).split(',').map(Number);
+    delete S.placed[k];
+    delete S.placed[key(oc, or)];
+    S.selected = null;
+    S.zipFrom = null;
+    play('back');
+    renderAll();
+    return;
+  }
   if (pl) {
     const k = pl.dataset.placed;
     const kind = S.placed[k];
@@ -526,6 +728,14 @@ function onDown(e) {
     return;
   }
   const cell = cellAt(p);
+  if (cell && S.selected === 'zip') {
+    const held = !!S.zipFrom;
+    const ok = zipTap(cell[0], cell[1]);
+    S.hover = S.zipFrom ? { x: p.x, y: p.y, cell } : null;
+    renderAll();
+    if (!ok && !held) bump(layer('fits'), 'shake');
+    return;
+  }
   if (cell && S.selected) {
     S.hover = { x: p.x, y: p.y, cell };
     if (tryPlace(S.selected, cell[0], cell[1])) S.hover = null;
@@ -590,7 +800,10 @@ function onUp(e) {
   if (!d) return;
   S.drag = null;
   if (board.hasPointerCapture(e.pointerId)) board.releasePointerCapture(e.pointerId);
-  if (d.moved) {
+  if (d.moved && d.kind === 'zip') {
+    const cell = cellAt(toBoard(e));   // dragged from the tray onto a high end: it is held there
+    if (!cell || !zipTap(cell[0], cell[1])) { S.selected = null; S.zipFrom = null; }
+  } else if (d.moved) {
     const cell = cellAt(toBoard(e));
     if (cell && tryPlace(d.kind, cell[0], cell[1])) S.selected = null;
     else if (d.from) { play('back'); S.selected = null; }
@@ -600,7 +813,7 @@ function onUp(e) {
   } else if (d.again) {
     S.selected = null;            // a second click on the same gadget puts it down again
   }
-  S.hover = null;
+  if (!S.zipFrom) S.hover = null;
   renderAll();
 }
 
@@ -608,15 +821,17 @@ function button(name) {
   if (S.mode === 'party') { partyAct(name === 'house' ? 'house' : 'again'); return; }
   if (name === 'house') { stopRun(); S.selected = null; play('tap'); show('house'); return; }
   if (name === 'go') { startRun(); return; }
-  if (name === 'help') { if (S.mode === 'build') { play('pick'); S.selected = null; renderAll(); setHelp(true); } return; }
+  if (name === 'help') { if (S.mode === 'build') { play('pick'); S.selected = null; S.zipFrom = null; renderAll(); setHelp(true); } return; }
   if (name === 'stop') { play('back'); stopRun(); renderAll(); }
   if (name === 'panL' || name === 'panR') { play('whoosh'); slideView((name === 'panL' ? -1 : 1) * 6 * CELL); }
 }
 
 // ---------------------------------------------------------------- the hamsters' trip
 function feet(c, r) {
+  if (!Number.isInteger(r)) return { x: (c + 0.5) * CELL, y: (r + 1) * CELL };   // on a zip-line, between rows
   let y = (r + 1) * CELL;
-  if (terrain(S.level, S.placed, c, r + 1) === 'ramp') y = (r + 1.5) * CELL;
+  const under = terrain(S.level, S.placed, c, r + 1);
+  if (under === 'ramp' || under === 'rampL') y = (r + 1.5) * CELL;
   if (terrain(S.level, S.placed, c, r) === 'bouncer') y = (r + 0.55) * CELL;
   return { x: (c + 0.5) * CELL, y };
 }
@@ -651,31 +866,58 @@ function segmentsOf(st, offs = []) {
     const b = st[i];
     const p0 = segs.length ? segs[segs.length - 1].p1 : feet(a.c, a.r);
     at = b.t0;
+    if (b.act === 'zip') {   // down the zip-line, hanging from a reel (D-196): one piece from the high end to the low
+      let j = i;
+      while (j + 1 < st.length && st[j + 1].act === 'zip') j += 1;
+      const last = st[j];
+      let seed = false;
+      for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
+      add({ kind: 'zip', p0, hook: key(a.c, a.r), l0: { x: (a.c + 0.5) * CELL, y: (a.r + 0.5) * CELL }, l1: { x: (last.c + 0.5) * CELL, y: (last.r + 0.5) * CELL },
+        p1: feet(last.c, last.r), end: last.t1, seed, sound: 'wheee', dir: last.dir || 1 });
+      i = j;
+      continue;
+    }
+    if (b.act === 'fling') {   // flung by the spoon (D-194): one arc over the fling steps, 2 rows up at its top
+      let j = i;
+      while (j + 1 < st.length && st[j + 1].act === 'fling') j += 1;
+      const last = st[j];
+      let seed = false;
+      for (let q = i; q <= j; q++) if (st[q].seed) seed = true;
+      const p1 = feet(last.c, last.r);
+      add({ kind: 'fling', p0, p1, ctrl: { x: (p0.x + p1.x) / 2, y: Math.min(p0.y, p1.y) - 4 * CELL }, end: last.t1, seed, carry: !!b.carry, dir: b.dir || 1,
+        sound: 'boing', flick: key(a.c, a.r), flickDir: b.dir || 1 });
+      i = j;
+      continue;
+    }
+    if (b.act === 'hit') {   // bonk on the way: a moment's squash where it is, then the drop
+      add({ kind: 'hit', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1, sound: 'flump', flick: a.act === 'fling' ? null : key(a.c, a.r), flickDir: b.dir || 1 });
+      continue;
+    }
     if (b.act === 'walk' || b.act === 'climb') {
       const p1 = feet(b.c, b.r);
       const slant = terrain(S.level, S.placed, a.c, a.r) === 'seesaw' && terrain(S.level, S.placed, b.c, b.r) === 'seesaw';
-      const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (a.c + 1) * CELL, y: (a.r + 1) * CELL };
+      const mid = slant ? { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 } : { x: (b.c < a.c ? a.c : a.c + 1) * CELL, y: (a.r + 1) * CELL };   // the edge it crosses
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry,
+      add({ kind: b.act, p0, mid, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, dir: b.dir || 1,
         sound: b.act === 'climb' ? 'climb' : terrain(S.level, S.placed, b.c, b.r) === 'shaft' && terrain(S.level, S.placed, a.c, a.r) !== 'shaft' ? 'clink' : null });
     } else if (b.act === 'bounce') {
       const p1 = feet(b.c, b.r);
-      add({ kind: 'bounce', carry: !!b.carry, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
+      add({ kind: 'bounce', carry: !!b.carry, dir: b.dir || 1, p0, p1, ctrl: { x: (p0.x + p1.x) / 2 - 10, y: Math.min(p0.y, p1.y) - 1.5 * CELL }, end: b.t1, seed: !!b.seed, sound: 'boing', mallow: key(a.c, a.r) });
     } else if (b.act === 'wait') {
-      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry });
+      add({ kind: 'wait', p0, p1: p0, end: b.t1, carry: !!b.carry, dir: b.dir || 1 });
     } else if (b.act === 'fall' || b.act === 'float') {
       let j = i;
       let seed = !!b.seed;
       while (j + 1 < st.length && st[j + 1].act === b.act) { j += 1; if (st[j].seed) seed = true; }
       const last = st[j];
       const rows = j - i + 1;
-      const p1 = last.r >= ROWS ? { x: p0.x, y: BH - 16 } : feet(last.c, last.r);
-      add({ kind: b.act, p0, p1, end: last.t1, seed, rows,
+      const p1 = last.r >= S.level.height ? { x: p0.x, y: BH - 16 } : feet(last.c, last.r);
+      add({ kind: b.act, p0, p1, end: last.t1, seed, rows, dir: b.dir || 1,
         sound: b.act === 'float' ? 'wheee' : rows >= 3 ? 'slide' : null });
       i = j;
     } else {
       const f1 = feet(b.c, b.r);
-      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt
+      add({ kind: b.act, p0, p1: { x: f1.x + (offs[i] || 0), y: f1.y }, end: b.t1, seed: !!b.seed, carry: !!b.carry, dir: b.dir || 1, sound: b.act === 'tilt' || (b.act === 'ride' && a.act !== 'ride') ? 'wheee' : null,   // tube, ride, tilt, turn
         lift: b.act === 'ride' ? S.level.parts.find((p) => p.kind === 'lift' && p.c === b.c) : null, cup: b.cup, dx: offs[i] || 0 });
     }
   }
@@ -686,15 +928,16 @@ function startRun() {
   if (S.mode !== 'build') return;
   const id = S.level.id;
   const before = S.progress.tries[id];
-  S.progress = tried(IDS, S.progress, id);
+  if (!S.test) S.progress = tried(IDS, S.progress, id);   // the test board saves nothing
   if (S.progress.tries[id] !== before) keep();
+  S.zipFrom = null;
   const res = run(S.level, S.placed);
   const offs = seatOffsets(res.hamsters);
   const hs = res.hamsters.map((h, n) => {
     const segs = segmentsOf(h.steps, offs[n]);
     const [c, r] = S.level.start;
     return { outcome: h.outcome, segs, start: h.steps[0].t0 * TICK, total: segs.length ? segs[segs.length - 1].t1 : h.steps[0].t0 * TICK,
-      last: segs.length ? segs[segs.length - 1].p1 : feet(c, r) };
+      last: segs.length ? segs[segs.length - 1].p1 : feet(c, r), dir: segs.length ? segs[segs.length - 1].dir : 1 };
   });
   const bad = res.hamsters.find((h) => h.outcome !== 'home');
   S.mode = 'run';
@@ -704,7 +947,7 @@ function startRun() {
   S.help = false;
   S.seedTaken = false;
   renderSeed();
-  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
+  S.run = { res: { outcome: bad ? bad.outcome : 'home' }, hs, events: res.events, ev: 0, t: 0, home: 0, got: new Set(), walkers: [], finishing: false, last: performance.now(), tips: {}, drawn: [], poses: [] };
   layer('walkers').innerHTML = Array.from({ length: WALKERS }, (_, i) => `<g data-walker="${i}" visibility="hidden"><g class="pose"></g></g>`).join('');
   S.run.walkers = [...layer('walkers').children].map((el, i) => ({ i, el, pose: '', seg: -1, done: false, endFx: {} }));
   const peek = $('peek');
@@ -733,6 +976,17 @@ function stopRun() {
 // A worn stick's crack or snap (run()'s events), when its tick comes: a deeper crack drawn, or the stick gone with
 // its halves falling. The sticks come back whole when the run ends (renderGadgets).
 function stickEvent(e) {
+  if (e.kind === 'squash') { squishMallow(`${e.c},${e.r}`); play('flump'); return; }   // Pudding on a marshmallow (D-194)
+  if (e.kind === 'press') {   // a bottle-top button (D-194): it clicks down and its lid swings down over the gap
+    const i = S.level.parts.filter((p) => p.kind === 'button').findIndex((p) => p.c === e.c && p.r === e.r);
+    const cap = board.querySelector(`[data-cap="${i}"] .cap`);
+    const lid = board.querySelector(`[data-lid="${i}"]`);
+    if (cap) cap.style.cssText = 'transform: scale(1, 0.5); transform-box: fill-box; transform-origin: 50% 100%; transition: transform .15s';
+    if (lid) lid.style.transform = 'rotate(0deg)';
+    board.querySelector(`[data-button="${i}"]`)?.setAttribute('data-lit', '');   // the lantern gate's lanterns light (style.css, D-243)
+    play('clink');
+    return;
+  }
   if (e.kind === 'tip') { play('creak'); S.run.tips[`${e.c},${e.r}`] = e.t * TICK; return; }
   const el = board.querySelector(`[data-placed="${e.c},${e.r}"]`);
   if (!el) return;
@@ -796,9 +1050,11 @@ function setPose(w, pose) {
   if (w.pose === pose) return;
   w.pose = pose;
   if (S.run && S.run.poses && w.i !== undefined) (S.run.poses[w.i] = S.run.poses[w.i] || []).push(pose);
-  w.el.firstElementChild.innerHTML = hamster(pose);
+  const pud = S.level && w.i !== undefined && w.i === S.level.pudding;
+  w.el.firstElementChild.innerHTML = pose.startsWith('zipk') ? (pud ? pudding('zip') : kickFeet(Number(pose[4]))) : (pud ? pudding : hamster)(pose);   // Pudding (D-189 A); the ride's kicks (D-235)
 }
-function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
+function setAt(w, x, y, rot = 0, sc = SC, op = 1, dir = 1) {
+  if (S.level && w.i !== undefined && w.i === S.level.pudding) sc *= 1.2;   // Pudding, a fifth bigger
   // two hamsters on one square are drawn a little apart, so a child sees both
   const R = S.run;
   if (R && R.drawn) {
@@ -806,7 +1062,8 @@ function setAt(w, x, y, rot = 0, sc = SC, op = 1) {
     R.drawn.push([x, y]);
   }
   w.x = x;
-  w.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${sc.toFixed(3)})`);
+  // facing left (D-190): the same drawing mirrored
+  w.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${dir < 0 ? `${(-sc).toFixed(3)} ${sc.toFixed(3)}` : sc.toFixed(3)})`);
   w.el.setAttribute('opacity', op.toFixed(2));
   w.el.removeAttribute('visibility');
 }
@@ -824,6 +1081,7 @@ function moveWalker(R, w) {
       w.seg = k;
       if (s.sound) play(s.sound);
       if (s.mallow) squishMallow(s.mallow);
+      if (s.flick) throwSpoon(s.flick, s.flickDir);   // the spoon throws (D-206)
     }
     const f = Math.max(0, Math.min(1, (local - s.t0) / s.dur));
     let x;
@@ -837,7 +1095,16 @@ function moveWalker(R, w) {
       const [a, b, u] = d <= l1 ? [s.p0, s.mid, l1 ? d / l1 : 1] : [s.mid, s.p1, l2 ? (d - l1) / l2 : 1];
       x = a.x + (b.x - a.x) * u;
       y = a.y + (b.y - a.y) * u - 2.5 * Math.abs(Math.sin(local * 14));
-      rot = Math.max(-24, Math.min(24, (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI * 0.5));
+      rot = s.dir * Math.max(-24, Math.min(24, (Math.atan2(b.y - a.y, Math.abs(b.x - a.x)) * 180) / Math.PI * 0.5));
+    } else if (s.kind === 'fling') {
+      const v = 1 - f;
+      x = v * v * s.p0.x + 2 * v * f * s.ctrl.x + f * f * s.p1.x;
+      y = v * v * s.p0.y + 2 * v * f * s.ctrl.y + f * f * s.p1.y;
+      pose = 'boing';
+    } else if (s.kind === 'hit') {
+      x = s.p0.x + 3 * Math.sin(f * Math.PI * 4);
+      y = s.p0.y;
+      pose = 'bonk';
     } else if (s.kind === 'bounce') {
       const v = 1 - f;
       x = v * v * s.p0.x + 2 * v * f * s.ctrl.x + f * f * s.p1.x;
@@ -855,6 +1122,8 @@ function moveWalker(R, w) {
       x = s.p0.x + 4 * Math.sin(f * Math.PI * 3);
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       pose = 'float';
+    } else if (s.kind === 'zip') {   // the ride R2 (D-235): hanging 52 below its reel, swinging and kicking; then a hop down
+      ({ x, y, rot, pose } = zipRide(R, w, s, f, local));
     } else if (s.kind === 'ride' && s.lift) {
       ({ x, y } = cupXY(s.lift, s.cup || 0, local / TICK));   // inside its cup, wherever the cup is
       x += s.dx;
@@ -864,16 +1133,55 @@ function moveWalker(R, w) {
       y = s.p0.y + (s.p1.y - s.p0.y) * f;
       if (s.kind === 'tilt') pose = 'fall';
     }
-    if (s.carry && pose !== 'float' && pose !== 'boing') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
+    if (s.carry && pose !== 'float' && pose !== 'boing' && !pose.startsWith('zip') && pose !== 'bonk') pose = pose === 'walk2' ? 'carry2' : 'carry1';   // holding the dandelion (D-178)
     setPose(w, pose);
-    setAt(w, x, y, rot);
+    setAt(w, x, y, rot, SC, 1, s.dir);
     return;
   }
   if (w.seg >= 0 && !w.endedSeg) { onSegEnd(R, w, H.segs[w.seg]); w.endedSeg = true; }
   endWalker(R, w, local - H.total);
 }
 
+// The zip ride R2 (D-235): on the line for its first ZIP_ON of the piece, the reel along the line as it sags under it
+// (ZIP_SAG at the middle), the hamster swinging about the reel and kicking, a sparkle left at each column passed; then it
+// lets go with a puff of dust and hops down onto the bank. Returns where and how to draw the hamster.
+const ZIP_ON = 0.8;
+function zipRide(R, w, s, f, local) {
+  const line = board.querySelector(`[data-zipline="${s.hook}"]`);
+  if (f < ZIP_ON) {
+    const u = f / ZIP_ON;
+    const rx = s.l0.x + (s.l1.x - s.l0.x) * u;
+    const ry = s.l0.y + (s.l1.y - s.l0.y) * u + ZIP_SAG * 4 * u * (1 - u);
+    if (line) line.innerHTML = path(`M ${s.l0.x} ${s.l0.y} L ${rx.toFixed(1)} ${ry.toFixed(1)} L ${s.l1.x} ${s.l1.y}`, 'none', 6.5, INK)
+      + path(`M ${s.l0.x} ${s.l0.y} L ${rx.toFixed(1)} ${ry.toFixed(1)} L ${s.l1.x} ${s.l1.y}`, 'none', 3, '#F3D9A4');
+    const cols = Math.max(1, Math.round(Math.abs(s.l1.x - s.l0.x) / CELL));
+    w.sparks = w.sparks || {};
+    for (let i = 1; i < cols; i++) {   // a sparkle at each column the reel passes
+      const k = `${w.seg}:${i}`;
+      if (u >= i / cols && !w.sparks[k]) {
+        w.sparks[k] = true;
+        const sx = s.l0.x + ((s.l1.x - s.l0.x) * i) / cols;
+        const sy = s.l0.y + ((s.l1.y - s.l0.y) * i) / cols + ZIP_SAG * 4 * (i / cols) * (1 - i / cols) + 30;
+        fx(place(g(star(0, 0, 7, ['#E8505B', SUN, '#62C46F', '#4FA3E0', '#FF9BB3', '#C9B8FF'][i % 6], 1.6), '', ' class="zr-spark" data-spark="1"'), sx, sy), 700);
+      }
+    }
+    const hang = 52 * (w.i === S.level.pudding ? 1.2 : 1);
+    const sw = 13 * Math.sin((local / 0.45) * Math.PI);   // degrees: a swing each way every 0.9 s
+    const a = (sw * Math.PI) / 180;
+    return { x: rx - hang * Math.sin(a), y: ry + hang * Math.cos(a), rot: sw, pose: Math.floor(local / 0.18) % 2 ? 'zipk1' : 'zipk2' };
+  }
+  if (line && !w.letGo) {   // lets go: the line springs straight, a puff of dust
+    w.letGo = true;
+    line.innerHTML = zipLine(s.l0.x, s.l0.y, s.l1.x, s.l1.y);
+    puff(s.p1.x, s.p1.y - 6, 1.2);
+  }
+  const v = (f - ZIP_ON) / (1 - ZIP_ON);
+  const y0 = s.l1.y + 52;
+  return { x: s.l1.x + (s.p1.x - s.l1.x) * v, y: y0 + (s.p1.y - y0) * v - 18 * Math.sin(Math.PI * v), rot: 0, pose: 'walk1' };
+}
+
 function onSegEnd(R, w, s) {
+  w.letGo = false;
   if (s.seed && !S.seedTaken) takeSeed();
   if ((s.kind === 'fall' || s.kind === 'float') && s.rows < 3 && !(s === R.hs[w.i].segs[R.hs[w.i].segs.length - 1] && R.hs[w.i].outcome === 'splash')) play('patter');
 }
@@ -881,9 +1189,10 @@ function onSegEnd(R, w, s) {
 function endWalker(R, w, e) {
   const p = R.hs[w.i].last;
   const out = R.hs[w.i].outcome;
+  const dir = R.hs[w.i].dir;
   const once = (name, fn) => { if (!w.endFx[name]) { w.endFx[name] = true; fn(); } };
   if (out === 'home') {
-    once('home', () => { play('home'); R.home += 1; renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
+    once('home', () => { play('home'); R.home += 1; R.got.add(w.i); renderHud(); fxRise(heart(0, 0, 12, '#FF8FB1'), p.x + 10, p.y - 50); });
     const f = Math.min(1, e / 0.6);
     setPose(w, 'home');
     setAt(w, p.x + 18 * f, p.y - 20 * Math.sin(Math.PI * f), 0, SC * (1 - 0.85 * f), 1 - f);
@@ -892,19 +1201,20 @@ function endWalker(R, w, e) {
     once('splash', () => { play('splash'); splash(p.x, BH - 22); });
     w.el.setAttribute('visibility', 'hidden');
     if (e >= 1) finishWalker(w);
-  } else if (out === 'bonk' || out === 'bonk-head') {
+  } else if (out === 'bonk' || out === 'bonk-head' || out === 'dizzy') {   // dizzy at a signpost: the bonk's stars (D-190)
     once('flump', () => { play('flump'); });
     if (e > 0.25) once('dizzy', () => play('dizzy'));
     setPose(w, 'bonk');
     const fade = e < 1.6 ? 1 : Math.max(0, 1 - (e - 1.6) / 0.6);
     if (e >= 1.6) once('poof', () => { play('poof'); puff(p.x, p.y - 8, 3); });
-    setAt(w, p.x, p.y, 0, SC, fade);
+    setAt(w, p.x, p.y, 0, SC, fade, dir);
     if (e >= 2.2) finishWalker(w);
   } else {
     // stuck: a bump, a puzzled look, a nap, then gone (≈3 s, brief 0.3)
-    if (e < 0.3) { setPose(w, 'walk1'); setAt(w, p.x + 6 * Math.sin((e / 0.3) * Math.PI), p.y); }
-    else if (e < 1.0) { once('huh', () => { play('huh'); fxRise(text(0, 0, '?', 26, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"'), p.x + 4, p.y - 58); }); setPose(w, 'walk1'); setAt(w, p.x, p.y); }
-    else { once('snore', () => play('snore')); setPose(w, 'stuck'); setAt(w, p.x, p.y, 0, SC, e < 2.6 ? 1 : Math.max(0, 1 - (e - 2.6) / 0.6)); }
+    // (a nap back in the start tube, D-190, is drawn the same)
+    if (e < 0.3) { setPose(w, 'walk1'); setAt(w, p.x + 6 * dir * Math.sin((e / 0.3) * Math.PI), p.y, 0, SC, 1, dir); }
+    else if (e < 1.0) { once('huh', () => { play('huh'); fxRise(text(0, 0, '?', 26, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"'), p.x + 4, p.y - 58); }); setPose(w, 'walk1'); setAt(w, p.x, p.y, 0, SC, 1, dir); }
+    else { once('snore', () => play('snore')); setPose(w, 'stuck'); setAt(w, p.x, p.y, 0, SC, e < 2.6 ? 1 : Math.max(0, 1 - (e - 2.6) / 0.6), dir); }
     if (e >= 3.2) finishWalker(w);
   }
 }
@@ -919,8 +1229,7 @@ function finishRun() {
   if (!R) return;
   const id = S.level.id;
   if (R.res.outcome === 'home' && R.home === WALKERS) {
-    S.progress = finished(IDS, S.progress, id, S.seedTaken);
-    keep();
+    if (!S.test) { S.progress = finished(IDS, S.progress, id, S.seedTaken); keep(); }
     S.mode = 'party';
     party();
   } else {
@@ -939,21 +1248,27 @@ function finishRun() {
   }
 }
 
+// the levels whose party has confetti poppers, and their look: level 30's two big poppers (C1, D-241, D-243)
+const POPPERS = { L15b: 'C1' };
+
 function party() {
   play('party');
+  board.dataset.mode = 'party';
   let s = '';
+  const fair = S.def.back === 'fairA';   // the fair's party, P1: the merry-go-round (D-235)
   let seed = 7;
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < (fair ? 0 : 30); i++) {
     const x = 20 + rnd() * (BW - 40);
     const kind = i % 3;
     const art = kind === 0 ? seedArt() : kind === 1 ? heart(0, 0, 9, ['#FF8FB1', CORAL, '#C9B8FF'][i % 3]) : star(0, 0, 7, [SUN, '#5FE3BD', '#8CF5FF'][i % 3]);
     s += place(g(art, '', ` class="confetti" style="--dx:${Math.round(rnd() * 80 - 40)}px;--rot:${Math.round(rnd() * 720 - 360)}deg;--t:${(2.2 + rnd() * 1.6).toFixed(2)}s;--d:${(rnd() * 1.2).toFixed(2)}s"`), x, -20, 0.9);
   }
-  for (let i = 0; i < WALKERS; i++) {
-    s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + i * 60, 150, 0.6, 0, ' data-walker="party"');
+  for (let i = 0; i < (fair ? 0 : WALKERS); i++) {
+    s += place(g(hamster('home'), '', ` class="dance" style="animation-delay:${(i * 0.1).toFixed(1)}s"`), 240 + (BW - 720) / 2 + i * 60, 150, 0.6, 0, ' data-walker="party"');
   }
-  s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+  if (fair) s += g(partyCarousel() + (POPPERS[S.def.id] ? popperLook(POPPERS[S.def.id]) : ''), `translate(${(BW - 720) / 2} ${(BH - 420) / 2})`);
+  else s += path('M 180 40 Q 360 76 540 40', 'none', 2.4) + [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
     const x = 196 + i * 46;
     const y = 40 + 36 * (1 - ((x - 360) / 180) ** 2) * 0.55;
     return path(`M ${x - 9} ${y - 2} L ${x} ${y + 16} L ${x + 9} ${y - 2} Z`, [CORAL, SUN, '#5FE3BD', '#C9B8FF'][i % 4], 1.8);
@@ -962,7 +1277,7 @@ function party() {
   layer('pfx').innerHTML = s;
   layer('walkers').innerHTML = '';
   renderTray();
-  const nextOk = S.li + 1 < LEVELS.length;
+  const nextOk = !S.test && S.li + 1 < LEVELS.length && inPark(S.li + 1) === inPark(S.li);   // into the park only by the ride (D-202)
   $('party').querySelector('[data-act="next"]').hidden = !nextOk;
   $('party').hidden = false;
 }
@@ -972,7 +1287,7 @@ function partyAct(act) {
   $('party').hidden = true;
   layer('fx').innerHTML = '';
   layer('pfx').innerHTML = '';
-  if (act === 'house') { S.at = Math.min(S.li + 1, LEVELS.length - 1); S.mode = 'build'; S.run = null; show('house'); return; }
+  if (act === 'house') { if (!S.test) S.at = Math.min(S.li + 1, LEVELS.length - 1); S.scene = inPark(S.li) ? 'park' : 'house'; S.mode = 'build'; S.run = null; show('house'); return; }
   if (act === 'next') { openLevel(S.li + 1); return; }
   S.mode = 'build';
   S.run = null;
@@ -1019,6 +1334,17 @@ function takeSeed() {
   const hs = $('hud-seed');
   if (hs) bump(hs.parentNode, 'tiny-hop');
 }
+// The spoon's throw (D-206): restarted for each hamster, left on for its 1 s.
+function throwSpoon(k, dir) {
+  const el = board.querySelector(`[data-placed="${k}"] .spoon-art`);
+  if (!el) return;
+  clearTimeout(el.throwTimer);
+  el.classList.remove('throw', 'throw-left');
+  el.getBoundingClientRect();
+  el.classList.add('throw');
+  if (dir < 0) el.classList.add('throw-left');
+  el.throwTimer = setTimeout(() => el.classList.remove('throw', 'throw-left'), 1000);
+}
 function squishMallow(k) {
   const el = board.querySelector(`[data-placed="${k}"] .mallow`);
   if (el) bump(el, 'squish', 500);
@@ -1046,6 +1372,9 @@ function poke(el) {
 
 // ---------------------------------------------------------------- the house (D-140)
 function onHouseTap(e) {
+  if (S.riding) return;
+  const rd = e.target.closest('[data-ride]');
+  if (rd) { startRide(); return; }
   const m = e.target.closest('[data-level]');
   if (m) {
     const i = Number(m.dataset.level);
@@ -1061,8 +1390,8 @@ function onHouseTap(e) {
 
 function goTo(i) {
   const tok = $('token');
-  const from = SPOTS[LEVELS[S.at].spot];
-  const to = SPOTS[LEVELS[i].spot];
+  const from = tokenXY(S.scene);
+  const to = S.scene === 'park' ? PARK_SPOTS[LEVELS[i].spot] : SPOTS[LEVELS[i].spot];
   play('hop');
   if (tok && (from[0] !== to[0] || from[1] !== to[1])) {
     tok.style.transition = `transform ${0.55 / S.speed}s ease-in-out`;
@@ -1071,13 +1400,42 @@ function goTo(i) {
   setTimeout(() => openLevel(i), (tok ? 650 : 0) / S.speed);
 }
 
+// The ride to the park (D-202): the park opens with the hamster at the top of its zip-line, hanging from its reel; it
+// slides down to the post by the pond in RIDE_S seconds, then stands at the next park level's stop (the first, if
+// the hamster's level is still in the garden).
+const RIDE_S = 1.8;
+function startRide() {
+  play('wheee');
+  if (!inPark(S.at)) S.at = P0;
+  S.scene = 'park';
+  S.riding = true;
+  renderHouse();
+  const rideG = $('ride');
+  rideG.innerHTML = `<g style="transition: transform ${RIDE_S / S.speed}s ease-in">${rideArt()}</g>`;
+  rideG.setAttribute('transform', `translate(${ZIP_TOP[0]} ${ZIP_TOP[1]})`);
+  const mover = rideG.firstElementChild;
+  requestAnimationFrame(() => requestAnimationFrame(() => { mover.style.transform = `translate(${ZIP_FOOT[0] - ZIP_TOP[0]}px, ${ZIP_FOOT[1] - ZIP_TOP[1]}px)`; }));
+  setTimeout(() => {
+    S.riding = false;
+    play('hop');
+    renderHouse();
+  }, (RIDE_S * 1000 + 150) / S.speed);
+}
+function backToGarden() {
+  if (S.riding) return;
+  play('tap');
+  S.scene = 'house';
+  renderHouse();
+}
+
 // ---------------------------------------------------------------- start
 const cardCss = document.createElement('style');
 cardCss.textContent = CARD_CSS;   // the help cards' looping pictures (cards.js), all classes hc-
 document.head.appendChild(cardCss);
 $('title-art').innerHTML = titleArt();
 $('title-art').addEventListener('pointerdown', (e) => { const pk = e.target.closest('[data-poke]'); if (pk) poke(pk); });
-$('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); show('house'); });
+$('play').addEventListener('click', () => { if (!S.ready) { S.playAsked = true; return; } play('go'); S.scene = sceneFor(S.at); show('house'); });
+$('back').addEventListener('click', backToGarden);
 $('house-svg').addEventListener('pointerdown', onHouseTap);
 $('sound').addEventListener('click', () => { setMuted(!isMuted()); $('sound').innerHTML = soundIcon(); play('tap'); });
 $('turn').addEventListener('click', () => { S.turnDismissed = true; $('turn').hidden = true; });
@@ -1097,18 +1455,30 @@ linkUp((start, fg) => {
   S.progress = unpack(IDS, S.linked ? start.state : readDevice(), CARDS);
   S.at = nextAt(IDS, S.progress);
   S.ready = true;
-  if (S.playAsked) { play('go'); show('house'); }
+  if (S.playAsked) { play('go'); S.scene = sceneFor(S.at); show('house'); }
 });
 
 // The test hook: reads the game and finds where to tap; the browser test taps like a child would.
 window.__test = {
   state: () => ({
-    screen: S.screen, mode: S.mode, level: S.level && S.level.id, placed: { ...S.placed }, selected: S.selected,
+    screen: S.screen, scene: S.scene, mode: S.mode, level: S.level && S.level.id, placed: { ...S.placed }, selected: S.selected,
     left: S.level ? left(S.level, S.placed) : null, progress: JSON.parse(JSON.stringify(S.progress)), layout: S.layout,
     at: S.at, home: S.run ? S.run.home : 0, seedTaken: S.seedTaken, heard: heard.slice(-40),
     outcome: S.run ? S.run.res.outcome : null, ready: S.ready, linked: !!S.linked, muted: isMuted(), format: FORMAT,
     card: S.card, caption: S.card ? CAPTION[S.card] : null, help: S.help, poses: S.run && S.run.poses ? S.run.poses : null,
+    zipFrom: S.zipFrom, test: S.test,
   }),
+  // a board that isn't one of the levels (the spike's test board, from the preview's test panel): nothing is saved
+  openBoard: (def) => { S.selected = null; openDef(def, true); },
+  // where a point on the screen falls: a square of the board (as the game reads a tap), the tray, or neither
+  where: (x, y) => {
+    const p = toBoard({ clientX: x, clientY: y });
+    if (S.screen !== 'level') return { cell: null, area: 'none' };
+    const cell = cellAt(p);
+    if (cell) return { cell, area: 'board' };
+    const tray = S.layout === 'side' ? p.x >= BW && p.y >= 0 && p.y < BH : p.y >= BH && p.x >= 0 && p.x < BW;
+    return { cell: null, area: tray ? 'tray' : 'none' };
+  },
   cellPoint: (c, r) => {
     const m = board.getScreenCTM();
     const p = new DOMPoint((c + 0.5) * CELL - S.vx, (r + 0.5) * CELL).matrixTransform(m);

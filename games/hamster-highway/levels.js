@@ -1,4 +1,104 @@
-// Hamster Highway's levels. Version 1.6. Data only: core.js reads the boards, game.js the rest.
+// Hamster Highway's levels. Version 1.14. Data only: core.js reads the boards, game.js the rest.
+//
+// Changes at v1.14 (step 18b (ii), D-238 to D-244): level 30, L15b Confetti party, the finale at the fair (look A):
+// copied whole by script (tools/tests/games/copy_hamster_step18b_level.py 0.1) from its master, DESIGN in
+// mock_hamster_level30.py 0.2, as Rob agreed it on its sketch page v0.2 (D-243). 24 x 9, Pudding third, `roads`: 3, a
+// loop: over the ditch, up onto the coconut shy (the spoon or three straws), the teacup ride (a lift) up to the top walk,
+// over its gap (two bridges or the spoon, through the seed), down to the lower walk, a straw over its gap, a ramp onto the
+// button's stand (the button lowers the lantern drawbridge, its lid, over the lake), a signpost past it, and back by the
+// zip-line from under the top walk to the jetty, over the drawbridge home. No spare: road B takes the seed. Every road and
+// wrong road is in the core test's ROADS and WRONG (test_hamster_highway_core.py 1.21).
+//
+// Changes at v1.13 (step 18a (ii), D-232, D-236): level 29, L15 Zip over the lake, at the fair (look A), bringing in the
+// zip-line: copied whole by script (tools/tests/games/copy_hamster_step18a_level.py 0.1) from its master, DESIGN in
+// mock_hamster_level29.py 0.1, as Rob agreed it on its sketch page. 24 x 9, `roads`: 4, every one by the zip-line hooked
+// under the helter-skelter's balcony over the boating lake to the swan island; then out of the channel by four straws
+// or a bounce onto a bridge (past the seed), and onto the big wheel's stage by two straws and a ramp, a bridge and two
+// ramps, or the spoon onto a ramp. No spare: roads B and C take the seed. Every road and wrong road is in the core test's
+// ROADS and WRONG (test_hamster_highway_core.py 1.20).
+//
+// Changes at v1.12 (step 17c (ii), D-225 to D-230): levels 22 and 24 to 28 one notch up, as Rob agreed them on step
+// 17c's two sketch pages: each level's def copied whole by script (tools/tests/games/copy_hamster_step17c_levels.py 0.1)
+// from its master, DESIGNS in mock_hamster_step17c_levels.py 0.2.1 (L11b, L12b, L13, L14) or mock_hamster_step17c_more.py
+// 0.1 (L13b, L14b); ids, names, places, backdrops, new things, twins, Pudding's places and the trap kept, so saved
+// progress stays valid. 22, 25, 26, 27 and 28 are 24 wide, 24 20 wide; every road and wrong road is in the core test's
+// ROADS and WRONG (test_hamster_highway_core.py 1.19):
+//   L11b Two ways round, `roads`: 3: over the ditch and the spoon over the pond; up the willow for the seed and float
+//       down to the island; or bridges all the way; all three over the channel and up the jetty.
+//   L12b Zig, zag, home, `roads`: 3: the zig-zag with the seed; round the steps and back along the top bar; or up the
+//       middle and through the hole in tubes, turned back by a signpost.
+//   L13 Lunchbox drawbridge: the button on the cake stand drops the lid over the pond on every road; across to the
+//       sandwich box by a bridge or the spoon, up the steps to home by three ramps or a ramp and the spoon; the spare
+//       ramp on the far bank takes the seed.
+//   L13b Lunch is served, `roads`: 3: home on the hamper under the cake stand, reached from the far end: the jam pond by
+//       the spoon or a bridge, the gap to the teapot (its button) by the spoon or three straws (tubes).
+//   L14 Pudding comes to play: Pudding third; after the monkey bars down and along, or up onto the walkway; the spare
+//       bouncer takes the Nibbles over the top for the seed while Pudding plods over the bridge.
+//   L14b Big and small, `roads`: 2: Pudding second; up the frame, or round the sandpit and up the far tower; the trap (two
+//       worn sticks) and two bouncer short cuts leave only Pudding out.
+//
+// Changes at v1.11 (step 17b (ii), D-210, D-212, D-214, D-215): levels 25 to 28 redesigned to D-212's floor, as Rob
+// agreed them on step 17b (i)'s sketch page: their trays, parts and rows copied by script
+// (tools/tests/games/copy_hamster_step17b_levels.py 0.1) from their masters, mock_hamster_step17b_levels.py 0.1's
+// DESIGNS (861d12d); ids, names, places, backdrops and Pudding's places kept, so saved progress stays valid.
+//   L13 Lunchbox drawbridge: one road, 4 gadgets on 3 heights: a ramp onto the hamper, a bouncer up onto the cake stand,
+//       the button there (9,3) drops the lunchbox lid over the pond (12 to 14, 8), the dandelion down onto it, a bridge
+//       over the last gap; the spare ramp before that gap takes the seed.
+//   L13b Lunch is served, its twin, `roads`: 2, home on the hamper in the middle: road A over the table (a ramp, a
+//       bouncer, two bridges under the parasol); road B round the back (a ramp, the spoon over the jam pond with the seed,
+//       three tubes up the straw, the button at the far end (22,5), a signpost back over its lid).
+//   L14 Pudding comes to play: Pudding third; one road, 4 gadgets on 4 heights (a bridge, the spoon over the sandpit
+//       pond, a ramp, the dandelion down); the spare bouncer takes the Nibbles up the monkey bars for the seed while
+//       Pudding squashes it and plods on below.
+//   L14b Big and small, its twin: Pudding second, `roads`: 2, 8 gadgets each, to a podium at the top of the slide: up
+//       the frame, or round the sandpit and doubling back. `trap: 'stick'` (D-214): the two worn sticks in the tray,
+//       stacked in the last gap, carry five Nibbles but snap under Pudding; the solver's "worn sticks needed" rule skips
+//       them (solve_hamster_highway.py 1.8).
+//
+// Changes at v1.10 (step 17, D-145, D-192, D-194): levels 27 and 28, the park's playground, 9 rows tall (backdrop
+// 'playground', look A proposed while Rob couldn't test), each with Pudding in the line (`pudding`: its place).
+// Claude's designs (21 Nov), traced and confirmed with core.js 1.10's run():
+//   L14 Pudding comes to play: Pudding third. The bridge over the pond (12,8) gets all five home. The seed is on the
+//       slide: the spare bouncer (3,7) sends the Nibbles up and over the pond, but Pudding squashes it and walks on,
+//       so Pudding still needs the bridge; the bouncer alone leaves Pudding in the pond.
+//   L14b Big and small, its twin: Pudding second, two ponds, `roads`: 2: two bridges for everyone, or the bouncer for
+//       the Nibbles (the slide over both ponds, with the seed) and the bridges for Pudding; the bouncer with one bridge
+//       leaves Pudding in the second pond. (A worn stick as a trap, snapping under Pudding, waits on Rob: Q-079.)
+//
+// Changes at v1.9 (step 16, D-184, D-194): levels 25 and 26, the park's picnic, 9 rows tall (backdrop 'picnic', look A
+// proposed while Rob was out). Claude's designs (21 Nov), traced and confirmed with core.js 1.9's run():
+//   L13 Lunchbox drawbridge: the button's first level (a part, `parts`), one road: a bouncer (3,7) up onto the
+//       sandwiches, where the bottle-top button (7,5) drops the lunchbox lid over the pond (13,8 and 14,8); off the
+//       sandwiches' end and over. The low road reaches the pond before anyone pressed it: a splash. The seed by the
+//       spare ramp on the far bank (16,7 or 17,7).
+//   L13b Lunch is served, its twin, `roads`: 2, a button for each: high, a bouncer (2,7) onto the cake stand, whose
+//       button (10,4) drops a drawbridge (13 to 15, 5) to the far shelf, with the seed on the stand; low, a ramp (5,7)
+//       onto the hamper, whose button (7,6) drops the lid over the pond (15 to 18, 8).
+//
+// Changes at v1.8 (step 15, D-184, D-190, D-208): levels 23 and 24, the park's climbing frame, 9 rows tall (backdrop
+// 'frame', D-208). Claude's designs (21 Nov), traced square by square and confirmed with core.js 1.8's walk():
+//   L12 Up the frame: the signpost's first level, one road: a bouncer on the ground (3,7) throws them up onto the bar,
+//       where the second bouncer waits where they land (4,4); along the bar to a signpost (at its end, 12,4, or sooner),
+//       which turns them; back into the second bouncer, which throws them up-left onto the top bar and home in the top
+//       left corner. No signpost: off the bar's end, a funny fall; a signpost on the ground: turned too soon, a nap
+//       in the start tube; nothing: into the pond. The seed in the top corner, by the spare left ramp on the top bar
+//       (2,1), which climbs walking left (D-190).
+//   L12b Zig, zag, home, its twin: "pick your road", `roads`: 2: the zig-zag up the tower, starting from a shelf so
+//       the walk back passes under the start (a signpost on the ground, the first bouncer throws them up-left onto the
+//       tower's left bar, where the second waits; a signpost at its left end; the second bouncer throws them up-right
+//       onto the top bar, with the seed, and down to the frame's long bar and home); or one bouncer on the ground
+//       (9,7) straight up onto the long bar and home, without the seed. Nothing: into the pond.
+//
+// Changes at v1.7 (step 14, D-184, D-185, D-187, D-194): levels 21 and 22, the park's duck pond, 9 rows tall (`room`
+// 'park': game.js shows them in the park, park.js's stops; backdrop 'pond', D-203). Checked by solve_hamster_highway.py
+// 1.6 (every placement):
+//   L11 Over the pond: the spoon catapult's first level, one road: the spoon at the near bank's edge (4,4) flings them
+//       over the 3-wide pond to the far bank, a row lower, and on home; a square further back, they land short and
+//       splash among the ducks; the seed over the far bank, by the spare ramp (10,5 or 11,5).
+//   L11b Two ways round, its twin: "pick your road" (D-184), so no `more`, but `roads`: 2, the roads home the solver
+//       must find at least (kinds of gadget used): low, a bridge to the island and the spoon from its end; high, the
+//       bouncer up onto the willow branch, along it and the floater down to the far bank; the seed on the branch. The
+//       spoon from the near bank bonks on the branch and drops into the pond.
 //
 // Changes at v1.6 (step 10, D-166, D-170): the twins of levels 6 to 10, so 20 levels in pairs. As v1.5's, each needs
 // one more of a gadget its first level has (`more`), with its own seed and spare; checked by solve_hamster_highway.py
@@ -337,6 +437,159 @@ export const LEVELS = [
       '.....###..##............',
       'S....###..##...##.......',
       '##.#########.#.#########',
+    ],
+  },
+  {
+    id: 'L11', name: 'Over the pond', room: 'park', spot: 'pond', back: 'pond', new: 'catapult',
+    tray: { catapult: 1, ramp: 1 }, spare: 'ramp',
+    rows: [
+      '................',
+      '................',
+      '................',
+      '................',
+      'S..........*....',
+      '#####..........G',
+      '#####...########',
+      '#####...########',
+      '#####...########',
+    ],
+  },
+  {
+    id: 'L11b', name: 'Two ways round', room: 'park', spot: 'pond2', back: 'pond', new: null, twin: 'L11', roads: 3,
+    tray: { bridge: 4, catapult: 1, bouncer: 1, floater: 1, ramp: 1 },
+    rows: [
+      '.......*................',
+      '...########.............',
+      '........................',
+      'S.......................',
+      '####...................G',
+      '####.............#######',
+      '####.####..###.#########',
+      '####.####..###.#########',
+      '####.####..###.#########',
+    ],
+  },
+  {
+    id: 'L12', name: 'Up the frame', room: 'park', spot: 'frame', back: 'frame', new: 'signpost',
+    tray: { bouncer: 2, signpost: 1, rampL: 1 }, spare: 'rampL',
+    rows: [
+      '..*.............',
+      'G...............',
+      '####............',
+      '................',
+      '................',
+      '....#########...',
+      '................',
+      'S...............',
+      '##############..',
+    ],
+  },
+  {
+    id: 'L12b', name: 'Zig, zag, home', room: 'park', spot: 'frame2', back: 'frame', new: null, twin: 'L12', roads: 3,
+    tray: { signpost: 2, bouncer: 2, ramp: 2, bridge: 2, tube: 3 },
+    rows: [
+      '....................',
+      '....................',
+      '......*....G........',
+      '...#.#######.####.##',
+      '....................',
+      '###...S...##........',
+      '......#..........#..',
+      '...............###..',
+      '####################',
+    ],
+  },
+  {
+    id: 'L13', name: 'Lunchbox drawbridge', room: 'park', spot: 'picnic', back: 'picnic', new: 'button',
+    tray: { ramp: 5, bouncer: 1, bridge: 1, catapult: 1, floater: 1 }, spare: 'ramp',
+    parts: [{ kind: 'button', c: 6, r: 3, lid: [[13, 8], [14, 8], [15, 8]] }],
+    rows: [
+      '........................',
+      '.............###........',
+      '........................',
+      '........................',
+      '.....###.####..........G',
+      '............#.........##',
+      '............#....*...###',
+      'S.#########.#.......####',
+      '#############...########',
+    ],
+  },
+  {
+    id: 'L13b', name: 'Lunch is served', room: 'park', spot: 'picnic2', back: 'picnic', new: null, twin: 'L13', roads: 3,
+    tray: { ramp: 2, bouncer: 1, bridge: 2, catapult: 1, tube: 3, floater: 1, signpost: 1 },
+    parts: [{ kind: 'button', c: 19, r: 2, lid: [[15, 7], [16, 7], [17, 7]] }],
+    rows: [
+      '........................',
+      '........................',
+      '........................',
+      '..................####..',
+      '........########........',
+      '...*....#...............',
+      '........#G..............',
+      'S......########...######',
+      '##.############...######',
+    ],
+  },
+  {
+    id: 'L14', name: 'Pudding comes to play', room: 'park', spot: 'playground', back: 'playground', new: 'pudding', pudding: 2,
+    tray: { bridge: 4, ramp: 2, floater: 1, catapult: 1, bouncer: 1 }, spare: 'bouncer',
+    rows: [
+      '........................',
+      '........................',
+      'S.......*...##..........',
+      '#####..##............###',
+      '.............###.###....',
+      '.....##.####...........G',
+      '.......................#',
+      '....................####',
+      '######...#####..##..####',
+    ],
+  },
+  {
+    id: 'L14b', name: 'Big and small', room: 'park', spot: 'playground2', back: 'playground', new: null, twin: 'L14', roads: 2, pudding: 1, trap: 'stick',
+    tray: { ramp: 3, tube: 4, bridge: 2, catapult: 1, signpost: 1, stick: 2, bouncer: 1 },
+    rows: [
+      '........................',
+      '........................',
+      '........................',
+      '............##.G......##',
+      '..........##...######.##',
+      '........##............##',
+      '..............*.....####',
+      'S..###...........#######',
+      '############...#########',
+    ],
+  },
+  {
+    id: 'L15', name: 'Zip over the lake', room: 'park', spot: 'fair', back: 'fairA', new: 'zip', roads: 4,
+    tray: { zip: 1, bouncer: 2, ramp: 4, tube: 6, bridge: 2, catapult: 1 },
+    rows: [
+      '.....................G..',
+      '......####...........###',
+      '....................####',
+      '........#......*.##.####',
+      '......###........##.####',
+      '...######........##.####',
+      '...######.....##.##.####',
+      'S..######.....##.##.####',
+      '#########.....##.##.####',
+    ],
+  },
+  {
+    id: 'L15b', name: 'Confetti party', room: 'park', spot: 'fair2', back: 'fairA', new: null, twin: 'L15', roads: 3, pudding: 2,
+    tray: { zip: 1, catapult: 1, signpost: 1, ramp: 1, bridge: 2, tube: 5, bouncer: 1 },
+    parts: [{ kind: 'lift', c: 12, top: 2, bottom: 6, cups: 2 }, { kind: 'button', c: 22, r: 2, lid: [[2, 5], [3, 5]] }],
+    rows: [
+      '..............#..*......',
+      '........................',
+      '######.......##..##.....',
+      '##....................##',
+      'G................###.###',
+      '##..####................',
+      '..........##............',
+      '......S...###...........',
+      '......#.################',
     ],
   },
 ];

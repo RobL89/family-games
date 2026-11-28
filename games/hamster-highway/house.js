@@ -1,4 +1,9 @@
-// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.7.
+// Hamster Highway's level picker: a cross-section of a house and garden (D-140), and the title card. Version 1.8.
+//
+// Changes at v1.8 (step 14, D-187, D-202): the way to the park. houseScene draws only the house and garden's levels (1
+// to 20) and, given state.ride, the zip-line's stop by the treehouse (RIDE): once the park's first level is open, a
+// numbered stop (its level's number, data-ride) with the zip-line running off over the fence; until then a soft place.
+// The dotted path runs on to it. marker() is exported for the park (park.js). Levels 1 to 20's stops are unchanged.
 //
 // Changes at v1.7 (step 10, D-166, D-169): the twins of levels 6 to 10: each PLAN place now holds two stops, the
 // sketch's, so PLAN lists 12 places in route order (the second of a pair named with a 2), each with the number of the
@@ -66,6 +71,9 @@ export const PLAN = [
   { name: 'treehouse2', at: [2352, 302], level: 20 },
 ];
 export const FUTURE = PLAN.map((p) => p.at);
+// The zip-line's stop by the treehouse, where the ride to the park starts (D-202), and where its line leaves the picture.
+export const RIDE = [2380, 180];
+const RIDE_LINE = [[2392, 330], [2420, 353]];
 
 const KITCH = '#FFE9C7';
 const WOOD = '#E2A867';
@@ -243,7 +251,7 @@ function garden() {
   return s;
 }
 
-function marker(x, y, i, st) {
+export function marker(x, y, i, st) {
   // st: { open, done, seed, current }
   let s = circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none');
   if (st.current) s += circle(x, y, 38, 'none', 5, SUN, ' class="glow" opacity="0.55"');
@@ -269,7 +277,23 @@ export function houseScene(state) {
   s += later.map((p) => p.at).map(([x, y], k) => g(circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none') + circle(x, y, 24, 'rgba(255,248,238,0.5)', 3, BROWN, ' stroke-dasharray="6 6" stroke-opacity="0.4"'),
     '', ` class="poke future" data-poke="future" data-future="${k}"`)).join('');
   s += state.levels.map((l, i) => marker(SPOTS[l.spot][0], SPOTS[l.spot][1], i, { ...l, current: i === state.current })).join('');
+  if (state.ride) s += rideStop(state.ride);
   return s;
+}
+
+// The zip-line's stop (D-202): ride { open, current, n }: n is the park's first level's index. Open, it is a marker like a
+// level's, numbered, with data-ride, and the line leaves the picture over the fence with its pink reel waiting; shut, a
+// soft place like PLAN's.
+function rideStop(ride) {
+  const [x, y] = RIDE;
+  const [[x1, y1], [x2, y2]] = RIDE_LINE;
+  if (!ride.open) {
+    return g(circle(x, y, 56, 'rgba(0,0,0,0)', 0, 'none') + circle(x, y, 24, 'rgba(255,248,238,0.5)', 3, BROWN, ' stroke-dasharray="6 6" stroke-opacity="0.4"'),
+      '', ' class="poke future" data-poke="future" data-future="ride"');
+  }
+  const reel = rect(x1 - 12, y1 - 9, 20, 16, PINK, 3, 2.4);
+  const m = marker(x, y, ride.n, { open: true, done: false, seed: false, current: ride.current });
+  return line(x1, y1, x2, y2, '#8B5A3C', 4) + reel + m.replace(' class="marker"', ' class="marker ride" data-ride="1"');
 }
 
 // The dotted path's points: the route (levels 1 to 5's places, then PLAN in its order, with its bends) through the
@@ -283,6 +307,7 @@ export function housePath(state) {
     route.push({ at: p.at, place: true });
     if (built.has(p.name)) last = route.length - 1;
   }
+  if (state.ride) route.push({ at: RIDE, place: true });   // on to the zip-line's stop (D-202)
   let end = last + 1;
   while (end < route.length && !route[end].place) end++;
   return route.slice(0, end + 1).map((x) => x.at);

@@ -1,4 +1,29 @@
-// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.1 (17 Nov, step 10b).
+// Hamster Highway's help cards (D-167, D-168, D-170). Version 1.6 (27 Nov, step 18a (ii)).
+//
+// Changes at v1.6 (step 18a (ii), D-235): the zip-line's card, the thirteenth, card B of the step 18a mock-ups: the
+// hook's square lights up and the hook drops in under the block, then the low end's, a dashed line stretches out and
+// the peg drops in, the line turns solid; the hamster grabs its reel and zips down over the water, swinging and
+// kicking, hops onto the bank and walks home. Caption "Hook it high, peg it low!"; 7 s. Copied by
+// tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_zipcards.js 0.1 (zipB made zip).
+//
+// Changes at v1.5 (step 17, D-194): Pudding's card, the twelfth (a hamster, so no drop-in): a Nibble walks onto the
+// marshmallow and is thrown up onto a ledge; Pudding, bigger and in vanilla with caramel (D-189 A), comes behind,
+// squashes the marshmallow flat as it walks in, and walks on home. Caption "Pudding is too heavy to bounce!" (Claude's,
+// proposed while Rob couldn't test); 6 s.
+//
+// Changes at v1.4 (step 16, D-194): the bottle-top button's card, the eleventh (a part, so no drop-in, as the see-saw's
+// and the lift's): the lunchbox lid stands up by a gap; the hamster walks onto the bottle top, which clicks down; the
+// lid swings down over the gap, and the hamster walks over it and home. Caption "Press it to drop the lid!" (Claude's,
+// proposed while Rob was out); 5.5 s.
+//
+// Changes at v1.3 (step 15, D-208): the signpost's card, the tenth, storyboard A of the step 15 mock-ups: out of the
+// start tube on a ledge, along it and down to the floor; it stops puzzled at the pond's edge, the signpost drops in; it
+// walks on to it and turns round (a swirl), then walks back left under the ledge (drawn mirrored) and home. Every place
+// the hamster is drawn is a square of core.js's own walk of this board. Caption "Signposts turn them round!"; 6 s.
+//
+// Changes at v1.2 (step 14, D-186, D-194): the spoon catapult's card, the ninth: walks to the pond's edge, stops, the
+// spoon drops in; it steps into the spoon, which flicks, and flies over the water on an arc to the far bank, then
+// home. Caption "The spoon flings them over!" (Claude's, proposed); 5.5 s. The badge is the gadget's, as the others.
 //
 // Changes at v1.1 (step 10b, D-177 (2)): the see-saw's card goes on after the tip: a ramp drops in at the end of the
 // bank, before the raised near end, and a third hamster, waiting puzzled there, climbs it, steps onto the raised end,
@@ -16,9 +41,9 @@
 // Pure (project rules): it only builds text, and imports only art.js.
 
 // (one line: tools/tests/games/build_preview.py reads one-line imports only)
-import { CELL, INK, SUN, hamster, gadget, stickArt, tubePiece, block, water, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text } from './art.js';
+import { CELL, INK, SUN, hamster, pudding, gadget, buttonCap, lidArt, stickArt, tubePiece, block, water, startArt, homeArt, sparkle, liftArt, teacupBack, teacupFront, seesawArt, potArt, heart, place, g, rect, path, text, line, zipLine, zipHook, zipPeg, kickFeet } from './art.js';
 
-export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift'];
+export const CARDS = ['bridge', 'ramp', 'bouncer', 'floater', 'tube', 'stick', 'seesaw', 'lift', 'catapult', 'signpost', 'button', 'pudding', 'zip'];
 
 // Captions: the bridge's and the lift's agreed (D-168); the other six Claude's, alike (proposed to Rob in step 8).
 export const CAPTION = {
@@ -30,10 +55,15 @@ export const CAPTION = {
   stick: 'Worn sticks snap. Add another!',
   seesaw: 'Two on the end tip it',
   lift: 'Hop in and ride up!',
+  catapult: 'The spoon flings them over!',
+  signpost: 'Signposts turn them round!',
+  button: 'Press it to drop the lid!',
+  pudding: 'Pudding is too heavy to bounce!',
+  zip: 'Hook it high, peg it low!',
 };
 
 // Seconds each card's scene takes to loop.
-export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6 };
+export const LOOP_S = { bridge: 5, ramp: 5, bouncer: 5, floater: 5.5, tube: 5.5, stick: 6.5, seesaw: 6.5, lift: 6, catapult: 5.5, signpost: 6, button: 5.5, pudding: 6, zip: 7 };
 
 // The card a level's new gadget or part brings, or null.
 export const cardFor = (def) => (def && CARDS.includes(def.new) ? def.new : null);
@@ -47,6 +77,8 @@ const ham = (x, y, pose = 'walk1') => place(hamster(pose), x, y, SC);
 const cls = (c, body) => `<g class="${c}">${body}</g>`;
 const huh = (x, y) => text(x, y, '?', 30, INK, ' stroke="#fff" stroke-width="5" paint-order="stroke"');
 const legs = () => cls('hc-legs1', ham(0, 0, 'walk1')) + cls('hc-legs2', ham(0, 0, 'walk2'));
+// Pudding (D-189 A), drawn a fifth bigger than a Nibble, as game.js draws it
+const pud = (x, y, pose = 'walk1') => place(g(pudding(pose), 'scale(1.2)'), x, y, SC);
 const fit = (x, y, k) => cls(`hc-${k}-fit`, rect(x + 3, y + 1, 54, 54, SUN, 8, 3, SUN, ' fill-opacity="0.3" stroke-dasharray="6 5"'));
 const sparks = (k, x, y) => cls(`hc-${k}-spark`, place(sparkle(0, 0, 12), x - 30, y - 16) + place(sparkle(0, 0, 12), x + 46, y - 20, 0.7));
 
@@ -88,6 +120,44 @@ SCENE.bouncer = () => board(['........', '........', '........', '....####', '..
   + cls('hc-bouncer-drop', place(cls('hc-bouncer-squish', gadget('bouncer')), 180, 300, GS)) + sparks('bouncer', 202, 340)
   + cls('hc-bouncer-ham', cls('hc-bouncer-move', legs('bouncer')) + cls('hc-bouncer-wait', ham(0, 0) + huh(10, -62))
     + cls('hc-bouncer-fly', ham(0, 0, 'boing')) + cls('hc-bouncer-home', ham(0, -4, 'home')));
+
+// The catapult (D-194): walks to the pond's edge, stops, the spoon drops in; it steps in, the spoon flicks, and it flies
+// over the water on an arc (4 squares on, 2 rows up at the top) to the far bank, then home.
+VIEW.catapult = '0 136 480 284';
+SCENE.catapult = () => board(['........', '........', '........', '........', '........', '........', '###...##'], [[3, 6], [4, 6], [5, 6]])
+  + place(homeArt(), 420, 300, GS) + fit(120, 300, 'catapult')
+  + cls('hc-catapult-drop', place(cls('hc-catapult-flick', gadget('catapult')), 120, 300, GS)) + sparks('catapult', 142, 340)
+  + cls('hc-catapult-ham', cls('hc-catapult-move', legs('catapult')) + cls('hc-catapult-wait', ham(0, 0) + huh(10, -62))
+    + cls('hc-catapult-fly', ham(0, 0, 'boing')) + cls('hc-catapult-home', ham(0, -4, 'home')));
+
+// The signpost (D-208): out of the start tube on a ledge, along it and down to the floor; it stops at the pond's edge
+// and the signpost drops in; it walks on to it, turns round, and walks back left under the ledge to home. Facing left,
+// the hamster is the same drawing mirrored, in a still inner group (the moving group's own transform is its animation).
+VIEW.signpost = '0 136 480 284';
+const left = (body) => g(body, 'scale(-1 1)');
+SCENE.signpost = () => board(['........', '........', '........', '........', '.###....', '........', '######..'], [[6, 6], [7, 6]])
+  + place(startArt(), 60, 180, GS) + place(homeArt(), 0, 300, GS) + fit(300, 300, 'signpost')
+  + cls('hc-signpost-drop', place(cls('hc-signpost-wob', gadget('signpost')), 300, 300, GS)) + sparks('signpost', 322, 340)
+  + cls('hc-signpost-swirl', path('M 308 294 A 22 11 0 1 1 350 288', 'none', 4, INK) + path('M 342 280 L 352 288 L 340 294', 'none', 4, INK, ' stroke-linejoin="round"'))
+  + cls('hc-signpost-ham', cls('hc-signpost-move', legs('signpost')) + cls('hc-signpost-fall', ham(0, 0, 'fall')) + cls('hc-signpost-wait', ham(0, 0) + huh(10, -62))
+    + cls('hc-signpost-back', left(legs('signpost'))) + cls('hc-signpost-home', left(ham(0, -4, 'home'))));
+
+// The button (D-194): the lid stands up at the gap's left edge, tied by a string to the bottle top; the hamster walks
+// onto the bottle top, which clicks down and stays down; the lid swings down over the gap; over it and home. The lid
+// turns about its hinge, the origin of its still outer group (translate), so its moving group needs no transform.
+VIEW.button = '0 136 480 284';
+SCENE.button = () => board(['........', '........', '........', '........', '........', '........', '###..###'], [[3, 6], [4, 6]])
+  + place(homeArt(), 420, 300, GS) + path('M 82 346 Q 140 322 184 350', 'none', 2.4, '#8B5A3C')
+  + place(cls('hc-button-cap', buttonCap()), 60, 360) + g(cls('hc-button-lid', lidArt(2)), 'translate(180 360)')
+  + cls('hc-button-ham', cls('hc-button-move', legs('button')) + cls('hc-button-home', ham(0, -4, 'home')));
+
+// Pudding (D-194): the Nibble walks onto the marshmallow and is thrown up onto the ledge (3,5 up to 3,2, then on to
+// 4,2) and walks off; Pudding comes behind, squashes the marshmallow flat as it walks in and walks on, home.
+VIEW.pudding = '0 136 480 284';
+SCENE.pudding = () => board(['........', '........', '........', '....####', '........', '........', '########'], [])
+  + place(homeArt(), 420, 300, GS) + cls('hc-pudding-mm', place(gadget('bouncer'), 180, 300, GS))
+  + cls('hc-pudding-nib', legs())
+  + cls('hc-pudding-pud', cls('hc-pudding-w1', cls('hc-legs1', pud(0, 0, 'walk1')) + cls('hc-legs2', pud(0, 0, 'walk2'))) + cls('hc-pudding-home', pud(0, -4, 'home')));
 
 // The floater: walks to the end of a high ledge and stops at the drop; the dandelion drops in; it takes it and
 // drifts gently down, swaying, then walks home.
@@ -175,6 +245,51 @@ function dropIn(k, L, at) {
 }
 const on = (name, L, from, to) => kf(name, `0%, ${from - 0.1}% { opacity: 0 } ${from}%, ${to - 0.1}% { opacity: 1 } ${to}%, 100% { opacity: 0 }`) + rule(name, `${name} ${L}s linear infinite`);
 
+// ---------------------------------------------------------------- the zip-line (step 18a (ii), D-235, card B)
+// Copied by tools/tests/games/copy_hamster_step18a_parts.py 0.1 from mock_hamster_zipcards.js 0.1 (07eea02), with the
+// name zipB made zip and kick art.js's kickFeet: the hook's square lights up and the hook drops in under the block,
+// then the low end's, a dashed line stretches out to it and the peg drops in, and the line turns solid; then the
+// ride, swinging about the reel and kicking, a hop down onto the bank and home. 7 s.
+const ZROWS = ['........', '........', '.##.....', '........', '###.....', '###.....', '###..###'];
+const kick = kickFeet;   // the zip pose, feet kicked (art.js, D-235's ride)
+const onLine = (k) => cls(`hc-${k}-swing`, g(cls('hc-zk1', place(kick(1), 0, 0, SC)) + cls('hc-zk2', place(kick(2), 0, 0, SC)), 'translate(0 52)'));
+const rider = (k) => cls(`hc-${k}-ham`, cls(`hc-${k}-move`, legs()) + cls(`hc-${k}-wait`, ham(0, 0) + huh(10, -62)) + cls(`hc-${k}-on`, onLine(k)) + cls(`hc-${k}-home`, ham(0, -4, 'home')));
+const zline = () => zipLine(150, 210, 390, 330);
+VIEW.zip = '0 96 480 324';
+SCENE.zip = () => board(ZROWS, [[3, 6], [4, 6]]) + place(homeArt(), 420, 300, GS)
+  + cls('hc-zip-hfit', rect(123, 181, 54, 54, SUN, 8, 3, SUN, ' fill-opacity="0.3" stroke-dasharray="6 5"'))
+  + cls('hc-zip-lfit', rect(363, 301, 54, 54, '#A0ECBE', 8, 3, '#2BB673', ' fill-opacity="0.4" stroke-dasharray="6 5"'))
+  + g(cls('hc-zip-ghost', line(0, 0, 240, 120, '#2BB673', 5, ' stroke-dasharray="10 7" stroke-linecap="round"')), 'translate(150 210)')
+  + cls('hc-zip-line', zline())
+  + cls('hc-zip-hook', zipHook(150, 180)) + cls('hc-zip-peg', zipPeg(390, 360, 0.85)) + sparks('zip', 172, 220)
+  + rider('zip');
+
+function zipCss() {
+  let s = '.hc-zip-swing { transform-box: view-box; transform-origin: 0 0; animation: hc-zswing .9s ease-in-out infinite alternate; }\n'
+    + kf('hc-zswing', '0% { transform: rotate(-12deg) } 100% { transform: rotate(12deg) }')
+    + '.hc-zk1 { animation: hc-legs .3s steps(1) infinite; } .hc-zk2 { animation: hc-legs .3s steps(1) infinite reverse; }\n';
+  const ride = (a, b) => `${a}% { ${T(150, 240)} } ${a + 0.1}% { ${T(150, 210)} } ${b}% { ${T(390, 330)} } ${b + 0.1}% { ${T(392, 344)} } ${b + 4}% { ${T(404, 360)} }`;
+  // B: walk 0-17, wait 17-52: the hook's square lit 20-28, the hook drops in at 28; the low end's lit 34-44, the dashed
+  // line 38-46, the peg drops in at 44 and the line turns solid at 46; on the line 52-70, hop 70-74, walk 74-86, home
+  s += kf('hc-zip-ham', `0% { ${T(30, 240)} } 17% { ${T(150, 240)} } ${ride(52, 70)} 86%, 100% { ${T(440, 360)} }`) + rule('hc-zip-ham', 'hc-zip-ham 7s linear infinite')
+    + kf('hc-zip-move', '0%, 16.9% { opacity: 1 } 17%, 70% { opacity: 0 } 70.1%, 85.9% { opacity: 1 } 86%, 100% { opacity: 0 }') + rule('hc-zip-move', 'hc-zip-move 7s linear infinite')
+    + kf('hc-zip-wait', '0%, 16.9% { opacity: 0 } 17%, 51.9% { opacity: 1 } 52%, 100% { opacity: 0 }') + rule('hc-zip-wait', 'hc-zip-wait 7s linear infinite')
+    + kf('hc-zip-on', '0%, 51.9% { opacity: 0 } 52%, 70% { opacity: 1 } 70.1%, 100% { opacity: 0 }') + rule('hc-zip-on', 'hc-zip-on 7s linear infinite')
+    + kf('hc-zip-home', '0%, 85.9% { opacity: 0; transform: translateY(0) } 86% { opacity: 1; transform: translateY(0) } 90% { transform: translateY(-14px) } 94%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-home', 'hc-zip-home 7s ease-in-out infinite')
+    + kf('hc-zip-hfit', '0%, 19.9% { opacity: 0 } 20%, 28% { opacity: 1 } 30%, 100% { opacity: 0 }') + rule('hc-zip-hfit', 'hc-zip-hfit 7s linear infinite')
+    + kf('hc-zip-hook', '0%, 27.9% { opacity: 0; transform: translateY(-60px) } 28% { opacity: 1; transform: translateY(-60px) } 32% { transform: translateY(0) } 34% { transform: translateY(-6px) } 36%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-hook', 'hc-zip-hook 7s ease-in infinite')
+    + kf('hc-zip-lfit', '0%, 33.9% { opacity: 0 } 34%, 44% { opacity: 1 } 46%, 100% { opacity: 0 }') + rule('hc-zip-lfit', 'hc-zip-lfit 7s linear infinite')
+    + kf('hc-zip-ghost', '0%, 37.9% { opacity: 0; transform: scale(0) } 38% { opacity: 1; transform: scale(0.05) } 44% { transform: scale(1) } 46% { opacity: 1; transform: scale(1) } 46.1%, 100% { opacity: 0; transform: scale(1) }')
+    + rule('hc-zip-ghost', 'hc-zip-ghost 7s ease-out infinite', 'transform-box: view-box; transform-origin: 0 0; ')
+    + kf('hc-zip-peg', '0%, 43.9% { opacity: 0; transform: translateY(-60px) } 44% { opacity: 1; transform: translateY(-60px) } 47% { transform: translateY(0) } 49% { transform: translateY(-6px) } 51%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-zip-peg', 'hc-zip-peg 7s ease-in infinite')
+    + kf('hc-zip-line', '0%, 45.9% { opacity: 0 } 46%, 100% { opacity: 1 }') + rule('hc-zip-line', 'hc-zip-line 7s linear infinite')
+    + kf('hc-zip-spark', '0%, 46% { opacity: 0 } 48%, 56% { opacity: 1 } 60%, 100% { opacity: 0 }') + rule('hc-zip-spark', 'hc-zip-spark 7s linear infinite');
+  return s;
+}
+
 function css() {
   let s = kf('hc-legs', '0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 }')
     + '.hc-legs1 { animation: hc-legs .36s steps(1) infinite; } .hc-legs2 { animation: hc-legs .36s steps(1) infinite reverse; }\n'
@@ -204,6 +319,59 @@ function css() {
     + rule('hc-bouncer-fly', 'hc-bouncer-fly 5s linear infinite') + rule('hc-bouncer-home', 'hc-bouncer-home 5s ease-in-out infinite')
     + rule('hc-bouncer-squish', 'hc-bouncer-squish 5s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
     + dropIn('bouncer', 5, 32);
+
+  // catapult, 5.5 s: stops by the spot at 20%, the spoon drops in at 30%, steps into it at 46%, the spoon flicks at 48%,
+  // flies 46% to 62% (up to 2 rows above at 54%), lands on the far bank at 62%, walks home by 76%
+  s += kf('hc-catapult-ham', `0% { ${T(20, 360)} } 20%, 40% { ${T(96, 360)} } 46% { ${T(150, 352)} } 50% { ${T(200, 296)} } 54% { ${T(270, 244)} }`
+    + ` 58% { ${T(330, 276)} } 62% { ${T(390, 360)} } 76%, 100% { ${T(398, 360)} }`)
+    + rule('hc-catapult-ham', 'hc-catapult-ham 5.5s linear infinite')
+    + kf('hc-catapult-move', '0%, 19.9% { opacity: 1 } 20%, 39.9% { opacity: 0 } 40%, 46.9% { opacity: 1 } 47%, 61.9% { opacity: 0 } 62%, 75.9% { opacity: 1 } 76%, 100% { opacity: 0 }')
+    + kf('hc-catapult-wait', '0%, 19.9% { opacity: 0 } 20%, 39.9% { opacity: 1 } 40%, 100% { opacity: 0 }')
+    + kf('hc-catapult-fly', '0%, 46.9% { opacity: 0 } 47%, 61.9% { opacity: 1 } 62%, 100% { opacity: 0 }')
+    + kf('hc-catapult-home', '0%, 75.9% { opacity: 0; transform: translateY(0) } 76% { opacity: 1; transform: translateY(0) } 81% { transform: translateY(-14px) } 86%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-catapult-flick', '0%, 46% { transform: rotate(0) } 49% { transform: rotate(-22deg) } 53% { transform: rotate(8deg) } 57%, 100% { transform: rotate(0) }')
+    + rule('hc-catapult-move', 'hc-catapult-move 5.5s linear infinite') + rule('hc-catapult-wait', 'hc-catapult-wait 5.5s linear infinite')
+    + rule('hc-catapult-fly', 'hc-catapult-fly 5.5s linear infinite') + rule('hc-catapult-home', 'hc-catapult-home 5.5s ease-in-out infinite')
+    + rule('hc-catapult-flick', 'hc-catapult-flick 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 70% 85%; ')
+    + dropIn('catapult', 5.5, 30);
+
+  // pudding, 6 s: the Nibble onto the marshmallow by 22%, up to 3,2 by 30%, on to 4,2 by 34% and off the right edge by
+  // 60%, then gone; Pudding in from the left from 24%, onto the marshmallow at 50% (it squashes flat, 52% to 58%), home by 80%
+  s += kf('hc-pudding-nib', `0% { ${T(20, 360)}; opacity: 1 } 22% { ${T(210, 360)} } 30% { ${T(210, 180)} } 34% { ${T(270, 180)} } 60% { ${T(500, 180)}; opacity: 1 } 61%, 100% { ${T(500, 180)}; opacity: 0 }`)
+    + rule('hc-pudding-nib', 'hc-pudding-nib 6s linear infinite')
+    + kf('hc-pudding-pud', `0%, 24% { ${T(-40, 360)} } 50% { ${T(210, 360)} } 80%, 100% { ${T(398, 360)} }`) + rule('hc-pudding-pud', 'hc-pudding-pud 6s linear infinite')
+    + kf('hc-pudding-w1', '0%, 79.9% { opacity: 1 } 80%, 100% { opacity: 0 }') + rule('hc-pudding-w1', 'hc-pudding-w1 6s linear infinite')
+    + kf('hc-pudding-home', '0%, 79.9% { opacity: 0; transform: translateY(0) } 80% { opacity: 1; transform: translateY(0) } 85% { transform: translateY(-14px) } 90%, 100% { opacity: 1; transform: translateY(0) }')
+    + rule('hc-pudding-home', 'hc-pudding-home 6s ease-in-out infinite')
+    + kf('hc-pudding-mm', '0%, 49% { transform: scale(1, 1) } 52%, 58% { transform: scale(1.3, 0.45) } 64%, 100% { transform: scale(1, 1) }')
+    + rule('hc-pudding-mm', 'hc-pudding-mm 6s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ');
+
+  // button, 5.5 s: onto the bottle top by 22% (it clicks down at 24% and stays down), the lid swings down 26% to 37%,
+  // on from 30%, over the lid (x 180 to 300) and home by 75%
+  s += kf('hc-button-ham', `0% { ${T(20, 360)} } 22%, 30% { ${T(90, 360)} } 75%, 100% { ${T(398, 360)} }`) + rule('hc-button-ham', 'hc-button-ham 5.5s linear infinite')
+    + kf('hc-button-move', '0%, 74.9% { opacity: 1 } 75%, 100% { opacity: 0 }')
+    + kf('hc-button-home', '0%, 74.9% { opacity: 0; transform: translateY(0) } 75% { opacity: 1; transform: translateY(0) } 80% { transform: translateY(-14px) } 85%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-button-cap', '0%, 21% { transform: scale(1, 1) } 24%, 100% { transform: scale(1, 0.5) }')
+    + kf('hc-button-lid', '0%, 26% { transform: rotate(-90deg) } 34% { transform: rotate(4deg) } 37%, 100% { transform: rotate(0deg) }')
+    + rule('hc-button-move', 'hc-button-move 5.5s linear infinite') + rule('hc-button-home', 'hc-button-home 5.5s ease-in-out infinite')
+    + rule('hc-button-cap', 'hc-button-cap 5.5s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
+    + rule('hc-button-lid', 'hc-button-lid 5.5s ease-in infinite', 'transform-origin: 0 0; ');
+
+  // signpost, 6 s: along the ledge 0% to 15%, the drop to the floor to 19%, waits beside the pond's edge to 40% (the
+  // signpost drops in at 28%), on to it by 45%, turns 45% to 51% (facing left from 48%), back left to home by 76%
+  s += kf('hc-signpost-ham', `0% { ${T(90, 240)} } 15% { ${T(270, 240)} } 19%, 40% { ${T(270, 360)} } 45%, 51% { ${T(330, 360)} } 76%, 100% { ${T(30, 360)} }`)
+    + rule('hc-signpost-ham', 'hc-signpost-ham 6s linear infinite')
+    + kf('hc-signpost-move', '0%, 14.9% { opacity: 1 } 15%, 39.9% { opacity: 0 } 40%, 47.9% { opacity: 1 } 48%, 100% { opacity: 0 }')
+    + kf('hc-signpost-fall', '0%, 14.9% { opacity: 0 } 15%, 18.9% { opacity: 1 } 19%, 100% { opacity: 0 }')
+    + kf('hc-signpost-wait', '0%, 18.9% { opacity: 0 } 19%, 39.9% { opacity: 1 } 40%, 100% { opacity: 0 }')
+    + kf('hc-signpost-back', '0%, 47.9% { opacity: 0 } 48%, 75.9% { opacity: 1 } 76%, 100% { opacity: 0 }')
+    + kf('hc-signpost-home', '0%, 75.9% { opacity: 0; transform: translateY(0) } 76% { opacity: 1; transform: translateY(0) } 81% { transform: translateY(-14px) } 86%, 100% { opacity: 1; transform: translateY(0) }')
+    + kf('hc-signpost-wob', '0%, 45% { transform: rotate(0) } 47% { transform: rotate(-12deg) } 50% { transform: rotate(9deg) } 53%, 100% { transform: rotate(0) }')
+    + rule('hc-signpost-move', 'hc-signpost-move 6s linear infinite') + rule('hc-signpost-fall', 'hc-signpost-fall 6s linear infinite')
+    + rule('hc-signpost-wait', 'hc-signpost-wait 6s linear infinite') + rule('hc-signpost-back', 'hc-signpost-back 6s linear infinite')
+    + rule('hc-signpost-home', 'hc-signpost-home 6s ease-in-out infinite')
+    + rule('hc-signpost-wob', 'hc-signpost-wob 6s ease-out infinite', 'transform-box: fill-box; transform-origin: 50% 100%; ')
+    + on('hc-signpost-swirl', 6, 45, 52) + dropIn('signpost', 6, 28);
 
   // floater, 5.5 s: takes it at 48%, drifts down, swaying, to the floor at 76%
   s += kf('hc-floater-ham', `0% { ${T(20, 180)} } 20%, 40% { ${T(96, 180)} } 48% { ${T(150, 180)} } 53% { ${T(178, 214)} } 58% { ${T(196, 252)} }`
@@ -291,6 +459,7 @@ function css() {
     + rule('hc-lift-ham', 'hc-lift-ham 6s ease-in-out infinite') + rule('hc-lift-move', 'hc-lift-move 6s linear infinite')
     + rule('hc-lift-ride', 'hc-lift-ride 6s linear infinite') + rule('hc-lift-home', 'hc-lift-home 6s ease-in-out infinite')
     + rule('hc-lift-string', 'hc-lift-string 6s ease-in-out infinite') + rule('hc-lift-friend', 'hc-lift-friend .8s ease-in-out infinite');
+  s += zipCss();   // the zip-line's (step 18a (ii))
   return s;
 }
 export const CARD_CSS = css();
@@ -300,6 +469,8 @@ export const CARD_CSS = css();
 export function badgeArt(kind) {
   let s = rect(84, 30, 78, 78, '#FFF', 16, 3);
   if (kind === 'bridge' || kind === 'stick') s += place(gadget(kind), 92, 58, 0.62);
+  else if (kind === 'button') s += place(buttonCap(), 93, 84, 1.1);
+  else if (kind === 'pudding') s += place(pudding('walk1'), 123, 100, 0.62);
   else if (kind === 'seesaw') s += place(seesawArt(), 123, 72, 0.26, -24) + place(potArt(0, 0, 30), 123, 72, 0.6);
   else if (kind === 'lift') s += path('M 123 36 L 123 70', 'none', 3, '#E8505B', ' stroke-dasharray="6 4"') + place(teacupBack(), 123, 86) + place(teacupFront(), 123, 86);
   else s += place(gadget(kind), 93, 39, 0.6);
